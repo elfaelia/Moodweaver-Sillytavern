@@ -224,12 +224,12 @@ export function activeMoods(state) {
 // Strength words match the sliders. Numbers never reach the roleplay model; each band gets
 // one plain line saying how much a feeling at that strength actually does.
 export const TIERS = [
-    { min: 81, name: 'Intense', text: 'Takes over their head. Can break through self-control and good sense, and drives what they do even when it’s bad for them.' },
-    { min: 61, name: 'Strong', text: 'Hard to hide and hard to ignore. Pushes them to act on it. They can still hold back if they really have to, but it costs them.' },
-    { min: 41, name: 'Clear', text: 'Obvious in how they talk and act. They act on it when the moment allows, and hiding it takes effort.' },
-    { min: 21, name: 'Mild', text: 'Colours their tone and passing thoughts, and can tip small choices. Their situation and judgement easily win out over it.' },
-    { min: 11, name: 'Subtle', text: 'In the background. Might show as a stray thought or a small tell, but doesn’t change what they do.' },
-    { min: 1, name: 'Faint', text: 'Barely there. They might not even notice it. At most a passing flicker in their head; most replies won’t show it at all.' },
+    { min: 81, name: 'Intense', adverb: 'intensely', text: 'Takes over their head. Can break through self-control and good sense, and drives what they do even when it’s bad for them.' },
+    { min: 61, name: 'Strong', adverb: 'strongly', text: 'Hard to hide and hard to ignore. Pushes them to act on it. They can still hold back if they really have to, but it costs them.' },
+    { min: 41, name: 'Clear', adverb: 'clearly', text: 'Obvious in how they talk and act. They act on it when the moment allows, and hiding it takes effort.' },
+    { min: 21, name: 'Mild', adverb: 'mildly', text: 'Colours their tone and passing thoughts, and can tip small choices. Their situation and judgement easily win out over it.' },
+    { min: 11, name: 'Subtle', adverb: 'subtly', text: 'In the background. Might show as a stray thought or a small tell, but doesn’t change what they do.' },
+    { min: 1, name: 'Faint', adverb: 'faintly', text: 'Barely there. They might not even notice it. At most a passing flicker in their head; most replies won’t show it at all.' },
 ];
 // Scene and body states are facts, not feelings, so their strength says how much they matter.
 export const STATE_TIERS = [
@@ -290,7 +290,7 @@ const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, nam
 // Feelings are grouped by strength, since the strength line is what tells the model how far each one reaches.
 function feelingBands(state, list) {
     return TIERS.map(t => ({ t, items: list.filter(m => tierOf(state.moods[m.id]) === t) })).filter(x => x.items.length)
-        .flatMap(({ t, items }) => [`${t.name}: ${lowerFirst(t.text)}`, ...items.map(m => `- ${moodName(m)}`), '']);
+        .flatMap(({ t, items }) => [`${t.name}. ${t.text}`, `Feeling this ${t.adverb}:`, ...items.map(m => `- ${moodName(m)}`), '']);
 }
 // States are grouped by what they are (body, relationship...) so unrelated facts never share a line.
 function stateGroups(state, list) {

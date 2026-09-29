@@ -1,11 +1,11 @@
-import { CATEGORIES, MOODS, RECIPES, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { CATEGORIES, MOODS, BY_ID, RECIPES, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
 const defaults = { tokenBudget: 500, depth: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 2 };
 let panel, selectedAvatar = '', pending = null, promptVersion = 0, suspended = false;
-let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '';
+let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood';
 const generationSnapshots = new Map();
 const openCategories = new Set();
 
@@ -171,7 +171,7 @@ function render() {
         <label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> Enabled</label></div>
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
     <div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
-    <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say.'}</p>
+    <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Scene & body states stay as you set them.'}</p>
     <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active</span></div>
         <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${m.label}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
@@ -184,12 +184,15 @@ function render() {
         <p class="mw-fine">Higher sensitivity allows stronger reactions. Higher inertia makes changes slower. Mood carryover advances on successful scene reads, not real-world time.</p>
         <label>Fade absent moods toward zero by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> points per read, before inertia</label>
         <label>Read every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> new user turns</label></details></div>` : ''}
-    <div class="mw-tools"><input class="mw-search" type="search" placeholder="Find a feeling…" aria-label="Search moods" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
+    <div class="mw-mode mw-tabs" role="group" aria-label="Section">${[['mood', '♡ &nbsp; Moods & traits'], ['state', '⌂ &nbsp; Scene & body']].map(([k, label]) => {
+        const n = active.filter(m => m.kind === k).length;
+        return `<button data-tab="${k}" aria-pressed="${tab === k}">${label}${n ? ` · ${n}` : ''}</button>`; }).join('')}</div>
+    <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search moods and states" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
     <div class="mw-scale"><span>Off</span><span>Faint</span><span>Subtle</span><span>Mild</span><span>Clear</span><span>Strong</span><span>Intense</span></div>
-    <div class="mw-categories">${CATEGORIES.map(([id, name, icon, color]) => {
+    <div class="mw-categories">${CATEGORIES.map(([id, name, icon, color, , kind = 'mood']) => {
         const list = MOODS.filter(m => m.category === id), n = list.filter(m => state.moods[m.id]).length;
-        return `<details data-category="${id}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
-    }).join('')}</div><p class="mw-no-results" hidden>No matching feelings.</p>
+        return `<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+    }).join('')}</div><p class="mw-no-results" hidden>Nothing matches.</p>
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
         <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
         <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
@@ -207,7 +210,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. Over the token target, moods get squashed onto one line per band; nothing is ever dropped. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.4.0</div>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.5.0</div>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
@@ -221,7 +224,8 @@ function filterRows() {
         d.querySelectorAll('[data-mood]').forEach(row => {
             row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) count++;
         });
-        d.hidden = count === 0; shown += count;
+        const inTab = term || d.dataset.kind === tab;
+        d.hidden = count === 0 || !inTab; if (inTab) shown += count;
         d.open = term ? count > 0 : openCategories.has(d.dataset.category);
     });
     const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
@@ -277,9 +281,15 @@ function setup() {
     panel.addEventListener('click', async e => {
         const button = e.target.closest('button'); if (!button) return;
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
+        if (button.dataset.tab) {
+            tab = button.dataset.tab;
+            panel.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab)));
+            filterRows(); return;
+        }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
-            search = ''; panel.querySelector('.mw-search').value = ''; filterRows();
+            search = ''; panel.querySelector('.mw-search').value = ''; tab = BY_ID[button.dataset.jump]?.kind ?? tab;
+            panel.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab))); filterRows();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
             category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }

@@ -10,12 +10,15 @@ export const CATEGORIES = [
         ['adoring', 'Adoring', 'completely taken with someone'], ['caring', 'Caring', 'thoughtful about how someone’s doing'],
         ['fatherly', 'Fatherly', 'patient and dad-like'],
         ['yearning', 'Yearning', 'aching to be close to someone'], ['aloof', 'Aloof', 'cool and standoffish'], ['distant', 'Distant', 'checked out, hard to reach'],
+        ['avoidant', 'Avoidant', 'dodging closeness or hard conversations'], ['romantic', 'Romantic', 'in a romantic mood'],
     ]],
     ['desire', 'Desire & attachment', '◇', '#c6a0ef', [
         ['horny', 'Horny', 'turned on'], ['sexually_frustrated', 'Sexually frustrated', 'wanting sex and not getting it'],
         ['obsessed', 'Obsessed', 'can’t stop thinking about someone or something'], ['jealous', 'Jealous', 'scared of losing someone to someone else'],
         ['suave', 'Suave', 'smooth and charming'],
         ['sensual', 'Sensual', 'tuned into touch, pleasure and atmosphere'],
+        ['flirty', 'Flirty', 'in the mood to flirt'],
+        ['male_gaze', 'Male gaze', 'looking at their partner as a body, all looks and sex appeal'],
     ]],
     ['appetites', 'Appetites & dynamics', '♧', '#d69bbb', [
         ['master', 'Master', 'authoritarian role'],
@@ -25,7 +28,7 @@ export const CATEGORIES = [
         ['service_top', 'Service top', 'takes charge for their partner’s pleasure'],
         ['masochist', 'Masochist', 'enjoys receiving pain'],
         ['sadist', 'Sadist', 'enjoys dishing out pain'],
-        ['owner', 'Owner', 'wants to own their partner'],
+        ['owner', 'Owner', 'pet play, treats their partner as their pet'],
         ['switch', 'Switch', 'enjoys both leading and giving up control'],
         ['service_submissive', 'Service submissive', 'wants to serve and please'],
         ['praise_seeking', 'Praise seeking', 'craves praise'],
@@ -39,6 +42,15 @@ export const CATEGORIES = [
         ['sensation_seeking', 'Sensation seeking', 'craves intense physical sensation'],
         ['anticipation', 'Anticipation', 'loves the slow build-up'],
         ['aftercare_oriented', 'Aftercare oriented', 'wants to hold and look after them afterwards'],
+        ['doll_keeper', 'Doll keeper', 'treats their partner as a doll to dress, pose and play with'],
+        ['objectifying', 'Objectifying', 'sees their partner as a body to use'],
+        ['predator', 'Predator', 'the hunter in predator and prey play'],
+        ['prey', 'Prey', 'the hunted in predator and prey play'],
+        ['rough', 'Rough', 'likes it rough'],
+        ['primal', 'Primal', 'raw, animal instinct'],
+        ['aloofness_kink', 'Aloofness kink', 'ignores their partner mid-sex to get to them'],
+        ['vanilla', 'Vanilla', 'wants straightforward, vanilla sex'],
+        ['hidden_monster', 'Hidden monster', 'gets off on being loved by someone who has no idea what they really are'],
     ]],
     ['friction', 'Friction & conflict', 'ϟ', '#eeac85', [
         ['irked', 'Irked', 'a bit put out'], ['annoyed', 'Annoyed', 'irritated'],
@@ -51,6 +63,10 @@ export const CATEGORIES = [
         ['controlling', 'Controlling', 'wants to control what others do'], ['domineering', 'Domineering', 'bossy and overbearing'],
         ['ruthless', 'Ruthless', 'will do whatever it takes, whoever gets hurt'],
         ['cynical', 'Cynical', 'assumes the worst about people'], ['argumentative', 'Argumentative', 'itching for an argument'],
+        ['condescending', 'Condescending', 'talks down to people'], ['judgemental', 'Judgemental', 'quick to judge'],
+        ['biased', 'Biased', 'already made their mind up about someone'], ['harsh', 'Harsh', 'blunt and unkind'],
+        ['merciless', 'Merciless', 'shows no mercy'],
+        ['misogynist', 'Misogynist', 'looks down on women'], ['misandrist', 'Misandrist', 'looks down on men'],
     ]],
     ['tender', 'Vulnerability & unease', '☂', '#a5b5f3', [
         ['vulnerable', 'Vulnerable', 'exposed and easily hurt'], ['betrayed', 'Betrayed', 'let down by someone they trusted'],
@@ -63,6 +79,7 @@ export const CATEGORIES = [
         ['losing_control', 'Losing control', 'struggling to keep it together'], ['pathetic', 'Pathetic', 'pitiful and grovelling'],
         ['disappointed', 'Disappointed', 'let down, things didn’t go how they hoped'], ['apprehensive', 'Apprehensive', 'uneasy about what’s coming'],
         ['hesitant', 'Hesitant', 'unsure, holding back'],
+        ['humiliated', 'Humiliated', 'shamed and small'], ['shocked', 'Shocked', 'caught off guard, stunned'],
     ]],
     ['spark', 'Spark & momentum', '✧', '#e5ca7f', [
         ['playful', 'Playful', 'up for fun and mischief'], ['inspired', 'Inspired', 'full of ideas'],
@@ -72,6 +89,7 @@ export const CATEGORIES = [
         ['intrigued', 'Intrigued', 'hooked by something'], ['experimental', 'Experimental', 'up for trying new things'],
         ['delighted', 'Delighted', 'really pleased'], ['smug', 'Smug', 'pleased with themselves'],
         ['extroverted', 'Extroverted', 'wants people around'],
+        ['interested', 'Interested', 'engaged and paying attention'],
     ]],
     ['composure', 'Composure & intention', '◎', '#8fcebc', [
         ['calm', 'Calm', 'settled and steady'], ['stoic', 'Stoic', 'keeps their feelings to themselves'],
@@ -91,6 +109,15 @@ export const CATEGORIES = [
         ['introverted', 'Introverted', 'wants quiet and space'],
         ['intuitive', 'Intuitive', 'goes with their gut'],
         ['clinical', 'Clinical', 'cold, detached and precise'],
+        ['quiet', 'Quiet', 'not saying much'],
+    ]],
+    ['style', 'Style & presence', '❦', '#9fc0d8', [
+        ['gentlemanly', 'Gentlemanly', 'courteous, old-fashioned manners'],
+        ['preening', 'Preening', 'fussing over how they look'],
+        ['glamouring', 'Glamouring', 'knowingly making themselves irresistible to their partner'],
+        ['wry', 'Wry', 'dry, understated humour'],
+        ['poetic', 'Poetic', 'thinks and talks in a poetic way'],
+        ['artistic', 'Artistic', 'sees everything with an artist’s eye'],
     ]],
     ['psychology', 'Mindsets & psychological states', '◈', '#a6a0cb', [
         ['emotionless', 'Emotionless', 'numb, feels nothing'],
@@ -108,12 +135,23 @@ export const CATEGORIES = [
     ]],
     ['energy', 'Energy & condition', '☾', '#b9b4cd', [
         ['tired', 'Tired', 'worn out'], ['lazy', 'Lazy', 'can’t be bothered'],
-        ['apathetic', 'Apathetic', 'doesn’t care about much'], ['drunk', 'Drunk', 'had too much to drink'],
-        ['high', 'High', 'high on something'],
+        ['apathetic', 'Apathetic', 'doesn’t care about much'], ['bored', 'Bored', 'nothing’s holding their attention'],
         ['careless', 'Careless', 'not minding details or consequences'],
     ]],
+    ['body', 'Body & condition', '✚', '#d7a39b', [
+        ['drunk', 'Drunk', 'had too much to drink'], ['high', 'High', 'high on something'],
+        ['tweaking', 'Tweaking', 'wired and jittery on stimulants'], ['injured', 'Injured', 'physically hurt'],
+        ['cold', 'Cold', 'feeling the cold'], ['hot', 'Hot', 'overheated'],
+    ], 'state'],
+    ['scene', 'Scene & relationship', '⌂', '#a9c2a1', [
+        ['domestic', 'Domestic', 'everyday home life together'], ['horror', 'Horror', 'a horror tone to the scene'],
+        ['age_gap', 'Age gap', 'a noticeable age gap between them'],
+        ['secret_relationship', 'Secret relationship', 'their relationship is hidden from others'],
+        ['secret_past', 'Secret past', 'hiding crimes, violence or worse'],
+    ], 'state'],
 ];
-export const MOODS = CATEGORIES.flatMap(([category, , , color, rows]) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color })));
+export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
+export const FEELINGS = MOODS.filter(m => m.kind === 'mood');
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 export const RECIPES = {
     'Soft landing': { warm: 55, affectionate: 40, calm: 45 },
@@ -160,34 +198,73 @@ export const TIERS = [
     { min: 11, name: 'Subtle', text: 'In the background. Might show as a stray thought or a small tell, but doesn’t change what they do.' },
     { min: 1, name: 'Faint', text: 'Barely there. They might not even notice it. At most a passing flicker in their head; most replies won’t show it at all.' },
 ];
-// Only moods whose slider name wouldn't make sense to the model on its own get a different wording.
+// Scene and body states are facts, not feelings, so their bands describe how much they matter.
+export const STATE_TIERS = [
+    { min: 81, name: 'Intense', text: 'As strong as it gets. It dominates the scene and how they act.' },
+    { min: 61, name: 'Strong', text: 'Hard to ignore. It shapes the scene and shows up often.' },
+    { min: 41, name: 'Clear', text: 'Plainly there. It comes up naturally and affects what happens.' },
+    { min: 21, name: 'Mild', text: 'In the background. It shows now and then.' },
+    { min: 11, name: 'Subtle', text: 'Mostly unnoticed. The odd detail or mention.' },
+    { min: 1, name: 'Faint', text: 'Barely there. A detail at most, often not at all.' },
+];
+// Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
     masking_warmth: 'acting warm to hide how they really feel',
     masking_coldness: 'acting cold to hide how they really feel',
     masking_emotive: 'putting on a show of emotion to cover the real thing',
     masking_less_emotive: 'playing it down so their feelings don’t show',
     daddy: 'daddy (nurturing authority role)',
+    owner: 'owner (pet play)',
     anticipation: 'into the slow build-up',
     god_complexed: 'god complex',
-    lying: 'lying',
+    male_gaze: 'male gaze (sees their partner as a body, all looks and sex appeal)',
+    doll_keeper: 'doll keeper (treats their partner as a doll to dress, pose and play with)',
+    predator: 'predator (the hunter in predator and prey play)',
+    prey: 'prey (the hunted in predator and prey play)',
+    rough: 'likes it rough',
+    primal: 'primal (raw, animal instinct)',
+    aloofness_kink: 'aloofness kink (ignores their partner mid-sex to get to them)',
+    vanilla: 'wants vanilla sex',
+    hidden_monster: 'hidden monster (gets off on being trusted and loved by someone who has no idea what they really are)',
+    glamouring: 'glamouring (knowingly making themselves as attractive as possible to their partner, playing to exactly what gets to them)',
+    tweaking: 'tweaking (wired on stimulants)',
+    injured: 'physically injured',
+    cold: 'cold (temperature)',
+    hot: 'hot (temperature)',
+    domestic: 'everyday domestic life',
+    horror: 'horror tone',
+    age_gap: 'an age gap between them',
+    secret_relationship: 'their relationship is a secret',
+    secret_past: 'hiding a dark past (crimes, violence, murder)',
 };
-export const tierOf = v => TIERS.find(t => v >= t.min) ?? null;
+export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 const moodName = m => PROMPT_NAME[m.id] ?? m.label.toLowerCase();
+function bands(state, list, tiers, compact) {
+    return tiers.map(t => ({ t, items: list.filter(m => tierOf(state.moods[m.id], tiers) === t) })).filter(x => x.items.length)
+        .flatMap(({ t, items }) => [`${t.name}. ${t.text}`, ...(compact ? [items.map(moodName).join(', ')] : items.map(m => `- ${moodName(m)}`)), '']);
+}
 export function composePrompt(state, name, compact = false) {
-    if (!state.enabled || !activeMoods(state).length) return '';
-    const active = activeMoods(state);
+    const active = state.enabled ? activeMoods(state) : [];
+    if (!active.length) return '';
     const n = String(name ?? '').trim() || 'the character';
-    const tiers = TIERS.map(t => ({ t, list: active.filter(m => tierOf(state.moods[m.id]) === t) })).filter(x => x.list.length);
-    const lines = [
+    const feelings = active.filter(m => m.kind !== 'state'), states = active.filter(m => m.kind === 'state');
+    const lines = [];
+    if (feelings.length) lines.push(
         `How ${n} is feeling right now, set by the user, strongest first. Strength works like it does in real people: a faint feeling barely registers and gives way to everything else, a strong one is hard to ignore, and an intense one can take over.`,
         '',
-        ...tiers.flatMap(({ t, list }) => [`${t.name}. ${t.text}`, ...(compact ? [list.map(moodName).join(', ')] : list.map(m => `- ${moodName(m)}`)), '']),
+        ...bands(state, feelings, TIERS, compact),
         `These are all felt at once and mix together like real emotions. The strongest lead and the rest tint them. Feelings that clash leave them conflicted instead of cancelling out. How much shows depends on who ${n} is, who's around and what's at stake: in a secret, public or risky moment, weaker feelings stay hidden while strong ones fight to get out.`,
-        `This list is how ${n} feels right now. Their personality stays the same, but their current feelings come from here, not from their character description or how they felt earlier in the chat. If a feeling isn't listed, it doesn't drive what they say or do; small things in the scene cause a passing flicker at most. Only something big can bring up a new feeling or shake a listed one, and the stronger a listed feeling is, the more it takes.`,
-    ];
+        `This list is how ${n} feels right now. Their personality stays the same, but their current feelings come from here, not from their character description or how they felt earlier in the chat. Traits that are really feelings about someone count as feelings too, so they only drive ${n} if they're on this list. If a feeling isn't listed, it doesn't drive what they say or do; small things in the scene cause a passing flicker at most. Only something big can bring up a new feeling or shake a listed one, and the stronger a listed feeling is, the more it takes.`,
+    );
+    if (states.length) lines.push(
+        ...(feelings.length ? [''] : []),
+        `What's true for ${n} and the scene right now, set by the user, most important first. These are facts, not feelings. Let them affect things the way they naturally would.`,
+        '',
+        ...bands(state, states, STATE_TIERS, compact),
+    );
     if (state.sceneBreathing !== false) lines.push(`Let whatever's happening carry on at its own pace. The mood changes how ${n} goes about it; only a strong feeling should pull the scene somewhere else.`);
     lines.push(`Show this through ${n}'s thoughts, voice and actions, in character. Don't mention these settings in the reply.`);
-    return `<mood character="${escapeHtml(n)}">\n${lines.join('\n')}\n</mood>`;
+    return `<mood character="${escapeHtml(n)}">\n${lines.join('\n').replace(/\n{3,}/g, '\n\n')}\n</mood>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens) {
     const all = state.enabled ? activeMoods(state) : [];
@@ -207,7 +284,7 @@ export function parseAnalysis(text) {
     if (!data || typeof data.moods !== 'object' || Array.isArray(data.moods) || data.moods === null) throw new Error('The analyser returned no mood object. Your moods were kept.');
     const moods = {};
     for (const [id, value] of Object.entries(data.moods)) {
-        if (!Object.hasOwn(BY_ID, id)) continue;
+        if (!Object.hasOwn(BY_ID, id) || BY_ID[id].kind === 'state') continue;
         if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) throw new Error('The analyser returned an invalid intensity. Your moods were kept.');
         moods[id] = Math.round(value);
     }
@@ -218,7 +295,7 @@ export function blendAnalysis(state, result) {
     const next = { ...state.moods };
     const responsiveness = 1 - state.inertia / 100;
     const maxStep = 5 + state.sensitivity * .3;
-    for (const m of MOODS) {
+    for (const m of FEELINGS) {
         if (state.pins[m.id]) continue;
         const old = state.moods[m.id] || 0;
         // Absence gently fades a state; an explicit zero can resolve it faster.
@@ -243,7 +320,7 @@ export function sceneData(chat, character, state, settings) {
     return { character: { name: String(character?.name ?? '').slice(0, 100),
         personality: String(character?.personality ?? character?.data?.personality ?? '').slice(0, 1600),
         description: String(character?.description ?? character?.data?.description ?? '').slice(0, 2400) },
-    previous_moods: Object.fromEntries(activeMoods(state).map(m => [m.id, state.moods[m.id]])),
+    previous_moods: Object.fromEntries(activeMoods(state).filter(m => m.kind !== 'state').map(m => [m.id, state.moods[m.id]])),
     pinned: Object.keys(state.pins).filter(k => state.pins[k]), scene };
 }
 export function analysisMessages(data) {
@@ -252,12 +329,12 @@ export function analysisMessages(data) {
 
 Rate only the named character's feelings as they stand at the end of the scene, not anyone else's. Score each mood independently from 0 to 100; they are not shares of a total, and contradictory moods can both be high. Rough guide: 5 is a faint trace the character barely notices, 15 is subtle, 30 mild, 50 clearly felt, 70 strong and hard to hide, 90 overwhelming.
 
-Judge what the character feels inside, not just how they behave: someone composed can be furious underneath. Only use masking, lying, stoic or emotionless when the scene shows them hiding or numbing feelings. Only use drunk or high when the scene shows it. Only use the kink and power-dynamic moods (${appetites}) when the scene has that kind of dynamic going on.
+Judge what the character feels inside, not just how they behave: someone composed can be furious underneath. Only use masking, lying, stoic or emotionless when the scene shows them hiding or numbing feelings. Only use the kink and power-dynamic moods (${appetites}) when the scene has that kind of dynamic going on.
 
 previous_moods is the last estimate. Carry over moods that still fit, including weak ones, move them gradually unless the scene gives a real reason for a jump, and set a mood to 0 when the scene has resolved it. Moods listed in pinned are locked by the user, so you can leave them out.
 
 Reply with JSON only, no markdown: {"moods":{"mood_id":40},"reason":"One short sentence naming what in the scene prompted the change"}
-Allowed mood IDs: ${MOODS.map(m => m.id).join(', ')}` },
+Allowed mood IDs: ${FEELINGS.map(m => m.id).join(', ')}` },
     { role: 'user', content: JSON.stringify(data) }];
 }
 export function fingerprint(chat) {

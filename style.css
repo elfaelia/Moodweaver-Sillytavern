@@ -46,3 +46,5 @@
 .mw-settings-entry{border:1px solid #ffffff20;border-radius:8px;padding:12px;margin:10px 0}.mw-settings-entry p{font-size:12px;opacity:.7}
 @media(max-width:520px){.mw-panel{right:8px;top:40px;width:calc(100vw - 16px);max-height:calc(100dvh - 54px)}.mw-top{padding:19px 18px 16px}.mw-context,.mw-mode,.mw-summary,.mw-dynamic,.mw-tools{margin-left:18px;margin-right:18px}#moodweaver-launcher{right:10px;bottom:72px;padding:8px 12px}.mw-row-head{gap:6px}}
 @media(prefers-reduced-motion:reduce){.mw-panel *{scroll-behavior:auto!important;transition:none!important}}
+
+.mw-tabs{margin-top:16px;margin-bottom:12px}

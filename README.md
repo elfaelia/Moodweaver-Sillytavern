@@ -16,15 +16,13 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.3.0 includes **140 sliders in nine collapsible categories**, including 21 adult role appetites. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.4.0 includes **140 sliders in nine collapsible categories**, including 21 adult role appetites. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
-### Mixing and strengths in 1.3.0
+### Mixing and strengths (1.4.0)
 
-Every nonzero slider is sent at its exact strength. All 140 states can coexist in any combination, including opposites. There is no cutoff, twelve-state limit, pair exclusion, or normalization to a total of 100. Four percent remains faint even by itself, while fifty percent carries substantially more weight. The shared scale uses anchors at 0/off, 1/barely present, 10/faint, 25/mild, 50/clear, 75/strong and 100/overwhelming; the prompt asks the model to interpolate between them rather than treat each band identically.
+Moods reach the roleplay model as words, not numbers. Each active mood is placed under the same strength word you see on its slider (Faint 1–10, Subtle 11–20, Mild 21–40, Clear 41–60, Strong 61–80, Intense 81–100), and each occupied band gets one sentence describing how far a feeling at that strength reaches: faint feelings stay private and change nothing, mild ones colour tone but give way to circumstance and judgement, strong ones are hard to hide and push toward action, intense ones can override self-control. A shared paragraph tells the model to blend everything into one inner life, let contradictions become tension, and let who is present and what is at stake decide how much shows. Only bands that have moods in them are sent.
 
-The prompt distinguishes inner experience, outward manner and motivation to act. Stronger states should shape attention, tone and relevant choices; weaker states add undertones. Opposing states can form ambivalence or different facets without cancelling or becoming a checklist of separate actions. Intensity is neither probability nor a compulsory action. The model interprets these directions; the extension cannot mathematically guarantee a particular portrayal.
-
-Masking, Stoic, Lying and Emotionless have additional interpretation guidance ONLY when their own slider is above zero. They are never automatically enabled. Active masking changes the degree of performed presentation without erasing inner feelings; active stoicism affects outward restraint; active lying affects communication. Turning them off removes their guidance from this extension's prompt.
+Labels that could be misread (masking, stoic, emotionless, lying, daddy, fatherly and a few others) carry a short note in brackets. Everything else is sent as its plain name, since the model already knows what "angry" means.
 
 **Give scenes breathing room** remains a per-chat option in the inspector. It asks the model to weigh redirection against obligations, opportunities and the whole blend. It no longer contains scenario-specific prohibitions. This pacing preference does not activate a mood or expression modifier.
 
@@ -71,11 +69,9 @@ At the defaults, **Sensitivity 50** permits a maximum movement of 20 points per 
 
 ## Hidden prompt and token budgets
 
-The extension uses SillyTavern's `setExtensionPrompt` with an in-chat **user-role injection at depth 0**. It contributes a temporary prompt message, never a stored or displayed chat bubble. It does not modify your character card, Author's Note, model preset, or message text. SillyTavern's prompt inspector can still show it; “hidden” means absent from the normal transcript, not secret from you or the model.
+The extension uses SillyTavern's `setExtensionPrompt` with an in-chat user-role injection, by default at **depth 1** (just before your latest message, so your own words are the last thing the model reads). Depth is adjustable under *Prompt, budgets & character defaults*. It never edits your card, preset, Author's Note or messages, and SillyTavern's prompt inspector can still show it.
 
-Every active state gets its exact number inside a compact XML blend. Shared interpretation rules avoid repeating a paragraph for every slider. Optional definitions are included when they fit the target; conditional interpretation rules remain in both formats. All-zero or Disabled sends no mood prompt.
-
-The former hard budget is now a **320-token soft target**, counted through SillyTavern's selected tokenizer. The compiler first removes optional definitions. If the complete compact blend still exceeds the target, it sends the complete blend and explicitly reports the overrun in the panel and inspector. No states are silently dropped. Saved budget numbers are retained as targets. Even all 140 active states produce about 1,180 tokens with the character-based test estimate, not hundreds of thousands. Provider tokenization and message framing differ; these estimates are not exact billing counts. Analyser output and scene caps remain limits.
+The token target (default 500) is soft. Over target, optional label notes are dropped first; moods, strength bands and blending guidance are never dropped, and the panel reports any overrun. A typical five- to seven-mood blend is roughly 350–450 tokens.
 
 Analyser defaults: eight recent messages, 12,000 scene text characters, 4,000 character-description/personality characters combined, and an 800-output-token cap. The scene cap is characters, not tokens. The analyser also needs tokens for its instructions, mood vocabulary and current values. Budget settings are global. Reasoning models may consume their output allowance on thinking before returning JSON; use a small non-reasoning model or raise the analyser output cap if responses truncate.
 

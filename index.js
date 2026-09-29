@@ -3,7 +3,7 @@ import { CATEGORIES, MOODS, RECIPES, activeMoods, freshState, extendCatalogue, l
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const defaults = { tokenBudget: 320, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {} };
+const defaults = { tokenBudget: 500, depth: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 2 };
 let panel, selectedAvatar = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '';
 const generationSnapshots = new Map();
@@ -12,8 +12,12 @@ const openCategories = new Set();
 function settings() {
     const c = ctx();
     c.extensionSettings[KEY] ??= structuredClone(defaults);
-    return Object.assign(c.extensionSettings[KEY], {
-        tokenBudget: clamp(c.extensionSettings[KEY].tokenBudget ?? 320, 160, 1000),
+    const saved = c.extensionSettings[KEY];
+    // The v2 prompt explains each strength tier in words, so the old 320 default is too tight.
+    if ((saved.promptVersion ?? 1) < 2) { if ((saved.tokenBudget ?? 320) === 320) saved.tokenBudget = 500; saved.promptVersion = 2; }
+    return Object.assign(saved, {
+        tokenBudget: clamp(saved.tokenBudget ?? 500, 160, 1500),
+        depth: clamp(saved.depth ?? 1, 0, 10),
         sceneMessages: clamp(c.extensionSettings[KEY].sceneMessages ?? 8, 2, 30),
         sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 12000, 2000, 40000),
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 4000),
@@ -61,8 +65,9 @@ async function syncPrompt(forGeneration = false) {
     try {
         const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text));
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
-        // USER-role at the end of context: no changes to the character card, preset or transcript.
-        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, 0, false, 1);
+        // In-chat, user role. Depth 1 sits just before your latest message, so your own words stay the last thing
+        // the model reads and the mood reads as standing context rather than a fresh request.
+        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, settings().depth, false, 1);
         promptInfo = result; renderPreview();
     } catch {
         c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
@@ -78,7 +83,7 @@ function renderPreview() {
     const preview = panel.querySelector('[data-preview]');
     if (preview) preview.textContent = promptInfo.prompt || 'No mood directions are being sent.';
     const audit = panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every nonzero strength is included unchanged. No pair exclusions or normalization.\nFormat: ${promptInfo.compact ? 'compact values + mixing rules' : 'values + definitions + mixing rules'} · user role · depth 0${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target to preserve the complete blend.` : ''}`;
+    if (audit) audit.textContent = `Every active mood is sent, grouped under the same strength words shown on the sliders. Numbers are not sent.\nFormat: ${promptInfo.compact ? 'compact (optional label notes dropped)' : 'full'} · user role · depth ${settings().depth}${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target; nothing was dropped.` : ''}`;
     const last = panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
@@ -188,7 +193,7 @@ function render() {
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
         <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
         <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
-        <p class="mw-fine">Every nonzero value is sent: 4% is faint, 50% clear, 90% intense. All states can mix, including opposites. Expression modifiers only apply when selected. Pins lock values; they do not increase importance.</p>
+        <p class="mw-fine">Moods are sent as words, not numbers: each one goes under its strength band (Faint, Subtle, Mild, Clear, Strong, Intense) with a line describing how far a feeling at that strength reaches. Faint feelings stay private and change nothing; intense ones can override judgement. Any moods can be mixed, including opposites. Pins lock values; they don’t add importance.</p>
         <div data-token-count class="mw-token-count"></div><pre data-audit></pre>
         <b>Current prepared injection</b><pre data-preview></pre>
         <b>Last generation preparation</b><pre data-last-prompt></pre>
@@ -196,12 +201,13 @@ function render() {
     <details class="mw-advanced"><summary>Prompt, budgets & character defaults</summary>
         <p class="mw-fine">Saved separately for each chat and character. Save this setup as a character default to seed their future chats; existing chats keep their own blend.</p>
         <div class="mw-actions"><button data-action="baseline">Save character default</button><button data-action="reset">Clear unpinned moods</button></div>
-        <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="1000" value="${settings().tokenBudget}"> tokens</label>
+        <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="1500" value="${settings().tokenBudget}"> tokens</label>
+        <label>Injection depth <input type="number" data-setting="depth" min="0" max="10" value="${settings().depth}"> messages from the end</label>
         <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
-        <p class="mw-fine">Settings apply globally. The mood target trims optional definitions, never selected values or mixing rules. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.3.0</div>`;
+        <p class="mw-fine">Settings apply globally. Over the token target, optional label notes are dropped first; moods and strength bands never are. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.4.0</div>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;

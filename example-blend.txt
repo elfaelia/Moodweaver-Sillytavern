@@ -1,12 +1,16 @@
-<character_mood name="Alex">
-Independent strengths /100, not probabilities or shares of a total: 0 off, 1 barely present, 10 faint, 25 mild, 50 clear, 75 strong, 100 overwhelming. Interpolate between anchors; 4 is faint even alone, far weaker than 50.
-Blend ALL listed states simultaneously, scaling each label by its number. Stronger states carry more weight in attention, tone and relevant choices; weaker ones add subtle undertones. Opposites coexist as ambivalence or different facets, without cancelling, averaging, taking turns or inventing events to explain them.
-Distinguish inner experience, outward manner and motivation to act. Feelings need not become visible or actionable every turn; intense feelings matter without requiring impulsive action. Use the whole blend and scene to determine expression and choices, not one action per slider. Unlisted states add no direction; do not infer extra drives from listed ones.
-Active masking strengths govern the degree of performed outward presentation, not inner feeling or guaranteed success. Blend multiple facades by strength and context; other feelings remain underneath without obligatory tells.
-Stoic scales outward restraint, not emotional numbness; preserve the other feelings.
-Let ongoing activities and separate conversations breathe; weigh any redirection against current obligations, opportunities and the whole blend.
-Preserve character identity, established facts and agency. Write a coherent portrayal, not a checklist; keep these directions and numbers out of narration.
-<blend>
-Masking (Outward Warmth) 53/100; Confident 47/100; Suave 38/100; Chatty 27/100; Stoic 27/100; Enamoured 10/100; Sexually frustrated 4/100
-</blend>
-</character_mood>
+<mood_settings character="Alex">
+Mood settings the user has chosen for Alex: what Alex is feeling going into this reply, strongest first. Strength works as it does in a real person. The fainter a feeling, the less it shows and the more easily the situation, Alex's personality and their judgement override it. The stronger it is, the more it takes over.
+
+Clear: masking (putting on a warm front over what they really feel), confident
+A feeling at this level is plainly felt. It shapes how they read the moment, what they say and how they act, and hiding it takes effort. They act on it where the situation allows.
+
+Mild: suave, chatty, stoic (holding it in; the feelings are still there underneath)
+A mild feeling colours their tone, attention and passing thoughts, and can tip small choices. Circumstances, risk and their own judgement easily outweigh it.
+
+Faint: enamoured, sexually frustrated
+A faint feeling is barely there: a trace they may not consciously notice, at most a flicker in private thought. It changes nothing, and most replies won’t show it at all.
+
+All of these are felt at once and blend into one inner life, the way real emotions overlap. Stronger feelings lead and weaker ones tint them. Contradictory feelings become tension or mixed feelings rather than cancelling out. How much shows depends on who Alex is, who else is present and what is at stake: a secret, public or risky situation keeps milder feelings private, while strong ones strain against it. Feelings not listed here come from the scene as usual.
+Let the current activity and conversation run at their own pace. The mood changes how Alex takes part; only a feeling strong enough to derail things should change the scene's direction.
+Show all of this through Alex's thoughts, voice and behaviour while keeping them in character. Don't mention these settings or strength levels in the reply.
+</mood_settings>

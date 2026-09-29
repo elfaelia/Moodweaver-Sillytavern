@@ -183,7 +183,7 @@ export function composePrompt(state, name, compact = false) {
         '',
         ...tiers.flatMap(({ t, list }) => [`${t.name}. ${t.text}`, ...(compact ? [list.map(moodName).join(', ')] : list.map(m => `- ${moodName(m)}`)), '']),
         `These are all felt at once and mix together like real emotions. The strongest lead and the rest tint them. Feelings that clash leave them conflicted instead of cancelling out. How much shows depends on who ${n} is, who's around and what's at stake: in a secret, public or risky moment, weaker feelings stay hidden while strong ones fight to get out.`,
-        `This is ${n}'s mood, and they react to the scene through it. Small, passing reactions that fit are fine, but don't bring in feelings that go against what's listed. Only something big should shake a listed feeling, and the stronger it is, the more it takes.`,
+        `This list is how ${n} feels right now. Their personality stays the same, but their current feelings come from here, not from their character description or how they felt earlier in the chat. If a feeling isn't listed, it doesn't drive what they say or do; small things in the scene cause a passing flicker at most. Only something big can bring up a new feeling or shake a listed one, and the stronger a listed feeling is, the more it takes.`,
     ];
     if (state.sceneBreathing !== false) lines.push(`Let whatever's happening carry on at its own pace. The mood changes how ${n} goes about it; only a strong feeling should pull the scene somewhere else.`);
     lines.push(`Show this through ${n}'s thoughts, voice and actions, in character. Don't mention these settings in the reply.`);

@@ -83,7 +83,7 @@ function renderPreview() {
     const preview = panel.querySelector('[data-preview]');
     if (preview) preview.textContent = promptInfo.prompt || 'No mood directions are being sent.';
     const audit = panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every active mood is sent, grouped under the same strength words shown on the sliders. Numbers are not sent.\nFormat: ${promptInfo.compact ? 'compact (optional label notes dropped)' : 'full'} · user role · depth ${settings().depth}${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target; nothing was dropped.` : ''}`;
+    if (audit) audit.textContent = `Every active mood is sent, grouped under the same strength words shown on the sliders. Numbers are not sent.\nFormat: ${promptInfo.compact ? 'compact (moods on one line per band)' : 'full'} · user role · depth ${settings().depth}${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target; nothing was dropped.` : ''}`;
     const last = panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
@@ -193,7 +193,7 @@ function render() {
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
         <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
         <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
-        <p class="mw-fine">Moods are sent as words, not numbers: each one goes under its strength band (Faint, Subtle, Mild, Clear, Strong, Intense) with a line describing how far a feeling at that strength reaches. Faint feelings stay private and change nothing; intense ones can override judgement. Any moods can be mixed, including opposites. Pins lock values; they don’t add importance.</p>
+        <p class="mw-fine">Moods are sent as words, not numbers: each one goes under its strength band (Faint, Subtle, Mild, Clear, Strong, Intense) with a line saying how much a feeling that strong actually does. Faint ones barely register; intense ones can take over. Any moods can be mixed, including opposites. Pins lock values; they don’t add importance.</p>
         <div data-token-count class="mw-token-count"></div><pre data-audit></pre>
         <b>Current prepared injection</b><pre data-preview></pre>
         <b>Last generation preparation</b><pre data-last-prompt></pre>
@@ -206,7 +206,7 @@ function render() {
         <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
-        <p class="mw-fine">Settings apply globally. Over the token target, optional label notes are dropped first; moods and strength bands never are. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
+        <p class="mw-fine">Settings apply globally. Over the token target, moods get squashed onto one line per band; nothing is ever dropped. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
     <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.4.0</div>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;

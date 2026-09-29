@@ -1,0 +1,14 @@
+{
+  "display_name": "Moodweaver",
+  "loading_order": 80,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "ecrit & Codex",
+  "version": "1.3.0",
+  "minimum_client_version": "1.19.0",
+  "generate_interceptor": "moodweaverBeforeGeneration",
+  "hooks": { "disable": "onDisable", "enable": "onEnable", "delete": "onDisable" },
+  "auto_update": false
+}

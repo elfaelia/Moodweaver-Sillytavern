@@ -15,6 +15,12 @@ export const CATEGORIES = [
         ['infatuated', 'Infatuated', 'head over heels, blinded by it'], ['charmed', 'Charmed', 'won over by someone'],
         ['guarded', 'Guarded', 'walls up, not letting anyone in'], ['sympathetic', 'Sympathetic', 'feels for someone'],
         ['grateful', 'Grateful', 'thankful to someone'], ['forgiving', 'Forgiving', 'ready to let something go'],
+        ['in_love', 'In love', 'genuinely in love'], ['lovestruck', 'Lovestruck', 'dizzy with love'],
+        ['star_struck', 'Star struck', 'dazzled by someone they look up to'], ['fangirling', 'Fangirling', 'giddy over someone they’re a fan of'],
+        ['enchanted', 'Enchanted', 'under someone’s spell'], ['disenchanted', 'Disenchanted', 'the magic’s worn off'],
+        ['sweet', 'Sweet', 'kind and sugary-sweet'], ['open', 'Open', 'open about how they feel'],
+        ['doe_eyed', 'Doe-eyed', 'wide-eyed and trusting'], ['fawning', 'Fawning', 'eager to please someone and keep them happy'],
+        ['icy', 'Cold (manner)', 'cold and unfriendly'],
     ]],
     ['desire', 'Desire & attachment', '◇', '#c6a0ef', [
         ['horny', 'Horny', 'turned on'], ['sexually_frustrated', 'Sexually frustrated', 'wanting sex and not getting it'],
@@ -27,6 +33,7 @@ export const CATEGORIES = [
         ['dirty_minded', 'Dirty minded', 'turns everything into innuendo'],
         ['yandere', 'Yandere', 'sweet on the surface, dangerously obsessive underneath'],
         ['possessive', 'Possessive', 'wants someone all to themselves'], ['envious', 'Envious', 'wants what someone else has'],
+        ['desperate_for_it', 'Desperate for it', 'aching and desperate for sex'], ['craving', 'Craving', 'craving something badly'],
     ]],
     ['appetites', 'Appetites & dynamics', '♧', '#d69bbb', [
         ['master', 'Master', 'authoritarian role'],
@@ -64,6 +71,14 @@ export const CATEGORIES = [
         ['bondage', 'Bondage', 'into tying up and restraint'], ['marking', 'Marking', 'likes leaving marks, bites and bruises'],
         ['orgasm_control', 'Orgasm control', 'decides when their partner gets to finish'], ['cnc', 'CNC', 'into consensual non-consent play'],
         ['corruption_kink', 'Corruption kink', 'gets off on corrupting someone innocent'], ['body_worship', 'Body worship', 'worships their partner’s body'],
+        ['obedient', 'Obedient', 'does as they’re told'], ['owned', 'Owned', 'wants to belong to someone'],
+        ['objectified', 'Objectified', 'wants to be used like an object'], ['free_use', 'Free use', 'available to be used whenever'],
+        ['pillow_princess', 'Pillow princess', 'likes to lie back and be pleasured'], ['overstimulation', 'Overstimulation', 'into being pushed past their limit with pleasure'],
+        ['doll', 'Doll', 'wants to be dressed, posed and played with like a doll'],
+        ['medplay_giving', 'Medplay (giving)', 'plays doctor: exams, instruments, clinical control'], ['medplay_receiving', 'Medplay (receiving)', 'into being examined and handled like a patient'],
+        ['pet_kitten', 'Kitten (pet play)', 'a playful, affectionate kitten'], ['pet_puppy', 'Puppy (pet play)', 'an eager, loyal puppy'],
+        ['pet_doe', 'Doe (pet play)', 'a shy, skittish doe'], ['pet_pig', 'Pig (pet play)', 'a greedy, messy pig'], ['pet_cow', 'Cow (pet play)', 'a docile cow'],
+        ['subspace', 'Subspace', 'floaty and fuzzy, deep in a sub headspace'], ['sub_drop', 'Sub drop', 'crashing after an intense scene'],
     ]],
     ['love', 'Love languages', '❥', '#e79aa0', [
         ['words_giving', 'Words of affirmation (giving)', 'shows love by saying it'], ['words_receiving', 'Words of affirmation (receiving)', 'needs to hear it'],
@@ -128,6 +143,10 @@ export const CATEGORIES = [
         ['heartbroken', 'Heartbroken', 'their heart’s been broken'], ['grieving', 'Grieving', 'mourning a loss'],
         ['nervous', 'Nervous', 'jittery and on edge'], ['panicked', 'Panicked', 'full-blown panic'],
         ['nostalgic', 'Nostalgic', 'longing for how things used to be'], ['suspicious', 'Suspicious', 'doesn’t trust what’s going on'],
+        ['terrified', 'Terrified', 'absolutely petrified'], ['skittish', 'Skittish', 'jumpy and easily spooked'],
+        ['fragile', 'Fragile', 'could break at any moment'], ['emotional', 'Emotional', 'feelings close to the surface'],
+        ['shy', 'Shy', 'timid around people'], ['bashful', 'Bashful', 'embarrassed and coy'], ['flustered', 'Flustered', 'hot-faced and tongue-tied'],
+        ['uncomfortable', 'Uncomfortable', 'ill at ease'], ['wistful', 'Wistful', 'quietly longing for something'],
     ]],
     ['spark', 'Spark & momentum', '✧', '#e5ca7f', [
         ['playful', 'Playful', 'up for fun and mischief'], ['inspired', 'Inspired', 'full of ideas'],
@@ -141,6 +160,7 @@ export const CATEGORIES = [
         ['happy', 'Happy', 'in a good mood'], ['proud', 'Proud', 'proud of themselves or someone'],
         ['determined', 'Determined', 'set on getting what they want'], ['mischievous', 'Mischievous', 'up to no good'],
         ['giddy', 'Giddy', 'bubbly and lightheaded with excitement'], ['triumphant', 'Triumphant', 'just won'],
+        ['silly', 'Silly', 'goofy and daft'], ['giggly', 'Giggly', 'can’t stop giggling'],
     ]],
     ['composure', 'Composure & intention', '◎', '#8fcebc', [
         ['calm', 'Calm', 'settled and steady'], ['stoic', 'Stoic', 'keeps their feelings to themselves'],
@@ -164,6 +184,8 @@ export const CATEGORIES = [
         ['thinking', 'Thinking', 'lost in thought, mulling something over'], ['distracted', 'Distracted', 'mind elsewhere'],
         ['vigilant', 'Vigilant', 'alert, watching for trouble'], ['observant', 'Observant', 'noticing every little detail'],
         ['teaching', 'Teaching', 'in teacher mode, keen to explain and instruct'], ['professional', 'Professional', 'keeping it businesslike'],
+        ['clearheaded', 'Clear-headed', 'thinking clearly'], ['head_in_clouds', 'Head in the clouds', 'daydreaming, not really here'],
+        ['unaware', 'Unaware', 'oblivious to what’s really going on'],
     ]],
     ['style', 'Style & presence', '❦', '#9fc0d8', [
         ['gentlemanly', 'Gentlemanly', 'courteous, old-fashioned manners'],
@@ -182,6 +204,9 @@ export const CATEGORIES = [
         ['mysterious', 'Mysterious', 'gives little away, keeps people guessing'], ['theatrical', 'Theatrical', 'dramatic, everything’s a performance'],
         ['eloquent', 'Eloquent', 'well-spoken, a way with words'], ['elegant', 'Elegant', 'graceful and refined'],
         ['awkward', 'Awkward', 'socially clumsy'],
+        ['sassy', 'Sassy', 'cheeky, with attitude'], ['bubbly', 'Bubbly', 'bright and bouncy'], ['girlish', 'Girlish', 'girly and sweet in manner'],
+        ['nerdy', 'Nerdy', 'geeky about their interests'], ['kawaii', 'Kawaii', 'cute, pastel kawaii style'],
+        ['dolly', 'Dolly', 'doll-like style, frills and bows'], ['princess', 'Princess', 'princess vibes, expects to be treated like one'],
     ]],
     ['temperament', 'Attitude & temperament', '✺', '#d6b58f', [
         ['arrogant', 'Arrogant', 'thinks they’re better than everyone'], ['prideful', 'Prideful', 'too proud to back down or admit fault'],
@@ -201,6 +226,11 @@ export const CATEGORIES = [
         ['ambitious', 'Ambitious', 'wants more and will work for it'], ['greedy', 'Greedy', 'never has enough'],
         ['perfectionist', 'Perfectionist', 'nothing’s ever good enough'], ['competitive', 'Competitive', 'has to win'],
         ['hot_headed', 'Hot-headed', 'quick to lose their temper'],
+        ['ditsy', 'Ditsy', 'scatterbrained and airheaded'], ['gullible', 'Gullible', 'believes whatever they’re told'],
+        ['slow', 'Slow (mentally)', 'slow on the uptake'], ['clumsy', 'Clumsy', 'always tripping and dropping things'],
+        ['people_pleaser', 'People pleaser', 'will do anything to keep others happy'], ['sensitive', 'Sensitive', 'easily hurt, feels things deeply'],
+        ['dutiful', 'Dutiful', 'does what’s expected of them'], ['hedonistic', 'Hedonistic', 'lives for pleasure'],
+        ['picky', 'Picky', 'fussy about everything'], ['sheltered', 'Sheltered', 'hasn’t seen much of the world'], ['quirky', 'Quirky', 'odd in an endearing way'],
     ]],
     ['psychology', 'Mindsets & psychological states', '◈', '#a6a0cb', [
         ['emotionless', 'Emotionless', 'numb, feels nothing'],
@@ -217,15 +247,20 @@ export const CATEGORIES = [
         ['histrionic', 'Histrionic', 'dramatic and attention-seeking'],
         ['delusional', 'Delusional', 'believes things that aren’t true'], ['dissociating', 'Dissociating', 'detached from themselves, like it’s not real'],
         ['in_denial', 'In denial', 'refusing to face the truth'],
+        ['empty', 'Empty', 'hollow inside'], ['manic', 'Manic', 'racing thoughts, reckless highs'],
     ]],
     ['energy', 'Energy', '☾', '#b9b4cd', [
         ['tired', 'Tired', 'worn out'], ['lazy', 'Lazy', 'can’t be bothered'],
         ['apathetic', 'Apathetic', 'doesn’t care about much'], ['bored', 'Bored', 'nothing’s holding their attention'],
         ['careless', 'Careless', 'not minding details or consequences'],
         ['spry', 'Spry', 'lively and full of energy'], ['restless', 'Restless', 'can’t sit still'],
+        ['hyperactive', 'Hyperactive', 'bouncing off the walls'], ['listless', 'Listless', 'no energy or interest in anything'],
     ]],
     ['body', 'Body', '✚', '#d7a39b', [
-        ['drunk', 'Drunk', 'had too much to drink'], ['high', 'High', 'high on something'],
+        ['tipsy', 'Tipsy', 'a little drunk'], ['drunk', 'Drunk', 'had too much to drink'], ['high', 'High', 'high on something'],
+        ['coked_up', 'Coked up', 'high on cocaine'], ['rolling', 'Rolling', 'on MDMA, loved-up and touchy'],
+        ['tripping', 'Tripping', 'on acid, the world warping'], ['sedated', 'Sedated', 'drugged and drowsy'],
+        ['hallucinating', 'Hallucinating', 'seeing or hearing things that aren’t there'],
         ['tweaking', 'Tweaking', 'wired and jittery on stimulants'], ['injured', 'Injured', 'physically hurt'],
         ['sick', 'Sick', 'unwell'], ['hungry', 'Hungry', 'needs food'], ['thirsty', 'Thirsty', 'needs a drink'],
         ['exerted', 'Exerted', 'worn out from physical effort'],
@@ -234,6 +269,8 @@ export const CATEGORIES = [
         ['headache', 'Has a headache', 'head’s pounding'], ['bleeding', 'Bleeding', 'bleeding from a wound'],
         ['hungover', 'Hungover', 'paying for last night'], ['sore', 'Sore', 'aching muscles'],
         ['undressed', 'Undressed', 'naked or half-dressed'], ['restrained', 'Restrained', 'tied up or held down'],
+        ['weak', 'Weak', 'physically weak'], ['ovulating', 'Ovulating', 'ovulating'],
+        ['overstimulated', 'Overstimulated', 'sensory overload'], ['stimming', 'Stimming', 'stimming to cope'],
     ], 'state'],
     ['looks', 'Looks', '✦', '#dcb1c9', [
         ['handsome', 'Handsome', 'good-looking'], ['beautiful', 'Beautiful', 'beautiful'], ['sexy', 'Sexy', 'sexy'],
@@ -241,8 +278,9 @@ export const CATEGORIES = [
         ['rugged', 'Rugged', 'rough, weathered good looks'], ['muscular', 'Muscular', 'built and muscly'],
         ['scarred', 'Scarred', 'visible scars'], ['tattooed', 'Tattooed', 'has tattoos'], ['pierced', 'Pierced', 'has piercings'],
         ['well_dressed', 'Well dressed', 'sharp, put-together clothes'],
+        ['cute', 'Cute', 'cute'], ['petite', 'Petite', 'small and slight'], ['curvy', 'Curvy', 'curvy'], ['chubby', 'Chubby', 'chubby'],
     ], 'state'],
-    ['background', 'Background & role', '✎', '#b4c49a', [
+    ['background', 'Background & identity', '✎', '#b4c49a', [
         ['teacher', 'Teacher', 'teaches for a living'], ['photographer', 'Photographer', 'photographer'],
         ['musician', 'Musician', 'musician'], ['writer', 'Writer', 'writer'],
         ['doctor', 'Doctor', 'doctor'], ['psychiatrist', 'Psychiatrist', 'psychiatrist'],
@@ -250,18 +288,27 @@ export const CATEGORIES = [
         ['street_smart', 'Street smart', 'knows how the real world works'], ['cultured', 'Cultured', 'knows art, music, food and the finer things'],
         ['hipster', 'Hipster', 'hipster style and taste'], ['punk', 'Punk', 'punk style and attitude'],
         ['grunge', 'Grunge', 'grunge style'], ['goth', 'Goth', 'goth style'],
+        ['assistant', 'Assistant', 'works as someone’s assistant'], ['autistic', 'Autistic', 'autistic'],
+        ['sensory_seeking', 'Sensory seeking', 'seeks out strong sensations, textures and pressure'],
+        ['sensory_avoidant', 'Sensory avoidant', 'easily overwhelmed by noise, light and touch'],
+        ['sweet_tooth', 'Sweet tooth', 'loves sweet things'],
     ], 'state'],
     ['standing', 'Status & secrets', '♜', '#c9b37e', [
         ['wealth', 'Wealth', 'rich'], ['poor', 'Poor', 'short on money'], ['fame', 'Fame', 'famous, people know who they are'],
         ['powerful', 'Powerful', 'has power and influence'], ['notorious', 'Notorious', 'has a bad reputation'],
         ['suspected', 'Suspected', 'under suspicion'],
+        ['pampered', 'Pampered', 'spoilt and used to being looked after'], ['new_here', 'New here', 'new in town, doesn’t know anyone'],
+        ['captive', 'Captive', 'being held captive'],
         ['secret_past', 'Secret past', 'hiding crimes, violence or worse'],
     ], 'state'],
     ['relationship', 'Relationship', '⚭', '#d7a0b4', [
         ['secret_relationship', 'Secret relationship', 'their relationship is hidden from others'],
         ['age_gap', 'Age gap', 'a noticeable age gap between them'],
-        ['older', 'Older', 'the older one in the relationship'], ['younger', 'Younger', 'the younger one in the relationship'],
-        ['taller', 'Taller', 'the taller one, a real height difference'], ['smarter', 'Smarter', 'the smarter one, a real gap in intelligence'],
+        ['older', 'Older', 'older than the other person'], ['younger', 'Younger', 'younger than the other person'],
+        ['taller', 'Taller', 'taller than the other person'], ['shorter', 'Shorter', 'shorter than the other person'],
+        ['bigger', 'Bigger', 'bigger than the other person'], ['smaller', 'Smaller', 'smaller than the other person'],
+        ['stronger', 'Stronger', 'stronger than the other person'], ['smarter', 'Smarter', 'smarter than the other person'],
+        ['collared', 'Collared', 'wears the other person’s collar'],
         ['power_imbalance', 'Power imbalance', 'one has power over the other, like boss or teacher'],
         ['strangers', 'Strangers', 'they don’t know each other'], ['friends', 'Friends', 'they’re friends'],
         ['one_night_stand', 'One night stand', 'a one night stand'], ['casual', 'Casual relationship', 'casual, no strings'],
@@ -298,6 +345,9 @@ export const CATEGORIES = [
         ['redemption_arc', 'Redemption arc', 'redemption arc'], ['corruption_arc', 'Corruption arc', 'corruption arc'],
         ['villain_romance', 'Villain romance', 'falling for the villain'], ['captor_captive', 'Captor/captive', 'captor and captive'],
         ['cat_and_mouse', 'Cat and mouse', 'cat and mouse'],
+        ['size_difference', 'Size difference', 'size difference'], ['beauty_and_beast', 'Beauty and the beast', 'beauty and the beast'],
+        ['damsel', 'Damsel in distress', 'damsel in distress'], ['final_girl', 'Final girl', 'final girl'],
+        ['manic_pixie', 'Manic pixie dream girl', 'manic pixie dream girl'],
     ], 'story'],
 ];
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
@@ -394,8 +444,6 @@ export const PROMPT_NAME = {
     dirty: 'dirty (needs a wash)',
     wealth: 'wealthy',
     fame: 'famous',
-    older: 'the older one in the relationship',
-    younger: 'the younger one in the relationship',
     yandere: 'yandere (sweet on the surface, dangerously obsessive underneath)',
     dirty_minded: 'dirty minded',
     self_loathing: 'self-loathing',
@@ -406,8 +454,6 @@ export const PROMPT_NAME = {
     cold: 'cold (temperature)',
     hot: 'hot (temperature)',
     domestic: 'everyday domestic life',
-    age_gap: 'an age gap between them',
-    secret_relationship: 'their relationship is a secret',
     secret_past: 'hiding a dark past (crimes, violence, murder)',
     // Love languages
     words_giving: 'shows love by saying it: praise, compliments, telling them',
@@ -442,69 +488,108 @@ export const PROMPT_NAME = {
     doctor: 'a doctor', psychiatrist: 'a psychiatrist', police: 'a police officer', soldier: 'a soldier or ex-military',
     student: 'a student', hipster: 'a hipster', notorious: 'notorious (bad reputation)', suspected: 'under suspicion',
     // Relationship and scene
-    taller: 'the taller one, with a real height difference', smarter: 'the smarter one, with a real gap in intelligence',
-    power_imbalance: 'a power imbalance between them', one_night_stand: 'a one night stand',
-    casual: 'a casual, no-strings relationship', affair: 'an affair (one of them is cheating)',
-    first_time: 'their first time together', public: 'in public, other people around',
+    public: 'in public, other people around',
     isolated: 'isolated, no one else around', late_night: 'late at night', dangerous: 'a dangerous situation',
+    // Relationship: {other} is the other person in the scene, so comparisons always name who they're against.
+    taller: 'taller than {other}, a real height difference', shorter: 'shorter than {other}, a real height difference',
+    bigger: 'bigger than {other}, a real size difference', smaller: 'smaller than {other}, a real size difference',
+    stronger: 'stronger than {other}', smarter: 'smarter than {other}', older: 'older than {other}', younger: 'younger than {other}',
+    age_gap: 'a big age gap with {other}', power_imbalance: 'a power imbalance with {other}',
+    secret_relationship: 'in a secret relationship with {other}', strangers: 'strangers to {other}', friends: 'friends with {other}',
+    one_night_stand: 'a one night stand with {other}', casual: 'casual, no strings, with {other}', dating: 'dating {other}',
+    married: 'married to {other}', exes: '{other}’s ex', enemies: 'enemies with {other}', affair: 'having an affair with {other}',
+    first_time: 'their first time with {other}', collared: 'wears {other}’s collar',
+    // Newer moods, traits and states
+    icy: 'cold and unfriendly', desperate_for_it: 'desperate for sex', fangirling: 'fangirling',
+    free_use: 'free use', pillow_princess: 'pillow princess', overstimulation: 'into overstimulation',
+    doll: 'doll (wants to be dressed, posed and played with)', medplay_giving: 'into medplay, playing doctor',
+    medplay_receiving: 'into medplay, being the patient', pet_kitten: 'kitten (pet play)', pet_puppy: 'puppy (pet play)',
+    pet_doe: 'doe (pet play)', pet_pig: 'pig (pet play)', pet_cow: 'cow (pet play)',
+    subspace: 'in subspace (floaty, fuzzy sub headspace)', sub_drop: 'in sub drop (crashing after a scene)',
+    head_in_clouds: 'head in the clouds', unaware: 'unaware of what’s really going on', clearheaded: 'clear-headed',
+    kawaii: 'kawaii style', dolly: 'dolly style (frills and bows)', princess: 'princess vibes', slow: 'slow on the uptake',
+    coked_up: 'high on cocaine', rolling: 'rolling on MDMA', tripping: 'tripping on acid', stimming: 'stimming',
+    overstimulated: 'overstimulated (sensory overload)', weak: 'physically weak',
+    sensory_seeking: 'sensory seeking', sensory_avoidant: 'sensory avoidant (overwhelmed by noise, light and touch)',
+    sweet_tooth: 'has a sweet tooth', assistant: 'an assistant', new_here: 'new here, doesn’t know anyone', captive: 'being held captive',
     // Story
     offensive: 'offensive fiction (deliberately offensive, no political correctness)',
     character_driven: 'character-driven', crime: 'crime fiction', gothic: 'gothic fiction', romcom: 'romantic comedy',
 };
 export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
-const moodName = m => PROMPT_NAME[m.id] ?? m.label.toLowerCase();
-const lowerFirst = t => t.charAt(0).toLowerCase() + t.slice(1);
+// {other} lets relationship entries name who they're about ("taller than Ellie").
+const moodName = (m, other = 'the other person') => (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).replaceAll('{other}', other);
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
+// The model doesn't play the player's character, so for them strength means how much it shows
+// and how much the scene makes of it, not how hard it drives them.
+export const USER_TIERS = [
+    { min: 81, name: 'Intense', text: 'it’s all over them and the scene keeps coming back to it' },
+    { min: 61, name: 'Strong', text: 'it’s hard to miss and gets noticed often' },
+    { min: 41, name: 'Clear', text: 'it’s plain to see and comes up naturally' },
+    { min: 21, name: 'Mild', text: 'it shows now and then in small ways' },
+    { min: 11, name: 'Subtle', text: 'it’s the odd small tell or detail' },
+    { min: 1, name: 'Faint', text: 'it barely shows, a detail at most' },
+];
+const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger', 'age_gap']);
 // Feelings are grouped by strength, since the strength line is what tells the model how far each one reaches.
-function feelingBands(state, list) {
+function feelingBands(state, list, other) {
     return TIERS.map(t => ({ t, items: list.filter(m => tierOf(state.moods[m.id]) === t) })).filter(x => x.items.length)
-        .flatMap(({ t, items }) => [`${t.name}. ${t.text}`, `Feeling this ${t.adverb}:`, ...items.map(m => `- ${moodName(m)}`), '']);
+        .flatMap(({ t, items }) => [`${t.name}. ${t.text}`, `Feeling this ${t.adverb}:`, ...items.map(m => `- ${moodName(m, other)}`), '']);
 }
-// States are grouped by what they are (body, relationship...) so unrelated facts never share a line.
-function stateGroups(state, list, tiers = STATE_TIERS, lead = 'How much each one matters') {
+// Everything else is grouped by what it is (body, relationship...) so unrelated things never share a line.
+function groupedList(state, list, tiers, lead, other) {
     const used = tiers.filter(t => list.some(m => tierOf(state.moods[m.id], tiers) === t));
     const groups = CATEGORIES.map(([id]) => id).filter(id => list.some(m => m.category === id));
     return [
         `${lead}: ${used.map(t => `${t.name.toLowerCase()} means ${t.text}`).join('; ')}.`,
         '',
-        ...groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g).map(m => `- ${moodName(m)} (${tierOf(state.moods[m.id], tiers).name.toLowerCase()})`), '']),
+        ...groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g).map(m => `- ${tierOf(state.moods[m.id], tiers).name.toLowerCase()}: ${moodName(m, other)}`), '']),
     ];
 }
-export function composePrompt(state, name) {
+// player is { state, name } for the player's own character, or null.
+export function composePrompt(state, name, player = null) {
     const active = state.enabled ? activeMoods(state) : [];
-    if (!active.length) return '';
+    const theirs = player?.state?.enabled ? activeMoods(player.state).filter(m => m.kind !== 'story') : [];
+    if (!active.length && !theirs.length) return '';
     const n = String(name ?? '').trim() || 'the character';
+    const u = String(player?.name ?? '').trim() || 'the player’s character';
     const feelings = active.filter(m => m.kind === 'mood'), states = active.filter(m => m.kind === 'state'), story = active.filter(m => m.kind === 'story');
     const lines = [];
     if (feelings.length) lines.push(
-        `How ${n} is feeling right now, set by the user, strongest first. Strength works like it does in real people: a faint feeling barely registers and gives way to everything else, a strong one is hard to ignore, and an intense one can take over.`,
+        `How ${n} is feeling right now, set by the player, strongest first. Strength works like it does in real people: a faint feeling barely registers and gives way to everything else, a strong one is hard to ignore, and an intense one can take over.`,
         '',
-        ...feelingBands(state, feelings),
+        ...feelingBands(state, feelings, u),
         `These are all felt at once and mix together like real emotions. The strongest lead and the rest tint them. Feelings that clash leave them conflicted instead of cancelling out. How much shows depends on who ${n} is, who's around and what's at stake: in a secret, public or risky moment, weaker feelings stay hidden while strong ones fight to get out.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
         `This list is how ${n} feels right now. Their personality stays the same, but their current feelings come from here, not from their character description or how they felt earlier in the chat. Traits that are really feelings about someone count as feelings too, so they only drive ${n} if they're on this list. If a feeling isn't listed, it doesn't drive what they say or do; small things in the scene cause a passing flicker at most. Only something big can bring up a new feeling or shake a listed one, and the stronger a listed feeling is, the more it takes.`,
         '',
     );
     if (states.length) lines.push(
-        `What's true about ${n} and the scene, set by the user. These are facts, not feelings. Let them affect things the way they naturally would.`,
-        ...stateGroups(state, states),
+        `What's true about ${n} and the scene, set by the player. These are facts, not feelings. Let them affect things the way they naturally would.`,
+        ...groupedList(state, states, STATE_TIERS, 'How much each one matters', u),
+    );
+    if (theirs.length) lines.push(
+        `About ${u}, the player's character, set by the player. Don't speak, act or decide for ${u}; the player does that. Use this to read ${u}'s messages, for what ${n} notices and reacts to, and to describe what can be seen of ${u} the same way you would for ${n}. ${n} only knows what they could see or have learned in the story, so anything hidden shows as small tells at most.${feelings.length ? ` None of this changes how ${n} feels; they react through their own feelings above.` : ''}`,
+        ...groupedList(player.state, theirs, USER_TIERS, 'How much each one shows', n),
+    );
+    if ([...states, ...theirs].some(m => COMPARISONS.has(m.id))) lines.push(
+        `Differences between ${n} and ${u} (height, size, age and so on) get played up as much as their strength says: noticed, felt and used in the scene.`,
+        '',
     );
     if (story.length) lines.push(
-        `The story's genre and tropes, set by the user. Blend them into one story rather than taking turns: the stronger ones set the tone and the weaker ones add flavour.${feelings.length ? ` They shape the tone, pacing and what happens, not how ${n} feels; that still comes from the mood list.` : ''}`,
-        ...stateGroups(state, story, STORY_TIERS, 'How much each one shapes the story'),
+        `The story's genre and tropes, set by the player. Blend them into one story rather than taking turns: the stronger ones set the tone and the weaker ones add flavour.${feelings.length ? ` They shape the tone, pacing and what happens, not how ${n} feels; that still comes from the mood list.` : ''}`,
+        ...groupedList(state, story, STORY_TIERS, 'How much each one shapes the story', u),
     );
     if (state.sceneBreathing !== false) lines.push(`Let whatever's happening carry on at its own pace. The mood changes how ${n} goes about it; only a strong feeling should pull the scene somewhere else.`);
     lines.push(`Show this through ${n}'s thoughts, voice and actions, in character. Don't mention these settings in the reply.`);
     return `<mood character="${escapeHtml(n)}">\n${lines.join('\n').replace(/\n{3,}/g, '\n\n')}\n</mood>`;
 }
-export async function budgetPrompt(state, name, budget, countTokens) {
-    const all = state.enabled ? activeMoods(state) : [];
-    let prompt = composePrompt(state, name);
-    let tokens = prompt ? await countTokens(prompt) : 0;
-    const compact = false;
-    // The target trims optional explanations, never user-selected values or blend rules.
-    // Report overruns explicitly instead of silently changing the requested character.
-    return { prompt, tokens, compact, overBudget: Math.max(0, tokens - budget), target: budget,
+export async function budgetPrompt(state, name, budget, countTokens, player = null) {
+    const all = [...(state.enabled ? activeMoods(state) : []), ...(player?.state?.enabled ? activeMoods(player.state).filter(m => m.kind !== 'story') : [])];
+    const prompt = composePrompt(state, name, player);
+    const tokens = prompt ? await countTokens(prompt) : 0;
+    // The target is a warning only. Nothing the player set is ever dropped or shortened.
+    return { prompt, tokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
         selectedIds: all.map(m => m.id), omittedIds: [], omitted: 0 };
 }
 export function parseAnalysis(text) {

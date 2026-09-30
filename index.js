@@ -5,7 +5,7 @@ const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
 const defaults = { tokenBudget: 800, depth: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 3 };
 let panel, selectedAvatar = '', pending = null, promptVersion = 0, suspended = false;
-let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood';
+let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
 const openCategories = new Set();
 
@@ -48,6 +48,18 @@ function getState(ch = target()) {
     const state = c.chatMetadata[KEY].characters[key] ??= freshState(settings().baselines[key]);
     return extendCatalogue(state);
 }
+// The player's own character is shared by every character in the chat, so it lives once per chat.
+const playerName = () => String(ctx().name1 || '').trim() || 'You';
+function getUserState() {
+    const c = ctx();
+    if (!c.chatId) return null;
+    c.chatMetadata[KEY] ??= { version: 1, characters: {} };
+    c.chatMetadata[KEY].user ??= freshState(settings().baselines[`user:${playerName()}`]);
+    const state = extendCatalogue(c.chatMetadata[KEY].user);
+    state.mode = 'manual';
+    return state;
+}
+const viewState = () => who === 'user' ? getUserState() : getState();
 function profiles() {
     try { return ctx().ConnectionManagerRequestService.getSupportedProfiles(); } catch { return []; }
 }
@@ -57,13 +69,13 @@ async function persist(state) {
 }
 async function syncPrompt(forGeneration = false) {
     const version = ++promptVersion;
-    const c = ctx(), ch = target(forGeneration), state = getState(ch), id = identity(ch);
-    if (suspended || !state?.enabled) {
+    const c = ctx(), ch = target(forGeneration), state = getState(ch), id = identity(ch), mine = getUserState();
+    if (suspended || !state || (!state.enabled && !mine?.enabled)) {
         c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
     try {
-        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text));
+        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { state: mine, name: playerName().slice(0, 100) });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 1 sits just before your latest message, so your own words stay the last thing
         // the model reads and the mood reads as standing context rather than a fresh request.
@@ -163,20 +175,23 @@ function render() {
     const tuningOpen = panel.querySelector('.mw-tuning')?.open;
     const inspectorOpen = panel.querySelector('.mw-inspector')?.open;
     panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
-    const ch = target(), state = getState(ch), allProfiles = profiles();
+    const ch = target(), charState = getState(ch), allProfiles = profiles();
+    const state = charState ? viewState() : null, mine = who === 'user';
+    if (mine && tab === 'story') tab = 'mood';
     const active = state ? activeMoods(state) : [];
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
     ${!state ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     <div class="mw-context"><label>Character<select data-field="character" aria-label="Character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
-        <label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> Enabled</label></div>
+        <label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${mine ? 'Send' : 'Enabled'}</label></div>
+    <div class="mw-mode mw-who" role="group" aria-label="Whose tags">${[['char', ch.name], ['user', playerName()]].map(([k, label]) => `<button data-who="${k}" aria-pressed="${who === k}">${k === 'char' ? '◆' : '◇'} ${esc(label)}</button>`).join('')}</div>
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
-    <div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
-    <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Scene & body states stay as you set them.'}</p>
+    ${mine ? `<p class="mw-explainer">How ${esc(playerName())} comes across. The model reacts to it but never writes for them. Shared by everyone in this chat.</p>` : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
+    <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
     <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active</span></div>
         <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${m.label}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
-    ${state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
+    ${!mine && state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
         <p class="mw-fine">Uses the actual model shown in brackets. Sends recent chat text and a short character excerpt to that profile. Your roleplay connection stays selected. One extra request per scene read; provider charges apply.</p>
         <div class="mw-actions"><button data-action="analyse" ${pending || !state.profile || !state.enabled ? 'disabled' : ''}>✧ Read scene now</button>${pending ? '<button data-action="cancel">Stop</button>' : ''}<button data-action="undo" ${!state.history?.length ? 'disabled' : ''}>Undo last read</button></div>
         <details class="mw-tuning"><summary>Emotional rhythm</summary><label>Sensitivity <output>${state.sensitivity}%</output><input aria-label="Sensitivity" type="range" min="10" max="100" value="${state.sensitivity}" data-field="sensitivity"></label>
@@ -184,7 +199,7 @@ function render() {
         <p class="mw-fine">Higher sensitivity allows stronger reactions. Higher inertia makes changes slower. Mood carryover advances on successful scene reads, not real-world time.</p>
         <label>Fade absent moods toward zero by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> points per read, before inertia</label>
         <label>Read every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> new user turns</label></details></div>` : ''}
-    <div class="mw-mode mw-tabs" role="group" aria-label="Section">${[['mood', '♡ Moods & traits'], ['state', '⌂ Facts & scene'], ['story', '❖ Story']].map(([k, label]) => {
+    <div class="mw-mode mw-tabs" role="group" aria-label="Section">${[['mood', '♡ Moods & traits'], ['state', '⌂ Facts & scene'], ...(mine ? [] : [['story', '❖ Story']])].map(([k, label]) => {
         const n = active.filter(m => m.kind === k).length;
         return `<button data-tab="${k}" aria-pressed="${tab === k}">${label}${n ? ` · ${n}` : ''}</button>`; }).join('')}</div>
     <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search moods and states" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
@@ -203,14 +218,14 @@ function render() {
         <p class="mw-fine">The last preparation is kept in memory for this chat and character. It records what this extension queued, not proof of a completed API request. Use SillyTavern’s message prompt inspector for the complete assembled prompt.</p></details>
     <details class="mw-advanced"><summary>Prompt, budgets & character defaults</summary>
         <p class="mw-fine">Saved separately for each chat and character. Save this setup as a character default to seed their future chats; existing chats keep their own blend.</p>
-        <div class="mw-actions"><button data-action="baseline">Save character default</button><button data-action="reset">Clear unpinned moods</button></div>
+        <div class="mw-actions"><button data-action="baseline">${mine ? 'Save persona default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moods</button></div>
         <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"> tokens</label>
         <label>Injection depth <input type="number" data-setting="depth" min="0" max="10" value="${settings().depth}"> messages from the end</label>
         <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.6.0</div>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.7.0</div>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
@@ -224,14 +239,14 @@ function filterRows() {
         d.querySelectorAll('[data-mood]').forEach(row => {
             row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) count++;
         });
-        const inTab = term || d.dataset.kind === tab;
+        const inTab = (term || d.dataset.kind === tab) && !(who === 'user' && d.dataset.kind === 'story');
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
         d.open = term ? count > 0 : openCategories.has(d.dataset.category);
     });
     const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
 }
 async function changeState(mutator) {
-    const s = getState(); if (!s) return;
+    const s = viewState(); if (!s) return;
     mutator(s); await persist(s); await syncPrompt(); render();
 }
 function openPanel() {
@@ -263,7 +278,7 @@ function setup() {
     panel.addEventListener('change', async e => {
         const input = e.target;
         if (input.dataset.slider) {
-            await changeState(s => { s.moods[input.dataset.slider] = Number(input.value); if (s.mode === 'dynamic') s.pins[input.dataset.slider] = true; }); return;
+            await changeState(s => { s.moods[input.dataset.slider] = Number(input.value); if (who === 'char' && s.mode === 'dynamic') s.pins[input.dataset.slider] = true; }); return;
         }
         if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
         const field = input.dataset.field;
@@ -280,6 +295,7 @@ function setup() {
     });
     panel.addEventListener('click', async e => {
         const button = e.target.closest('button'); if (!button) return;
+        if (button.dataset.who) { who = button.dataset.who; status = ''; render(); return; }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
         if (button.dataset.tab) {
             tab = button.dataset.tab;
@@ -304,8 +320,9 @@ function setup() {
                 s.reason = previous.reason; s.updatedAt = previous.updatedAt;
             }); break;
             case 'baseline': {
-                settings().baselines[`char:${target().avatar}`] = freshState(getState()); ctx().saveSettingsDebounced();
-                status = 'Default saved for this character’s future chats.'; renderStatus(); break;
+                const key = who === 'user' ? `user:${playerName()}` : `char:${target().avatar}`;
+                settings().baselines[key] = freshState(viewState()); ctx().saveSettingsDebounced();
+                status = who === 'user' ? `Default saved for ${playerName()}’s future chats.` : 'Default saved for this character’s future chats.'; renderStatus(); break;
             }
         }
     });

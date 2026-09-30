@@ -19,7 +19,7 @@
 .mw-panel select,.mw-panel input[type=search]{display:block;width:100%;min-width:0;max-width:100%;margin:5px 0 0;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:9px 10px;font-size:12px;text-transform:none;letter-spacing:0;text-overflow:ellipsis}
 .mw-panel .mw-toggle{display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap}.mw-panel input[type=checkbox]{accent-color:#a4cdb1}
 .mw-chat-name{margin:8px 24px 17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mw-muted);font-size:10px}
-.mw-mode{display:flex;background:#10131a;margin:0 24px;border-radius:10px;padding:4px;gap:4px}.mw-mode button{width:50%;border:none;background:transparent;padding:9px;font-size:12px}.mw-mode button[aria-pressed=true]{background:#354237;color:#d4e8cd;box-shadow:0 2px 8px #0003}
+.mw-mode{display:flex;background:#10131a;margin:0 24px;border-radius:10px;padding:4px;gap:4px}.mw-mode button{flex:1 1 0;min-width:0;border:none;background:transparent;padding:9px 4px;font-size:12px}.mw-mode button[aria-pressed=true]{background:#354237;color:#d4e8cd;box-shadow:0 2px 8px #0003}
 .mw-explainer{padding:12px 24px 16px;color:var(--mw-muted);font-size:12px}
 .mw-summary{margin:0 24px 17px;padding:15px;border:1px solid #ffffff10;border-radius:12px;background:linear-gradient(145deg,#ffffff04,transparent)}
 .mw-section-label{font-size:9px;letter-spacing:1.5px;color:#c9c8cb;display:flex;justify-content:space-between;margin-bottom:12px}.mw-section-label>span{letter-spacing:0;color:var(--mw-muted)}

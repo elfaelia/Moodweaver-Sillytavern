@@ -187,7 +187,7 @@ function render() {
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
     ${mine ? `<p class="mw-explainer">How ${esc(playerName())} comes across. The model reacts to it but never writes for them. Shared by everyone in this chat.</p>` : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
     <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
-    <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active</span></div>
+    <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active${active.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
         <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${m.label}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
@@ -225,7 +225,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.8.0</div>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.8.2</div>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
@@ -313,6 +313,11 @@ function setup() {
             case 'close': panel.close(); document.getElementById('moodweaver-launcher').focus(); break;
             case 'cancel': cancelAnalysis(); break;
             case 'analyse': await analyse(target(), true); break;
+            case 'clear': {
+                const whose = who === 'user' ? playerName() : target()?.name;
+                if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed.`)) break;
+                await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } s.reason = ''; }); break;
+            }
             case 'reset': await changeState(s => { for (const m of MOODS) if (!s.pins[m.id]) s.moods[m.id] = 0; s.reason = ''; }); break;
             case 'undo': await changeState(s => {
                 const previous = s.history.pop(); if (!previous) return;

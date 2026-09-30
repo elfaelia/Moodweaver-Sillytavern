@@ -30,6 +30,7 @@ export const CATEGORIES = [
         ['dirty_minded', 'Dirty minded', 'turns everything into innuendo'], ['yandere', 'Yandere', 'sweet on the surface, dangerously obsessive underneath'],
         ['possessive', 'Possessive', 'wants someone all to themselves'], ['envious', 'Envious', 'wants what someone else has'],
         ['desperate_for_it', 'Desperate for it', 'aching and desperate for sex'], ['craving', 'Craving', 'craving something badly'],
+        ['female_gaze', 'Female gaze', 'drinking in their partner as a whole person, how they look, feel and make them feel'],
     ]],
     ['love', 'Love languages', '❥', '#e79aa0', [
         ['words_giving', 'Words of affirmation (giving)', 'shows love by saying it'], ['words_receiving', 'Words of affirmation (receiving)', 'needs to hear it'],
@@ -40,6 +41,7 @@ export const CATEGORIES = [
     ]],
     ['dynamics', 'Roles & dynamics', '♛', '#d49bc9', [
         ['master', 'Master', 'authoritarian role'], ['daddy', 'Daddy', 'nurturing authority role'],
+        ['little_girl', 'Little girl', 'wants to be cared for, fussed over and guided'],
         ['dominant', 'Dominant', 'wants to lead in a power dynamic'], ['submissive', 'Submissive', 'wants to give up control'],
         ['switch', 'Switch', 'enjoys both leading and giving up control'], ['gentle_dominant', 'Gentle dominant', 'in charge, but tender about it'],
         ['service_top', 'Service top', 'takes charge for their partner’s pleasure'], ['service_submissive', 'Service submissive', 'wants to serve and please'],
@@ -84,6 +86,7 @@ export const CATEGORIES = [
         ['sinful_desire', 'Sinful desire', 'sees desire as sin and wants it anyway'], ['transference', 'Transference', 'putting feelings about someone from their past onto them'],
         ['mother_issues', 'Mother issues', 'unresolved stuff with their mother'], ['father_issues', 'Father issues', 'unresolved stuff with their father'],
         ['camera_control', 'Camera as control', 'uses the camera to control, expose and possess'],
+        ['madonna_whore', 'Madonna-whore complex', 'can’t desire the one they respect, or respect the one they desire'],
     ]],
     ['friction', 'Friction & conflict', 'ϟ', '#eeac85', [
         ['irked', 'Irked', 'a bit put out'], ['annoyed', 'Annoyed', 'irritated'],
@@ -103,6 +106,7 @@ export const CATEGORIES = [
         ['defensive', 'Defensive', 'quick to take things as an attack'], ['contemptuous', 'Contemptuous', 'thinks someone is beneath them'],
         ['cruel', 'Cruel', 'wants to hurt'], ['mocking', 'Mocking', 'making fun of someone'],
         ['brainwasher', 'Brainwasher', 'reshaping someone’s mind and beliefs'],
+        ['tranquil_fury', 'Tranquil fury', 'rage gone calm and cold'],
     ]],
     ['views', 'Views & beliefs', '☯', '#d8b98f', [
         ['cynical', 'Cynical', 'assumes the worst about people'], ['biased', 'Biased', 'already made their mind up about someone'],
@@ -112,6 +116,8 @@ export const CATEGORIES = [
         ['devout', 'Devout', 'deeply religious'], ['traditional', 'Traditional', 'old-fashioned values'],
         ['nihilistic', 'Nihilistic', 'nothing matters'], ['idealistic', 'Idealistic', 'believes things can be better'],
         ['superstitious', 'Superstitious', 'believes in signs, luck and omens'],
+        ['boomerang_bigot', 'Boomerang bigot', 'hates a group they belong to'],
+        ['moral_myopia', 'Moral myopia', 'only counts wrongs done to them or theirs'],
     ]],
     ['tender', 'Vulnerability & unease', '☂', '#a5b5f3', [
         ['vulnerable', 'Vulnerable', 'exposed and easily hurt'], ['betrayed', 'Betrayed', 'let down by someone they trusted'],
@@ -134,6 +140,7 @@ export const CATEGORIES = [
         ['shy', 'Shy', 'timid around people'], ['bashful', 'Bashful', 'embarrassed and coy'],
         ['flustered', 'Flustered', 'hot-faced and tongue-tied'], ['uncomfortable', 'Uncomfortable', 'ill at ease'],
         ['wistful', 'Wistful', 'quietly longing for something'], ['touch_starved', 'Touch-starved', 'aching to be touched'],
+        ['desperate_for_approval', 'Desperate for approval', 'needs to be told they did well'],
     ]],
     ['spark', 'Spark & momentum', '✧', '#e5ca7f', [
         ['playful', 'Playful', 'up for fun and mischief'], ['inspired', 'Inspired', 'full of ideas'],
@@ -182,6 +189,8 @@ export const CATEGORIES = [
         ['sassy', 'Sassy', 'cheeky, with attitude'], ['bubbly', 'Bubbly', 'bright and bouncy'],
         ['girlish', 'Girlish', 'girly and sweet in manner'], ['nerdy', 'Nerdy', 'geeky about their interests'],
         ['princess', 'Princess', 'princess vibes, expects to be treated like one'],
+        ['classy', 'Classy', 'tasteful and put-together'],
+        ['slutty', 'Slutty', 'dresses and acts to be wanted'],
     ]],
     ['temperament', 'Attitude & temperament', '✺', '#d6b58f', [
         ['arrogant', 'Arrogant', 'thinks they’re better than everyone'], ['prideful', 'Prideful', 'too proud to back down or admit fault'],
@@ -208,6 +217,9 @@ export const CATEGORIES = [
         ['quirky', 'Quirky', 'odd in an endearing way'], ['introverted', 'Introverted', 'wants quiet and space'],
         ['intuitive', 'Intuitive', 'goes with their gut'], ['humble', 'Humble', 'doesn’t think too much of themselves'],
         ['extroverted', 'Extroverted', 'wants people around'],
+        ['entitled', 'Entitled', 'thinks they’re owed everything'],
+        ['oblivious', 'Oblivious', 'never notices what’s obvious to everyone else'],
+        ['romanticising', 'Romanticising', 'sees life like a novel, makes everything a story'],
     ]],
     ['psychology', 'Mindsets & psychological states', '◈', '#a6a0cb', [
         ['emotionless', 'Emotionless', 'numb, feels nothing'], ['insane', 'Insane', 'losing their mind'],
@@ -220,6 +232,9 @@ export const CATEGORIES = [
         ['dissociating', 'Dissociating', 'detached from themselves, like it’s not real'], ['in_denial', 'In denial', 'refusing to face the truth'],
         ['empty', 'Empty', 'hollow inside'], ['manic', 'Manic', 'racing thoughts, reckless highs'],
         ['brainwashed', 'Brainwashed', 'thoughts and beliefs that aren’t really theirs'], ['morbid', 'Morbid', 'drawn to dark, grim things'],
+        ['victim_complex', 'Victim complex', 'always the victim in their own eyes'],
+        ['projecting', 'Projecting', 'pins their own feelings and faults on others'],
+        ['believes_own_lies', 'Believes their own lies', 'has told the lie so long it’s true to them'],
     ]],
     ['energy', 'Energy', '☾', '#b9b4cd', [
         ['tired', 'Tired', 'worn out'], ['lazy', 'Lazy', 'can’t be bothered'],
@@ -281,6 +296,7 @@ export const CATEGORIES = [
         ['voice_squeaky', 'Squeaky', 'squeaky'], ['voice_grunting', 'Grunting', 'grunts a lot'],
         ['voice_groaning', 'Groaning', 'groans a lot'], ['voice_moaning', 'Moaning', 'moans a lot'],
         ['voice_squealing', 'Squealing', 'squeals a lot'],
+        ['voice_yelling', 'Yelling', 'yells a lot'],
     ], 'state'],
     ['background', 'Background & identity', '✎', '#b4c49a', [
         ['street_smart', 'Street smart', 'knows how the real world works'], ['cultured', 'Cultured', 'knows art, music, food and the finer things'],
@@ -316,6 +332,11 @@ export const CATEGORIES = [
         ['tortured_artist', 'Tortured artist', 'their pain feeds their art'], ['girl_next_door', 'Girl next door', 'sweet and ordinary'],
         ['lone_wolf', 'Lone wolf', 'goes it alone'], ['trickster', 'Trickster', 'lives to stir things up'],
         ['himbo', 'Himbo', 'hot, sweet, not the brightest'],
+        ['boy_next_door', 'Boy next door', 'sweet and ordinary'],
+        ['axe_crazy', 'Axe-crazy', 'violently unhinged, a danger to everyone'],
+        ['obliviously_evil', 'Obliviously evil', 'does evil with no idea it’s wrong'],
+        ['chick_magnet', 'Chick magnet', 'women can’t resist them'],
+        ['crazy_jealous', 'Crazy jealous guy', 'jealous to the point of danger'],
     ], 'state'],
     ['standing', 'Status & secrets', '♜', '#c9b37e', [
         ['wealth', 'Wealth', 'rich'], ['poor', 'Poor', 'short on money'],
@@ -342,6 +363,7 @@ export const CATEGORIES = [
         ['coworkers', 'Coworkers', 'they work together'], ['neighbours', 'Neighbours', 'they live next door'],
         ['rivals', 'Rivals', 'they compete'], ['childhood_friends', 'Childhood friends', 'friends since they were kids'],
         ['sugar', 'Sugar arrangement', 'money for company'],
+        ['wrapped_around_finger', 'Wrapped around their finger', 'will do anything the other person wants'],
     ], 'state'],
     ['setting', 'Scene', '⌂', '#a9c2a1', [
         ['domestic', 'Domestic', 'everyday home life together'], ['cosy', 'Cosy', 'warm and cosy'],
@@ -395,6 +417,7 @@ export const CATEGORIES = [
         ['office_romance', 'Office romance', 'office romance'], ['obsessive_love', 'Obsessive love', 'obsessive love'],
         ['bodyguard', 'Bodyguard', 'bodyguard romance'], ['stockholm', 'Stockholm syndrome', 'falling for their captor'],
         ['trauma_bond', 'Trauma bond', 'bonded through shared trauma'], ['who_did_this', 'Who did this to you', 'furious protectiveness when they’re hurt'],
+        ['if_i_cant_have_you', 'If I can’t have you', 'if I can’t have you, no one can'],
     ], 'story'],
     ['plot', 'Plot tropes', '⚑', '#a8c8d8', [
         ['found_family', 'Found family', 'found family'], ['redemption_arc', 'Redemption arc', 'redemption arc'],
@@ -407,6 +430,9 @@ export const CATEGORIES = [
         ['cult', 'Cult', 'a cult'], ['escape', 'Escape', 'trying to escape'],
         ['survival', 'Survival', 'fighting to survive'], ['haunting', 'Haunting', 'a haunting'],
         ['descent_into_madness', 'Descent into madness', 'descent into madness'], ['dead_dove', 'Dead dove', 'dark content played straight, no softening'],
+        ['crime_of_passion', 'Crime of passion', 'crime of passion'],
+        ['uncontrolled_powers', 'Uncontrolled powers', 'powers they can’t control'],
+        ['engineered_heroics', 'Engineered heroics', 'someone stages a danger so they can be the hero'],
     ], 'story'],
     ['writing', 'Writing style', '✒', '#b3b3d6', [
         ['unreliable_narrator', 'Unreliable narrator', 'unreliable narrator'], ['gritty', 'Gritty', 'gritty and raw'],
@@ -418,6 +444,10 @@ export const CATEGORIES = [
         ['purple_prose', 'Purple prose', 'ornate, flowery prose'], ['slow_paced', 'Slow paced', 'slow, lingering pacing'],
         ['fast_paced', 'Fast paced', 'fast pacing'], ['explicit', 'Explicit', 'nothing faded out'],
         ['fade_to_black', 'Fade to black', 'fades to black for sex'], ['dreamlike', 'Dreamlike', 'dreamlike, surreal'],
+        ['inner_monologue', 'Inner monologue', 'their thoughts written out'],
+        ['smut', 'Smut', 'sex-focused and explicit'],
+        ['gore', 'Gore', 'graphic gore'],
+        ['guro', 'Guro', 'erotic grotesque, sex and gore together'],
     ], 'story'],
 ];
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
@@ -495,6 +525,7 @@ export const PROMPT_NAME = {
     masking_emotive: 'putting on a show of emotion to cover the real thing',
     masking_less_emotive: 'playing it down so their feelings don’t show',
     daddy: 'daddy (nurturing authority role)',
+    little_girl: 'little girl (wants to be cared for, fussed over and guided)',
     owner: 'owner (pet play)',
     anticipation: 'into the slow build-up',
     god_complexed: 'god complex',
@@ -623,6 +654,19 @@ export const PROMPT_NAME = {
     introspective: 'introspective, lots of inner thought', visceral: 'visceral, physical detail', purple_prose: 'purple prose',
     slow_paced: 'slow, lingering pacing', fast_paced: 'fast pacing', explicit: 'explicit, nothing faded out',
     fade_to_black: 'fade to black for sex', dreamlike: 'dreamlike, surreal',
+    female_gaze: 'female gaze (drinks in their partner as a whole person: how they look, how they feel, how they make them feel)',
+    classy: 'classy', slutty: 'slutty (dresses and acts to be wanted)', voice_yelling: 'yells a lot',
+    desperate_for_approval: 'desperate for approval', tranquil_fury: 'tranquil fury (rage gone calm and cold, scarier than shouting)',
+    boomerang_bigot: 'a boomerang bigot (hates a group they belong to)', moral_myopia: 'moral myopia (only counts wrongs done to them or theirs)',
+    entitled: 'entitled', oblivious: 'oblivious (never notices what’s obvious to everyone else)',
+    romanticising: 'romanticises everything, sees life like a novel',
+    victim_complex: 'victim complex (always the victim in their own eyes)', projecting: 'projecting their own feelings and faults onto others',
+    believes_own_lies: 'believes their own lies', madonna_whore: 'Madonna-whore complex (can’t desire the one they respect, or respect the one they desire)',
+    boy_next_door: 'boy next door', axe_crazy: 'axe-crazy (violently unhinged, a danger to everyone)',
+    obliviously_evil: 'obliviously evil (does evil with no idea it’s wrong)', chick_magnet: 'a chick magnet', crazy_jealous: 'crazy jealous (jealous to the point of danger)',
+    wrapped_around_finger: 'wrapped around {other}’s finger', if_i_cant_have_you: '"if I can’t have you, no one can"',
+    crime_of_passion: 'crime of passion', uncontrolled_powers: 'uncontrolled powers', engineered_heroics: 'engineered heroics (someone stages a danger so they can be the hero)',
+    inner_monologue: 'inner monologue (thoughts written out)', smut: 'smut (sex-focused, explicit)', gore: 'graphic gore', guro: 'guro (erotic grotesque, sex and gore together)',
     // Story
     offensive: 'offensive fiction (deliberately offensive, no political correctness)',
     character_driven: 'character-driven', crime: 'crime fiction', gothic: 'gothic fiction', romcom: 'romantic comedy',

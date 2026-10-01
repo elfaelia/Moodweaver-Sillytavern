@@ -773,11 +773,12 @@ export const PROMPT_NAME = {
     detached: 'detached, watching life from behind glass', compartmentalising: 'compartmentalising (feelings kept in separate boxes)',
     mask_slip: 'their mask is slipping', cant_hold_it_in: 'can’t hold it in any more', transparent: 'transparent (every feeling shows on their face)',
     heart_on_sleeve: 'wears their heart on their sleeve', covert_pervert: 'a covert pervert (hides it well)', deviant: 'deviant, drawn to the taboo',
+    fawning: 'fawning: eager to please, quick to accommodate and alert to what will keep someone happy',
     likes_older_men: 'drawn to older men; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
     likes_younger_men: 'drawn to younger men; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
     likes_older_women: 'drawn to older women; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
     likes_younger_women: 'drawn to younger women; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
-    hot_for_teacher: 'hot for teacher (into teachers and their authority)', ravishing: 'wants to ravish their partner, take them completely',
+    hot_for_teacher: 'hot for teacher: drawn to teachers and the authority, approval and imbalance that come with the role', ravishing: 'wants to ravish their partner, take them completely',
     ravished: 'wants to be ravished, taken completely', role_reversal_dom: 'role reversal: usually the sub, taking control this time',
     role_reversal_sub: 'role reversal: usually the dom, giving up control this time', conditioned: 'conditioned (their desires and responses have been trained)',
     artistic_pervert: 'an artistic pervert (dresses their perversion up as art)', life_of_party: 'the life of the party', sleazy: 'sleazy',
@@ -828,6 +829,9 @@ export function composePrompt(state, name, extras = {}) {
     const N = String(name ?? '').trim() || 'the character', n = shortName(N);
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = shortName(U);
     const feelings = mine.filter(m => m.kind === 'mood');
+    const playerInner = theirs.filter(m => m.kind === 'mood');
+    const playerFacts = theirs.filter(m => m.kind === 'state');
+    const playerPeak = theirs.length ? Math.max(...theirs.map(m => player.state.moods[m.id])) : 0;
     const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
     const out = [
@@ -838,13 +842,20 @@ export function composePrompt(state, name, extras = {}) {
     ];
     if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
         `For qualities, appearance and archetypes, strength means both how pronounced they are and how much they shape the portrayal. For fixed facts and relationships, it means how much they shape the scene; keep established facts, like ages, intact. A high setting should change the writing throughout, not just get named once.`);
-    if (mine.length) out.push('', `${N} right now:`, ...listLines(state, mine, U));
+    if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
     if (feelings.length) out.push('',
         `${n}'s feelings come from this list, not from their card or earlier in the chat. Their card fills in the parts you haven't set here. Feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. A strong inner feeling stays strong even when another selected trait changes how it comes out. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
-    if (theirs.length) out.push('', `${U} (the player's character):`, ...listLines(player.state, theirs, N), '',
-        `The player writes everything ${u} says, does and thinks, so don't. Use this to read ${u}'s messages, to know what ${n} notices, and to describe what ${n} can see of them. ${n} only knows what they could see or have learned, so anything hidden comes through as small tells at most. None of it changes how ${n} feels; they react through their own list.`);
+    if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`, ...listLines(player.state, theirs, N), '',
+        `These settings describe ${u}; the player still owns everything ${u} says, does and thinks. Never supply any of that for them.`,
+        ...(playerFacts.length ? [`For visible qualities, use what ${n} could reasonably see. Treat background and relationship facts as known only when the chat established them; otherwise they can support a guess, not certainty.`] : []),
+        ...(playerInner.length ? [`Inner traits are subtext, not mind-reading. Read them through ${u}'s actual words, choices and visible behaviour in the current message and chat history. Strength controls how clearly the pattern comes through and how much it colours ${n}'s interpretation.`] : []),
+        ...(playerPeak === 100 ? [`Maximum traits must meaningfully shape what ${n} notices, suspects, tests and responds to throughout the reply; don't reduce them to one token mention. If the evidence is thin, give ${n} a strong hunch or a reason to probe rather than impossible knowledge.`]
+            : playerPeak >= 61 ? [`Strong traits should form a noticeable pattern in ${n}'s reading of ${u}. If the evidence is uncertain, let ${n} suspect or test it rather than simply knowing.`]
+            : [`Lower-strength traits can remain a passing possibility in how ${n} reads ${u}.`]),
+        `This can shape ${n}'s impression, assumptions and immediate response. ${n}'s own personality and selected feelings decide what they make of it.`,
+        `</player_character>`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
     if (ageGapStrength) out.push('',
@@ -854,7 +865,7 @@ export function composePrompt(state, name, extras = {}) {
     if (story.some(m => m.category === 'authors')) out.push('',
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice. Blend them at their listed strengths, keeping this scene, its characters and point of view. Write fresh lines, not quotations or borrowed plots.`);
     out.push('', `For each person and for the story, let the strongest settings lead and give them most of the writing's attention. Weaker ones colour that portrayal; they don't water it down. Equally strong settings stay equally strong: weave them together, and if they clash, show the tension instead of averaging them into something mild.${used.some(t => t.min === 100) ? ` Maximum settings run through the whole reply. Make their effect felt in the substance of the writing, not just a repeated label or one token gesture.` : ''} Mild things add small touches; faint things can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through that blend.` : ''} Show the result through description, voice, thoughts and actions, keeping the player's character theirs to write. Never mention these notes.`);
-    return `<mood character="${escapeHtml(N)}">\n${out.join('\n')}\n</mood>`;
+    return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
     const all = [...live(state), ...live(extras.player?.state), ...live(extras.story)];

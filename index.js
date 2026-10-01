@@ -1,4 +1,4 @@
-import { CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { KNOWLEDGE_MODES, knowledgeEntry, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -83,6 +83,27 @@ function getStoryState(ch = target()) {
     state.mode = 'manual';
     return state;
 }
+// Knowledge is per chat, observing character and persona; it is not a persona default.
+function getKnowledge(ch = target(), create = false) {
+    const meta = ctx().chatMetadata[KEY];
+    if (!meta || !ch) return {};
+    const key = JSON.stringify([ch.avatar, playerName()]);
+    if (create) { meta.personaKnowledge ??= {}; meta.personaKnowledge[key] ??= {}; }
+    return meta.personaKnowledge?.[key] ?? {};
+}
+function knowledgePanel(state, ch) {
+    const active = activeMoods(state).filter(m => m.kind !== 'story');
+    const knowledge = getKnowledge(ch);
+    return `<details class="mw-knowledge mw-advanced"><summary>What ${esc(ch.name)} knows <small>${active.length} active tags</small></summary>
+        <p class="mw-fine">Sliders describe you. These controls describe what ${esc(ch.name)} knows about you in this chat. Scene only follows visible evidence and established history. Private keeps an inner state unknown until you give it away. Suspected is an impression; Known is established knowledge. Neither reveals exact intensity or every later mood change.</p>
+        ${active.length ? active.map(m => {
+            const entry = knowledgeEntry(knowledge[m.id]);
+            return `<div class="mw-knowledge-row"><label for="mw-knowledge-${m.id}">${esc(m.label)} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
+                <select id="mw-knowledge-${m.id}" data-knowledge="${m.id}" aria-label="What ${esc(ch.name)} knows: ${esc(m.label)}">${KNOWLEDGE_MODES.map((mode, i) => `<option value="${mode}" ${entry.mode === mode ? 'selected' : ''}>${['Scene only', 'Private', 'Suspected', 'Known'][i]}</option>`).join('')}</select>
+                ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${m.id}" aria-label="Source for ${esc(m.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
+        }).join('') : '<p class="mw-fine">Enable a persona tag and it will appear here.</p>'}
+        <p class="mw-fine">Each active tag is sent once, with its existing strength. Source notes add tokens only when filled in. Turning a tag off stops sending it; its knowledge choice is kept for next time.</p></details>`;
+}
 const viewState = () => who === 'user' ? getUserState() : who === 'story' ? getStoryState() : getState();
 function profiles() {
     try { return ctx().ConnectionManagerRequestService.getSupportedProfiles(); } catch { return []; }
@@ -99,7 +120,7 @@ async function syncPrompt(forGeneration = false) {
         promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
     try {
-        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100) }, story });
+        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100), knowledge: getKnowledge(ch) }, story });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -195,9 +216,10 @@ function row(m, state) {
 function render() {
     if (!panel) return;
     const scroll = panel.scrollTop;
-    const advancedOpen = panel.querySelector('.mw-advanced:not(.mw-inspector)')?.open;
+    const advancedOpen = panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')?.open;
     const tuningOpen = panel.querySelector('.mw-tuning')?.open;
     const inspectorOpen = panel.querySelector('.mw-inspector')?.open;
+    const knowledgeOpen = panel.querySelector('.mw-knowledge')?.open;
     panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
     const ch = target(), charState = getState(ch), allProfiles = profiles();
     const state = charState ? viewState() : null, mine = who !== 'char';
@@ -209,12 +231,13 @@ function render() {
         <label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'Enabled' : 'Send'}</label></div>
     <div class="mw-mode mw-who" role="group" aria-label="Whose tags">${[['char', '◆', ch.name], ['user', '◇', playerName()], ['story', '❖', 'Story']].map(([k, icon, label]) => `<button data-who="${k}" aria-pressed="${who === k}">${icon} ${esc(label)}</button>`).join('')}</div>
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
-    ${who === 'user' ? `<p class="mw-explainer">How ${esc(playerName())} comes across. The model can notice visible traits and infer inner ones from the chat, but never writes for them. Shared by everyone in this chat.</p>` : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
+    ${who === 'user' ? `<p class="mw-explainer">Your sliders describe ${esc(playerName())} in this chat. Strength and what another character knows are separate; set their knowledge below. You still write your own words, actions and thoughts.</p>` : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
     <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
     <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active${active.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
         <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${m.label}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
+    ${who === 'user' ? knowledgePanel(state, ch) : ''}
     ${!mine && state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
         <p class="mw-fine">Uses the actual model shown in brackets. Sends recent chat text and a short character excerpt to that profile. Your roleplay connection stays selected. One extra request per scene read; provider charges apply.</p>
         <div class="mw-actions"><button data-action="analyse" ${pending || !state.profile || !state.enabled ? 'disabled' : ''}>✧ Read scene now</button>${pending ? '<button data-action="cancel">Stop</button>' : ''}<button data-action="undo" ${!state.history?.length ? 'disabled' : ''}>Undo last read</button></div>
@@ -250,10 +273,11 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.6</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
-    if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.8</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
+    if (knowledgeOpen && panel.querySelector('.mw-knowledge')) panel.querySelector('.mw-knowledge').open = true;
     filterRows(); renderPreview(); panel.scrollTop = scroll; toggleTop();
 }
 function toggleTop() { const b = panel?.querySelector('.mw-to-top'); if (b) b.hidden = panel.scrollTop < 500; }
@@ -295,6 +319,13 @@ function setup() {
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
+        const sourceId = e.target.dataset.knowledgeSource;
+        if (sourceId && who === 'user' && BY_ID[sourceId]) {
+            const knowledge = getKnowledge(target(), true);
+            knowledge[sourceId] = knowledgeEntry({ ...knowledgeEntry(knowledge[sourceId]), source: e.target.value });
+            // Keep the draft in metadata before any other control can redraw the panel.
+            void persist(); void syncPrompt(); return;
+        }
         if (e.target.dataset.slider) {
             const id = e.target.dataset.slider, value = Number(e.target.value);
             panel.querySelector(`[data-value="${id}"]`).textContent = `${value}%`;
@@ -304,6 +335,14 @@ function setup() {
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
+        const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
+        if (knowledgeId && who === 'user' && BY_ID[knowledgeId]?.kind !== 'story' && BY_ID[knowledgeId]) {
+            const knowledge = getKnowledge(target(), true);
+            const previous = knowledgeEntry(knowledge[knowledgeId]);
+            const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });
+            if (next.mode === 'scene') delete knowledge[knowledgeId]; else knowledge[knowledgeId] = next;
+            await persist(); await syncPrompt(); render(); return;
+        }
         if (input.dataset.slider) {
             await changeState(s => { s.moods[input.dataset.slider] = Number(input.value); if (who === 'char' && s.mode === 'dynamic') s.pins[input.dataset.slider] = true; }); return;
         }
@@ -379,7 +418,7 @@ function setup() {
 // jQuery ready also works when installed after APP_READY has fired.
 if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();
 
-export { analyse, getState, syncPrompt };
+export { analyse, getState, getKnowledge, syncPrompt };
 
 export function onDisable() {
     suspended = true; ++promptVersion; cancelAnalysis();

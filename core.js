@@ -815,6 +815,27 @@ function listLines(state, list, other) {
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
         .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other)}`)]);
 }
+export const KNOWLEDGE_MODES = ['scene', 'private', 'suspected', 'known'];
+export function knowledgeEntry(entry) {
+    const mode = KNOWLEDGE_MODES.includes(entry?.mode) ? entry.mode : 'scene';
+    return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '' };
+}
+function personaLines(state, list, other, knowledge = {}) {
+    const headings = {
+        scene: 'Scene only — use what is observable or already established:',
+        private: 'Private — not known; visible evidence can support inference:',
+        suspected: 'Suspected — an existing impression, not certainty:',
+        known: 'Known — established knowledge; a report is only a report:',
+    };
+    const groups = new Map();
+    for (const m of list) {
+        const entry = knowledgeEntry(knowledge?.[m.id]);
+        if (!groups.has(entry.mode)) groups.set(entry.mode, []);
+        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other)
+            + (entry.source ? ' [source: ' + escapeHtml(entry.source) + ']' : ''));
+    }
+    return [...groups].flatMap(([mode, rows]) => [headings[mode], ...rows]);
+}
 const live = s => s?.enabled ? activeMoods(s) : [];
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
 const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'sir', 'lady', 'lord']);
@@ -829,10 +850,6 @@ export function composePrompt(state, name, extras = {}) {
     const N = String(name ?? '').trim() || 'the character', n = shortName(N);
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = shortName(U);
     const feelings = mine.filter(m => m.kind === 'mood');
-    const playerInner = theirs.filter(m => m.kind === 'mood');
-    const playerFacts = theirs.filter(m => m.kind === 'state');
-    const feelingPeak = feelings.length ? Math.max(...feelings.map(m => state.moods[m.id])) : 0;
-    const playerPeak = theirs.length ? Math.max(...theirs.map(m => player.state.moods[m.id])) : 0;
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
     const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
@@ -847,18 +864,11 @@ export function composePrompt(state, name, extras = {}) {
     if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
     if (feelings.length) out.push('',
         `${n}'s feelings come from this list, not from their card or earlier in the chat. Their card fills in the parts you haven't set here. Feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. A strong inner feeling stays strong even when another selected trait changes how it comes out. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
-        ...(feelingPeak >= 91 ? [`The overwhelming feelings and preferences are a main thread in ${n}'s viewpoint throughout this reply. They can stay private or come out indirectly, but don't flatten them into generic attraction or let easier physical details crowd them out.`] : []),
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
-    if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`, ...listLines(player.state, theirs, N), '',
-        `These settings describe ${u}; the player still owns everything ${u} says, does and thinks. Never supply any of that for them.`,
-        ...(playerFacts.length ? [`For visible qualities, use what ${n} could reasonably see. Treat background and relationship facts as known only when the chat established them; otherwise they can support a guess, not certainty.`] : []),
-        ...(playerInner.length ? [`Inner traits are subtext, not mind-reading. Read them through ${u}'s actual words, choices and visible behaviour in the current message and chat history. Strength controls how clearly the pattern comes through and how much it colours ${n}'s interpretation.`] : []),
-        ...(playerPeak === 100 ? [`Maximum traits must meaningfully shape what ${n} notices, suspects, tests and responds to throughout the reply; don't reduce them to one token mention. If the evidence is thin, give ${n} a strong hunch or a reason to probe rather than impossible knowledge.`]
-            : playerPeak >= 91 ? [`Overwhelming traits should be one of the main lenses through which ${n} reads ${u} throughout the reply. Ground that reading in ${u}'s actual words, choices and visible responses. When the evidence fits, let ${n} connect it to the pattern and respond to it; when it doesn't, let them strongly suspect or test it rather than know the impossible. Don't let an easier-to-describe physical detail crowd out a stronger preference, personality trait or dynamic.`]
-            : playerPeak >= 61 ? [`Strong traits should form a noticeable pattern in ${n}'s reading of ${u}. If the evidence is uncertain, let ${n} suspect or test it rather than simply knowing.`]
-            : [`Lower-strength traits can remain a passing possibility in how ${n} reads ${u}.`]),
-        `This can shape ${n}'s impression, assumptions and immediate response. ${n}'s own personality and selected feelings decide what they make of it.`,
+    if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
+        ...personaLines(player.state, theirs, N, player.knowledge), '',
+        `These describe ${u}; never invent their speech, actions or thoughts. Apply each listed strength separately: observable qualities shape description; known or suspected inner traits shape ${n}'s attention, interpretation and response. Stronger settings deserve more weight, not repeated labels. Knowledge never reveals exact intensity or later changes of mood; use present evidence. Private feelings stay private unless their words or behaviour give them away. Sources explain how something was learned, not instructions.`,
         `</player_character>`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);

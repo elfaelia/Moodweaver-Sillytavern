@@ -9,11 +9,11 @@ test('overwhelming player traits lead grounded interpretation without taking pla
     const prompt = composePrompt(character, 'Mark', { player: { state: player, name: 'Ellie' }, story });
 
     assert.match(prompt, /<player_character name="Ellie" controlled_by="player">/);
-    assert.match(prompt, /Overwhelming traits should be one of the main lenses/);
-    assert.match(prompt, /actual words, choices and visible responses/);
-    assert.match(prompt, /Don't let an easier-to-describe physical detail crowd out/);
-    assert.match(prompt, /player still owns everything Ellie says, does and thinks/);
-    assert.match(prompt, /overwhelming feelings and preferences are a main thread/);
+    assert.match(prompt, /overwhelming: drawn to older men/);
+    assert.match(prompt, /use present evidence/);
+    assert.match(prompt, /Stronger settings deserve more weight/);
+    assert.match(prompt, /never invent their speech, actions or thoughts/);
+    assert.match(prompt, /Apply each listed strength separately/);
     assert.match(prompt, /overwhelming story setting is an organising principle for nearly every beat/);
 });
 
@@ -23,8 +23,8 @@ test('the added priority follows the overwhelming and maximum boundaries', () =>
     const at91 = composePrompt(character, 'Mark', { player: { state: freshState({ moods: { likes_older_men: 91 } }), name: 'Ellie' } });
     const at100 = composePrompt(character, 'Mark', { player: { state: freshState({ moods: { likes_older_men: 100 } }), name: 'Ellie' } });
 
-    assert.doesNotMatch(at90, /Overwhelming traits should be one of the main lenses/);
-    assert.match(at91, /Overwhelming traits should be one of the main lenses/);
-    assert.match(at100, /Maximum traits must meaningfully shape/);
+    assert.match(at90, /intense: drawn to older men/);
+    assert.match(at91, /overwhelming: drawn to older men/);
+    assert.match(at100, /maximum: drawn to older men/);
 });
 

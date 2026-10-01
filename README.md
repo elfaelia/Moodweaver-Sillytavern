@@ -16,7 +16,20 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.7 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.8 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+
+### What the character knows about your persona
+
+In your persona tab, expand **What [character] knows**. Only active persona tags appear, showing their existing strength alongside a knowledge selector. This applies to moods as well as traits and facts:
+
+- **Scene only** (default): use visible evidence and what the chat already established.
+- **Private**: the character does not know it; your visible words or behaviour can still give it away.
+- **Suspected**: an existing impression, without certainty.
+- **Known**: established knowledge. An optional source can explain whether they were told, witnessed something, or read a report; a report is not automatically true.
+
+Strength describes the persona and how much an individual setting shapes the portrayal. Knowledge controls the observer's access to it, without revealing exact intensity or every later change of mood. The player keeps control of their speech, actions and thoughts. Knowledge choices are saved per chat, observing character avatar and persona name; they are not copied into character or persona defaults. Turning a tag off stops sending it and its source, while retaining its knowledge choice for reuse. Rename a persona and its knowledge choices start separately.
+
+Each active persona tag appears once in the prompt, grouped by knowledge status with its existing strength word. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. The persona guidance replaces the earlier longer paragraphs. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction tests do not guarantee model adherence.
 
 ### Mixing and strengths
 
@@ -51,7 +64,7 @@ New moods are grouped as follows:
 
 Masking governs outward presentation while preserving other feelings underneath. Emotionless describes felt numbness, whereas Stoic describes restraint. Insane is used as a dramatic description of erratic thinking, not a diagnosis. Dynamic analysis distinguishes ordinary care/authority from adult role preferences and consensual dynamics from abuse. New sliders start at zero in existing chats; saved moods, pins, settings and history are preserved. Only selected states are sent to the roleplay model; adding catalogue options alone adds no prompt tokens. The analyser's vocabulary grows to recognise the new options.
 
-The scale is **Off → Faint → Subtle → Mild → Clear → Strong → Intense**. Exact ranges are 0, 1–10, 11–20, 21–40, 41–60, 61–80, and 81–100. Intensity is a storytelling influence, not a probability or guaranteed action. “Stoic” describes outward restraint and can coexist with intense feelings. “Drunk” and “High” require established scene context.
+The scale is **Off → Faint → Subtle → Mild → Clear → Strong → Intense → Overwhelming → Maximum**. Exact ranges are 0, 1–10, 11–20, 21–40, 41–60, 61–80, 81–90, 91–99, and 100. Intensity is a storytelling influence, not a probability or guaranteed action. “Stoic” describes outward restraint and can coexist with intense feelings. “Drunk” and “High” require established scene context.
 
 ## Separate chats and characters
 

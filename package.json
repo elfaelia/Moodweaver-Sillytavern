@@ -1,2 +1,9 @@
-{"name":"sillytavern-moodweaver","version":"1.9.7","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.js"}}
-
+{
+  "name": "sillytavern-moodweaver",
+  "version": "1.9.8",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

@@ -634,7 +634,7 @@ export const PROMPT_NAME = {
     taller: 'taller than {other}, a real height difference', shorter: 'shorter than {other}, a real height difference',
     bigger: 'bigger than {other}, a real size difference', smaller: 'smaller than {other}, a real size difference',
     stronger: 'stronger than {other}', smarter: 'smarter than {other}', older: 'older than {other}', younger: 'younger than {other}',
-    age_gap: 'a big age gap with {other}', power_imbalance: 'a power imbalance with {other}',
+    age_gap: 'an age gap with {other}', power_imbalance: 'a power imbalance with {other}',
     secret_relationship: 'in a secret relationship with {other}', strangers: 'strangers to {other}', friends: 'friends with {other}',
     one_night_stand: 'a one night stand with {other}', casual: 'casual, no strings, with {other}', dating: 'dating {other}',
     married: 'married to {other}', exes: '{other}’s ex', enemies: 'enemies with {other}', affair: 'having an affair with {other}',
@@ -737,7 +737,7 @@ export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 const moodName = (m, other) => (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).replaceAll('{other}', other);
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
 const ORDER = Object.fromEntries(CATEGORIES.map(([id], i) => [id, i]));
-const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger', 'age_gap']);
+const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger']);
 // Grouped by section, strongest first inside each, with the strength word leading every line.
 function listLines(state, list, other) {
     const groups = [...new Set(list.map(m => m.category))].sort((a, b) => ORDER[a] - ORDER[b]);
@@ -767,6 +767,8 @@ export function composePrompt(state, name, extras = {}) {
         'How strong things are:',
         ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}`),
     ];
+    if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
+        `For facts and relationships, strength means how much they feature in the scene, not how strongly someone feels about them. They stay true even when they're in the background. Strong ones should make a noticeable difference to the writing, not just get named.`);
     if (mine.length) out.push('', `${N} right now:`, ...listLines(state, mine, U));
     if (feelings.length) out.push('',
         `${n}'s feelings come from this list, not from their card or earlier in the chat. Their personality stays the same, but feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. Everything listed mixes the way it does in real people: the strongest lead, weaker ones colour them, and when two pull different ways the stronger wins, or they're torn if they're even. How much shows depends on who's around and what's at stake. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
@@ -775,6 +777,8 @@ export function composePrompt(state, name, extras = {}) {
     if (theirs.length) out.push('', `${U} (the player's character):`, ...listLines(player.state, theirs, N), '',
         `The player writes everything ${u} says, does and thinks, so don't. Use this to read ${u}'s messages, to know what ${n} notices, and to describe what ${n} can see of them. ${n} only knows what they could see or have learned, so anything hidden comes through as small tells at most. None of it changes how ${n} feels; they react through their own list.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
+    if ([...mine, ...theirs].some(m => m.id === 'age_gap')) out.push('',
+        `Keep their ages as written. Let the age gap show in how they look beside each other, the lives they've led, what they take for granted and how they read each other. At stronger levels, make those differences a recurring part of their exchanges, rather than just mentioning their ages. Let their personalities decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
         `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.`);
     out.push('', `Don't try to fit everything into every reply. Strong things show most of the time, mild ones now and then, faint ones rarely, and only when they fit the moment.${state.sceneBreathing !== false ? ` Let the scene move at its own pace; only something strong should pull it somewhere new.` : ''} Show all this through ${n}'s voice, thoughts and actions, and never mention these notes.`);

@@ -3,7 +3,7 @@ import { CATEGORIES, MOODS, BY_ID, RECIPES, activeMoods, freshState, extendCatal
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const defaults = { tokenBudget: 800, depth: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 3 };
+const defaults = { tokenBudget: 800, depth: 0, placementVersion: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 3 };
 let panel, selectedAvatar = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
@@ -15,9 +15,15 @@ function settings() {
     const saved = c.extensionSettings[KEY];
     // The v2 prompt explains each strength tier in words, so the old 320 default is too tight.
     if ((saved.promptVersion ?? 1) < 3) { if ([320, 500].includes(saved.tokenBudget ?? 320)) saved.tokenBudget = 800; saved.promptVersion = 3; }
+    // Move the former default after the latest message once; keep other custom depths.
+    if (!saved.placementVersion) {
+        if (saved.depth == null || Number(saved.depth) === 1) saved.depth = 0;
+        saved.placementVersion = 1;
+        c.saveSettingsDebounced();
+    }
     return Object.assign(saved, {
         tokenBudget: clamp(saved.tokenBudget ?? 800, 160, 3000),
-        depth: clamp(saved.depth ?? 1, 0, 10),
+        depth: Math.round(clamp(saved.depth ?? 0, 0, 10)),
         sceneMessages: clamp(c.extensionSettings[KEY].sceneMessages ?? 8, 2, 30),
         sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 12000, 2000, 40000),
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 4000),
@@ -95,8 +101,8 @@ async function syncPrompt(forGeneration = false) {
     try {
         const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100) }, story });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
-        // In-chat, user role. Depth 1 sits just before your latest message, so your own words stay the last thing
-        // the model reads and the mood reads as standing context rather than a fresh request.
+        // In-chat, user role. Depth 0 puts the note after the latest chat message.
+        // Preset instructions outside chat history can still follow it.
         c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, settings().depth, false, 1);
         promptInfo = result; renderPreview();
     } catch {
@@ -117,7 +123,7 @@ function renderPreview() {
     const last = panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
-        last.textContent = snapshot ? `${snapshot.at}\n${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
+        last.textContent = snapshot ? `${snapshot.at}\nUser role · depth ${snapshot.depth}\n${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
     }
     const warning = panel.querySelector('[data-budget-warning]');
     if (warning) {
@@ -172,7 +178,7 @@ globalThis.moodweaverBeforeGeneration = async (_chat, _contextSize, _abort, type
     const ch = target(true), state = getState(ch);
     if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(ch);
     await syncPrompt(true);
-    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), prompt: promptInfo.prompt });
+    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: promptInfo.prompt });
     if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
     renderPreview();
 };
@@ -238,12 +244,13 @@ function render() {
         <p class="mw-fine">Saved separately for each chat and character. Save this setup as a character default to seed their future chats; existing chats keep their own blend.</p>
         <div class="mw-actions"><button data-action="baseline">${who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default for this character' : 'Save character default'}</button><button data-action="reset">Clear unpinned moods</button></div>
         <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"> tokens</label>
-        <label>Injection depth <input type="number" data-setting="depth" min="0" max="10" value="${settings().depth}"> messages from the end</label>
+        <label>Prompt depth <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"> messages from the end</label>
+        <p class="mw-fine">0 puts Moodweaver after your latest message (recommended); 1 puts it before. Lower numbers keep the note closer to the reply. This changes its placement, not a guaranteed priority over your preset.</p>
         <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
-        <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. Depth 1 places the mood just before your latest message; 0 puts it after. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.1</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+        <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.2</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;

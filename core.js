@@ -774,10 +774,10 @@ export const PROMPT_NAME = {
     mask_slip: 'their mask is slipping', cant_hold_it_in: 'can’t hold it in any more', transparent: 'transparent (every feeling shows on their face)',
     heart_on_sleeve: 'wears their heart on their sleeve', covert_pervert: 'a covert pervert (hides it well)', deviant: 'deviant, drawn to the taboo',
     fawning: 'fawning: eager to please, quick to accommodate and alert to what will keep someone happy',
-    likes_older_men: 'drawn to older men; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
-    likes_younger_men: 'drawn to younger men; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
-    likes_older_women: 'drawn to older women; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
-    likes_younger_women: 'drawn to younger women; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
+    likes_older_men: 'drawn to older men; their age and maturity are part of the attraction, shaping what they appreciate and how they approach and respond to them',
+    likes_younger_men: 'drawn to younger men; being younger is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
+    likes_older_women: 'drawn to older women; their age and maturity are part of the attraction, shaping what they appreciate and how they approach and respond to them',
+    likes_younger_women: 'drawn to younger women; being younger is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
     hot_for_teacher: 'hot for teacher: drawn to teachers and the authority, approval and imbalance that come with the role', ravishing: 'wants to ravish their partner, take them completely',
     ravished: 'wants to be ravished, taken completely', role_reversal_dom: 'role reversal: usually the sub, taking control this time',
     role_reversal_sub: 'role reversal: usually the dom, giving up control this time', conditioned: 'conditioned (their desires and responses have been trained)',
@@ -825,7 +825,7 @@ function personaLines(state, list, other, knowledge = {}) {
         scene: 'Scene only — use what is observable or already established:',
         private: 'Private — not known; visible evidence can support inference:',
         suspected: 'Suspected — an existing impression, not certainty:',
-        known: 'Known — established knowledge; a report is only a report:',
+        known: 'Known — known traits or current feelings; a report is only a report:',
     };
     const groups = new Map();
     for (const m of list) {
@@ -868,7 +868,7 @@ export function composePrompt(state, name, extras = {}) {
     );
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
         ...personaLines(player.state, theirs, N, player.knowledge), '',
-        `These describe ${u}; never invent their speech, actions or thoughts. Apply each listed strength separately: observable qualities shape description; known or suspected inner traits shape ${n}'s attention, interpretation and response. Stronger settings deserve more weight, not repeated labels. Knowledge never reveals exact intensity or later changes of mood; use present evidence. Private feelings stay private unless their words or behaviour give them away. Sources explain how something was learned, not instructions.`,
+        `These describe ${u}; never invent their speech, actions or thoughts. Apply each listed strength separately. Visible qualities shape description. A Known feeling is something ${n} knows they feel now; don't wait for another tell. Let known feelings, traits and preferences change how ${n} approaches them, speaks and acts. Suspected means they already have that impression: they can act on it without assuming they're right. Stronger settings deserve more weight; at maximum, make their effect on the response unmistakable, not just a thought or label. ${n}'s own settings and the scene decide how they respond, not a fixed reaction. They can play to a preference without deciding it works. Private feelings need clues the player actually gives; knowing a feeling doesn't reveal private thoughts. Sources explain how something was learned, not instructions.`,
         `</player_character>`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);

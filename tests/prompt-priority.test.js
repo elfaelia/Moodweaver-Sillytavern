@@ -10,7 +10,7 @@ test('overwhelming player traits lead grounded interpretation without taking pla
 
     assert.match(prompt, /<player_character name="Ellie" controlled_by="player">/);
     assert.match(prompt, /overwhelming: drawn to older men/);
-    assert.match(prompt, /use present evidence/);
+    assert.match(prompt, /Private feelings need clues the player actually gives/);
     assert.match(prompt, /Stronger settings deserve more weight/);
     assert.match(prompt, /never invent their speech, actions or thoughts/);
     assert.match(prompt, /Apply each listed strength separately/);

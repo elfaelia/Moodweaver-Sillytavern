@@ -14,7 +14,8 @@ test('knowledge groups retain each active strength once with no effect on the ob
     assert.match(b, /Suspected[^]*strong: a high-pitched voice/);
     assert.match(b, /Scene only[^]*maximum: confident/);
     assert.doesNotMatch(p.match(/<character_state[^]*?<\/character_state>/)[0], /worried|Known/);
-    assert.match(b, /Knowledge never reveals exact intensity or later changes of mood/);
+    assert.match(b, /A Known feeling is something Alex knows they feel now/);
+    assert.match(b, /knowing a feeling doesn't reveal private thoughts/);
 });
 test('old saves default to scene evidence and inactive knowledge is not sent', () => {
     assert.match(block(prompt()), /Scene only/);

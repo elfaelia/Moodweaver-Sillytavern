@@ -95,7 +95,7 @@ function knowledgePanel(state, ch) {
     const active = activeMoods(state).filter(m => m.kind !== 'story');
     const knowledge = getKnowledge(ch);
     return `<details class="mw-knowledge mw-advanced"><summary>What ${esc(ch.name)} knows <small>${active.length} active tags</small></summary>
-        <p class="mw-fine">Sliders describe you. These controls describe what ${esc(ch.name)} knows about you in this chat. Scene only follows visible evidence and established history. Private keeps an inner state unknown until you give it away. Suspected is an impression; Known is established knowledge. Neither reveals exact intensity or every later mood change.</p>
+        <p class="mw-fine">This covers your current feelings as well as traits and preferences. Scene only follows what they can see or already know. Private needs clues you actually give. Suspected is an impression they can act on but might get wrong. Known means they know, including how you feel now. Higher strengths should shape their response more; their own settings decide how. You still write your reactions.</p>
         ${active.length ? active.map(m => {
             const entry = knowledgeEntry(knowledge[m.id]);
             return `<div class="mw-knowledge-row"><label for="mw-knowledge-${m.id}">${esc(m.label)} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
@@ -273,7 +273,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.8</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.9</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;

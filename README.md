@@ -16,7 +16,7 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.8 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.9 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
 ### What the character knows about your persona
 
@@ -25,9 +25,9 @@ In your persona tab, expand **What [character] knows**. Only active persona tags
 - **Scene only** (default): use visible evidence and what the chat already established.
 - **Private**: the character does not know it; your visible words or behaviour can still give it away.
 - **Suspected**: an existing impression, without certainty.
-- **Known**: established knowledge. An optional source can explain whether they were told, witnessed something, or read a report; a report is not automatically true.
+- **Known**: they know the trait or how the persona feels now; they don't need a fresh tell before responding. An optional source can explain how they learned it. A report is still a report, not proof.
 
-Strength describes the persona and how much an individual setting shapes the portrayal. Knowledge controls the observer's access to it, without revealing exact intensity or every later change of mood. The player keeps control of their speech, actions and thoughts. Knowledge choices are saved per chat, observing character avatar and persona name; they are not copied into character or persona defaults. Turning a tag off stops sending it and its source, while retaining its knowledge choice for reuse. Rename a persona and its knowledge choices start separately.
+Strength describes the persona and how much each setting shapes the portrayal. Known or suspected feelings, traits and preferences should affect the observer's words and choices, with more weight at higher strengths. Suspected still leaves room to be wrong; strength doesn't turn it into certainty. The observer's own settings and the scene decide the response, without forcing the same reaction to every feeling. The player keeps control of their speech, actions and thoughts. Knowledge choices are saved per chat, observing character avatar and persona name; they are not copied into character or persona defaults. Turning a tag off stops sending it and its source, while retaining its knowledge choice for reuse. Rename a persona and its knowledge choices start separately.
 
 Each active persona tag appears once in the prompt, grouped by knowledge status with its existing strength word. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. The persona guidance replaces the earlier longer paragraphs. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction tests do not guarantee model adherence.
 

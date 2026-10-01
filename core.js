@@ -343,6 +343,7 @@ export const CATEGORIES = [
         ['restrained', 'Restrained', 'tied up or held down'], ['blindfolded', 'Blindfolded', 'blindfolded'],
         ['gagged', 'Gagged', 'gagged'], ['collared', 'Collared', 'wears the other person’s collar'],
         ['stay_quiet', 'Has to stay quiet', 'someone might hear'], ['spent', 'Spent', 'wrung out after sex'],
+        ['bedroom_tight', 'Tight', 'physically tight during sex'], ['bedroom_loose', 'Loose', 'physically loose during sex'],
     ], 'state'],
     ['substances', 'Substances', '☍', '#c8a0a0', [
         ['tipsy', 'Tipsy', 'a little drunk'], ['drunk', 'Drunk', 'had too much to drink'],
@@ -541,6 +542,13 @@ export const CATEGORIES = [
     ], 'story'],
     ['smut_style', 'Smut style', '❦', '#caa0b9', [
         ['smut', 'Smut', 'sex-focused and explicit'], ['victorian_erotica', 'Victorian erotica', 'Victorian erotica style'],
+        ['sloppy_smut', 'Sloppy/messy smut', 'messy, unpolished and bodily, with the physical chaos left in'],
+        ['hentai_smut', 'Hentai/manga-style smut', 'stylised visual beats, heightened reactions and manga-like pacing'],
+        ['character_driven_smut', 'Character-driven smut', 'personality, emotion and relationship dynamics steer every intimate beat'],
+        ['choreographed_smut', 'Action-choreographed smut', 'clear physical sequencing, positioning and movement that stay easy to follow'],
+        ['fluffy_erotica', 'Fluffy erotica', 'soft, affectionate and playful, with warmth around the intimacy'],
+        ['grotesque_smut', 'Grotesque smut', 'ugly, uncanny bodily detail that makes the intimacy deliberately uncomfortable'],
+        ['satirical_smut', 'Satirical smut', 'comic exaggeration that pokes at desire, ego and sexual conventions'],
     ], 'story'],
     ['authors', 'Author inspiration', '✍', '#bfafd9', AUTHOR_INSPIRATIONS, 'story'],
 ];
@@ -600,6 +608,14 @@ export const TIERS = [
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
     age_regressed: 'in a nonsexual age-regressed headspace, seeking familiar comfort and reassurance',
+    bedroom_tight: 'physically tight during sex', bedroom_loose: 'physically loose during sex',
+    sloppy_smut: 'sloppy/messy smut: messy, unpolished and bodily, with the physical chaos left in',
+    hentai_smut: 'hentai/manga-style smut: stylised visual beats, heightened reactions and manga-like pacing',
+    character_driven_smut: 'character-driven smut: personality, emotion and relationship dynamics steer every intimate beat',
+    choreographed_smut: 'action-choreographed smut: clear physical sequencing, positioning and movement that stay easy to follow',
+    fluffy_erotica: 'fluffy erotica: soft, affectionate and playful, with warmth around the intimacy',
+    grotesque_smut: 'grotesque smut: ugly, uncanny bodily detail that makes the intimacy deliberately uncomfortable',
+    satirical_smut: 'satirical smut: comic exaggeration that pokes at desire, ego and sexual conventions',
     masking_warmth: 'acting warm to hide how they really feel',
     masking_coldness: 'acting cold to hide how they really feel',
     masking_emotive: 'putting on a show of emotion to cover the real thing',

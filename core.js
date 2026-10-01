@@ -1,3 +1,39 @@
+export const PROSE_STYLES = [
+    ['prose_conversational', 'Conversational', 'a natural speaking rhythm, everyday phrasing and easy transitions'],
+    ['prose_deadpan', 'Deadpan', 'dry, straight-faced narration that lets absurdity speak for itself'],
+    ['prose_clipped', 'Clipped', 'short, sharp sentences with little connective padding'],
+    ['prose_flowing', 'Flowing', 'longer linked sentences that carry one thought into the next'],
+    ['prose_subtext', 'Subtext-heavy', 'let pauses, gestures and omissions carry what nobody says'],
+    ['prose_free_indirect', 'Free indirect thought', 'let the viewpoint character’s phrasing slip into third-person narration'],
+    ['prose_fragmented', 'Fragmented', 'broken sentences and jumps of thought, with events still easy to follow'],
+    ['prose_confessional', 'Confessional', 'an intimate, self-revealing voice, with room for doubt and contradiction'],
+    ['prose_ironic', 'Ironic narration', 'let the narration hint at what the viewpoint character misses'],
+    ['prose_playful', 'Playful prose', 'nimble wordplay, unexpected comparisons and a light touch'],
+    ['prose_reflective', 'Reflective', 'let present details stir up thoughts about what they mean'],
+    ['prose_observational', 'Observational', 'precise everyday details that reveal character without explaining them'],
+    ['prose_refrains', 'Refrain-driven', 'bring back a few phrases or images with changing meanings'],
+    ['prose_documentary', 'Documentary', 'concrete observations, exact detail and a report-like distance'],
+    ['prose_epistolary', 'Epistolary', 'tell the scene through letters, messages or diary entries'],
+    ['prose_vignettes', 'Vignettes', 'short, self-contained moments linked by mood or recurring details'],
+];
+export const AUTHOR_INSPIRATIONS = [
+    ['author_bret_easton_ellis', 'Bret Easton Ellis', 'cool, detached narration, status-conscious detail and dry social satire'],
+    ['author_chuck_palahniuk', 'Chuck Palahniuk', 'punchy sentences, recurring refrains, blunt observations and dark humour'],
+    ['author_vladimir_nabokov', 'Vladimir Nabokov', 'precise imagery, playful word choice and a sly, slippery narrative voice'],
+    ['author_stephenie_meyer', 'Stephenie Meyer', 'plain, intimate narration, emotional immediacy and lingering romantic tension'],
+    ['author_john_updike', 'John Updike', 'close sensory observation, flowing sentences and everyday details loaded with feeling'],
+    ['author_john_fowles', 'John Fowles', 'reflective narration, psychological ambiguity and a narrator who questions the telling'],
+    ['author_sheridan_le_fanu', 'Joseph Sheridan Le Fanu', 'measured storytelling, suggestive detail and unease that gathers quietly'],
+    ['author_jane_austen', 'Jane Austen', 'dry social wit, revealing dialogue and a sharp eye for self-deception'],
+    ['author_virginia_woolf', 'Virginia Woolf', 'flowing interior thought, shifting impressions and memories folded into the present'],
+    ['author_ernest_hemingway', 'Ernest Hemingway', 'plain, spare sentences, concrete actions and emotion left between the lines'],
+    ['author_franz_kafka', 'Franz Kafka', 'calm, exact narration treating baffling situations as ordinary and inescapable'],
+    ['author_shirley_jackson', 'Shirley Jackson', 'ordinary details turning uneasy, dry humour and quietly unsettling narration'],
+    ['author_toni_morrison', 'Toni Morrison', 'musical phrasing, layered memory and images carrying emotional weight'],
+    ['author_ursula_le_guin', 'Ursula K. Le Guin', 'clear, rhythmic prose, thoughtful observation and space for different ways of seeing'],
+    ['author_terry_pratchett', 'Terry Pratchett', 'nimble wordplay, wry asides and sharp satire with warmth underneath'],
+];
+
 export const CATEGORIES = [
     ['happy', 'Happy & lively', '✧', '#e5ca7f', [
         ['happy', 'Happy', 'in a good mood'], ['delighted', 'Delighted', 'really pleased'],
@@ -273,6 +309,7 @@ export const CATEGORIES = [
         ['chaotic_evil', 'Chaotic evil', 'cruel and lawless'],
     ]],
     ['psychology', 'Mind & psychology', '◈', '#a6a0cb', [
+        ['age_regressed', 'Age Regressed', 'a nonsexual younger headspace, seeking familiar comfort and reassurance'],
         ['traumatised', 'Traumatised', 'haunted by something that happened to them'], ['depressed', 'Depressed', 'flat, hopeless and heavy'],
         ['empty', 'Empty', 'hollow inside'], ['emotionless', 'Emotionless', 'numb, feels nothing'],
         ['dissociating', 'Dissociating', 'detached from themselves, like it’s not real'], ['abandonment_issues', 'Abandonment issues', 'expects everyone to leave'],
@@ -489,6 +526,7 @@ export const CATEGORIES = [
         ['dead_dove', 'Dead dove', 'dark content played straight, no softening'],
     ], 'story'],
     ['writing', 'Writing style', '✒', '#b3b3d6', [
+        ...PROSE_STYLES,
         ['cinematic', 'Cinematic', 'cinematic, visual'], ['atmospheric', 'Atmospheric', 'atmospheric'],
         ['lyrical', 'Lyrical', 'lyrical, poetic prose'], ['purple_prose', 'Purple prose', 'ornate, flowery prose'],
         ['minimalist', 'Minimalist', 'lean, stripped-back prose'], ['understated', 'Understated', 'understated'],
@@ -499,9 +537,12 @@ export const CATEGORIES = [
         ['stream_of_consciousness', 'Stream of consciousness', 'stream of consciousness'], ['unreliable_narrator', 'Unreliable narrator', 'unreliable narrator'],
         ['slow_paced', 'Slow paced', 'slow, lingering pacing'], ['fast_paced', 'Fast paced', 'fast pacing'],
         ['explicit', 'Explicit', 'nothing faded out'], ['fade_to_black', 'Fade to black', 'fades to black for sex'],
-        ['smut', 'Smut', 'sex-focused and explicit'], ['victorian_erotica', 'Victorian erotica', 'Victorian erotica style'],
         ['gore', 'Gore', 'graphic gore'], ['guro', 'Guro', 'erotic grotesque, sex and gore together'],
     ], 'story'],
+    ['smut_style', 'Smut style', '❦', '#caa0b9', [
+        ['smut', 'Smut', 'sex-focused and explicit'], ['victorian_erotica', 'Victorian erotica', 'Victorian erotica style'],
+    ], 'story'],
+    ['authors', 'Author inspiration', '✍', '#bfafd9', AUTHOR_INSPIRATIONS, 'story'],
 ];
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
 // The scene analyser only reads feelings; love languages are standing preferences, so it leaves them alone.
@@ -558,6 +599,7 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    age_regressed: 'in a nonsexual age-regressed headspace, seeking familiar comfort and reassurance',
     masking_warmth: 'acting warm to hide how they really feel',
     masking_coldness: 'acting cold to hide how they really feel',
     masking_emotive: 'putting on a show of emotion to cover the real thing',
@@ -739,7 +781,11 @@ export const PROMPT_NAME = {
 };
 export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 // {other} lets relationship entries name who they're about ("taller than Ellie").
-const moodName = (m, other) => (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).replaceAll('{other}', other);
+const moodName = (m, other) => {
+    if (m.category === 'authors') return `prose inspired by ${m.label}: ${m.cue}`;
+    if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.toLowerCase()}: ${m.cue}`;
+    return (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).replaceAll('{other}', other);
+};
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
 const ORDER = Object.fromEntries(CATEGORIES.map(([id], i) => [id, i]));
 const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger']);
@@ -789,6 +835,8 @@ export function composePrompt(state, name, extras = {}) {
         `Keep their ages as written. Let the age gap show at its listed strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other.${ageGapStrength === 100 ? ` The age gap is at maximum: build the portrayal around that contrast. Their descriptions, points of reference and the way they relate should keep bringing the difference to life throughout the reply.` : ageGapStrength >= 61 ? ` Make that contrast a recurring part of their exchanges, with more of the reply built around it as its strength rises.` : ''} Let their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
         `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.`);
+    if (story.some(m => m.category === 'authors')) out.push('',
+        `Use these authors as prose influences: rhythm, imagery, humour and narrative voice. Blend them at their listed strengths, keeping this scene, its characters and point of view. Write fresh lines, not quotations or borrowed plots.`);
     out.push('', `For each person and for the story, let the strongest settings lead and give them most of the writing's attention. Weaker ones colour that portrayal; they don't water it down. Equally strong settings stay equally strong: weave them together, and if they clash, show the tension instead of averaging them into something mild.${used.some(t => t.min === 100) ? ` Maximum settings run through the whole reply. Make their effect felt in the substance of the writing, not just a repeated label or one token gesture.` : ''} Mild things add small touches; faint things can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through that blend.` : ''} Show the result through description, voice, thoughts and actions, keeping the player's character theirs to write. Never mention these notes.`);
     return `<mood character="${escapeHtml(N)}">\n${out.join('\n')}\n</mood>`;
 }

@@ -831,7 +831,9 @@ export function composePrompt(state, name, extras = {}) {
     const feelings = mine.filter(m => m.kind === 'mood');
     const playerInner = theirs.filter(m => m.kind === 'mood');
     const playerFacts = theirs.filter(m => m.kind === 'state');
+    const feelingPeak = feelings.length ? Math.max(...feelings.map(m => state.moods[m.id])) : 0;
     const playerPeak = theirs.length ? Math.max(...theirs.map(m => player.state.moods[m.id])) : 0;
+    const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
     const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
     const out = [
@@ -845,6 +847,7 @@ export function composePrompt(state, name, extras = {}) {
     if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
     if (feelings.length) out.push('',
         `${n}'s feelings come from this list, not from their card or earlier in the chat. Their card fills in the parts you haven't set here. Feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. A strong inner feeling stays strong even when another selected trait changes how it comes out. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
+        ...(feelingPeak >= 91 ? [`The overwhelming feelings and preferences are a main thread in ${n}'s viewpoint throughout this reply. They can stay private or come out indirectly, but don't flatten them into generic attraction or let easier physical details crowd them out.`] : []),
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`, ...listLines(player.state, theirs, N), '',
@@ -852,6 +855,7 @@ export function composePrompt(state, name, extras = {}) {
         ...(playerFacts.length ? [`For visible qualities, use what ${n} could reasonably see. Treat background and relationship facts as known only when the chat established them; otherwise they can support a guess, not certainty.`] : []),
         ...(playerInner.length ? [`Inner traits are subtext, not mind-reading. Read them through ${u}'s actual words, choices and visible behaviour in the current message and chat history. Strength controls how clearly the pattern comes through and how much it colours ${n}'s interpretation.`] : []),
         ...(playerPeak === 100 ? [`Maximum traits must meaningfully shape what ${n} notices, suspects, tests and responds to throughout the reply; don't reduce them to one token mention. If the evidence is thin, give ${n} a strong hunch or a reason to probe rather than impossible knowledge.`]
+            : playerPeak >= 91 ? [`Overwhelming traits should be one of the main lenses through which ${n} reads ${u} throughout the reply. Ground that reading in ${u}'s actual words, choices and visible responses. When the evidence fits, let ${n} connect it to the pattern and respond to it; when it doesn't, let them strongly suspect or test it rather than know the impossible. Don't let an easier-to-describe physical detail crowd out a stronger preference, personality trait or dynamic.`]
             : playerPeak >= 61 ? [`Strong traits should form a noticeable pattern in ${n}'s reading of ${u}. If the evidence is uncertain, let ${n} suspect or test it rather than simply knowing.`]
             : [`Lower-strength traits can remain a passing possibility in how ${n} reads ${u}.`]),
         `This can shape ${n}'s impression, assumptions and immediate response. ${n}'s own personality and selected feelings decide what they make of it.`,
@@ -861,7 +865,7 @@ export function composePrompt(state, name, extras = {}) {
     if (ageGapStrength) out.push('',
         `Keep their ages as written. Let the age gap show at its listed strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other.${ageGapStrength === 100 ? ` The age gap is at maximum: build the portrayal around that contrast. Their descriptions, points of reference and the way they relate should keep bringing the difference to life throughout the reply.` : ageGapStrength >= 61 ? ` Make that contrast a recurring part of their exchanges, with more of the reply built around it as its strength rises.` : ''} Let their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
-        `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.`);
+        `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish.` : ''}`);
     if (story.some(m => m.category === 'authors')) out.push('',
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice. Blend them at their listed strengths, keeping this scene, its characters and point of view. Write fresh lines, not quotations or borrowed plots.`);
     out.push('', `For each person and for the story, let the strongest settings lead and give them most of the writing's attention. Weaker ones colour that portrayal; they don't water it down. Equally strong settings stay equally strong: weave them together, and if they clash, show the tension instead of averaging them into something mild.${used.some(t => t.min === 100) ? ` Maximum settings run through the whole reply. Make their effect felt in the substance of the writing, not just a repeated label or one token gesture.` : ''} Mild things add small touches; faint things can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through that blend.` : ''} Show the result through description, voice, thoughts and actions, keeping the player's character theirs to write. Never mention these notes.`);
@@ -941,3 +945,4 @@ export function fingerprint(chat) {
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
     return `${text.length}:${hash >>> 0}`;
 }
+

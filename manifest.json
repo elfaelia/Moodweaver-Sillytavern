@@ -6,9 +6,10 @@
   "js": "index.js",
   "css": "style.css",
   "author": "ecrit & Codex",
-  "version": "1.9.6",
+  "version": "1.9.7",
   "minimum_client_version": "1.19.0",
   "generate_interceptor": "moodweaverBeforeGeneration",
   "hooks": { "disable": "onDisable", "enable": "onEnable", "delete": "onDisable" },
   "auto_update": false
 }
+

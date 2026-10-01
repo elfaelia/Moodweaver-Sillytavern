@@ -16,11 +16,11 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.4.0 includes **140 sliders in nine collapsible categories**, including 21 adult role appetites. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.7 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
-### Mixing and strengths (1.4.0)
+### Mixing and strengths
 
-Moods reach the roleplay model as words, not numbers. Each active mood is placed under the same strength word you see on its slider (Faint 1–10, Subtle 11–20, Mild 21–40, Clear 41–60, Strong 61–80, Intense 81–100), and each occupied band gets one sentence describing how far a feeling at that strength reaches: faint feelings stay private and change nothing, mild ones colour tone but give way to circumstance and judgement, strong ones are hard to hide and push toward action, intense ones can override self-control. A shared paragraph tells the model to blend everything into one inner life, let contradictions become tension, and let who is present and what is at stake decide how much shows. Only bands that have moods in them are sent.
+Moods reach the roleplay model as words, not numbers. Each active slider is placed under the same strength word shown in the panel: Faint 1–10, Subtle 11–20, Mild 21–40, Clear 41–60, Strong 61–80, Intense 81–90, Overwhelming 91–99, and Maximum 100. Each occupied band gets one plain sentence explaining how much attention and influence it should have. The prompt tells the model to weave compatible and conflicting settings together, with the strongest leading instead of being averaged down. Only active sliders are sent.
 
 Labels that could be misread (masking, stoic, emotionless, lying, daddy, fatherly and a few others) carry a short note in brackets. Everything else is sent as its plain name, since the model already knows what "angry" means.
 
@@ -69,9 +69,9 @@ At the defaults, **Sensitivity 50** permits a maximum movement of 20 points per 
 
 ## Hidden prompt and token budgets
 
-The extension uses SillyTavern's `setExtensionPrompt` with an in-chat user-role injection, by default at **depth 1** (just before your latest message, so your own words are the last thing the model reads). Depth is adjustable under *Prompt, budgets & character defaults*. It never edits your card, preset, Author's Note or messages, and SillyTavern's prompt inspector can still show it.
+The extension uses SillyTavern's `setExtensionPrompt` with an in-chat user-role injection, by default at **depth 0**, immediately after the latest chat message. Depth is adjustable under *Prompt, budgets & character defaults*. It never edits your card, preset, Author's Note or messages, and SillyTavern's prompt inspector can still show it.
 
-The token target (default 500) is soft. Over target, optional label notes are dropped first; moods, strength bands and blending guidance are never dropped, and the panel reports any overrun. A typical five- to seven-mood blend is roughly 350–450 tokens.
+The token target (default 800) is a soft warning. Active sliders and their wording are never dropped or shortened; the panel reports any overrun.
 
 Analyser defaults: eight recent messages, 12,000 scene text characters, 4,000 character-description/personality characters combined, and an 800-output-token cap. The scene cap is characters, not tokens. The analyser also needs tokens for its instructions, mood vocabulary and current values. Budget settings are global. Reasoning models may consume their output allowance on thinking before returning JSON; use a small non-reasoning model or raise the analyser output cap if responses truncate.
 
@@ -113,3 +113,4 @@ Run `node --test tests/*.test.js`. Tests cover the catalogue, complete blend pre
 Run `node preview-server.mjs` and open `http://127.0.0.1:8768` for a simulated interactive preview using the actual UI module. It makes no paid calls and does not use real chats. Desktop and 390px-wide layouts were inspected, including search, pins, mode changes, analysis and chat switching. The real SillyTavern load check is recorded in `VERIFICATION.md`.
 
 Research references: [SillyTavern UI extensions](https://docs.sillytavern.app/for-contributors/writing-extensions/), [Connection Profiles](https://docs.sillytavern.app/usage/core-concepts/connection-profiles/). Local source contracts were checked in `public/scripts/st-context.js`, `public/scripts/extensions/shared.js`, `public/scripts/extensions.js`, `public/script.js`, `public/scripts/group-chats.js`, and `public/scripts/openai.js`.
+

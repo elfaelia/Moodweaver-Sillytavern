@@ -32,7 +32,7 @@
 .mw-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.mw-actions button{font-size:11px}
 .mw-tuning summary{font-size:11px;color:#c3bdce;cursor:pointer;padding:8px 0}.mw-tuning label{display:block;font-size:11px;margin:10px 0}.mw-tuning output{float:right;color:#b7cda9}
 .mw-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 24px 12px}.mw-tools select,.mw-tools input[type=search]{font-size:11px;margin:0}
-.mw-scale{display:flex;justify-content:space-between;font-size:9px;color:#858b97;padding:0 28px 12px}
+.mw-scale{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 10px;font-size:9px;color:#858b97;padding:0 28px 12px}
 .mw-categories{margin:0 16px}.mw-categories>details{border-top:1px solid var(--mw-line)}
 .mw-categories summary{display:flex;align-items:center;gap:10px;padding:14px 10px;cursor:pointer;list-style:none;font-size:12px;font-weight:550;user-select:none}.mw-categories summary::-webkit-details-marker{display:none}.mw-categories summary:after{content:'+';font-size:17px;font-weight:300;color:#8e939e;margin-left:4px}.mw-categories details[open]>summary:after{content:'−'}
 .mw-category-icon{color:var(--mw-accent);font-size:19px;width:20px;text-align:center}.mw-categories summary small{margin-left:auto;color:#9096a1;font-size:10px;font-weight:400}

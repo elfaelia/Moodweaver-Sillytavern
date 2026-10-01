@@ -547,7 +547,9 @@ export function activeMoods(state) {
 // one plain line saying how much a feeling at that strength actually does.
 // One strength scale for everything, worded so it works for feelings, facts, the player's character and the story alike.
 export const TIERS = [
-    { min: 81, name: 'Intense', text: 'takes over; it can override good sense and drives what happens' },
+    { min: 100, name: 'Maximum', text: 'dominates the portrayal from start to finish; push it to its fullest expression, unmistakable throughout the reply and far stronger than lower settings' },
+    { min: 91, name: 'Overwhelming', text: 'nearly takes over; keeps pulling attention and choices back to it, leaving little room for weaker things' },
+    { min: 81, name: 'Intense', text: 'forceful and persistent; repeatedly shapes what they notice, how they respond and where the scene goes' },
     { min: 61, name: 'Strong', text: 'hard to miss or hide, shows up in most replies and pushes what they do' },
     { min: 41, name: 'Clear', text: 'obvious when it’s relevant, and acted on when the moment allows' },
     { min: 21, name: 'Mild', text: 'colours tone and small choices now and then; other things easily win over it' },
@@ -713,7 +715,10 @@ export const PROMPT_NAME = {
     detached: 'detached, watching life from behind glass', compartmentalising: 'compartmentalising (feelings kept in separate boxes)',
     mask_slip: 'their mask is slipping', cant_hold_it_in: 'can’t hold it in any more', transparent: 'transparent (every feeling shows on their face)',
     heart_on_sleeve: 'wears their heart on their sleeve', covert_pervert: 'a covert pervert (hides it well)', deviant: 'deviant, drawn to the taboo',
-    likes_older_men: 'into older men', likes_younger_men: 'into younger men', likes_older_women: 'into older women', likes_younger_women: 'into younger women',
+    likes_older_men: 'drawn to older men; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
+    likes_younger_men: 'drawn to younger men; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
+    likes_older_women: 'drawn to older women; their age and maturity are part of the appeal, shaping who catches their eye and what holds their attention',
+    likes_younger_women: 'drawn to younger women; the contrast with their own age is part of the appeal, shaping who catches their eye and what holds their attention',
     hot_for_teacher: 'hot for teacher (into teachers and their authority)', ravishing: 'wants to ravish their partner, take them completely',
     ravished: 'wants to be ravished, taken completely', role_reversal_dom: 'role reversal: usually the sub, taking control this time',
     role_reversal_sub: 'role reversal: usually the dom, giving up control this time', conditioned: 'conditioned (their desires and responses have been trained)',
@@ -738,9 +743,11 @@ const moodName = (m, other) => (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).repl
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
 const ORDER = Object.fromEntries(CATEGORIES.map(([id], i) => [id, i]));
 const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger']);
-// Grouped by section, strongest first inside each, with the strength word leading every line.
+// Strongest sections first, then strongest entries inside each; stable catalogue order breaks ties.
 function listLines(state, list, other) {
-    const groups = [...new Set(list.map(m => m.category))].sort((a, b) => ORDER[a] - ORDER[b]);
+    const peak = Object.create(null);
+    for (const m of list) peak[m.category] = Math.max(peak[m.category] ?? 0, state.moods[m.id]);
+    const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
     return groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g)
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
         .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other)}`)]);
@@ -768,20 +775,21 @@ export function composePrompt(state, name, extras = {}) {
         ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}`),
     ];
     if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
-        `For facts and relationships, strength means how much they feature in the scene, not how strongly someone feels about them. They stay true even when they're in the background. Strong ones should make a noticeable difference to the writing, not just get named.`);
+        `For qualities, appearance and archetypes, strength means both how pronounced they are and how much they shape the portrayal. For fixed facts and relationships, it means how much they shape the scene; keep established facts, like ages, intact. A high setting should change the writing throughout, not just get named once.`);
     if (mine.length) out.push('', `${N} right now:`, ...listLines(state, mine, U));
     if (feelings.length) out.push('',
-        `${n}'s feelings come from this list, not from their card or earlier in the chat. Their personality stays the same, but feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. Everything listed mixes the way it does in real people: the strongest lead, weaker ones colour them, and when two pull different ways the stronger wins, or they're torn if they're even. How much shows depends on who's around and what's at stake. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
+        `${n}'s feelings come from this list, not from their card or earlier in the chat. Their card fills in the parts you haven't set here. Feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. A strong inner feeling stays strong even when another selected trait changes how it comes out. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
     if (theirs.length) out.push('', `${U} (the player's character):`, ...listLines(player.state, theirs, N), '',
         `The player writes everything ${u} says, does and thinks, so don't. Use this to read ${u}'s messages, to know what ${n} notices, and to describe what ${n} can see of them. ${n} only knows what they could see or have learned, so anything hidden comes through as small tells at most. None of it changes how ${n} feels; they react through their own list.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
-    if ([...mine, ...theirs].some(m => m.id === 'age_gap')) out.push('',
-        `Keep their ages as written. Let the age gap show in how they look beside each other, the lives they've led, what they take for granted and how they read each other. At stronger levels, make those differences a recurring part of their exchanges, rather than just mentioning their ages. Let their personalities decide what they make of it.`);
+    const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
+    if (ageGapStrength) out.push('',
+        `Keep their ages as written. Let the age gap show at its listed strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other.${ageGapStrength === 100 ? ` The age gap is at maximum: build the portrayal around that contrast. Their descriptions, points of reference and the way they relate should keep bringing the difference to life throughout the reply.` : ageGapStrength >= 61 ? ` Make that contrast a recurring part of their exchanges, with more of the reply built around it as its strength rises.` : ''} Let their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
         `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.`);
-    out.push('', `Don't try to fit everything into every reply. Strong things show most of the time, mild ones now and then, faint ones rarely, and only when they fit the moment.${state.sceneBreathing !== false ? ` Let the scene move at its own pace; only something strong should pull it somewhere new.` : ''} Show all this through ${n}'s voice, thoughts and actions, and never mention these notes.`);
+    out.push('', `For each person and for the story, let the strongest settings lead and give them most of the writing's attention. Weaker ones colour that portrayal; they don't water it down. Equally strong settings stay equally strong: weave them together, and if they clash, show the tension instead of averaging them into something mild.${used.some(t => t.min === 100) ? ` Maximum settings run through the whole reply. Make their effect felt in the substance of the writing, not just a repeated label or one token gesture.` : ''} Mild things add small touches; faint things can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through that blend.` : ''} Show the result through description, voice, thoughts and actions, keeping the player's character theirs to write. Never mention these notes.`);
     return `<mood character="${escapeHtml(N)}">\n${out.join('\n')}\n</mood>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

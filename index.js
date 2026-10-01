@@ -1,4 +1,4 @@
-import { CATEGORIES, MOODS, BY_ID, RECIPES, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -227,7 +227,7 @@ function render() {
         const n = active.filter(m => m.kind === k).length;
         return `<button data-tab="${k}" aria-pressed="${tab === k}">${label}${n ? ` · ${n}` : ''}</button>`; }).join('')}</div>`}
     <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search moods and states" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
-    <div class="mw-scale"><span>Off</span><span>Faint</span><span>Subtle</span><span>Mild</span><span>Clear</span><span>Strong</span><span>Intense</span></div>
+    <div class="mw-scale"><span>Off</span>${[...TIERS].reverse().map(t => `<span>${t.name}</span>`).join('')}</div>
     <div class="mw-categories">${CATEGORIES.map(([id, name, icon, color, , kind = 'mood']) => {
         const list = MOODS.filter(m => m.category === id), n = list.filter(m => state.moods[m.id]).length;
         return `<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
@@ -235,7 +235,7 @@ function render() {
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
         <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
         <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
-        <p class="mw-fine">Everything is sent as words, not numbers: each line starts with its strength (faint to intense), and a short guide at the top says what each strength in use means. Any moods can be mixed, including opposites. Pins lock values; they don’t add importance.</p>
+        <p class="mw-fine">Each line uses the strength word shown on its slider. 81–90 is intense, 91–99 is overwhelming, and 100 is maximum: a defining part of the whole reply. Values in the same band share wording. The strongest sections come first. Equally strong settings mix without being toned down; lower ones add smaller touches. Pins lock values; they don’t add importance.</p>
         <div data-token-count class="mw-token-count"></div><pre data-audit></pre>
         <b>Current prepared injection</b><pre data-preview></pre>
         <b>Last generation preparation</b><pre data-last-prompt></pre>
@@ -250,7 +250,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.2</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.3</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector)')) panel.querySelector('.mw-advanced:not(.mw-inspector)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;

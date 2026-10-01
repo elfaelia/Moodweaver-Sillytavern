@@ -50,3 +50,4 @@
 .mw-tabs{margin-top:16px;margin-bottom:12px}.mw-who{margin-top:12px}.mw-who button{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 .mw-clear{background:none;border:none;padding:0;font:inherit;color:inherit;text-decoration:underline;cursor:pointer;opacity:.85}
+.mw-to-top{position:sticky;bottom:14px;background:#354237;color:#d4e8cd;border:1px solid #a8cdb140;display:block;margin:-34px 4px 0 auto;width:34px;height:34px;border-radius:50%;padding:0;font-size:16px;line-height:1;opacity:.85;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.35)}.mw-to-top[hidden]{display:none}

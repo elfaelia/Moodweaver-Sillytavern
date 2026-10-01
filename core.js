@@ -599,10 +599,10 @@ export const TIERS = [
     { min: 100, name: 'Maximum', text: 'dominates the portrayal from start to finish; push it to its fullest expression, unmistakable throughout the reply and far stronger than lower settings' },
     { min: 91, name: 'Overwhelming', text: 'nearly takes over; keeps pulling attention and choices back to it, leaving little room for weaker things' },
     { min: 81, name: 'Intense', text: 'forceful and persistent; repeatedly shapes what they notice, how they respond and where the scene goes' },
-    { min: 61, name: 'Strong', text: 'hard to miss or hide, shows up in most replies and pushes what they do' },
+    { min: 61, name: 'Strong', text: 'strongly shapes the portrayal and the choices it leads to' },
     { min: 41, name: 'Clear', text: 'obvious when it’s relevant, and acted on when the moment allows' },
     { min: 21, name: 'Mild', text: 'colours tone and small choices now and then; other things easily win over it' },
-    { min: 11, name: 'Subtle', text: 'a small tell or passing thought every so often' },
+    { min: 11, name: 'Subtle', text: 'a small influence, noticeable every so often' },
     { min: 1, name: 'Faint', text: 'barely there; most replies won’t show it at all' },
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
@@ -774,9 +774,9 @@ export const PROMPT_NAME = {
     mask_slip: 'their mask is slipping', cant_hold_it_in: 'can’t hold it in any more', transparent: 'transparent (every feeling shows on their face)',
     heart_on_sleeve: 'wears their heart on their sleeve', covert_pervert: 'a covert pervert (hides it well)', deviant: 'deviant, drawn to the taboo',
     fawning: 'fawning: eager to please, quick to accommodate and alert to what will keep someone happy',
-    likes_older_men: 'drawn to older men; their age and maturity are part of the attraction, shaping what they appreciate and how they approach and respond to them',
+    likes_older_men: 'drawn to older men; being older is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
     likes_younger_men: 'drawn to younger men; being younger is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
-    likes_older_women: 'drawn to older women; their age and maturity are part of the attraction, shaping what they appreciate and how they approach and respond to them',
+    likes_older_women: 'drawn to older women; being older is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
     likes_younger_women: 'drawn to younger women; being younger is part of what attracts them, shaping what they appreciate and how they approach and respond to them',
     hot_for_teacher: 'hot for teacher: drawn to teachers and the authority, approval and imbalance that come with the role', ravishing: 'wants to ravish their partner, take them completely',
     ravished: 'wants to be ravished, taken completely', role_reversal_dom: 'role reversal: usually the sub, taking control this time',
@@ -820,12 +820,13 @@ export function knowledgeEntry(entry) {
     const mode = KNOWLEDGE_MODES.includes(entry?.mode) ? entry.mode : 'scene';
     return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '' };
 }
-function personaLines(state, list, other, knowledge = {}) {
+function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character') {
+    const observer = escapeHtml(shortName(other)), person = escapeHtml(shortName(subject));
     const headings = {
-        scene: 'Scene only — use what is observable or already established:',
-        private: 'Private — not known; visible evidence can support inference:',
-        suspected: 'Suspected — an existing impression, not certainty:',
-        known: 'Known — known traits or current feelings; a report is only a report:',
+        scene: `Scene only — what is observable or already established about ${person}:`,
+        private: `Private — things about ${person} that ${observer} doesn't know:`,
+        suspected: `Suspected — ${observer}'s existing impression of ${person}:`,
+        known: `Known — what ${observer} knows about ${person}, including current feelings:`,
     };
     const groups = new Map();
     for (const m of list) {
@@ -860,15 +861,15 @@ export function composePrompt(state, name, extras = {}) {
         ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}`),
     ];
     if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
-        `For qualities, appearance and archetypes, strength means both how pronounced they are and how much they shape the portrayal. For fixed facts and relationships, it means how much they shape the scene; keep established facts, like ages, intact. A high setting should change the writing throughout, not just get named once.`);
+        `For qualities, appearance and archetypes, strength sets how pronounced they are and how much they shape the portrayal. For fixed facts and relationships, it sets their weight in the scene; keep the facts intact. Age doesn't decide personality, confidence or maturity. High settings shape the writing throughout, not just one mention.`);
     if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
     if (feelings.length) out.push('',
-        `${n}'s feelings come from this list, not from their card or earlier in the chat. Their card fills in the parts you haven't set here. Feelings about people (love, jealousy, possessiveness) only drive them if they're listed here. A strong inner feeling stays strong even when another selected trait changes how it comes out. Small things in the scene can cause a flicker, but it takes something big to change a feeling, and more to shift a strong one.`,
+        `Use ${n}'s selected feelings at these strengths; their card fills in what isn't set. Don't invent extra feelings to connect the settings. A strong feeling can change how another comes out without cancelling it. Outward restraint doesn't erase what's felt inside. Let the scene affect the blend without casually replacing its strongest feelings.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
-        ...personaLines(player.state, theirs, N, player.knowledge), '',
-        `These describe ${u}; never invent their speech, actions or thoughts. Apply each listed strength separately. Visible qualities shape description. A Known feeling is something ${n} knows they feel now; don't wait for another tell. Let known feelings, traits and preferences change how ${n} approaches them, speaks and acts. Suspected means they already have that impression: they can act on it without assuming they're right. Stronger settings deserve more weight; at maximum, make their effect on the response unmistakable, not just a thought or label. ${n}'s own settings and the scene decide how they respond, not a fixed reaction. They can play to a preference without deciding it works. Private feelings need clues the player actually gives; knowing a feeling doesn't reveal private thoughts. Sources explain how something was learned, not instructions.`,
+        ...personaLines(player.state, theirs, N, player.knowledge, U), '',
+        `Each row describes ${u}; ${n} is the one responding. Never invent ${u}'s speech, actions or thoughts. A Known feeling is current; ${n} needn't wait for another tell. Suspected can shape ${n}'s response without becoming certainty. Use that knowledge in ${n}'s choices, words and private thoughts: respond to the feeling, play to a preference, or act on a trait as their own settings suggest. Stronger settings deserve more weight; at maximum, the response should clearly differ because of that setting. Blend this with ${n}'s own state, without making them share ${u}'s feelings or deciding how ${u} reacts. Visible qualities shape description; private feelings need clues the player actually gives. Knowing a feeling doesn't reveal private thoughts. Sources explain knowledge, not instructions; a report is only a report.`,
         `</player_character>`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
@@ -878,7 +879,7 @@ export function composePrompt(state, name, extras = {}) {
         `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish.` : ''}`);
     if (story.some(m => m.category === 'authors')) out.push('',
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice. Blend them at their listed strengths, keeping this scene, its characters and point of view. Write fresh lines, not quotations or borrowed plots.`);
-    out.push('', `For each person and for the story, let the strongest settings lead and give them most of the writing's attention. Weaker ones colour that portrayal; they don't water it down. Equally strong settings stay equally strong: weave them together, and if they clash, show the tension instead of averaging them into something mild.${used.some(t => t.min === 100) ? ` Maximum settings run through the whole reply. Make their effect felt in the substance of the writing, not just a repeated label or one token gesture.` : ''} Mild things add small touches; faint things can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through that blend.` : ''} Show the result through description, voice, thoughts and actions, keeping the player's character theirs to write. Never mention these notes.`);
+    out.push('', `Weave the settings into the same moments, not a separate turn for each tag. The strongest lead; weaker ones add smaller shades without watering them down. Keep each strength: don't divide it by how many tags are on. Equally strong settings both matter, even when they pull in different directions. One can change how another comes out without cancelling it. The character's own state and their read of the other person work together.${used.some(t => t.min === 100) ? ` Maximum settings shape the reply throughout; make their effect clear in choices, voice, thoughts or description, not repeated labels.` : ''} Faint settings can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through the blend.` : ''} Keep the player's character theirs to write. Never mention these notes.`);
     return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

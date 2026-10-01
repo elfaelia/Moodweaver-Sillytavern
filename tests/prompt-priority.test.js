@@ -10,10 +10,10 @@ test('overwhelming player traits lead grounded interpretation without taking pla
 
     assert.match(prompt, /<player_character name="Ellie" controlled_by="player">/);
     assert.match(prompt, /overwhelming: drawn to older men/);
-    assert.match(prompt, /Private feelings need clues the player actually gives/);
+    assert.match(prompt, /private feelings need clues the player actually gives/);
     assert.match(prompt, /Stronger settings deserve more weight/);
-    assert.match(prompt, /never invent their speech, actions or thoughts/);
-    assert.match(prompt, /Apply each listed strength separately/);
+    assert.match(prompt, /Never invent Ellie's speech, actions or thoughts/);
+    assert.match(prompt, /Keep each strength: don't divide it by how many tags are on/);
     assert.match(prompt, /overwhelming story setting is an organising principle for nearly every beat/);
 });
 

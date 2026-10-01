@@ -16,7 +16,7 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.9 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.10 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
 ### What the character knows about your persona
 
@@ -29,11 +29,13 @@ In your persona tab, expand **What [character] knows**. Only active persona tags
 
 Strength describes the persona and how much each setting shapes the portrayal. Known or suspected feelings, traits and preferences should affect the observer's words and choices, with more weight at higher strengths. Suspected still leaves room to be wrong; strength doesn't turn it into certainty. The observer's own settings and the scene decide the response, without forcing the same reaction to every feeling. The player keeps control of their speech, actions and thoughts. Knowledge choices are saved per chat, observing character avatar and persona name; they are not copied into character or persona defaults. Turning a tag off stops sending it and its source, while retaining its knowledge choice for reuse. Rename a persona and its knowledge choices start separately.
 
-Each active persona tag appears once in the prompt, grouped by knowledge status with its existing strength word. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. The persona guidance replaces the earlier longer paragraphs. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction tests do not guarantee model adherence.
+Each active persona tag appears once in the prompt, grouped by knowledge status with its existing strength word. Headings name who knows or suspects what about whom. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction tests do not guarantee model adherence.
 
 ### Mixing and strengths
 
 Moods reach the roleplay model as words, not numbers. Each active slider is placed under the same strength word shown in the panel: Faint 1–10, Subtle 11–20, Mild 21–40, Clear 41–60, Strong 61–80, Intense 81–90, Overwhelming 91–99, and Maximum 100. Each occupied band gets one plain sentence explaining how much attention and influence it should have. The prompt tells the model to weave compatible and conflicting settings together, with the strongest leading instead of being averaged down. Only active sliders are sent.
+
+Settings should shape the same moments together, rather than take turns. Adding another tag doesn't divide the existing strengths. The character's own feelings mix with their read of the other person; they don't automatically share that person's feelings. Restraint can change how a strong feeling comes out without erasing it. Age doesn't set personality, confidence or maturity. Other SillyTavern sources, such as character notes and lorebooks, can still add directions independently of these sliders.
 
 Labels that could be misread (masking, stoic, emotionless, lying, daddy, fatherly and a few others) carry a short note in brackets. Everything else is sent as its plain name, since the model already knows what "angry" means.
 

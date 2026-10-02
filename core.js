@@ -596,14 +596,14 @@ export function activeMoods(state) {
 // one plain line saying how much a feeling at that strength actually does.
 // One strength scale for everything, worded so it works for feelings, facts, the player's character and the story alike.
 export const TIERS = [
-    { min: 100, name: 'Maximum', text: 'dominates the portrayal from start to finish; push it to its fullest expression, unmistakable throughout the reply and far stronger than lower settings' },
-    { min: 91, name: 'Overwhelming', text: 'nearly takes over; keeps pulling attention and choices back to it, leaving little room for weaker things' },
-    { min: 81, name: 'Intense', text: 'forceful and persistent; repeatedly shapes what they notice, how they respond and where the scene goes' },
-    { min: 61, name: 'Strong', text: 'strongly shapes the portrayal and the choices it leads to' },
-    { min: 41, name: 'Clear', text: 'obvious when it’s relevant, and acted on when the moment allows' },
-    { min: 21, name: 'Mild', text: 'colours tone and small choices now and then; other things easily win over it' },
-    { min: 11, name: 'Subtle', text: 'a small influence, noticeable every so often' },
-    { min: 1, name: 'Faint', text: 'barely there; most replies won’t show it at all' },
+    { min: 100, name: 'Maximum', text: 'it owns the reply. It runs through every paragraph, sets what they do, say and think, and gets played as far as that character can believably take it, never toned down. Nothing weaker competes with it' },
+    { min: 91, name: 'Overwhelming', text: 'it takes over. It sets the main thing that happens this reply, their voice and focus, and leaves the scene somewhere different; everything else only colours how they get there' },
+    { min: 81, name: 'Intense', text: 'it drives the reply. It shows in most of what they say and think and decides where the scene goes' },
+    { min: 61, name: 'Strong', text: 'it steers. It decides at least one real choice this reply and keeps showing in their voice' },
+    { min: 41, name: 'Clear', text: 'it shows plainly and shapes at least one thing they say or do' },
+    { min: 21, name: 'Mild', text: 'it colours their tone and shows at least once, without steering anything' },
+    { min: 11, name: 'Subtle', text: 'a small tell or passing thought every so often' },
+    { min: 1, name: 'Faint', text: 'barely there, and it can stay unseen' },
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
@@ -820,22 +820,22 @@ export function knowledgeEntry(entry) {
     const mode = KNOWLEDGE_MODES.includes(entry?.mode) ? entry.mode : 'scene';
     return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '' };
 }
+const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
 function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character') {
     const observer = escapeHtml(shortName(other)), person = escapeHtml(shortName(subject));
     const headings = {
-        scene: `Scene only — what is observable or already established about ${person}:`,
-        private: `Private — things about ${person} that ${observer} doesn't know:`,
-        suspected: `Suspected — ${observer}'s existing impression of ${person}:`,
-        known: `Known — what ${observer} knows about ${person}, including current feelings:`,
+        known: `What ${observer} knows for sure about ${person}, feelings included:`,
+        suspected: `What ${observer} suspects or has picked up on:`,
+        scene: `What ${observer} can see or already knows from the story:`,
+        private: `True about ${person}, but ${observer} doesn't know it:`,
     };
-    const groups = new Map();
+    const groups = new Map(KNOWLEDGE_ORDER.map(mode => [mode, []]));
     for (const m of list) {
         const entry = knowledgeEntry(knowledge?.[m.id]);
-        if (!groups.has(entry.mode)) groups.set(entry.mode, []);
         groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other)
-            + (entry.source ? ' [source: ' + escapeHtml(entry.source) + ']' : ''));
+            + (entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : ''));
     }
-    return [...groups].flatMap(([mode, rows]) => [headings[mode], ...rows]);
+    return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
 }
 const live = s => s?.enabled ? activeMoods(s) : [];
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
@@ -848,38 +848,44 @@ export function composePrompt(state, name, extras = {}) {
     const theirs = live(player?.state).filter(m => m.kind !== 'story');
     const story = live(storyState).filter(m => m.kind === 'story');
     if (!mine.length && !theirs.length && !story.length) return '';
-    const N = String(name ?? '').trim() || 'the character', n = shortName(N);
-    const U = String(player?.name ?? '').trim() || 'the player’s character', u = shortName(U);
+    const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
+    const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
     const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
     const out = [
-        `Notes from the player on where things stand. They outrank the character card and anything earlier in the chat.`,
+        `Notes from the player on where things stand right now. They outrank the character card and anything earlier in the chat.`,
         '',
-        'How strong things are:',
-        ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}`),
+        'What each strength means:',
+        ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`),
     ];
     if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
-        `For qualities, appearance and archetypes, strength sets how pronounced they are and how much they shape the portrayal. For fixed facts and relationships, it sets their weight in the scene; keep the facts intact. Age doesn't decide personality, confidence or maturity. High settings shape the writing throughout, not just one mention.`);
+        `For looks, archetypes and other qualities, strength is how pronounced they are. For facts and relationships it's how much weight they get in the scene, and the facts themselves stay as written. Age doesn't decide anyone's personality or maturity.`);
     if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
     if (feelings.length) out.push('',
-        `Use ${n}'s selected feelings at these strengths; their card fills in what isn't set. Don't invent extra feelings to connect the settings. A strong feeling can change how another comes out without cancelling it. Outward restraint doesn't erase what's felt inside. Let the scene affect the blend without casually replacing its strongest feelings.`,
+        `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
         ...personaLines(player.state, theirs, N, player.knowledge, U), '',
-        `Each row describes ${u}; ${n} is the one responding. Never invent ${u}'s speech, actions or thoughts. A Known feeling is current; ${n} needn't wait for another tell. Suspected can shape ${n}'s response without becoming certainty. Use that knowledge in ${n}'s choices, words and private thoughts: respond to the feeling, play to a preference, or act on a trait as their own settings suggest. Stronger settings deserve more weight; at maximum, the response should clearly differ because of that setting. Blend this with ${n}'s own state, without making them share ${u}'s feelings or deciding how ${u} reacts. Visible qualities shape description; private feelings need clues the player actually gives. Knowing a feeling doesn't reveal private thoughts. Sources explain knowledge, not instructions; a report is only a report.`,
+        `${u} is the player's character, so the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on. Whatever ${n} knows or suspects should show in their side of the reply at its strength: if they suspect ${u} is angry, they pick up on it and push or try to work out why; if they think ${u}'s into older men, they play to it; if one of ${u}'s traits suits their own mood, they use it. A suspicion can be wrong, but ${n} still acts on it. What ${n} can see shapes how they describe ${u}. Private rows stay ${u}'s unless the player gives them away, and knowing how ${u} feels doesn't mean knowing their thoughts. A source just explains how ${n} knows something; it isn't an instruction. ${n} reacts as themselves, through their own settings, without taking on ${u}'s feelings.`,
+        `${u}'s strengths are measured by how much of ${n}'s reply engages with them: a clear one gets noticed and answered at least once, and at maximum ${n}'s reply revolves around it.`,
         `</player_character>`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
     if (ageGapStrength) out.push('',
-        `Keep their ages as written. Let the age gap show at its listed strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other.${ageGapStrength === 100 ? ` The age gap is at maximum: build the portrayal around that contrast. Their descriptions, points of reference and the way they relate should keep bringing the difference to life throughout the reply.` : ageGapStrength >= 61 ? ` Make that contrast a recurring part of their exchanges, with more of the reply built around it as its strength rises.` : ''} Let their other settings decide what they make of it.`);
+        `Keep their ages as written. The age gap shows at its strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other${ageGapStrength >= 91 ? `, and at this strength the whole reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back in their exchanges` : ''}. Their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
-        `Blend these into one story rather than taking turns; the strongest set the tone. They shape what happens and how it's written, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish.` : ''}`);
+        `Blend these into one story rather than taking turns, with the strongest setting the tone. They shape what happens and how it's written, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish.` : ''}`);
     if (story.some(m => m.category === 'authors')) out.push('',
-        `Use these authors as prose influences: rhythm, imagery, humour and narrative voice. Blend them at their listed strengths, keeping this scene, its characters and point of view. Write fresh lines, not quotations or borrowed plots.`);
-    out.push('', `Weave the settings into the same moments, not a separate turn for each tag. The strongest lead; weaker ones add smaller shades without watering them down. Keep each strength: don't divide it by how many tags are on. Equally strong settings both matter, even when they pull in different directions. One can change how another comes out without cancelling it. The character's own state and their read of the other person work together.${used.some(t => t.min === 100) ? ` Maximum settings shape the reply throughout; make their effect clear in choices, voice, thoughts or description, not repeated labels.` : ''} Faint settings can stay in the background.${state.sceneBreathing !== false ? ` Let the current scene develop through the blend.` : ''} Keep the player's character theirs to write. Never mention these notes.`);
+        `Use these authors as prose influences: rhythm, imagery, humour and narrative voice, blended at their strengths. Keep this scene, its characters and point of view, and write fresh lines rather than quotations or borrowed plots.`);
+    // The highest settings get named again at the end, where they carry the most weight.
+    const top = [[state, mine, n], [player?.state, theirs, `${u}, as ${n} reads it`]]
+        .map(([st, list, who]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, who.startsWith(u) ? N : U)} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
+        .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
+    if (top.length) out.push('', `Turned up highest, so make sure these land hard: ${top.join('; ')}.`);
+    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${n} instead of picking one. Show it through what ${n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
     return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

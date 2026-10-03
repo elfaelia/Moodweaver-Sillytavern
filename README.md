@@ -7,7 +7,7 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 Reload SillyTavern after installation, open a character chat, and click **◆ Moods** at the lower right. There is also an **Open mood panel** button in Extensions settings.
 
 1. In **Manual**, move a slider or add a starter blend. Zero means that mood contributes no direction. Feelings do not need to add up to 100.
-2. Use search or expand one of nine categories. Clicking a mood chip jumps to its slider.
+2. Use search or expand a category. Clicking a mood chip jumps to its slider.
 3. In **Dynamic**, choose a saved **Connection Profile** for the scene analyser. The actual stored model is displayed in brackets after the profile name. A profile's name is not proof of which model it contains.
 4. Click **Read scene now**, or send your next normal message. This makes an extra request to the selected profile. It does not change your selected roleplay model.
 5. Pin moods with the diamond button. Moving a slider in Dynamic automatically pins that level. A pinned zero keeps a feeling absent. Unpin to allow automatic changes again.
@@ -16,7 +16,11 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.10 includes **869 sliders in 40 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.12 includes **899 sliders in 41 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+
+**Attraction preferences** sits beside Desire & attraction and includes the existing age preferences. New options cover hands, feet, visible veins, hair length, voices, masculinity, femininity, innocence and a wicked streak. There are also preferences for eyes, smiles, lips, facial and body hair, scars, tattoos, piercings, soft or muscular bodies, height, accents, confidence, shyness, kindness, intelligence and humour. They describe what someone likes in other people, rather than changing their own appearance or personality.
+
+All new options start off in existing saves and work for both the character and the player persona, including persona knowledge settings. Prompt wording stays short, such as `clear: finds deep voices attractive`. A shared line keeps preferences from inventing qualities in the other person. Unused options add no roleplay prompt tokens.
 
 ### What the character knows about your persona
 
@@ -29,7 +33,7 @@ In your persona tab, expand **What [character] knows**. Only active persona tags
 
 Strength describes the persona and how much each setting shapes the portrayal. Known or suspected feelings, traits and preferences should affect the observer's words and choices, with more weight at higher strengths. Suspected still leaves room to be wrong; strength doesn't turn it into certainty. The observer's own settings and the scene decide the response, without forcing the same reaction to every feeling. The player keeps control of their speech, actions and thoughts. Knowledge choices are saved per chat, observing character avatar and persona name; they are not copied into character or persona defaults. Turning a tag off stops sending it and its source, while retaining its knowledge choice for reuse. Rename a persona and its knowledge choices start separately.
 
-Each active persona tag appears once in the prompt, grouped by knowledge status with its existing strength word. Headings name who knows or suspects what about whom. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction tests do not guarantee model adherence.
+Each active persona tag is grouped by knowledge status with its existing strength word. The highest settings also appear in the closing reminder added in 1.9.11. Headings name who knows or suspects what about whom. No extra per-tag instructions or numerical scores are added. Optional source notes are capped at 120 characters. Use the inspector for your exact token count; it remains a soft target, not a hard cap. UI and prompt-construction checks do not guarantee model adherence.
 
 ### Mixing and strengths
 

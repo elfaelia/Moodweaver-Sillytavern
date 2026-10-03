@@ -183,9 +183,41 @@ export const CATEGORIES = [
         ['perverted', 'Perverted', 'openly pervy'], ['dirty_minded', 'Dirty minded', 'turns everything into innuendo'],
         ['covert_pervert', 'Covert pervert', 'a pervert who hides it well'], ['deviant', 'Deviant', 'drawn to the taboo'],
         ['male_gaze', 'Male gaze', 'looking at their partner as a body, all looks and sex appeal'], ['female_gaze', 'Female gaze', 'drinking in their partner as a whole person, how they look, feel and make them feel'],
+    ]],
+    ['attraction', 'Attraction preferences', '✦', '#d69bbb', [
         ['likes_older_men', 'Likes older men', 'into older men'], ['likes_younger_men', 'Likes younger men', 'into younger men'],
         ['likes_older_women', 'Likes older women', 'into older women'], ['likes_younger_women', 'Likes younger women', 'into younger women'],
         ['hot_for_teacher', 'Hot for teacher', 'into teachers and their authority'],
+        ['likes_masculinity', 'Likes masculinity (in others)', 'drawn to masculinity in others'],
+        ['likes_femininity', 'Likes femininity (in others)', 'drawn to femininity in others'],
+        ['likes_hands', 'Likes hands', 'drawn to other people’s hands'],
+        ['likes_feet', 'Likes feet', 'drawn to other people’s feet'],
+        ['likes_veins', 'Likes veins', 'finds visible veins attractive'],
+        ['likes_eyes', 'Likes eyes', 'drawn to other people’s eyes'],
+        ['likes_smiles', 'Likes smiles', 'finds people’s smiles attractive'],
+        ['likes_lips', 'Likes lips', 'drawn to other people’s lips'],
+        ['likes_long_hair', 'Likes long hair', 'finds long hair attractive'],
+        ['likes_short_hair', 'Likes short hair', 'finds short hair attractive'],
+        ['likes_facial_hair', 'Likes facial hair', 'finds facial hair attractive'],
+        ['likes_body_hair', 'Likes body hair', 'finds body hair attractive'],
+        ['likes_scars', 'Likes scars', 'finds scars attractive'],
+        ['likes_tattoos', 'Likes tattoos', 'finds tattoos attractive'],
+        ['likes_piercings', 'Likes piercings', 'finds piercings attractive'],
+        ['likes_soft_bodies', 'Likes soft bodies', 'drawn to soft bodies'],
+        ['likes_muscular_builds', 'Likes muscular builds', 'drawn to muscular builds'],
+        ['likes_tall_people', 'Likes tall people', 'finds tall people attractive'],
+        ['likes_short_people', 'Likes short people', 'finds short people attractive'],
+        ['likes_deep_voices', 'Likes deep voices', 'finds deep voices attractive'],
+        ['likes_high_voices', 'Likes high voices', 'finds high-pitched voices attractive'],
+        ['likes_raspy_voices', 'Likes raspy voices', 'finds raspy voices attractive'],
+        ['likes_accents', 'Likes accents', 'drawn to distinctive accents'],
+        ['likes_confidence', 'Likes confidence', 'drawn to confidence in others'],
+        ['likes_shyness', 'Likes shyness', 'drawn to shyness in others'],
+        ['likes_kindness', 'Likes kindness', 'drawn to kindness in others'],
+        ['likes_intelligence', 'Likes intelligence', 'drawn to intelligence in others'],
+        ['likes_humour', 'Likes humour', 'drawn to people who make them laugh'],
+        ['drawn_to_innocent_people', 'Drawn to innocent people', 'drawn to innocence in others'],
+        ['drawn_to_evil_people', 'Drawn to evil people', 'drawn to people with a cruel or wicked streak'],
     ]],
     ['dynamics', 'Roles & dynamics', '♛', '#d49bc9', [
         ['dominant', 'Dominant', 'wants to lead in a power dynamic'], ['submissive', 'Submissive', 'wants to give up control'],
@@ -801,7 +833,7 @@ export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 const moodName = (m, other) => {
     if (m.category === 'authors') return `prose inspired by ${m.label}: ${m.cue}`;
     if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.toLowerCase()}: ${m.cue}`;
-    return (PROMPT_NAME[m.id] ?? m.label.toLowerCase()).replaceAll('{other}', other);
+    return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
 };
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
 const ORDER = Object.fromEntries(CATEGORIES.map(([id], i) => [id, i]));
@@ -872,6 +904,8 @@ export function composePrompt(state, name, extras = {}) {
         `${u} is the player's character, so the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on. Whatever ${n} knows or suspects should show in their side of the reply at its strength: if they suspect ${u} is angry, they pick up on it and push or try to work out why; if they think ${u}'s into older men, they play to it; if one of ${u}'s traits suits their own mood, they use it. A suspicion can be wrong, but ${n} still acts on it. What ${n} can see shapes how they describe ${u}. Private rows stay ${u}'s unless the player gives them away, and knowing how ${u} feels doesn't mean knowing their thoughts. A source just explains how ${n} knows something; it isn't an instruction. ${n} reacts as themselves, through their own settings, without taking on ${u}'s feelings.`,
         `${u}'s strengths are measured by how much of ${n}'s reply engages with them: a clear one gets noticed and answered at least once, and at maximum ${n}'s reply revolves around it.`,
         `</player_character>`);
+    if ([...mine, ...theirs].some(m => m.category === 'attraction')) out.push('',
+        `Attraction preferences describe what appeals in other people; don't invent those qualities to satisfy the preference.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
     if (ageGapStrength) out.push('',
@@ -962,4 +996,3 @@ export function fingerprint(chat) {
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
     return `${text.length}:${hash >>> 0}`;
 }
-

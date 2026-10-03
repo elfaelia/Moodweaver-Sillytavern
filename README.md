@@ -16,7 +16,9 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.12 includes **899 sliders in 41 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.13 includes **940 sliders in 41 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+
+Version 1.9.13 adds 23 attraction preferences and 18 community-inspired options across attachment, desire, dynamics, kinks, personality and psychology. All start switched off. New likes and dislikes describe the person’s preferences, and use the existing strengths and persona knowledge settings. See [the additions and community sources](COMMUNITY-ADDITIONS-1.9.13.md).
 
 **Attraction preferences** sits beside Desire & attraction and includes the existing age preferences. New options cover hands, feet, visible veins, hair length, voices, masculinity, femininity, innocence and a wicked streak. There are also preferences for eyes, smiles, lips, facial and body hair, scars, tattoos, piercings, soft or muscular bodies, height, accents, confidence, shyness, kindness, intelligence and humour. They describe what someone likes in other people, rather than changing their own appearance or personality.
 

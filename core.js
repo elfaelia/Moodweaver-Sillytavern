@@ -84,6 +84,9 @@ export const CATEGORIES = [
         ['sees_muse', 'Sees a muse', 'sees the other person as their muse'], ['idealising', 'Aesthetic idealisation', 'sees someone as a beautiful, perfect image'],
         ['preserving', 'Preserving', 'wants to keep someone exactly as they are'], ['collector', 'Collector', 'collects people, things or moments'],
         ['making_worse', 'Making them worse', 'brings out the other person’s worst'], ['being_made_worse', 'Being made worse', 'the other person brings out their worst'],
+        ['reassurance_loop', 'Reassurance never sticks', 'needs proof they’re wanted, then starts doubting it again'],
+        ['testing_attachment', 'Testing the bond', 'tests whether someone will stay or make an effort'],
+        ['push_pull', 'Push-pull attachment', 'wants closeness, pulls away when it comes, then misses it'],
     ]],
     ['cold', 'Cold & distant', '❄', '#9fb7d0', [
         ['aloof', 'Aloof', 'cool and standoffish'], ['distant', 'Distant', 'checked out, hard to reach'],
@@ -183,6 +186,9 @@ export const CATEGORIES = [
         ['perverted', 'Perverted', 'openly pervy'], ['dirty_minded', 'Dirty minded', 'turns everything into innuendo'],
         ['covert_pervert', 'Covert pervert', 'a pervert who hides it well'], ['deviant', 'Deviant', 'drawn to the taboo'],
         ['male_gaze', 'Male gaze', 'looking at their partner as a body, all looks and sex appeal'], ['female_gaze', 'Female gaze', 'drinking in their partner as a whole person, how they look, feel and make them feel'],
+        ['bond_fuelled_attraction', 'Attraction through closeness', 'familiarity and emotional closeness feed their attraction'],
+        ['banter_fuelled_attraction', 'Attraction through banter', 'gets drawn in by a lively back-and-forth'],
+        ['conflicted_attraction', 'Conflicted attraction', 'drawn to someone while disliking things about them'],
     ]],
     ['attraction', 'Attraction preferences', '✦', '#d69bbb', [
         ['likes_older_men', 'Likes older men', 'into older men'], ['likes_younger_men', 'Likes younger men', 'into younger men'],
@@ -218,6 +224,29 @@ export const CATEGORIES = [
         ['likes_humour', 'Likes humour', 'drawn to people who make them laugh'],
         ['drawn_to_innocent_people', 'Drawn to innocent people', 'drawn to innocence in others'],
         ['drawn_to_evil_people', 'Drawn to evil people', 'drawn to people with a cruel or wicked streak'],
+        ['attracted_to_crying', 'Attracted to crying', 'finds tears and crying attractive'],
+        ['attracted_to_laughing', 'Attracted to laughing', 'finds the sound and sight of laughter attractive'],
+        ['likes_ruggedness', 'Likes ruggedness', 'drawn to rugged looks and a rough-around-the-edges manner'],
+        ['likes_their_smell', 'Likes their smell', 'drawn to {other}’s natural scent'],
+        ['likes_promiscuity', 'Likes promiscuity', 'finds promiscuity appealing in a partner'],
+        ['dislikes_promiscuity', 'Dislikes promiscuity', 'put off by promiscuity in a partner'],
+        ['dislikes_intelligence', 'Dislikes intelligence', 'finds intelligence in others off-putting'],
+        ['likes_shoulders', 'Likes shoulders', 'drawn to other people’s shoulders'],
+        ['likes_backs', 'Likes backs', 'drawn to the shape of other people’s backs'],
+        ['likes_necks', 'Likes necks', 'drawn to other people’s necks'],
+        ['likes_waists', 'Likes waists', 'drawn to the shape of other people’s waists'],
+        ['likes_freckles', 'Likes freckles', 'finds freckles attractive'],
+        ['likes_glasses', 'Likes glasses', 'finds people attractive in glasses'],
+        ['likes_elegance', 'Likes elegance', 'drawn to elegance in how people dress and move'],
+        ['likes_perfume', 'Likes perfume / cologne', 'drawn to the perfume or cologne someone wears'],
+        ['likes_expressive_faces', 'Likes expressive faces', 'drawn to faces that show every passing feeling'],
+        ['likes_composure', 'Likes composure', 'drawn to people who keep their cool'],
+        ['likes_awkwardness', 'Likes awkwardness', 'finds awkward pauses and fumbled words endearing'],
+        ['likes_competence', 'Likes competence', 'drawn to people who know what they’re doing'],
+        ['likes_ambition', 'Likes ambition', 'drawn to people with big plans and the drive to chase them'],
+        ['likes_rebelliousness', 'Likes rebelliousness', 'drawn to people who push back against rules'],
+        ['likes_mystery', 'Likes mystery', 'drawn to people they can’t quite figure out'],
+        ['likes_bluntness', 'Likes bluntness', 'drawn to people who say exactly what they mean'],
     ]],
     ['dynamics', 'Roles & dynamics', '♛', '#d49bc9', [
         ['dominant', 'Dominant', 'wants to lead in a power dynamic'], ['submissive', 'Submissive', 'wants to give up control'],
@@ -240,6 +269,9 @@ export const CATEGORIES = [
         ['ritual_oriented', 'Ritual oriented', 'into rituals and routines'], ['protocol_oriented', 'Protocol oriented', 'into rules, titles and formality'],
         ['aftercare_oriented', 'Aftercare oriented', 'wants to hold and look after them afterwards'], ['subspace', 'Subspace', 'floaty and fuzzy, deep in a sub headspace'],
         ['sub_drop', 'Sub drop', 'crashing after an intense scene'],
+        ['rigger', 'Rigger', 'enjoys being the one who ties the rope'],
+        ['rope_bunny', 'Rope bunny', 'enjoys being the one in the ropes'],
+        ['playful_rival', 'Playful rival', 'turns the dynamic into friendly challenges and one-upmanship'],
     ]],
     ['appetites', 'Kinks', '♧', '#d6a0c0', [
         ['praise_seeking', 'Praise seeking', 'craves praise'], ['praise_giving', 'Praise giving', 'loves praising their partner'],
@@ -258,6 +290,9 @@ export const CATEGORIES = [
         ['cnc', 'CNC', 'into consensual non-consent play'], ['corruption_kink', 'Corruption kink', 'gets off on corrupting someone innocent'],
         ['medplay_giving', 'Medplay (giving)', 'plays doctor: exams, instruments, clinical control'], ['medplay_receiving', 'Medplay (receiving)', 'into being examined and handled like a patient'],
         ['aloofness_kink', 'Aloofness kink', 'ignores their partner mid-sex to get to them'], ['hidden_monster', 'Hidden monster', 'gets off on being loved by someone who has no idea what they really are'],
+        ['texture_play', 'Texture play', 'into the contrast between different textures against skin'],
+        ['temperature_play', 'Temperature play', 'into contrasting warm and cool sensations'],
+        ['soft_bondage', 'Soft bondage', 'into gentle restraint and soft bindings'],
     ]],
     ['psychosexual', 'Psychosexual', '⚘', '#c792b0', [
         ['sex_is_power', 'Sex as power', 'sex is about power and control to them'], ['violent_desire', 'Violent desire', 'desire and violence tangled together'],
@@ -319,6 +354,9 @@ export const CATEGORIES = [
         ['humble', 'Humble', 'doesn’t think too much of themselves'], ['introverted', 'Introverted', 'wants quiet and space'],
         ['extroverted', 'Extroverted', 'wants people around'], ['intuitive', 'Intuitive', 'goes with their gut'],
         ['creepy', 'Creepy', 'unsettling to be around'],
+        ['resourceful', 'Resourceful', 'finds workable fixes with whatever is at hand'],
+        ['self_deprecating', 'Self-deprecating', 'makes themselves the butt of the joke'],
+        ['good_sport', 'Good sport', 'takes teasing and losing in stride'],
     ]],
     ['views', 'Morals & views', '☯', '#d8b98f', [
         ['idealistic', 'Idealistic', 'believes things can be better'], ['cynical', 'Cynical', 'assumes the worst about people'],
@@ -356,6 +394,9 @@ export const CATEGORIES = [
         ['god_complexed', 'God Complexed', 'thinks they’re untouchable and always right'], ['histrionic', 'Histrionic', 'dramatic and attention-seeking'],
         ['psychopathic', 'Psychopathic', 'cold, charming, no remorse'], ['sociopathic', 'Sociopathic', 'doesn’t care about rules or other people'],
         ['brainwashed', 'Brainwashed', 'thoughts and beliefs that aren’t really theirs'],
+        ['ruminating', 'Ruminating', 'keeps replaying the same worries and moments'],
+        ['intellectualising', 'Intellectualising', 'analyses feelings to keep them at a distance'],
+        ['catastrophising', 'Catastrophising', 'jumps to the worst outcome and gets stuck on it'],
     ]],
     ['body', 'Body', '✚', '#d7a39b', [
         ['injured', 'Injured', 'physically hurt'], ['bleeding', 'Bleeding', 'bleeding from a wound'],
@@ -639,6 +680,24 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    reassurance_loop: 'needs proof they’re wanted, then starts doubting it again',
+    testing_attachment: 'tests whether someone will stay or make an effort',
+    push_pull: 'wants closeness, pulls away when it comes, then misses it',
+    bond_fuelled_attraction: 'familiarity and emotional closeness feed their attraction',
+    banter_fuelled_attraction: 'gets drawn in by a lively back-and-forth',
+    conflicted_attraction: 'drawn to someone while disliking things about them',
+    rigger: 'enjoys being the one who ties the rope',
+    rope_bunny: 'enjoys being the one in the ropes',
+    playful_rival: 'turns the dynamic into friendly challenges and one-upmanship',
+    texture_play: 'into the contrast between different textures against skin',
+    temperature_play: 'into contrasting warm and cool sensations',
+    soft_bondage: 'into gentle restraint and soft bindings',
+    resourceful: 'finds workable fixes with whatever is at hand',
+    self_deprecating: 'makes themselves the butt of the joke',
+    good_sport: 'takes teasing and losing in stride',
+    ruminating: 'keeps replaying the same worries and moments',
+    intellectualising: 'analyses feelings to keep them at a distance',
+    catastrophising: 'jumps to the worst outcome and gets stuck on it',
     age_regressed: 'in a nonsexual age-regressed headspace, seeking familiar comfort and reassurance',
     bedroom_tight: 'physically tight during sex', bedroom_loose: 'physically loose during sex',
     sloppy_smut: 'sloppy/messy smut: messy, unpolished and bodily, with the physical chaos left in',
@@ -905,7 +964,7 @@ export function composePrompt(state, name, extras = {}) {
         `${u}'s strengths are measured by how much of ${n}'s reply engages with them: a clear one gets noticed and answered at least once, and at maximum ${n}'s reply revolves around it.`,
         `</player_character>`);
     if ([...mine, ...theirs].some(m => m.category === 'attraction')) out.push('',
-        `Attraction preferences describe what appeals in other people; don't invent those qualities to satisfy the preference.`);
+        `Attraction preferences describe what draws them in or puts them off; don't invent those qualities in the other person.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
     if (ageGapStrength) out.push('',

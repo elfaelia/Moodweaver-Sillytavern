@@ -46,6 +46,7 @@ export const CATEGORIES = [
         ['assertive', 'Assertive', 'says what they want plainly'], ['determined', 'Determined', 'set on getting what they want'],
         ['proud', 'Proud', 'pleased with themselves or someone, up to feeling triumphant'], ['smug', 'Smug', 'pleased with themselves'],
 
+        ['unhesitating', 'Unhesitating', 'acts as soon as they decide, without second-guessing or pulling back'],
     ]],
     ['closeness', 'Love & closeness', '♡', '#e8a7bb', [
         ['warm', 'Warm', 'friendly, kind and sweet'], ['affectionate', 'Affectionate', 'fond and tender toward someone, up to open adoration'],
@@ -77,7 +78,7 @@ export const CATEGORIES = [
         ['worshipful', 'Worshipful', 'putting someone on a pedestal'], ['wrapped_around_finger', 'Wrapped around their finger', 'will do anything the other person wants'],
         ['obsessed', 'Obsessed', 'can’t stop thinking about someone or something'],
         ['possessive', 'Possessive', 'wants someone all to themselves'], ['jealous', 'Jealous', 'scared of losing someone to someone else'],
-        ['envious', 'Envious', 'wants what someone else has'], ['yandere', 'Yandere', 'sweet on the surface, dangerously obsessive underneath'],
+        ['envious', 'Envious', 'wants what someone else has'], ['yandere', 'Yandere', 'sweet and loving toward their person, obsessively possessive and willing to stalk, abduct or kill perceived rivals and threats for them'],
         ['sees_muse', 'Sees a muse', 'sees the other person as their muse'], ['idealising', 'Aesthetic idealisation', 'sees someone as a beautiful, perfect image'],
         ['preserving', 'Preserving', 'wants to keep someone exactly as they are'], ['collector', 'Collector', 'collects people, things or moments'],
         ['making_worse', 'Making them worse', 'brings out the other person’s worst'], ['being_made_worse', 'Being made worse', 'the other person brings out their worst'],
@@ -136,6 +137,14 @@ export const CATEGORIES = [
         ['insensitive', 'Insensitive', 'clumsy or careless about others’ feelings'], ['ruthless', 'Ruthless', 'will do whatever it takes, whoever gets hurt'],
         ['abusive', 'Abusive', 'wants to mistreat people'],
         ['predatory', 'Predatory', 'sizes people up as prey'],
+        ['murderous', 'Murderous', 'wants to kill and is ready to turn that urge into action'],
+        ['remorseless', 'Remorseless', 'feels no guilt after hurting someone and does not soften afterward'],
+        ['sadistic_glee', 'Sadistic glee', 'takes visible pleasure in fear, pain and helplessness'],
+        ['dehumanising', 'Dehumanising', 'reduces people to objects, obstacles or prey'],
+        ['calculating_cruelty', 'Calculating cruelty', 'plans harm patiently and chooses what will hurt most'],
+        ['terrorising', 'Terrorising', 'deliberately keeps someone frightened and uncertain'],
+        ['coercive', 'Coercive', 'uses pressure, threats and consequences to force compliance'],
+        ['whatever_it_takes', 'Doing what needs to be done', 'treats brutal acts as necessary work and follows through without flinching'],
     ]],
     ['calm', 'Calm & focused', '◎', '#8fcebc', [
         ['calm', 'Calm / relaxed', 'settled, unhurried and at ease'],
@@ -361,8 +370,10 @@ export const CATEGORIES = [
         ['hypocritical', 'Hypocritical', 'holds others to rules they break'], ['moral_myopia', 'Moral myopia', 'only counts wrongs done to them or theirs'],
         ['victim_blaming', 'Victim blaming', 'blames people for what’s done to them'], ['biased', 'Biased', 'already made their mind up about someone'],
         ['bigoted', 'Bigoted', 'prejudiced against whole groups of people'], ['boomerang_bigot', 'Boomerang bigot', 'hates a group they belong to'],
-        ['chauvinist', 'Chauvinist', 'thinks men should run things and women should know their place'], ['misogynist', 'Misogynist', 'looks down on women'],
-        ['misandrist', 'Misandrist', 'looks down on men'],
+        ['chauvinist', 'Chauvinist', 'thinks men should run things and women should know their place'], ['misogynist', 'Misogynist', 'devalues women’s autonomy, judges them by sexist double standards and expects them to know their place'],
+        ['misandrist', 'Misandrist', 'devalues men, assumes the worst of them and judges them by hostile gendered standards'],
+        ['judgemental_misogyny', 'Judgemental misogyny', 'polices women by degrading double standards around sex, appearance, obedience and respectability'],
+        ['judgemental_misandry', 'Judgemental misandry', 'polices men by degrading double standards around strength, masculinity, usefulness and status'],
     ]],
     ['alignment', 'Alignment', '⚖', '#c9c39a', [
         ['lawful_good', 'Lawful good', 'does right, by the rules'], ['neutral_good', 'Neutral good', 'does right, rules or not'],
@@ -385,11 +396,18 @@ export const CATEGORIES = [
         ['narcissistic', 'Narcissistic', 'self-obsessed and hungry for admiration'],
         ['covert_narcissist', 'Covert narcissist', 'quiet, wounded self-importance'], ['egotistical', 'Egotistical', 'full of themselves'],
         ['god_complexed', 'God Complexed', 'thinks they’re untouchable and always right'], ['histrionic', 'Histrionic', 'dramatic and attention-seeking'],
-        ['psychopathic', 'Psychopathic', 'cold, charming, no remorse'], ['sociopathic', 'Sociopathic', 'doesn’t care about rules or other people'],
+        ['psychopathic', 'Psychopathic', 'charming and controlled, treats people instrumentally, feels no remorse and can use extreme violence without an emotional brake'], ['sociopathic', 'Sociopathic', 'disregards other people and social rules, acts without remorse and answers conflict with exploitation or violence'],
         ['brainwashed', 'Brainwashed', 'thoughts and beliefs that aren’t really theirs'],
         ['ruminating', 'Ruminating', 'keeps replaying the same worries and moments'],
         ['intellectualising', 'Intellectualising', 'analyses feelings to keep them at a distance'],
         ['catastrophising', 'Catastrophising', 'jumps to the worst outcome and gets stuck on it'],
+        ['malignant_narcissism', 'Malignant narcissism', 'grandiosity mixed with paranoia, aggression, sadism and vindictive entitlement'],
+        ['grandiose_narcissist', 'Grandiose narcissist', 'expects admiration and special treatment, and treats challenges as insults'],
+        ['high_functioning_narcissist', 'High-functioning narcissist', 'polished and capable on the surface, privately exploitative and hungry for control and admiration'],
+        ['sadistic_personality', 'Sadistic personality disorder', 'a persistent pattern of domination, humiliation and cruelty, with pleasure in suffering'],
+        ['homicidal_fixation', 'Homicidal fixation', 'keeps returning to the idea of killing and begins treating it as a real option'],
+        ['moral_disengagement', 'Moral disengagement', 'turns harm into something deserved, necessary or too abstract to feel guilty about'],
+        ['compartmentalised_violence', 'Compartmentalised violence', 'keeps brutality sealed away from an otherwise ordinary, functional life'],
     ]],
     ['body', 'Body', '✚', '#d7a39b', [
         ['injured', 'Injured', 'physically hurt'], ['bleeding', 'Bleeding', 'bleeding from a wound'],
@@ -488,9 +506,37 @@ export const CATEGORIES = [
         ['pragmatic_villain', 'Pragmatic villain', 'does evil because it works, not for fun'], ['obliviously_evil', 'Obliviously evil', 'does evil with no idea it’s wrong'],
         ['hidden_villain', 'Hidden villain', 'secretly the villain'], ['mask_of_sanity', 'Mask of sanity', 'seems normal and charming, hollow and dangerous underneath'],
         ['dirty_old_man', 'Dirty old man', 'leering older man'], ['crazy_jealous', 'Crazy jealous guy', 'jealous to the point of danger'],
-        ['stalker', 'Stalker', 'watches and follows someone'], ['axe_crazy', 'Axe-crazy', 'violently unhinged, a danger to everyone'],
+        ['stalker', 'Stalker', 'secretly watches, follows and gathers access to someone’s life, crossing boundaries and acting on the fixation'], ['axe_crazy', 'Axe-crazy', 'violently unhinged, a danger to everyone'],
         ['damsel', 'Damsel in distress', 'damsel in distress'], ['final_girl', 'Final girl', 'final girl'],
         ['good_victim', 'Good victim', 'compliant and pleading when caught'], ['bad_victim', 'Bad victim', 'fights back, won’t break easily'],
+        ['serial_killer', 'Serial killer', 'a practiced repeat murderer with a pattern, appetite or private logic'],
+        ['torturer', 'Torturer', 'deliberately prolongs pain, fear and helplessness to break or control people'],
+        ['kidnapper', 'Kidnapper', 'abducts and confines people for their own ends'],
+        ['drugger', 'Drugger', 'secretly drugs people to impair, control or incapacitate them'],
+        ['hitman', 'Hitman', 'kills assigned targets as controlled, professional work'],
+        ['captor', 'Captor', 'keeps someone confined and controls their access, movement and choices'],
+        ['vigilante_killer', 'Vigilante killer', 'appoints themselves judge and executioner'],
+    ], 'state'],
+
+    ['fighting', 'Fighting style', '⚔', '#c98d78', [
+        ['gutter_fighting', 'Gutter fighting', 'scrappy street fighting with no concern for looking clean or fair'],
+        ['martial_arts', 'Martial arts', 'disciplined trained movement, timing and control'],
+        ['combat_pragmatism', 'Combat pragmatism', 'uses whatever ends the fight fastest rather than showing off'],
+        ['brutal_brawl', 'Brutal brawl', 'heavy, ugly close-range fighting driven by force and endurance'],
+        ['combat_parkour', 'Combat parkour', 'uses speed, obstacles, height and the environment while fighting'],
+        ['krav_maga', 'Krav Maga', 'direct close-quarters self-defence built around fast survival'],
+        ['systema_spetsnaz', 'Systema / Spetsnaz combatives', 'loose, controlled military-style combatives with ruthless efficiency'],
+        ['melee_weapons', 'Melee weapons', 'comfortable fighting at close range with hand-held weapons'],
+        ['grappling', 'Grappling', 'controls position through clinches, takedowns and holds'],
+        ['stick_fighting', 'Stick fighting', 'trained with sticks, batons and similar weapons'],
+        ['sudden_combat', 'Sudden combat', 'uses surprise and immediate aggression before the enemy can settle'],
+        ['improvised_weapons', 'Improvised weapons', 'turns nearby objects and the environment into weapons'],
+        ['knife_fighting', 'Knife fighting', 'comfortable and deliberate in close knife-range violence'],
+        ['close_quarters', 'Close-quarters combat', 'works efficiently in cramped rooms and at arm’s reach'],
+        ['dirty_fighting', 'Dirty fighting', 'cheats, exploits openings and ignores sporting rules'],
+        ['precision_striking', 'Precision striking', 'controlled, accurate strikes rather than wild swings'],
+        ['overwhelming_force', 'Overwhelming force', 'wins by driving forward with relentless physical pressure'],
+        ['trained_killer', 'Trained killer', 'fights with the calm economy of someone trained to make violence lethal'],
     ], 'state'],
     ['standing', 'Status & secrets', '♜', '#c9b37e', [
         ['wealth', 'Wealth', 'rich'], ['poor', 'Poor', 'short on money'],
@@ -501,6 +547,11 @@ export const CATEGORIES = [
         ['suspected', 'Suspected', 'under suspicion'], ['wanted', 'Wanted', 'wanted by the police'],
         ['missing', 'Missing', 'reported missing'], ['captive', 'Captive', 'being held captive'],
         ['secret_past', 'Secret past', 'hiding crimes, violence or worse'],
+        ['killed_will_again', 'Has killed before, will kill again', 'has killed before, accepts it and will do it again when it serves them'],
+        ['killed_resisting', 'Has killed before, trying not to again', 'has killed before and actively resists becoming that person again'],
+        ['body_count', 'Body count', 'has multiple deaths behind them'],
+        ['hidden_trophies', 'Hidden trophies', 'keeps private reminders taken from victims or crimes'],
+        ['escaped_justice', 'Escaped justice', 'committed serious violence and got away with it'],
     ], 'state'],
     ['relationship', 'Relationship', '⚭', '#d7a0b4', [
         ['friends', 'Friends', 'they’re friends'],
@@ -529,6 +580,35 @@ export const CATEGORIES = [
         ['dangerous', 'Dangerous', 'the situation is dangerous'], ['late_night', 'Late night', 'the middle of the night'],
         ['raining', 'Raining', 'it’s raining'], ['stormy', 'Stormy', 'a storm outside'],
     ], 'state'],
+    ['combat_style', 'Combat direction', '⚔', '#b86f6f', [
+        ['realistic_combat', 'Realistic combat', 'physical limits, fear, mistakes and consequences keep the fight believable'],
+        ['gritty_combat', 'Gritty combat', 'ugly, exhausting violence without polished heroics'],
+        ['gory_combat', 'Gory combat', 'graphic wounds, blood and bodily damage stay visible'],
+        ['lethal_combat', 'Lethal combat', 'combatants fight to kill and death remains a real outcome'],
+        ['tactical_combat', 'Tactical combat', 'position, awareness and quick decisions determine the fight'],
+        ['desperate_combat', 'Desperate combat', 'survival takes over and people fight frightened, hurt and cornered'],
+        ['chaotic_combat', 'Chaotic combat', 'confusion, bad visibility and shifting threats disrupt every plan'],
+        ['sudden_violence', 'Sudden violence', 'violence erupts with little warning and changes the scene immediately'],
+        ['lasting_injuries', 'Lasting injuries', 'damage changes movement, choices and later scenes instead of vanishing'],
+        ['combat_aftermath', 'Combat aftermath', 'show the shock, mess, evidence and consequences left after violence'],
+    ], 'story'],
+    ['dark_plot', 'Dark story pressure', '☠', '#985f72', [
+        ['murder_plot', 'Murder plot', 'murder is an active part of the plot rather than a distant backstory'],
+        ['serial_killer_hunt', 'Serial killer hunt', 'a repeating killer and the hunt around them drive the story'],
+        ['killer_pov', 'Killer POV', 'the story stays close to a killer’s appetite, planning and self-justification'],
+        ['stalking_horror', 'Stalking horror', 'surveillance, intrusion and the loss of privacy build into direct danger'],
+        ['abduction_plot', 'Abduction plot', 'someone is deliberately taken and prevented from leaving'],
+        ['captivity_horror', 'Captivity horror', 'confinement, control and failed escape attempts drive the fear'],
+        ['torture_horror', 'Torture horror', 'deliberate suffering and psychological breaking are central threats'],
+        ['home_invasion', 'Home invasion', 'a supposedly safe private space is breached by a determined threat'],
+        ['rising_body_count', 'Rising body count', 'deaths accumulate and make the danger impossible to dismiss'],
+        ['no_one_safe', 'No one is safe', 'important characters can be harmed or killed; status gives no immunity'],
+        ['psychological_torment', 'Psychological torment', 'the threat attacks trust, perception and emotional weak points'],
+        ['escalating_violence', 'Escalating violence', 'each violent turn crosses a line the last one did not'],
+        ['bad_ending', 'Bad ending', 'the story is allowed to end in defeat, death, corruption or lasting ruin'],
+        ['villain_wins', 'Villain wins', 'the villain can achieve the terrible thing they set out to do'],
+        ['cover_up', 'Cover-up', 'the aftermath turns into concealment, lies and destroying evidence'],
+    ], 'story'],
     ['genre', 'Genre', '❖', '#b8a6e0', [
         ['romance', 'Romance', 'romance'], ['dark_romance', 'Dark romance', 'dark romance'],
         ['romcom', 'Romantic comedy', 'romcom'],
@@ -551,6 +631,8 @@ export const CATEGORIES = [
         ['supernatural', 'Supernatural', 'supernatural'], ['fantasy', 'Fantasy', 'fantasy'],
         ['post_apocalyptic', 'Post-apocalyptic', 'post-apocalyptic'],
         ['action', 'Action', 'action'], ['adventure', 'Adventure', 'adventure'],
+        ['extreme_horror', 'Extreme horror', 'horror that pushes cruelty, violation and irreversible consequences to the foreground'],
+        ['splatter_horror', 'Splatter horror', 'graphic bodily destruction and excess are a central part of the horror'],
     ], 'story'],
     ['tropes', 'Romance tropes', '❧', '#a8bfe0', [
         ['slow_burn', 'Slow burn', 'slow burn'], ['mutual_pining', 'Mutual pining', 'mutual pining'],
@@ -812,6 +894,65 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    violent: 'violent: physical harm is a real response, not just an intrusive thought or empty threat',
+    tranquil_fury: 'tranquil fury: rage has gone cold, controlled and ready to act',
+    cruel: 'cruel: deliberately chooses suffering rather than merely speaking harshly',
+    ruthless: 'ruthless: pursues the goal through severe harm when useful, whoever pays for it',
+    abusive: 'abusive: repeatedly uses fear, degradation, control or violence against people close to them',
+    predatory: 'predatory: studies vulnerability, closes off escape and acts when the advantage is theirs',
+    dark_romance: 'dark romance: attraction and intimacy remain genuinely dangerous, controlling and morally ugly; love does not automatically reform the dangerous person',
+    tragedy: 'tragedy: choices and flaws drive the story toward irreversible loss rather than an easy rescue',
+    dark_comedy: 'dark comedy: humour grows from cruelty, death, taboo and awful people without making the consequences harmless',
+    thriller: 'thriller: immediate danger, pressure, reversals and pursuit keep the scene moving',
+    psychological_thriller: 'psychological thriller: manipulation, suspicion and unstable perception make every choice feel dangerous',
+    psychosexual_thriller: 'psychosexual thriller: desire, obsession, power and danger keep tightening around each other',
+    erotic_thriller: 'erotic thriller: attraction and explicit danger propel the same plot',
+    crime: 'crime fiction: criminal choices, evidence, consequences and competing agendas drive events',
+    mystery: 'mystery: clues, contradictions and withheld facts create a question the characters actively pursue',
+    noir: 'noir: compromised people, fatal choices, cynical voice and corruption close in around the viewpoint character',
+    psychological_horror: 'psychological horror: attack trust, identity and perception until the character cannot feel safe inside their own mind',
+    psychosexual_horror: 'psychosexual horror: fuse desire, power, shame and terror so intimacy itself becomes threatening',
+    body_horror: 'body horror: bodily violation, change and loss of control are concrete, physical and difficult to look away from',
+    erotic_horror: 'erotic horror: arousal and terror remain tangled without making the threat safe or romantic',
+    slasher: 'slasher: stalking and escalating kills create a body count while survivors scramble to understand and escape the killer',
+    gothic: 'gothic fiction: decay, secrecy, obsession and an oppressive place make the past feel dangerously alive',
+    post_apocalyptic: 'post-apocalyptic fiction: scarcity, ruined systems and survival choices shape every ordinary action',
+    action: 'action: characters pursue concrete objectives through movement, danger and consequential set pieces',
+    adventure: 'adventure: discovery, obstacles and risky forward motion keep changing the situation',
+    hitman: 'a hitman who treats assigned killing as controlled professional work',
+    captor: 'a captor who controls confinement, access, movement and choices',
+    vigilante_killer: 'a vigilante killer who appoints themselves judge and executioner',
+    body_count: 'has multiple deaths behind them',
+    hidden_trophies: 'keeps private reminders taken from victims or crimes',
+    escaped_justice: 'committed serious violence and got away with it',
+    misogynist: 'misogynistic (devalues women’s autonomy, uses sexist double standards and expects them to know their place)',
+    misandrist: 'misandrist (devalues men and judges them by hostile gendered standards)',
+    psychopathic: 'psychopathic (charming and controlled, treats people instrumentally, feels no remorse and can use extreme violence without an emotional brake)',
+    sociopathic: 'sociopathic (disregards people and rules, acts without remorse and answers conflict with exploitation or violence)',
+    murderous: 'murderous: wants to kill, treats killing as a real option and is ready to act when the scene gives them a target or reason',
+    remorseless: 'remorseless: feels no guilt after harm and does not retreat into apology or sudden tenderness',
+    sadistic_glee: 'takes visible pleasure in fear, pain and helplessness',
+    dehumanising: 'dehumanises people into objects, obstacles or prey',
+    calculating_cruelty: 'plans cruelty patiently and chooses what will hurt most',
+    terrorising: 'deliberately cultivates fear and uncertainty',
+    coercive: 'uses pressure, threats and consequences to force compliance',
+    whatever_it_takes: 'doing what needs to be done: treats brutality as necessary work and follows through without flinching',
+    unhesitating: 'unhesitating: acts as soon as they decide, without second-guessing or pulling back',
+    malignant_narcissism: 'malignant narcissism: grandiose, paranoid, vindictive, aggressive and sadistic, with entitlement that turns challenge into retaliation',
+    grandiose_narcissist: 'a grandiose narcissist: expects admiration and special treatment and punishes challenges to their superiority',
+    high_functioning_narcissist: 'a high-functioning narcissist: polished and capable on the surface, privately exploitative and hungry for control and admiration',
+    sadistic_personality: 'sadistic personality disorder as a fictional character trait: a persistent pattern of domination, humiliation and cruelty, with pleasure in suffering',
+    homicidal_fixation: 'homicidally fixated: keeps returning to killing and increasingly treats it as a practical option',
+    moral_disengagement: 'morally disengaged: reframes harm as deserved, necessary or too abstract to feel guilty about',
+    compartmentalised_violence: 'compartmentalises extreme violence away from an otherwise ordinary, functional life',
+    judgemental_misogyny: 'judgemental misogyny: polices women through degrading standards around sex, appearance, obedience and respectability',
+    judgemental_misandry: 'judgemental misandry: polices men through degrading standards around strength, masculinity, usefulness and status',
+    serial_killer: 'a serial killer: a practiced repeat murderer with a pattern, appetite or private logic',
+    torturer: 'a torturer who deliberately prolongs pain, fear and helplessness to break or control people',
+    kidnapper: 'a kidnapper who abducts and confines people for their own ends',
+    drugger: 'secretly drugs people to impair, control or incapacitate them',
+    killed_will_again: 'has killed before, accepts it and will kill again when it serves them',
+    killed_resisting: 'has killed before and is actively trying not to become that person again',
     princess_dominance: 'gets their way with girly charm, playful bossiness and a princessy expectation of being indulged, without taking full control',
     reassurance_loop: 'needs proof they’re wanted, then starts doubting it again',
     testing_attachment: 'tests whether someone will stay or make an effort',
@@ -868,7 +1009,7 @@ export const PROMPT_NAME = {
     dirty: 'dirty (needs a wash)',
     wealth: 'wealthy',
     fame: 'famous',
-    yandere: 'yandere (sweet on the surface, dangerously obsessive underneath)',
+    yandere: 'yandere (sweet and loving toward their person, obsessively possessive and willing to stalk, abduct or kill perceived rivals and threats for them)',
     dirty_minded: 'dirty minded',
     self_loathing: 'self-loathing',
     passive_aggressive: 'passive aggressive',
@@ -942,11 +1083,11 @@ export const PROMPT_NAME = {
     voice_loud: 'a loud voice', voice_quiet: 'a quiet voice', voice_soft: 'a soft voice', voice_deep: 'a deep voice',
     voice_high: 'a high-pitched voice', voice_breathy: 'a breathy voice', voice_cracking: 'voice cracking', voice_weak: 'a weak, thin voice',
     voice_squeaky: 'a squeaky voice', voice_grunting: 'grunts a lot', voice_groaning: 'groans a lot', voice_moaning: 'moans a lot', voice_squealing: 'squeals a lot',
-    antihero: 'an antihero', affably_evil: 'affably evil (friendly and charming, and truly evil)', soft_spoken_sadist: 'a soft-spoken sadist',
-    mask_of_sanity: 'mask of sanity (seems normal and charming; hollow and dangerous underneath)',
-    pragmatic_villain: 'a pragmatic villain (does evil because it works, not for fun)', hidden_villain: 'secretly the villain',
+    antihero: 'an antihero', affably_evil: 'affably evil (friendly and charming while committing real evil)', soft_spoken_sadist: 'a soft-spoken sadist whose calm manner continues while they deliberately hurt people',
+    mask_of_sanity: 'mask of sanity: seems normal, charming and functional while hiding a hollow, predatory inner life',
+    pragmatic_villain: 'a pragmatic villain who commits severe harm because it works and does not hesitate over the cost', hidden_villain: 'secretly the villain',
     evil_mentor: 'an evil mentor', mad_scientist: 'a mad scientist', mad_artist: 'a mad artist (will do anything for their art)',
-    cool_teacher: 'the cool teacher', stalker: 'a stalker', outsider: 'an outsider', chosen_one: 'the chosen one',
+    cool_teacher: 'the cool teacher', stalker: 'a stalker (watches, follows and gathers access to someone’s life, then acts on the fixation)', outsider: 'an outsider', chosen_one: 'the chosen one',
     broken_pedestal: 'broken pedestal (someone idolised turns out to be flawed or worse)',
     devil_in_plain_sight: 'devil in plain sight (the villain is trusted by everyone around them)',
     forbidden_magic: 'forbidden dark magic', confession: 'a love confession', fake_dating: 'fake relationship',
@@ -973,23 +1114,23 @@ export const PROMPT_NAME = {
     stockholm: 'Stockholm syndrome', trauma_bond: 'trauma bond', who_did_this: '"who did this to you"',
     dark_secret: 'a dark secret waiting to come out', experiment: 'someone being experimented on', cult: 'a cult',
     escape: 'trying to escape', survival: 'fighting to survive', haunting: 'a haunting',
-    dead_dove: 'dead dove (dark content played straight, no softening)',
+    dead_dove: 'dead dove (every active dark warning is meant literally, with nothing held back inside what those warnings promise)',
     introspective: 'introspective, lots of inner thought', visceral: 'visceral, physical detail', purple_prose: 'purple prose',
     slow_paced: 'slow, lingering pacing', fast_paced: 'fast pacing', explicit: 'explicit, nothing faded out',
     fade_to_black: 'fade to black for sex', dreamlike: 'dreamlike, surreal',
     female_gaze: 'female gaze (drinks in their partner as a whole person: how they look, how they feel, how they make them feel)',
     classy: 'classy', slutty: 'slutty (dresses and acts to be wanted)', voice_yelling: 'yells a lot',
-    desperate_for_approval: 'desperate for approval', tranquil_fury: 'tranquil fury (rage gone calm and cold, scarier than shouting)',
+    desperate_for_approval: 'desperate for approval', tranquil_fury: 'tranquil fury: rage has gone calm, controlled and ready to act',
     boomerang_bigot: 'a boomerang bigot (hates a group they belong to)', moral_myopia: 'moral myopia (only counts wrongs done to them or theirs)',
     entitled: 'entitled', oblivious: 'oblivious (never notices what’s obvious to everyone else)',
     romanticising: 'romanticises everything, sees life like a novel',
     victim_complex: 'victim complex (always the victim in their own eyes)', projecting: 'projecting their own feelings and faults onto others',
     believes_own_lies: 'believes their own lies', madonna_whore: 'Madonna-whore complex (can’t desire the one they respect, or respect the one they desire)',
-    boy_next_door: 'boy next door', axe_crazy: 'axe-crazy (violently unhinged, a danger to everyone)',
+    boy_next_door: 'boy next door', axe_crazy: 'axe-crazy: violently unhinged, actively dangerous and liable to turn conflict into lethal chaos',
     obliviously_evil: 'obliviously evil (does evil with no idea it’s wrong)', chick_magnet: 'a chick magnet', crazy_jealous: 'crazy jealous (jealous to the point of danger)',
     wrapped_around_finger: 'wrapped around {other}’s finger', if_i_cant_have_you: '"if I can’t have you, no one can"',
     crime_of_passion: 'crime of passion', uncontrolled_powers: 'uncontrolled powers', engineered_heroics: 'engineered heroics (someone stages a danger so they can be the hero)',
-    inner_monologue: 'inner monologue (thoughts written out)', smut: 'smut (sex-focused, explicit)', gore: 'graphic gore', guro: 'guro (erotic grotesque, sex and gore together)',
+    inner_monologue: 'inner monologue (thoughts written out)', smut: 'smut (sex-focused, explicit)', gore: 'gore: show graphic wounds, blood and bodily damage rather than hiding them behind vague language', guro: 'guro: erotic grotesque where explicit desire and graphic bodily horror occupy the same scene',
     has_crush: 'has a crush on {other}', smothering: 'smothering (too much love, won’t give them room)',
     making_worse: 'bringing out the worst in {other}', being_made_worse: '{other} brings out their worst',
     sees_muse: 'sees {other} as their muse', idealising: 'aesthetic idealisation (sees {other} as a beautiful, perfect image more than a person)',
@@ -1040,7 +1181,14 @@ export const SCALED_MOOD_CUES = {
     "angry": [[81,"furious"],[41,"angry"],[1,"irritated"]],
     "controlling": [[81,"domineering and controlling"],[41,"controlling"],[1,"bossy, wants things their way"]],
     "energised": [[81,"buzzing with energy, struggles to keep still"],[41,"energised"],[1,"lively"]],
-    "tired": [[81,"drained and listless"],[41,"tired"],[1,"low on energy"]]
+    "tired": [[81,"drained and listless"],[41,"tired"],[1,"low on energy"]],
+    "yandere": [[100,"yandere at full force: sweetly devoted and lethally possessive, will stalk, abduct or kill rivals and perceived threats for the person they love, and may turn that violence on their beloved rather than lose them"],[81,"dangerously yandere: obsession drives stalking, coercion and violence against threats to the relationship"],[41,"yandere: loving on the surface, possessive and quietly eliminating rivals or obstacles"],[1,"yandere-tinged: sweetly attached with a possessive, watchful edge"]],
+    "horror": [[100,"horror owns the reply: the threat follows through, serious harm and death are live outcomes, and there is no convenient rescue, comic release or soft landing"],[81,"relentless horror with active terror, damage and irreversible consequences"],[41,"horror built from a concrete threat that changes what happens"],[1,"uneasy horror with dread gathering at the edges"]],
+    "offensive": [[100,"offensive fiction at full force: deliberately abrasive, transgressive and willing to use harsh, taboo or prejudiced language and behaviour without sanitising it or turning the reply into a moral essay"],[81,"deliberately offensive fiction that pushes taboo views, ugly language and transgressive behaviour into the foreground"],[41,"offensive fiction with plainly abrasive or politically incorrect character voice and subject matter"],[1,"edgy, impolite fiction with an abrasive streak"]],
+    "dead_dove": [[100,"dead dove at full force: every active dark warning is a literal promise; hold nothing back inside what those warnings promise, and show their worst implications without softening, subversion, automatic condemnation, moral rescue or fade-out"],[81,"dead dove: active dark tags appear exactly as promised, explicitly and without softening or redemptive detours"],[41,"dead dove: take every active dark tag literally and let it happen on the page"],[1,"dead dove emphasis: the active warnings are sincere and should not be quietly subverted"]],
+    "misogynist": [[81,"openly and behaviourally misogynistic: devalues women’s autonomy, polices them by sexist double standards and makes choices from that contempt"],[41,"misogynistic: judges women by sexist double standards and expects them to know their place"],[1,"carries sexist assumptions and a low opinion of women"]],
+    "misandrist": [[81,"openly and behaviourally misandrist: devalues men, assumes the worst of them and makes choices from hostile gendered contempt"],[41,"misandrist: judges men by hostile gendered double standards"],[1,"carries hostile assumptions and a low opinion of men"]],
+    "psychopathic": [[100,"psychopathic at full force: charming and controlled, treats people as tools, feels no remorse and can choose calculated murder or extreme violence without an emotional brake"],[81,"coldly psychopathic: exploitative, remorseless and willing to use severe violence when useful"],[41,"psychopathic: charming, instrumental and without remorse"],[1,"cold and instrumental, with little remorse"]]
 };
 const MERGED_PROMPT_CUES = {
     "playful": "playful, silly and easily amused",
@@ -1069,11 +1217,27 @@ const moodName = (m, other, value = 0) => {
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
     if (m.category === 'authors') return `prose inspired by ${m.label}: ${m.cue}`;
     if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.toLowerCase()}: ${m.cue}`;
+    if (m.category === 'fighting') return m.cue;
+    if (m.kind === 'story' && !PROMPT_NAME[m.id] && m.cue.toLowerCase() !== m.label.toLowerCase()) return `${m.label.toLowerCase()}: ${m.cue}`;
     return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
 };
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
 const ORDER = Object.fromEntries(CATEGORIES.map(([id], i) => [id, i]));
 const COMPARISONS = new Set(['taller', 'shorter', 'bigger', 'smaller', 'stronger', 'smarter', 'older', 'younger']);
+const DARK_ACTION_IDS = new Set([
+    'violent', 'tranquil_fury', 'murderous', 'remorseless', 'sadistic_glee', 'dehumanising', 'calculating_cruelty',
+    'terrorising', 'coercive', 'whatever_it_takes', 'ruthless', 'cruel', 'abusive', 'predatory', 'psychopathic',
+    'sociopathic', 'malignant_narcissism', 'sadistic_personality', 'homicidal_fixation', 'moral_disengagement',
+    'serial_killer', 'torturer', 'kidnapper', 'drugger', 'hitman', 'captor', 'vigilante_killer', 'stalker',
+    'axe_crazy', 'soft_spoken_sadist', 'pragmatic_villain', 'yandere', 'killed_will_again',
+]);
+const DARK_STORY_IDS = new Set([
+    'dark_romance', 'horror', 'psychological_horror', 'psychosexual_horror', 'body_horror', 'erotic_horror',
+    'slasher', 'extreme_horror', 'splatter_horror', 'offensive', 'gore', 'guro', 'dead_dove', 'murder_plot',
+    'serial_killer_hunt', 'killer_pov', 'stalking_horror', 'abduction_plot', 'captivity_horror', 'torture_horror',
+    'home_invasion', 'rising_body_count', 'no_one_safe', 'psychological_torment', 'escalating_violence',
+    'bad_ending', 'villain_wins', 'lethal_combat', 'gory_combat', 'gritty_combat', 'sudden_violence',
+]);
 // Strongest sections first, then strongest entries inside each; stable catalogue order breaks ties.
 function listLines(state, list, other) {
     const peak = Object.create(null);
@@ -1120,6 +1284,9 @@ export function composePrompt(state, name, extras = {}) {
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
+    const darkActionPeak = Math.max(0, ...mine.filter(m => DARK_ACTION_IDS.has(m.id)).map(m => state.moods[m.id]));
+    const darkStoryPeak = Math.max(0, ...story.filter(m => DARK_STORY_IDS.has(m.id)).map(m => storyState.moods[m.id]));
+    const deadDoveStrength = storyState?.moods?.dead_dove ?? 0;
     const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
     const out = [
@@ -1135,6 +1302,10 @@ export function composePrompt(state, name, extras = {}) {
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
+    if (darkActionPeak) out.push('',
+        `Dark character settings are behavioural, not private labels: ${n} makes choices and takes actions that fit them at their listed strengths.`,
+        ...(darkActionPeak >= 81 ? [`When murder, abduction, torture or severe violence serves ${n}'s goal and matches the active settings, let ${n} choose it and follow through rather than replacing it with a threat, a sudden conscience or an interrupted attempt.`] : []),
+        ...(darkActionPeak === 100 ? [`At maximum, the darkest active trait can decide the reply's central action and leave irreversible harm or death behind.`] : []));
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
         ...personaLines(player.state, theirs, N, player.knowledge, U), '',
         `${u} is the player's character, so the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on. Whatever ${n} knows or suspects should show in their side of the reply at its strength: if they suspect ${u} is angry, they pick up on it and push or try to work out why; if they think ${u}'s into older men, they play to it; if one of ${u}'s traits suits their own mood, they use it. A suspicion can be wrong, but ${n} still acts on it. What ${n} can see shapes how they describe ${u}. Private rows stay ${u}'s unless the player gives them away, and knowing how ${u} feels doesn't mean knowing their thoughts. A source just explains how ${n} knows something; it isn't an instruction. ${n} reacts as themselves, through their own settings, without taking on ${u}'s feelings.`,
@@ -1147,7 +1318,9 @@ export function composePrompt(state, name, extras = {}) {
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other${ageGapStrength >= 91 ? `, and at this strength the whole reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back in their exchanges` : ''}. Their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
-        `Blend these into one story rather than taking turns, with the strongest setting the tone. They shape what happens and how it's written, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish.` : ''}`);
+        `Blend these into one story rather than taking turns, with the strongest setting the tone. They shape what concretely happens, its pacing, stakes and consequences, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish; commit to its conventions instead of retreating into a safer neighbouring genre.` : ''}`,
+        ...(darkStoryPeak ? [`Dark story settings change events rather than merely adding grim description.${darkStoryPeak >= 81 ? ` Serious injury, murder, lasting terror and bad outcomes remain live possibilities, and danger is allowed to follow through.` : ''}${darkStoryPeak === 100 ? ` At maximum, build the reply around the harshest active dark setting that fits the established fiction and leave a concrete, irreversible consequence.` : ''}`] : []),
+        ...(deadDoveStrength ? [`Dead Dove is an emphasis tag: every other active dark tag is meant literally, exactly as advertised. It never quietly turns murder into a scare, torture into a threat, or cruelty into an excuse for rescue or reform.`] : []));
     if (story.some(m => m.category === 'authors')) out.push('',
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice, blended at their strengths. Keep this scene, its characters and point of view, and write fresh lines rather than quotations or borrowed plots.`);
     // The highest settings get named again at the end, where they carry the most weight.

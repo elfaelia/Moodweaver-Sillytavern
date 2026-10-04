@@ -1,10 +1,12 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
+import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
+
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
 const defaults = { tokenBudget: 800, depth: 0, placementVersion: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 3 };
-let panel, selectedAvatar = '', pending = null, promptVersion = 0, suspended = false;
+let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
 const openCategories = new Set();
@@ -28,6 +30,7 @@ function settings() {
         sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 12000, 2000, 40000),
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 4000),
         baselines: c.extensionSettings[KEY].baselines ?? {},
+        castDefaults: c.extensionSettings[KEY].castDefaults ?? {},
     });
 }
 function members() {
@@ -101,13 +104,33 @@ function knowledgePanel(state, ch) {
         <p class="mw-fine">This covers your current feelings as well as traits and preferences. Scene only follows what they can see or already know. Private needs clues you actually give. Suspected is an impression they can act on but might get wrong. Known means they know, including how you feel now. Higher strengths should shape their response more; their own settings decide how. You still write your reactions.</p>
         ${active.length ? active.map(m => {
             const entry = knowledgeEntry(knowledge[m.id]);
-            return `<div class="mw-knowledge-row"><label for="mw-knowledge-${m.id}">${esc(m.label)} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
+            return `<div class="mw-knowledge-row"><label for="mw-knowledge-${m.id}">${esc(tagLabel(m))} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
                 <select id="mw-knowledge-${m.id}" data-knowledge="${m.id}" aria-label="What ${esc(ch.name)} knows: ${esc(m.label)}">${KNOWLEDGE_MODES.map((mode, i) => `<option value="${mode}" ${entry.mode === mode ? 'selected' : ''}>${['Scene only', 'Private', 'Suspected', 'Known'][i]}</option>`).join('')}</select>
                 ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${m.id}" aria-label="Source for ${esc(m.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
         }).join('') : '<p class="mw-fine">Enable a persona tag and it will appear here.</p>'}
         <p class="mw-fine">Each active tag is sent once, with its existing strength. Source notes add tokens only when filled in. Turning a tag off stops sending it; its knowledge choice is kept for next time.</p></details>`;
 }
-const viewState = () => who === 'user' ? getUserState() : who === 'story' ? getStoryState() : getState();
+function getCast(ch = target()) {
+    if (!ch || !ctx().chatId) return [];
+    getState(ch);
+    return castFor(ctx().chatMetadata[KEY], settings().castDefaults, `char:${ch.avatar}`);
+}
+const selectedCast = () => getCast().find(person => person.id === selectedCastId) ?? getCast()[0];
+function saveCastDefault(ch = target()) {
+    if (!ch) return;
+    settings().castDefaults[`char:${ch.avatar}`] = castDefaults(getCast(ch));
+    ctx().saveSettingsDebounced();
+}
+function loadCastDefault(ch = target()) {
+    if (!ch) return false;
+    const saved = settings().castDefaults[`char:${ch.avatar}`];
+    if (!saved?.length) return false;
+    getCast(ch);
+    ctx().chatMetadata[KEY].cast[`char:${ch.avatar}`] = castDefaults(saved);
+    selectedCastId = ''; castAction = '';
+    return true;
+}
+const viewState = () => who === 'user' ? getUserState() : who === 'story' ? getStoryState() : who === 'cast' ? selectedCast()?.state : getState();
 function profiles() {
     try { return ctx().ConnectionManagerRequestService.getSupportedProfiles(); } catch { return []; }
 }
@@ -118,12 +141,12 @@ async function persist(state) {
 async function syncPrompt(forGeneration = false) {
     const version = ++promptVersion;
     const c = ctx(), ch = target(forGeneration), state = getState(ch), id = identity(ch), mine = getUserState(), story = getStoryState(ch);
-    if (suspended || !state || (!state.enabled && !mine?.enabled && !story?.enabled)) {
+    if (suspended || !state) {
         c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
     try {
-        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100), knowledge: getKnowledge(ch) }, story });
+        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100), knowledge: getKnowledge(ch) }, story, cast: getCast(ch) });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -207,14 +230,32 @@ globalThis.moodweaverBeforeGeneration = async (_chat, _contextSize, _abort, type
     renderPreview();
 };
 
+const tagLabel = m => m.label.replaceAll('{{user}}', playerName()).replaceAll('{{char}}', target()?.name ?? 'main character');
+function targetFields(m, state) {
+    if (!state.moods[m.id]) return '';
+    const fields = m.id === 'hates_other' ? [['hate', 'Who?', 'Name of someone in the scene']]
+        : m.id === 'comparing_people' ? [['compareA', 'Compare', 'Someone in the scene'], ['compareB', 'With', '{{user}}']] : [];
+    return fields.length ? `<div class="mw-target-fields">${fields.map(([key, label, placeholder]) => `<label>${label}<input type="text" data-target="${key}" maxlength="80" list="${key === 'hate' ? 'mw-hate-names' : 'mw-cast-names'}" placeholder="${esc(placeholder)}" value="${esc(state.targets?.[key] ?? '')}"></label>`).join('')}</div>` : '';
+}
+function castPanel(ch) {
+    const cast = getCast(ch), person = selectedCast();
+    return `<div class="mw-cast"><p class="mw-fine">Supporting characters in ${esc(ch.name)}’s chats. Give each their own blend, then switch “In this scene” off when they leave. Manual controls; no extra model requests.</p>
+        <div class="mw-cast-add"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Add someone, e.g. Chloe"><button data-action="cast-add">＋ Add</button></div>
+        ${person ? `<label class="mw-cast-picker">Edit character<select data-field="cast">${cast.map(p => `<option value="${esc(p.id)}" ${p.id === person.id ? 'selected' : ''}>${esc(p.name)}${p.inScene ? ' · in scene' : ' · off scene'}</option>`).join('')}</select></label>
+        <div class="mw-cast-presence"><label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In this scene</label><span class="mw-fine">${cast.filter(p => p.inScene && p.state.enabled).length} present</span></div>
+        <details class="mw-cast-edit"><summary>Rename or remove ${esc(person.name)}</summary><div class="mw-cast-add"><input type="text" data-field="castName" maxlength="80" aria-label="Supporting character name" value="${esc(person.name)}"><button data-action="cast-remove">Remove</button></div></details>` : '<p class="mw-fine">Add a name to start. Their moods and facts will appear below.</p>'}
+        <div class="mw-actions"><button data-action="cast-default">Save cast for ${esc(ch.name)}</button>${settings().castDefaults[`char:${ch.avatar}`]?.length ? '<button data-action="cast-load">Load saved cast</button>' : ''}</div>
+        ${castAction ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${castAction}-confirm">${castAction === 'load' ? 'Replace this chat’s cast' : 'Remove from this chat'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}
+        <p class="mw-fine">Saves all these profiles for new ${esc(ch.name)} chats. Existing chats keep their own versions; new chats start with everyone off scene.</p></div>`;
+}
 function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
-        <div class="mw-row-head"><label for="mw-${m.id}">${m.label}</label><span data-level="${m.id}">${level(value)}</span>
+        <div class="mw-row-head"><label for="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
         <output for="mw-${m.id}" data-value="${m.id}">${value}%</output>
-        <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${m.label}" title="Pin this exact level in dynamic mode">${pin ? '◆' : '◇'}</button></div>
+        <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin this exact level in dynamic mode">${pin ? '◆' : '◇'}</button></div>
         <input id="mw-${m.id}" type="range" min="0" max="100" step="1" value="${value}" data-slider="${m.id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
-        <small>${m.cue}</small></div>`;
+        <small>${m.cue}</small>${targetFields(m, state)}</div>`;
 }
 function render() {
     if (!panel) return;
@@ -229,15 +270,15 @@ function render() {
     if (tab === 'story') tab = 'mood';
     const active = state ? activeMoods(state) : [];
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
-    ${!state ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
+    ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     <div class="mw-context"><label>Character<select data-field="character" aria-label="Character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
-        <label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'Enabled' : 'Send'}</label></div>
-    <div class="mw-mode mw-who" role="group" aria-label="Whose tags">${[['char', '◆', ch.name], ['user', '◇', playerName()], ['story', '❖', 'Story']].map(([k, icon, label]) => `<button data-who="${k}" aria-pressed="${who === k}">${icon} ${esc(label)}</button>`).join('')}</div>
+        ${state ? `<label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'Enabled' : 'Send'}</label>` : ''}</div>
+    <div class="mw-mode mw-who" role="group" aria-label="Whose tags">${[['char', '◆', ch.name], ['user', '◇', playerName()], ['cast', '♧', 'Cast'], ['story', '❖', 'Story']].map(([k, icon, label]) => `<button data-who="${k}" aria-pressed="${who === k}">${icon} ${esc(label)}</button>`).join('')}</div>
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
-    ${who === 'user' ? `<p class="mw-explainer">Your sliders describe ${esc(playerName())} in this chat. Strength and what another character knows are separate; set their knowledge below. You still write your own words, actions and thoughts.</p>` : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
+    ${who === 'user' ? `<p class="mw-explainer">Your sliders describe ${esc(playerName())} in this chat. Strength and what another character knows are separate; set their knowledge below. You still write your own words, actions and thoughts.</p>` : who === 'cast' ? castPanel(ch) : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
     <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
-    <div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active${active.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
-        <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${m.label}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
+    ${state ? `<div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active${active.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
+        <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${who === 'user' ? knowledgePanel(state, ch) : ''}
@@ -254,8 +295,9 @@ function render() {
         return `<button data-tab="${k}" aria-pressed="${tab === k}">${label}${n ? ` · ${n}` : ''}</button>`; }).join('')}</div>`}
     <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search moods and states" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
     <div class="mw-scale"><span>Off</span>${[...TIERS].reverse().map(t => `<span>${t.name}</span>`).join('')}</div>
-    <div class="mw-categories">${CATEGORIES.map(([id, name, icon, color, , kind = 'mood']) => {
-        const list = MOODS.filter(m => m.category === id), n = list.filter(m => state.moods[m.id]).length;
+    <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
+    <datalist id="mw-hate-names">${getCast(ch).filter(p => who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist><div class="mw-categories">${CATEGORIES.map(([id, name, icon, color, , kind = 'mood']) => {
+        const list = MOODS.filter(m => m.category === id && (state.moods[m.id] > 0 || !(who === 'char' && m.id === 'hates_char' || who === 'user' && m.id === 'hates_user'))), n = list.filter(m => state.moods[m.id]).length;
         return `<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
     }).join('')}</div><p class="mw-no-results" hidden>Nothing matches.</p>
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
@@ -268,15 +310,15 @@ function render() {
         <p class="mw-fine">The last preparation is kept in memory for this chat and character. It records what this extension queued, not proof of a completed API request. Use SillyTavern’s message prompt inspector for the complete assembled prompt.</p></details>
     <details class="mw-advanced"><summary>Prompt, budgets & character defaults</summary>
         <p class="mw-fine">Saved separately for each chat and character. Save this setup as a character default to seed their future chats; existing chats keep their own blend.</p>
-        <div class="mw-actions"><button data-action="baseline">${who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default for this character' : 'Save character default'}</button><button data-action="reset">Clear unpinned moods</button></div>
+        <div class="mw-actions"><button data-action="baseline">${who === 'cast' ? 'Save entire cast for this character' : who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default for this character' : 'Save character default'}</button><button data-action="reset">Clear unpinned moods</button></div>
         <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"> tokens</label>
         <label>Prompt depth <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"> messages from the end</label>
         <p class="mw-fine">0 puts Moodweaver after your latest message (recommended); 1 puts it before. Lower numbers keep the note closer to the reply. This changes its placement, not a guaranteed priority over your preset.</p>
         <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
-        <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.16</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+        <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.10.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
@@ -322,6 +364,12 @@ function setup() {
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
+        if (['hate', 'compareA', 'compareB'].includes(e.target.dataset.target)) {
+            const state = viewState(); if (!state) return;
+            state.targets ??= {};
+            state.targets[e.target.dataset.target] = castName(e.target.value);
+            void persist(state); void syncPrompt(); return;
+        }
         const sourceId = e.target.dataset.knowledgeSource;
         if (sourceId && who === 'user' && BY_ID[sourceId]) {
             const knowledge = getKnowledge(target(), true);
@@ -338,6 +386,7 @@ function setup() {
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
+        if (input.dataset.target) return;
         const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
         if (knowledgeId && who === 'user' && BY_ID[knowledgeId]?.kind !== 'story' && BY_ID[knowledgeId]) {
             const knowledge = getKnowledge(target(), true);
@@ -351,7 +400,25 @@ function setup() {
         }
         if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
         const field = input.dataset.field;
-        if (field === 'character') { selectedAvatar = input.value; status = ''; render(); await syncPrompt(); return; }
+        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; castAction = ''; status = ''; render(); await syncPrompt(); return; }
+        if (field === 'cast') { selectedCastId = input.value; castAction = ''; status = ''; render(); return; }
+        if (field === 'castInScene') {
+            const person = selectedCast(); if (!person) return;
+            person.inScene = input.checked; await persist(); await syncPrompt(); render(); return;
+        }
+        if (field === 'castName') {
+            const person = selectedCast(), name = castName(input.value);
+            if (!person) return;
+            if (!name || [playerName(), ...members().map(ch => ch.name), ...getCast().filter(p => p.id !== person.id).map(p => p.name)]
+                .some(n => n.toLowerCase() === name.toLowerCase())) {
+                status = 'Use a unique supporting-character name.'; render(); return;
+            }
+            const old = person.name; person.name = name;
+            for (const s of [getState(), getUserState(), ...getCast().map(p => p.state)]) {
+                for (const key of ['hate', 'compareA', 'compareB']) if (s?.targets?.[key] === old) s.targets[key] = name;
+            }
+            await persist(); await syncPrompt(); render(); return;
+        }
         if (field === 'recipe') { if (RECIPES[input.value]) await changeState(s => { for (const [k, v] of Object.entries(RECIPES[input.value])) if (!s.pins[k]) s.moods[k] = v; }); return; }
         if (field) await changeState(s => {
             s[field] = ['enabled', 'sceneBreathing'].includes(field) ? input.checked : field === 'profile' ? input.value : Number(input.value);
@@ -364,7 +431,7 @@ function setup() {
     });
     panel.addEventListener('click', async e => {
         const button = e.target.closest('button'); if (!button) return;
-        if (button.dataset.who) { who = button.dataset.who; status = ''; render(); return; }
+        if (button.dataset.who) { who = button.dataset.who; castAction = ''; status = ''; render(); return; }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
         if (button.dataset.tab) {
             tab = button.dataset.tab;
@@ -379,12 +446,35 @@ function setup() {
             category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
         switch (button.dataset.action) {
+            case 'cast-add': {
+                try {
+                    const person = addCastMember(getCast(), panel.querySelector('[data-cast-new]').value, newCastId(), [playerName(), ...members().map(ch => ch.name)]);
+                    selectedCastId = person.id; castAction = ''; status = `${person.name} added to this chat’s cast.`;
+                    await persist(); await syncPrompt(); render();
+                } catch (error) { status = error.message; renderStatus(); }
+                break;
+            }
+            case 'cast-remove': castAction = 'remove'; render(); break;
+            case 'cast-cancel': castAction = ''; render(); break;
+            case 'cast-remove-confirm': {
+                const person = selectedCast(); if (!person) break;
+                const cast = getCast(); cast.splice(cast.indexOf(person), 1); selectedCastId = ''; castAction = '';
+                await persist(); await syncPrompt(); render(); break;
+            }
+            case 'cast-default':
+                saveCastDefault(); castAction = ''; status = `Cast saved for ${target().name}’s future chats.`; render(); break;
+            case 'cast-load': castAction = 'load'; render(); break;
+            case 'cast-load-confirm': {
+                if (!loadCastDefault()) break;
+                status = 'Saved cast loaded. Switch on whoever is in this scene.';
+                await persist(); await syncPrompt(); render(); break;
+            }
             case 'top': panel.scrollTo({ top: 0, behavior: 'smooth' }); break;
             case 'close': panel.close(); document.getElementById('moodweaver-launcher').focus(); break;
             case 'cancel': cancelAnalysis(); break;
             case 'analyse': await analyse(target(), true); break;
             case 'clear': {
-                const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : target()?.name;
+                const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : who === 'cast' ? selectedCast()?.name : target()?.name;
                 if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed.`)) break;
                 await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } s.reason = ''; }); break;
             }
@@ -395,6 +485,7 @@ function setup() {
                 s.reason = previous.reason; s.updatedAt = previous.updatedAt;
             }); break;
             case 'baseline': {
+                if (who === 'cast') { saveCastDefault(); status = `Cast saved for ${target().name}’s future chats.`; renderStatus(); break; }
                 const key = who === 'user' ? `user:${playerName()}` : who === 'story' ? `story:${target().avatar}` : `char:${target().avatar}`;
                 settings().baselines[key] = freshState(viewState()); ctx().saveSettingsDebounced();
                 status = who === 'user' ? `Default saved for ${playerName()}’s future chats.` : who === 'story' ? 'Story default saved for this character’s future chats.' : 'Default saved for this character’s future chats.'; renderStatus(); break;
@@ -403,7 +494,7 @@ function setup() {
     });
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
-        cancelAnalysis(); selectedAvatar = ''; status = '';
+        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; castAction = ''; status = '';
         ++promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         render(); void syncPrompt();
     });
@@ -421,7 +512,7 @@ function setup() {
 // jQuery ready also works when installed after APP_READY has fired.
 if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();
 
-export { analyse, getState, getKnowledge, syncPrompt };
+export { analyse, getState, getKnowledge, getCast, saveCastDefault, loadCastDefault, syncPrompt };
 
 export function onDisable() {
     suspended = true; ++promptVersion; cancelAnalysis();

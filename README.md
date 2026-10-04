@@ -16,9 +16,9 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.16 includes **918 sliders in 44 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.10.0 includes **927 sliders in 44 collapsible categories**, plus a **Cast** tab for supporting characters. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
-Version 1.9.16 adds behavioural dark-character controls, Fighting style, Combat direction and Dark story pressure. Horror, Dead Dove, offensive fiction, yandere and gendered prejudice now scale into concrete choices and consequences instead of acting as decorative labels. See [the dark-content overhaul](DARK-CONTENT-1.9.16.md).
+Version 1.10.0 adds Doe-eyed, Prissy, Homophobic, One step ahead, One step behind, Comparing people, and three directed hate settings. Choose names underneath an active comparison or supporting-character hate slider. The Cast tab gives supporting characters their own moods and facts, saved per chat and main character, with reusable defaults and an explicit scene-presence switch. See [the cast guide](CAST-1.10.0.md). The [1.9.16 dark-content controls](DARK-CONTENT-1.9.16.md) are also included.
 
 **Attraction preferences** sits beside Desire & attraction and includes the existing age preferences. New options cover hands, feet, visible veins, hair length, voices, masculinity, femininity, innocence and a wicked streak. There are also preferences for eyes, smiles, lips, facial and body hair, scars, tattoos, piercings, soft or muscular bodies, height, accents, confidence, shyness, kindness, intelligence and humour. They describe what someone likes in other people, rather than changing their own appearance or personality.
 

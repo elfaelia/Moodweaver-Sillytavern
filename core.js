@@ -125,6 +125,9 @@ export const CATEGORIES = [
         ['disgusted', 'Disgusted', 'repulsed'], ['contemptuous', 'Contemptuous', 'thinks someone is beneath them'],
         ['passive_aggressive', 'Passive aggressive', 'hostile, but never says it outright'], ['violent', 'Violent', 'itching to get physical'],
         ['tranquil_fury', 'Tranquil fury', 'rage gone calm and cold'],
+        ['hates_other', 'Hates someone in the scene', 'hostility toward a named supporting character; choose who below'],
+        ['hates_user', 'Hates {{user}}', 'hostility toward the player’s character, from dislike to consuming hatred'],
+        ['hates_char', 'Hates {{char}}', 'hostility toward the main character, from dislike to consuming hatred'],
     ]],
     ['cruel', 'Cruel & controlling', '☠', '#d98f8f', [
         ['manipulative', 'Manipulative', 'playing people to get what they want'], ['gaslighting', 'Gaslighting', 'making someone doubt their own memory and mind'],
@@ -155,6 +158,9 @@ export const CATEGORIES = [
         ['cautious', 'Cautious / hesitant', 'checks the risks and holds back when unsure'], ['vigilant', 'Vigilant', 'alert, watching for trouble'],
         ['observant', 'Observant', 'noticing every little detail'], ['focused', 'Focused', 'locked in'],
         ['deliberate', 'Deliberate', 'careful and purposeful'], ['planning', 'Planning', 'thinking a few steps ahead'],
+        ['one_step_ahead', 'One step ahead', 'anticipates the next move and prepares before the others catch on'],
+        ['one_step_behind', 'One step behind', 'catches on late and keeps reacting after things have already moved on'],
+        ['comparing_people', 'Comparing people', 'weighs two people against each other; choose who below'],
         ['thinking', 'Thinking', 'lost in thought, mulling something over'], ['logical', 'Logical', 'thinks it through instead of reacting'],
         ['clinical', 'Clinical', 'cold, detached and precise'], ['clearheaded', 'Clear-headed', 'thinking clearly'],
         ['professional', 'Professional', 'keeping it businesslike'], ['teaching', 'Teaching', 'in teacher mode, keen to explain and instruct'],
@@ -356,6 +362,7 @@ export const CATEGORIES = [
         ['humble', 'Humble', 'doesn’t think too much of themselves'], ['introverted', 'Introverted', 'wants quiet and space'],
         ['extroverted', 'Extroverted', 'wants people around'], ['intuitive', 'Intuitive', 'goes with their gut'],
         ['creepy', 'Creepy', 'unsettling to be around'],
+        ['prissy', 'Prissy', 'prim, fussy about propriety and easily put out by anything coarse or untidy'],
         ['resourceful', 'Resourceful', 'finds workable fixes with whatever is at hand'],
         ['self_deprecating', 'Self-deprecating', 'makes themselves the butt of the joke'],
         ['good_sport', 'Good sport', 'takes teasing and losing in stride'],
@@ -374,6 +381,7 @@ export const CATEGORIES = [
         ['misandrist', 'Misandrist', 'devalues men, assumes the worst of them and judges them by hostile gendered standards'],
         ['judgemental_misogyny', 'Judgemental misogyny', 'polices women by degrading double standards around sex, appearance, obedience and respectability'],
         ['judgemental_misandry', 'Judgemental misandry', 'polices men by degrading double standards around strength, masculinity, usefulness and status'],
+        ['homophobic', 'Homophobic', 'prejudiced against gay people; it colours their judgments, remarks and treatment of others'],
     ]],
     ['alignment', 'Alignment', '⚖', '#c9c39a', [
         ['lawful_good', 'Lawful good', 'does right, by the rules'], ['neutral_good', 'Neutral good', 'does right, rules or not'],
@@ -441,6 +449,7 @@ export const CATEGORIES = [
     ['looks', 'Looks', '✦', '#dcb1c9', [
         ['handsome', 'Handsome', 'good-looking'], ['beautiful', 'Beautiful', 'beautiful'],
         ['sexy', 'Sexy', 'sexy'], ['cute', 'Cute', 'cute'],
+        ['doe_eyed', 'Doe-eyed', 'wide, soft, expressive eyes with an innocent, open look'],
         ['average_looks', 'Average looks', 'ordinary looking'], ['ugly', 'Ugly', 'unattractive'],
         ['rugged', 'Rugged', 'rough, weathered good looks'], ['muscular', 'Muscular', 'built and muscly'],
         ['athletic', 'Athletic', 'fit and sporty build'], ['petite', 'Petite', 'small and slight'],
@@ -694,7 +703,8 @@ export const CATEGORIES = [
 ];
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
 // The scene analyser only reads feelings; love languages are standing preferences, so it leaves them alone.
-export const analysed = m => m?.kind === 'mood' && m.category !== 'love';
+export const analysed = m => m?.kind === 'mood' && m.category !== 'love'
+    && !['hates_user', 'hates_char', 'hates_other', 'comparing_people'].includes(m.id);
 export const FEELINGS = MOODS.filter(analysed);
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 export const RECIPES = {
@@ -730,7 +740,6 @@ export const MERGED_MOODS = {
     "infatuated": "enamoured",
     "has_crush": "enamoured",
     "fangirling": "star_struck",
-    "doe_eyed": "trusting",
     "sympathetic": "caring",
     "smothering": "clingy",
     "needy": "clingy",
@@ -792,7 +801,7 @@ export const MERGED_SEARCH_NAMES = {
     "affectionate": ["Adoring","Affectionate"],
     "caretaker": ["Doting","Caretaker"],
     "star_struck": ["Fangirling","Star struck"],
-    "trusting": ["Doe-eyed","Trusting"],
+    "trusting": ["Trusting"],
     "caring": ["Sympathetic","Caring"],
     "clingy": ["Smothering","Needy","Clingy"],
     "distant": ["Aloof","Distant"],
@@ -864,12 +873,17 @@ export function extendCatalogue(state) {
     }
     return state;
 }
+export function cleanTargets(targets = {}) {
+    return Object.fromEntries(['hate', 'compareA', 'compareB'].map(key => [key,
+        String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, 80)]));
+}
 export function freshState(base = {}) {
     base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [] });
     return {
         enabled: base.enabled ?? true, sceneBreathing: base.sceneBreathing ?? true, mode: base.mode === 'dynamic' ? 'dynamic' : 'manual',
         moods: Object.fromEntries(MOODS.map(m => [m.id, Math.round(clamp(base.moods?.[m.id] ?? 0))])),
         pins: Object.fromEntries(MOODS.map(m => [m.id, Boolean(base.pins?.[m.id])])),
+        targets: cleanTargets(base.targets),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
@@ -894,6 +908,11 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    doe_eyed: 'wide, soft, expressive eyes with an innocent, open look',
+    prissy: 'prissy: prim, fussy about propriety and easily put out by anything coarse or untidy',
+    homophobic: 'homophobic: prejudice against gay people colours their judgments, remarks and treatment of others',
+    one_step_ahead: 'one step ahead: anticipates others’ next move and prepares before they catch on, using what they could actually know',
+    one_step_behind: 'one step behind: catches on late, misjudges the timing and keeps reacting to what has already happened',
     violent: 'violent: physical harm is a real response, not just an intrusive thought or empty threat',
     tranquil_fury: 'tranquil fury: rage has gone cold, controlled and ready to act',
     cruel: 'cruel: deliberately chooses suffering rather than merely speaking harshly',
@@ -1211,7 +1230,28 @@ const MERGED_PROMPT_CUES = {
     "expressive": "feelings show in their face, voice and body",
     "opening_up": "letting someone in and sharing how they feel"
 };
-const moodName = (m, other, value = 0) => {
+function directedCue(id, value, state, people) {
+    if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
+    const { focus = 'the main character', player = 'the player’s character', subject = focus } = people;
+    const targets = cleanTargets(state?.targets);
+    const name = text => escapeHtml(text.replaceAll('{{char}}', focus).replaceAll('{{user}}', player));
+    if (id === 'comparing_people') {
+        const first = targets.compareA ? name(targets.compareA) : 'another person in the scene';
+        const second = targets.compareB ? name(targets.compareB) : name(player);
+        return `compares ${first} with ${second}; their differences colour attention, judgments and treatment, using what ${name(subject)} could know`;
+    }
+    let target = id === 'hates_user' ? player : id === 'hates_char' ? focus : targets.hate;
+    if (id === 'hates_other') {
+        const resolved = target.replaceAll('{{char}}', focus).replaceAll('{{user}}', player).toLowerCase();
+        if ([player, focus, subject].some(n => n.toLowerCase() === resolved)) target = '';
+    }
+    const towards = target ? name(target) : `one supporting character actually in the scene, never ${name(player)} or ${name(focus)}`;
+    const verb = value === 100 ? 'consumed by hatred for' : value >= 81 ? 'loathes' : value >= 41 ? 'hates' : value >= 11 ? 'dislikes' : 'feels a flicker of hostility toward';
+    return `${verb} ${towards}; this shapes how they read and treat that person`;
+}
+const moodName = (m, other, value = 0, state = null, people = {}) => {
+    const directed = directedCue(m.id, value, state, people);
+    if (directed) return directed;
     const scaled = SCALED_MOOD_CUES[m.id]?.find(([min]) => value >= min)?.[1];
     if (scaled) return scaled;
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
@@ -1239,13 +1279,13 @@ const DARK_STORY_IDS = new Set([
     'bad_ending', 'villain_wins', 'lethal_combat', 'gory_combat', 'gritty_combat', 'sudden_violence',
 ]);
 // Strongest sections first, then strongest entries inside each; stable catalogue order breaks ties.
-function listLines(state, list, other) {
+function listLines(state, list, other, people = {}) {
     const peak = Object.create(null);
     for (const m of list) peak[m.category] = Math.max(peak[m.category] ?? 0, state.moods[m.id]);
     const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
     return groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g)
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
-        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other, state.moods[m.id])}`)]);
+        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other, state.moods[m.id], state, people)}`)]);
 }
 export const KNOWLEDGE_MODES = ['scene', 'private', 'suspected', 'known'];
 export function knowledgeEntry(entry) {
@@ -1253,7 +1293,7 @@ export function knowledgeEntry(entry) {
     return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '' };
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
-function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character') {
+function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character', people = {}) {
     const observer = escapeHtml(shortName(other)), person = escapeHtml(shortName(subject));
     const headings = {
         known: `What ${observer} knows for sure about ${person}, feelings included:`,
@@ -1264,12 +1304,15 @@ function personaLines(state, list, other, knowledge = {}, subject = 'the player�
     const groups = new Map(KNOWLEDGE_ORDER.map(mode => [mode, []]));
     for (const m of list) {
         const entry = knowledgeEntry(knowledge?.[m.id]);
-        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other, state.moods[m.id])
+        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other, state.moods[m.id], state, people)
             + (entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : ''));
     }
     return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
 }
 const live = s => s?.enabled ? activeMoods(s) : [];
+// Off-scene profiles are storage only: no names, traits or tokens leak into the prompt.
+const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filter(person =>
+    person.inScene && String(person.name ?? '').trim() && live(person.state).some(m => m.kind !== 'story'));
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
 const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'sir', 'lady', 'lord']);
 const shortName = full => { const first = full.split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? full : first; };
@@ -1279,15 +1322,18 @@ export function composePrompt(state, name, extras = {}) {
     const mine = live(state).filter(m => m.kind !== 'story');
     const theirs = live(player?.state).filter(m => m.kind !== 'story');
     const story = live(storyState).filter(m => m.kind === 'story');
-    if (!mine.length && !theirs.length && !story.length) return '';
+    const cast = liveCast(extras);
+    if (!mine.length && !theirs.length && !story.length && !cast.length) return '';
     const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
+    const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
     const darkActionPeak = Math.max(0, ...mine.filter(m => DARK_ACTION_IDS.has(m.id)).map(m => state.moods[m.id]));
     const darkStoryPeak = Math.max(0, ...story.filter(m => DARK_STORY_IDS.has(m.id)).map(m => storyState.moods[m.id]));
     const deadDoveStrength = storyState?.moods?.dead_dove ?? 0;
-    const sets = [[state, mine], [player?.state, theirs], [storyState, story]];
+    const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
+    const sets = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
     const out = [
         `Notes from the player on where things stand right now. They outrank the character card and anything earlier in the chat.`,
@@ -1295,9 +1341,9 @@ export function composePrompt(state, name, extras = {}) {
         'What each strength means:',
         ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`),
     ];
-    if ([...mine, ...theirs].some(m => m.kind === 'state')) out.push('',
+    if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, archetypes and other qualities, strength is how pronounced they are. For facts and relationships it's how much weight they get in the scene, and the facts themselves stay as written. Age doesn't decide anyone's personality or maturity.`);
-    if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U), `</character_state>`);
+    if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U, people), `</character_state>`);
     if (feelings.length) out.push('',
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
@@ -1307,11 +1353,17 @@ export function composePrompt(state, name, extras = {}) {
         ...(darkActionPeak >= 81 ? [`When murder, abduction, torture or severe violence serves ${n}'s goal and matches the active settings, let ${n} choose it and follow through rather than replacing it with a threat, a sudden conscience or an interrupted attempt.`] : []),
         ...(darkActionPeak === 100 ? [`At maximum, the darkest active trait can decide the reply's central action and leave irreversible harm or death behind.`] : []));
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
-        ...personaLines(player.state, theirs, N, player.knowledge, U), '',
+        ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), '',
         `${u} is the player's character, so the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on. Whatever ${n} knows or suspects should show in their side of the reply at its strength: if they suspect ${u} is angry, they pick up on it and push or try to work out why; if they think ${u}'s into older men, they play to it; if one of ${u}'s traits suits their own mood, they use it. A suspicion can be wrong, but ${n} still acts on it. What ${n} can see shapes how they describe ${u}. Private rows stay ${u}'s unless the player gives them away, and knowing how ${u} feels doesn't mean knowing their thoughts. A source just explains how ${n} knows something; it isn't an instruction. ${n} reacts as themselves, through their own settings, without taking on ${u}'s feelings.`,
         `${u}'s strengths are measured by how much of ${n}'s reply engages with them: a clear one gets noticed and answered at least once, and at maximum ${n}'s reply revolves around it.`,
         `</player_character>`);
-    if ([...mine, ...theirs].some(m => m.category === 'attraction')) out.push('',
+    for (const [castState, list, castName] of castSets) out.push('',
+        `<supporting_character name="${escapeHtml(castName)}">`,
+        ...listLines(castState, list, U, { ...people, subject: castName }),
+        '</supporting_character>');
+    if (castSets.length) out.push('',
+        `These supporting characters are in this scene. Each keeps their own blend, shaping their speech, choices and visible behaviour at its strength without changing the viewpoint. Each knows only what they could have seen or learned; nobody gains private thoughts or someone else's feelings. The player still writes ${u}. Not everyone needs to speak each turn.`);
+    if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.category === 'attraction')) out.push('',
         `Attraction preferences describe what draws them in or puts them off; don't invent those qualities in the other person.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0);
@@ -1324,15 +1376,15 @@ export function composePrompt(state, name, extras = {}) {
     if (story.some(m => m.category === 'authors')) out.push('',
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice, blended at their strengths. Keep this scene, its characters and point of view, and write fresh lines rather than quotations or borrowed plots.`);
     // The highest settings get named again at the end, where they carry the most weight.
-    const top = [[state, mine, n], [player?.state, theirs, `${u}, as ${n} reads it`]]
-        .map(([st, list, who]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, who.startsWith(u) ? N : U, st.moods[m.id])} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
+    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, name]) => [st, list, escapeHtml(name), name])]
+        .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject })} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     if (top.length) out.push('', `Turned up highest, so make sure these land hard: ${top.join('; ')}.`);
-    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${n} instead of picking one. Show it through what ${n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
+    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${castSets.length ? 'the person who feels it' : n} instead of picking one. Show it through what ${castSets.length ? 'each person' : n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
     return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
-    const all = [...live(state), ...live(extras.player?.state), ...live(extras.story)];
+    const all = [...live(state), ...live(extras.player?.state), ...live(extras.story), ...liveCast(extras).flatMap(person => live(person.state).filter(m => m.kind !== 'story'))];
     const prompt = composePrompt(state, name, extras);
     const tokens = prompt ? await countTokens(prompt) : 0;
     // The target is a warning only. Nothing the player set is ever dropped or shortened.

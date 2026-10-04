@@ -25,8 +25,8 @@ const stateWith = (entries) => {
     return state;
 };
 
-test('1.9.16 has 75 unique additions in three correctly typed sections', () => {
-    assert.equal(MOODS.length, 918);
+test('the 75 dark additions remain unique and their three sections are correctly typed', () => {
+    assert.equal(MOODS.length, 927);
     assert.equal(CATEGORIES.length, 44);
     assert.equal(newIds.length, 75);
     assert.equal(new Set(newIds).size, 75);

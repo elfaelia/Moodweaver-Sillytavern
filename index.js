@@ -1,4 +1,4 @@
-import { KNOWLEDGE_MODES, knowledgeEntry, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -209,7 +209,7 @@ globalThis.moodweaverBeforeGeneration = async (_chat, _contextSize, _abort, type
 
 function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
-    return `<div class="mw-mood" data-mood="${m.id}" style="--mw-accent:${m.color}">
+    return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
         <div class="mw-row-head"><label for="mw-${m.id}">${m.label}</label><span data-level="${m.id}">${level(value)}</span>
         <output for="mw-${m.id}" data-value="${m.id}">${value}%</output>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${m.label}" title="Pin this exact level in dynamic mode">${pin ? '◆' : '◇'}</button></div>
@@ -276,7 +276,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>`}
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.14</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.9.15</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
@@ -290,7 +290,7 @@ function filterRows() {
     panel.querySelectorAll('[data-category]').forEach(d => {
         let count = 0;
         d.querySelectorAll('[data-mood]').forEach(row => {
-            row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) count++;
+            row.hidden = !(row.textContent + ' ' + (row.dataset.aliases ?? '')).toLowerCase().includes(term); if (!row.hidden) count++;
         });
         const inTab = who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && (term || d.dataset.kind === tab);
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;

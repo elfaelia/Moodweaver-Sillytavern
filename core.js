@@ -33,10 +33,10 @@ export const AUTHOR_INSPIRATIONS = [
 
 export const CATEGORIES = [
     ['happy', 'Happy & lively', '✧', '#e5ca7f', [
-        ['happy', 'Happy', 'in a good mood'], ['delighted', 'Delighted', 'really pleased'],
-        ['excited', 'Excited', 'can’t wait'], ['giddy', 'Giddy', 'bubbly and lightheaded with excitement'],
-        ['playful', 'Playful', 'up for fun and mischief'], ['silly', 'Silly', 'goofy and daft'],
-        ['giggly', 'Giggly', 'can’t stop giggling'], ['mischievous', 'Mischievous', 'up to no good'],
+        ['happy', 'Happy', 'pleased and in good spirits, up to outright delight'],
+        ['excited', 'Excited', 'looking forward to something, up to giddy excitement'],
+        ['playful', 'Playful', 'up for fun, silliness and laughter'],
+        ['mischievous', 'Mischievous', 'up to no good'],
         ['chatty', 'Chatty', 'in the mood to talk'], ['hopeful', 'Hopeful', 'thinks things might get better'],
         ['inspired', 'Inspired', 'full of ideas'], ['entertained', 'Entertained', 'finding it all amusing'],
         ['experimental', 'Experimental', 'up for trying new things'],
@@ -44,25 +44,25 @@ export const CATEGORIES = [
     ['bold', 'Confident & driven', '⚑', '#e2b06f', [
         ['confident', 'Confident', 'sure of themselves'], ['brave', 'Brave', 'willing to face what scares them'],
         ['assertive', 'Assertive', 'says what they want plainly'], ['determined', 'Determined', 'set on getting what they want'],
-        ['proud', 'Proud', 'proud of themselves or someone'], ['smug', 'Smug', 'pleased with themselves'],
-        ['triumphant', 'Triumphant', 'just won'],
+        ['proud', 'Proud', 'pleased with themselves or someone, up to feeling triumphant'], ['smug', 'Smug', 'pleased with themselves'],
+
     ]],
     ['closeness', 'Love & closeness', '♡', '#e8a7bb', [
-        ['warm', 'Warm', 'friendly and kind'], ['affectionate', 'Affectionate', 'wanting to show someone they care'],
-        ['soft', 'Soft', 'gentle and tender'], ['sweet', 'Sweet', 'kind and sugary-sweet'],
-        ['caring', 'Caring', 'thoughtful about how someone’s doing'], ['adoring', 'Adoring', 'completely taken with someone'],
-        ['doting', 'Doting', 'fussing over someone they adore'], ['romantic', 'Romantic', 'in a romantic mood'],
-        ['enamoured', 'Enamoured', 'smitten, falling for someone'], ['in_love', 'In love', 'genuinely in love'],
-        ['infatuated', 'Infatuated', 'head over heels, blinded by it'],
-        ['has_crush', 'Has a crush', 'has a crush on the other person'], ['charmed', 'Charmed', 'won over by someone'],
-        ['star_struck', 'Star struck', 'dazzled by someone they look up to'],
-        ['fangirling', 'Fangirling', 'giddy over someone they’re a fan of'], ['yearning', 'Yearning', 'aching to be close to someone'],
+        ['warm', 'Warm', 'friendly, kind and sweet'], ['affectionate', 'Affectionate', 'fond and tender toward someone, up to open adoration'],
+        ['soft', 'Soft', 'gentle and tender'],
+        ['caring', 'Caring', 'concerned for how someone feels and wants to help'],
+        ['romantic', 'Romantic', 'in a romantic mood'],
+        ['enamoured', 'Smitten', 'a crush or romantic fascination, up to head-over-heels infatuation'], ['in_love', 'In love', 'genuinely in love'],
+
+        ['charmed', 'Charmed', 'won over by someone'],
+        ['star_struck', 'Star struck', 'dazzled by someone they admire, up to giddy fandom'],
+        ['yearning', 'Yearning', 'longing for someone or something out of reach'],
         ['touch_starved', 'Touch-starved', 'aching to be touched'], ['protective', 'Protective', 'wanting to keep someone safe'],
-        ['caretaker', 'Caretaker', 'looking after someone and seeing to their needs'], ['fatherly', 'Fatherly', 'patient and dad-like'],
-        ['helpful', 'Helpful', 'keen to help out'], ['trusting', 'Trusting', 'willing to rely on someone'],
-        ['doe_eyed', 'Doe-eyed', 'wide-eyed and trusting'], ['open', 'Open', 'open about how they feel'],
-        ['sympathetic', 'Sympathetic', 'feels for someone'], ['grateful', 'Grateful', 'thankful to someone'],
-        ['forgiving', 'Forgiving', 'ready to let something go'], ['sentimental', 'Sentimental', 'gets misty over memories and keepsakes'],
+        ['caretaker', 'Caretaking', 'looking after someone, up to doting on their every need'], ['fatherly', 'Fatherly', 'patient and dad-like'],
+        ['helpful', 'Helpful', 'keen to help out'], ['trusting', 'Trusting', 'open-hearted and willing to rely on someone'],
+
+        ['grateful', 'Grateful', 'thankful to someone'],
+        ['forgiving', 'Forgiving', 'ready to let something go'], ['sentimental', 'Sentimental / nostalgic', 'moved by memories, keepsakes and how things used to be'],
     ]],
     ['love', 'Love languages', '❥', '#e79aa0', [
         ['words_giving', 'Words of affirmation (giving)', 'shows love by saying it'], ['words_receiving', 'Words of affirmation (receiving)', 'needs to hear it'],
@@ -72,10 +72,10 @@ export const CATEGORIES = [
         ['touch_giving', 'Physical touch (giving)', 'shows love through touch'], ['touch_receiving', 'Physical touch (receiving)', 'feels loved when touched'],
     ]],
     ['attachment', 'Attachment & obsession', '⛓', '#c6a0ef', [
-        ['clingy', 'Clingy', 'wanting to stay close and be reassured'], ['needy', 'Needy', 'craving attention and reassurance'],
+        ['clingy', 'Clingy / needy', 'wants closeness and reassurance, up to needing constant attention'],
         ['codependent', 'Codependent', 'can’t feel okay without someone else'], ['fawning', 'Fawning', 'eager to please someone and keep them happy'],
         ['worshipful', 'Worshipful', 'putting someone on a pedestal'], ['wrapped_around_finger', 'Wrapped around their finger', 'will do anything the other person wants'],
-        ['smothering', 'Smothering', 'too much love, won’t give them room'], ['obsessed', 'Obsessed', 'can’t stop thinking about someone or something'],
+        ['obsessed', 'Obsessed', 'can’t stop thinking about someone or something'],
         ['possessive', 'Possessive', 'wants someone all to themselves'], ['jealous', 'Jealous', 'scared of losing someone to someone else'],
         ['envious', 'Envious', 'wants what someone else has'], ['yandere', 'Yandere', 'sweet on the surface, dangerously obsessive underneath'],
         ['sees_muse', 'Sees a muse', 'sees the other person as their muse'], ['idealising', 'Aesthetic idealisation', 'sees someone as a beautiful, perfect image'],
@@ -86,43 +86,40 @@ export const CATEGORIES = [
         ['push_pull', 'Push-pull attachment', 'wants closeness, pulls away when it comes, then misses it'],
     ]],
     ['cold', 'Cold & distant', '❄', '#9fb7d0', [
-        ['aloof', 'Aloof', 'cool and standoffish'], ['distant', 'Distant', 'checked out, hard to reach'],
+        ['distant', 'Distant / aloof', 'emotionally far away and hard to get close to'],
         ['detached', 'Detached', 'watching life from behind glass'], ['guarded', 'Guarded', 'walls up, not letting anyone in'],
-        ['avoidant', 'Avoidant', 'dodging closeness or hard conversations'], ['indifferent', 'Indifferent', 'doesn’t care either way about them'],
+        ['avoidant', 'Avoidant', 'dodging closeness or hard conversations'],
         ['icy', 'Cold (manner)', 'cold and unfriendly'], ['disenchanted', 'Disenchanted', 'the magic’s worn off'],
     ]],
     ['sad', 'Sad & hurt', '☂', '#a5b5f3', [
-        ['sad', 'Sad', 'down and heavy-hearted'], ['hurt', 'Hurt', 'emotionally wounded'],
+        ['sad', 'Sad / downhearted', 'down or let down, up to deep sorrow and dejection'], ['hurt', 'Hurt', 'emotionally wounded, up to heartbroken'],
         ['betrayed', 'Betrayed', 'let down by someone they trusted'], ['lonely', 'Lonely', 'missing company, feeling alone'],
-        ['disappointed', 'Disappointed', 'let down, things didn’t go how they hoped'], ['heartbroken', 'Heartbroken', 'their heart’s been broken'],
-        ['grieving', 'Grieving', 'mourning a loss'], ['regretful', 'Regretful', 'wishes they’d done things differently'],
-        ['guilty', 'Guilty', 'feels they did something wrong'], ['ashamed', 'Ashamed', 'feels bad about who they are or what they did'],
-        ['self_loathing', 'Self loathing', 'hates themselves'], ['pathetic', 'Pathetic', 'pitiful and grovelling'],
-        ['defeated', 'Defeated', 'beaten, given up'], ['nostalgic', 'Nostalgic', 'longing for how things used to be'],
-        ['wistful', 'Wistful', 'quietly longing for something'],
+
+        ['grieving', 'Grieving', 'mourning a loss'],
+        ['guilty', 'Guilty / regretful', 'troubled by what they did or wish they had done differently'], ['ashamed', 'Ashamed', 'feels bad about themselves, up to self-loathing'],
+        ['pathetic', 'Pathetic', 'pitiful and grovelling'],
+
     ]],
     ['scared', 'Scared & uneasy', '⚠', '#b0a5e8', [
-        ['afraid', 'Afraid', 'scared'], ['terrified', 'Terrified', 'absolutely petrified'],
-        ['panicked', 'Panicked', 'full-blown panic'], ['anxious', 'Anxious', 'on edge without a clear reason'],
-        ['worried', 'Worried', 'fretting over something specific'], ['nervous', 'Nervous', 'jittery and on edge'],
-        ['tense', 'Tense', 'wound up and on guard'], ['apprehensive', 'Apprehensive', 'uneasy about what’s coming'],
-        ['hesitant', 'Hesitant', 'unsure, holding back'], ['skittish', 'Skittish', 'jumpy and easily spooked'],
-        ['suspicious', 'Suspicious', 'doesn’t trust what’s going on'], ['uncomfortable', 'Uncomfortable', 'ill at ease'],
+        ['afraid', 'Afraid', 'uneasy or easily spooked, up to terror and panic'],
+        ['anxious', 'Anxious / worried', 'uneasy, tense or fretting, up to consuming worry'],
+
+        ['suspicious', 'Suspicious', 'doesn’t trust what’s going on'],
         ['overwhelmed', 'Overwhelmed', 'too much going on to cope'], ['losing_control', 'Losing control', 'struggling to keep it together'],
-        ['helpless', 'Helpless', 'can’t do anything about it'], ['vulnerable', 'Vulnerable', 'exposed and easily hurt'],
-        ['fragile', 'Fragile', 'could break at any moment'], ['insecure', 'Insecure', 'doubting themselves'],
+        ['helpless', 'Helpless', 'can’t do anything about it'], ['vulnerable', 'Vulnerable', 'exposed and easily hurt, up to feeling ready to break'],
+        ['insecure', 'Insecure', 'doubting themselves'],
         ['desperate', 'Desperate', 'needs something badly and is running out of options'], ['pleading', 'Pleading', 'begging for help or an answer'],
         ['desperate_for_approval', 'Desperate for approval', 'needs to be told they did well'], ['emotional', 'Emotional', 'feelings close to the surface'],
-        ['shocked', 'Shocked', 'caught off guard, stunned'], ['embarrassed', 'Embarrassed', 'self-conscious and awkward'],
-        ['humiliated', 'Humiliated', 'shamed and small'], ['shy', 'Shy', 'timid around people'],
-        ['bashful', 'Bashful', 'embarrassed and coy'], ['flustered', 'Flustered', 'hot-faced and tongue-tied'],
+        ['shocked', 'Shocked', 'caught off guard, stunned'], ['embarrassed', 'Embarrassed', 'self-conscious and flustered, up to feeling humiliated'],
+        ['shy', 'Shy', 'timid around people'],
+
     ]],
     ['angry', 'Angry & hostile', 'ϟ', '#eeac85', [
-        ['annoyed', 'Annoyed', 'irritated'],
+
         ['frustrated', 'Frustrated', 'fed up that things aren’t working'], ['impatient', 'Impatient', 'sick of waiting'],
-        ['angry', 'Angry', 'mad about something'], ['offended', 'Offended', 'insulted'],
+        ['angry', 'Angry / irritated', 'irritated or offended, up to outright fury'],
         ['defensive', 'Defensive', 'quick to take things as an attack'], ['argumentative', 'Argumentative', 'itching for an argument'],
-        ['resentful', 'Resentful', 'holding a grudge'], ['bitter', 'Bitter', 'soured by old hurts'],
+        ['resentful', 'Resentful / bitter', 'holds on to hurts and grudges that sour their view'],
         ['spiteful', 'Spiteful', 'wants to hurt or thwart someone out of spite'], ['vengeful', 'Vengeful', 'wants payback'],
         ['disgusted', 'Disgusted', 'repulsed'], ['contemptuous', 'Contemptuous', 'thinks someone is beneath them'],
         ['passive_aggressive', 'Passive aggressive', 'hostile, but never says it outright'], ['violent', 'Violent', 'itching to get physical'],
@@ -130,48 +127,48 @@ export const CATEGORIES = [
     ]],
     ['cruel', 'Cruel & controlling', '☠', '#d98f8f', [
         ['manipulative', 'Manipulative', 'playing people to get what they want'], ['gaslighting', 'Gaslighting', 'making someone doubt their own memory and mind'],
-        ['brainwasher', 'Brainwasher', 'reshaping someone’s mind and beliefs'], ['controlling', 'Controlling', 'wants to control what others do'],
-        ['domineering', 'Domineering', 'overbearing, wants to dominate everyone'], ['bossy', 'Bossy', 'ordering people about'],
+        ['brainwasher', 'Brainwasher', 'reshaping someone’s mind and beliefs'], ['controlling', 'Controlling', 'wants things their way, up to overbearing interference'],
+
         ['intimidating', 'Intimidating', 'makes people nervous'], ['condescending', 'Condescending', 'talks down to people'],
         ['judgemental', 'Judgemental', 'quick to judge'], ['harsh', 'Harsh', 'cutting and unkind'],
-        ['mocking', 'Mocking', 'making fun of someone'], ['taunting', 'Taunting', 'goading and provoking'],
+        ['mocking', 'Mocking / taunting', 'makes fun of someone or needles them for a reaction'],
         ['cruel', 'Cruel', 'wants to hurt'], ['callous', 'Callous', 'doesn’t care how others feel'],
         ['insensitive', 'Insensitive', 'clumsy or careless about others’ feelings'], ['ruthless', 'Ruthless', 'will do whatever it takes, whoever gets hurt'],
         ['abusive', 'Abusive', 'wants to mistreat people'],
         ['predatory', 'Predatory', 'sizes people up as prey'],
     ]],
     ['calm', 'Calm & focused', '◎', '#8fcebc', [
-        ['calm', 'Calm', 'settled and steady'], ['relaxed', 'Relaxed', 'easygoing and unbothered'],
-        ['content', 'Content', 'happy with how things are'], ['satisfied', 'Satisfied', 'feels things are good enough'],
+        ['calm', 'Calm / relaxed', 'settled, unhurried and at ease'],
+        ['content', 'Content / satisfied', 'pleased with how things are; nothing feels missing'],
         ['relieved', 'Relieved', 'the pressure’s finally off'], ['patient', 'Patient', 'happy to wait'],
         ['grounded', 'Grounded', 'down to earth and practical'], ['stoic', 'Stoic', 'keeps their feelings to themselves'],
         ['stern', 'Stern', 'firm and serious'], ['quiet', 'Quiet', 'not saying much'],
-        ['cautious', 'Cautious', 'careful, playing it safe'], ['vigilant', 'Vigilant', 'alert, watching for trouble'],
+        ['cautious', 'Cautious / hesitant', 'checks the risks and holds back when unsure'], ['vigilant', 'Vigilant', 'alert, watching for trouble'],
         ['observant', 'Observant', 'noticing every little detail'], ['focused', 'Focused', 'locked in'],
         ['deliberate', 'Deliberate', 'careful and purposeful'], ['planning', 'Planning', 'thinking a few steps ahead'],
         ['thinking', 'Thinking', 'lost in thought, mulling something over'], ['logical', 'Logical', 'thinks it through instead of reacting'],
         ['clinical', 'Clinical', 'cold, detached and precise'], ['clearheaded', 'Clear-headed', 'thinking clearly'],
         ['professional', 'Professional', 'keeping it businesslike'], ['teaching', 'Teaching', 'in teacher mode, keen to explain and instruct'],
-        ['curious', 'Curious', 'wants to know more'], ['intrigued', 'Intrigued', 'hooked by something'],
-        ['interested', 'Interested', 'engaged and paying attention'], ['confused', 'Confused', 'can’t make sense of what’s going on'],
+        ['curious', 'Curious / intrigued', 'wants to know more, up to being hooked on finding out'],
+        ['confused', 'Confused', 'can’t make sense of what’s going on'],
         ['distracted', 'Distracted', 'mind elsewhere'], ['head_in_clouds', 'Head in the clouds', 'daydreaming, not really here'],
-        ['unaware', 'Unaware', 'oblivious to what’s really going on'],
+
     ]],
     ['masks', 'Hiding & showing', '◐', '#a6c3b0', [
         ['masking_warmth', 'Masking (Outward Warmth)', 'acting warm to hide how they really feel'], ['masking_coldness', 'Masking (Outward Coldness)', 'acting cold to hide how they really feel'],
         ['masking_emotive', 'Masking (Outwardly Emotive)', 'putting on a show of emotion to cover the real thing'], ['masking_less_emotive', 'Masking (Outwardly Less Emotive)', 'playing it down so their feelings don’t show'],
         ['lying', 'Lying', 'hiding the truth or making things up'], ['secretive', 'Secretive', 'keeps things to themselves'],
         ['compartmentalising', 'Compartmentalising', 'keeps feelings in separate boxes'], ['mask_slip', 'Mask slipping', 'the act is starting to crack'],
-        ['cant_hold_it_in', 'Can’t hold it in', 'it’s spilling out whether they like it or not'], ['opening_up', 'Opening up', 'letting someone in'],
-        ['transparent', 'Transparent', 'every feeling is written on their face'], ['expressive', 'Expressive', 'feelings show in their whole face and body'],
-        ['heart_on_sleeve', 'Heart on sleeve', 'wears their heart on their sleeve'],
+        ['cant_hold_it_in', 'Can’t hold it in', 'it’s spilling out whether they like it or not'], ['opening_up', 'Opening up', 'letting someone in and being open about how they feel'],
+        ['expressive', 'Expressive', 'feelings show through face, voice and body'],
+
     ]],
     ['energy', 'Energy', '☾', '#b9b4cd', [
-        ['energised', 'Energised', 'buzzing and fired up'], ['spry', 'Spry', 'lively and full of energy'],
-        ['hyperactive', 'Hyperactive', 'bouncing off the walls'], ['restless', 'Restless', 'can’t sit still'],
-        ['tired', 'Tired', 'worn out'], ['lazy', 'Lazy', 'can’t be bothered'],
-        ['listless', 'Listless', 'no energy or interest in anything'], ['bored', 'Bored', 'nothing’s holding their attention'],
-        ['apathetic', 'Apathetic', 'doesn’t care about much'], ['careless', 'Careless', 'not minding details or consequences'],
+        ['energised', 'Energised', 'lively and full of energy, up to bouncing off the walls'],
+        ['restless', 'Restless', 'can’t sit still'],
+        ['tired', 'Tired / listless', 'low on energy, up to being utterly drained'], ['lazy', 'Lazy', 'can’t be bothered'],
+        ['bored', 'Bored', 'nothing’s holding their attention'],
+        ['apathetic', 'Apathetic', 'little interest or concern, up to not caring at all'], ['careless', 'Careless', 'not minding details or consequences'],
     ]],
     ['desire', 'Desire & attraction', '◇', '#d69bbb', [
         ['horny', 'Horny', 'turned on'], ['desperate_for_it', 'Desperate for it', 'aching and desperate for sex'],
@@ -342,7 +339,7 @@ export const CATEGORIES = [
         ['corrupted', 'Corrupted', 'innocence lost, drawn into darker things'], ['sheltered', 'Sheltered', 'hasn’t seen much of the world'],
         ['gullible', 'Gullible', 'believes whatever they’re told'], ['ditsy', 'Ditsy', 'scatterbrained and airheaded'],
         ['slow', 'Slow (mentally)', 'slow on the uptake'], ['clumsy', 'Clumsy', 'always tripping and dropping things'],
-        ['oblivious', 'Oblivious', 'never notices what’s obvious to everyone else'], ['quirky', 'Quirky', 'odd in an endearing way'],
+        ['oblivious', 'Oblivious', 'fails to notice what is happening around them'], ['quirky', 'Quirky', 'odd in an endearing way'],
         ['romanticising', 'Romanticising', 'sees life like a novel, makes everything a story'], ['hedonistic', 'Hedonistic', 'lives for pleasure'],
         ['picky', 'Picky', 'fussy about everything'], ['perfectionist', 'Perfectionist', 'nothing’s ever good enough'],
         ['control_freak', 'Control freak', 'has to control everything'], ['people_pleaser', 'People pleaser', 'will do anything to keep others happy'],
@@ -621,7 +618,7 @@ export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 export const RECIPES = {
     'Soft landing': { warm: 55, affectionate: 40, calm: 45 },
     'A brave face': { stoic: 65, hurt: 45, vulnerable: 30 },
-    'Trouble brewing': { jealous: 50, tense: 45, resentful: 25 },
+    'Trouble brewing': { jealous: 50, anxious: 45, resentful: 25 },
     'Bright spark': { playful: 55, curious: 45, inspired: 35 },
     'Quiet devotion': { enamoured: 55, protective: 45, warm: 35 },
 };
@@ -630,16 +627,115 @@ export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
 export const escapeHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Retired IDs are migrated once on load, including defaults and undo snapshots.
 export const MERGED_MOODS = {
-    "irked": "annoyed",
+    "irked": "angry",
     "conceited": "egotistical",
     "macabre": "morbid",
-    "laidback": "relaxed",
+    "laidback": "calm",
     "observing": "observant",
     "lovestruck": "enamoured",
     "enchanted": "charmed",
     "maniacal": "unhinged",
     "insane": "unhinged",
-    "merciless": "ruthless"
+    "merciless": "ruthless",
+    "delighted": "happy",
+    "giddy": "excited",
+    "silly": "playful",
+    "giggly": "playful",
+    "triumphant": "proud",
+    "sweet": "warm",
+    "adoring": "affectionate",
+    "doting": "caretaker",
+    "infatuated": "enamoured",
+    "has_crush": "enamoured",
+    "fangirling": "star_struck",
+    "doe_eyed": "trusting",
+    "sympathetic": "caring",
+    "smothering": "clingy",
+    "needy": "clingy",
+    "aloof": "distant",
+    "indifferent": "apathetic",
+    "heartbroken": "hurt",
+    "self_loathing": "ashamed",
+    "wistful": "yearning",
+    "nostalgic": "sentimental",
+    "disappointed": "sad",
+    "defeated": "sad",
+    "regretful": "guilty",
+    "terrified": "afraid",
+    "panicked": "afraid",
+    "worried": "anxious",
+    "nervous": "anxious",
+    "apprehensive": "anxious",
+    "tense": "anxious",
+    "uncomfortable": "anxious",
+    "hesitant": "cautious",
+    "fragile": "vulnerable",
+    "humiliated": "embarrassed",
+    "bashful": "embarrassed",
+    "flustered": "embarrassed",
+    "skittish": "afraid",
+    "annoyed": "angry",
+    "offended": "angry",
+    "bitter": "resentful",
+    "domineering": "controlling",
+    "bossy": "controlling",
+    "taunting": "mocking",
+    "relaxed": "calm",
+    "satisfied": "content",
+    "intrigued": "curious",
+    "interested": "curious",
+    "unaware": "oblivious",
+    "transparent": "expressive",
+    "heart_on_sleeve": "expressive",
+    "open": "opening_up",
+    "spry": "energised",
+    "hyperactive": "energised",
+    "listless": "tired"
+};
+export const MERGED_SEARCH_NAMES = {
+    "angry": ["irked","Annoyed","Offended","Angry"],
+    "egotistical": ["conceited"],
+    "morbid": ["macabre"],
+    "calm": ["laidback","Relaxed","Calm"],
+    "observant": ["observing"],
+    "enamoured": ["lovestruck","Infatuated","Has a crush","Enamoured"],
+    "charmed": ["enchanted"],
+    "unhinged": ["maniacal","insane"],
+    "ruthless": ["merciless"],
+    "happy": ["Delighted","Happy"],
+    "excited": ["Giddy","Excited"],
+    "playful": ["Silly","Giggly","Playful"],
+    "proud": ["Triumphant","Proud"],
+    "warm": ["Sweet","Warm"],
+    "affectionate": ["Adoring","Affectionate"],
+    "caretaker": ["Doting","Caretaker"],
+    "star_struck": ["Fangirling","Star struck"],
+    "trusting": ["Doe-eyed","Trusting"],
+    "caring": ["Sympathetic","Caring"],
+    "clingy": ["Smothering","Needy","Clingy"],
+    "distant": ["Aloof","Distant"],
+    "apathetic": ["Indifferent","Apathetic"],
+    "hurt": ["Heartbroken","Hurt"],
+    "ashamed": ["Self loathing","Ashamed"],
+    "yearning": ["Wistful","Yearning"],
+    "sentimental": ["Nostalgic","Sentimental"],
+    "sad": ["Disappointed","Defeated","Sad"],
+    "guilty": ["Regretful","Guilty"],
+    "afraid": ["Terrified","Panicked","Skittish","Afraid"],
+    "anxious": ["Worried","Nervous","Apprehensive","Tense","Uncomfortable","Anxious"],
+    "cautious": ["Hesitant","Cautious"],
+    "vulnerable": ["Fragile","Vulnerable"],
+    "embarrassed": ["Humiliated","Bashful","Flustered","Embarrassed"],
+    "resentful": ["Bitter","Resentful"],
+    "controlling": ["Domineering","Bossy","Controlling"],
+    "mocking": ["Taunting","Mocking"],
+    "content": ["Satisfied","Content"],
+    "curious": ["Intrigued","Interested","Curious"],
+    "oblivious": ["Unaware","Oblivious"],
+    "expressive": ["Transparent","Heart on sleeve","Expressive"],
+    "opening_up": ["Open","Opening up"],
+    "energised": ["Spry","Hyperactive","Energised"],
+    "tired": ["Listless","Tired"]
 };
 export const REMOVED_MOODS = ["freckled","pierced","writer","model","nurse","detective","police","soldier","priest","bartender","golden_retriever","himbo","gentle_giant","ice_queen","femme_fatale","strangers","paranormal_romance","cosmic_horror","folk_horror","survival_horror","urban_fantasy","fairy_tale","sci_fi","cyberpunk","dystopian","war","bodyguard","found_family","redemption_arc","amnesia","haunting","prose_documentary","prose_epistolary","prose_vignettes"];
 export function migrateCatalogue(state, knowledgeMaps = []) {
@@ -926,7 +1022,51 @@ export const PROMPT_NAME = {
 };
 export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 // {other} lets relationship entries name who they're about ("taller than Ellie").
-const moodName = (m, other) => {
+export const SCALED_MOOD_CUES = {
+    "happy": [[81,"overjoyed"],[61,"delighted"],[41,"happy"],[1,"pleased"]],
+    "excited": [[81,"giddy with excitement"],[41,"excited"],[1,"looking forward to what comes next"]],
+    "proud": [[81,"triumphant"],[41,"proud"],[1,"pleased with themselves"]],
+    "affectionate": [[81,"adoring and full of affection"],[41,"affectionate"],[1,"fond and tender"]],
+    "enamoured": [[81,"head over heels, infatuated"],[41,"smitten"],[1,"has a crush"]],
+    "star_struck": [[81,"giddy over someone they admire"],[41,"star struck"],[1,"impressed by someone they look up to"]],
+    "clingy": [[81,"needs constant closeness and reassurance"],[41,"clingy and needy"],[1,"wants a little more closeness and reassurance"]],
+    "hurt": [[81,"heartbroken"],[41,"emotionally hurt"],[1,"stung by what happened"]],
+    "ashamed": [[81,"ashamed and full of self-loathing"],[41,"ashamed of themselves"],[1,"unhappy with themselves"]],
+    "sad": [[81,"deeply sorrowful and dejected"],[41,"sad and downhearted"],[1,"down or disappointed"]],
+    "afraid": [[91,"panicked with fear"],[81,"terrified"],[41,"afraid"],[1,"uneasy and easily spooked"]],
+    "anxious": [[81,"consumed by worry"],[41,"anxious and tense"],[1,"nervous or apprehensive"]],
+    "vulnerable": [[81,"fragile and close to breaking"],[41,"vulnerable"],[1,"feels exposed"]],
+    "embarrassed": [[81,"deeply embarrassed and humiliated"],[41,"embarrassed and flustered"],[1,"bashful and self-conscious"]],
+    "angry": [[81,"furious"],[41,"angry"],[1,"irritated"]],
+    "controlling": [[81,"domineering and controlling"],[41,"controlling"],[1,"bossy, wants things their way"]],
+    "energised": [[81,"buzzing with energy, struggles to keep still"],[41,"energised"],[1,"lively"]],
+    "tired": [[81,"drained and listless"],[41,"tired"],[1,"low on energy"]]
+};
+const MERGED_PROMPT_CUES = {
+    "playful": "playful, silly and easily amused",
+    "warm": "warm and sweet",
+    "caretaker": "caring for someone and fussing over their needs",
+    "trusting": "open-hearted and trusting",
+    "caring": "caring and sympathetic",
+    "distant": "distant and aloof",
+    "apathetic": "apathetic and indifferent",
+    "yearning": "yearning for someone or something out of reach",
+    "sentimental": "sentimental and nostalgic",
+    "guilty": "guilty or regretful about what they did",
+    "cautious": "cautious, holding back when unsure",
+    "resentful": "resentful and bitter",
+    "mocking": "mocking and taunting",
+    "calm": "calm and relaxed",
+    "content": "content and satisfied",
+    "curious": "curious, drawn to finding out more",
+    "oblivious": "oblivious to what is happening",
+    "expressive": "feelings show in their face, voice and body",
+    "opening_up": "letting someone in and sharing how they feel"
+};
+const moodName = (m, other, value = 0) => {
+    const scaled = SCALED_MOOD_CUES[m.id]?.find(([min]) => value >= min)?.[1];
+    if (scaled) return scaled;
+    if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
     if (m.category === 'authors') return `prose inspired by ${m.label}: ${m.cue}`;
     if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.toLowerCase()}: ${m.cue}`;
     return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
@@ -941,7 +1081,7 @@ function listLines(state, list, other) {
     const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
     return groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g)
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
-        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other)}`)]);
+        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other, state.moods[m.id])}`)]);
 }
 export const KNOWLEDGE_MODES = ['scene', 'private', 'suspected', 'known'];
 export function knowledgeEntry(entry) {
@@ -960,7 +1100,7 @@ function personaLines(state, list, other, knowledge = {}, subject = 'the player�
     const groups = new Map(KNOWLEDGE_ORDER.map(mode => [mode, []]));
     for (const m of list) {
         const entry = knowledgeEntry(knowledge?.[m.id]);
-        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other)
+        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other, state.moods[m.id])
             + (entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : ''));
     }
     return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
@@ -1012,7 +1152,7 @@ export function composePrompt(state, name, extras = {}) {
         `Use these authors as prose influences: rhythm, imagery, humour and narrative voice, blended at their strengths. Keep this scene, its characters and point of view, and write fresh lines rather than quotations or borrowed plots.`);
     // The highest settings get named again at the end, where they carry the most weight.
     const top = [[state, mine, n], [player?.state, theirs, `${u}, as ${n} reads it`]]
-        .map(([st, list, who]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, who.startsWith(u) ? N : U)} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
+        .map(([st, list, who]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, who.startsWith(u) ? N : U, st.moods[m.id])} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     if (top.length) out.push('', `Turned up highest, so make sure these land hard: ${top.join('; ')}.`);
     out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${n} instead of picking one. Show it through what ${n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);

@@ -16,9 +16,9 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.9.14 includes **897 sliders in 41 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.9.15 includes **843 sliders in 41 collapsible categories**. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
 
-Version 1.9.14 adds **Princess dominance**, removes 34 requested options and merges ten close overlaps. Saved blends keep the highest merged strength and any pin, with persona knowledge carried across. See [the cleanup and merge list](CATALOGUE-CLEANUP-1.9.14.md).
+Version 1.9.15 consolidates 54 more overlapping moods. Strength now selects a short intensity phrase for the main merged ranges, while distinct motivations stay separate. Saved values and persona knowledge migrate, and searching an old mood name finds its replacement. See [the merge list](MOOD-MERGES-1.9.15.md).
 
 **Attraction preferences** sits beside Desire & attraction and includes the existing age preferences. New options cover hands, feet, visible veins, hair length, voices, masculinity, femininity, innocence and a wicked streak. There are also preferences for eyes, smiles, lips, facial and body hair, scars, tattoos, piercings, soft or muscular bodies, height, accents, confidence, shyness, kindness, intelligence and humour. They describe what someone likes in other people, rather than changing their own appearance or personality.
 

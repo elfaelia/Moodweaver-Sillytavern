@@ -12,9 +12,6 @@ export const PROSE_STYLES = [
     ['prose_reflective', 'Reflective', 'let present details stir up thoughts about what they mean'],
     ['prose_observational', 'Observational', 'precise everyday details that reveal character without explaining them'],
     ['prose_refrains', 'Refrain-driven', 'bring back a few phrases or images with changing meanings'],
-    ['prose_documentary', 'Documentary', 'concrete observations, exact detail and a report-like distance'],
-    ['prose_epistolary', 'Epistolary', 'tell the scene through letters, messages or diary entries'],
-    ['prose_vignettes', 'Vignettes', 'short, self-contained moments linked by mood or recurring details'],
 ];
 export const AUTHOR_INSPIRATIONS = [
     ['author_bret_easton_ellis', 'Bret Easton Ellis', 'cool, detached narration, status-conscious detail and dry social satire'],
@@ -56,9 +53,9 @@ export const CATEGORIES = [
         ['caring', 'Caring', 'thoughtful about how someone’s doing'], ['adoring', 'Adoring', 'completely taken with someone'],
         ['doting', 'Doting', 'fussing over someone they adore'], ['romantic', 'Romantic', 'in a romantic mood'],
         ['enamoured', 'Enamoured', 'smitten, falling for someone'], ['in_love', 'In love', 'genuinely in love'],
-        ['lovestruck', 'Lovestruck', 'dizzy with love'], ['infatuated', 'Infatuated', 'head over heels, blinded by it'],
+        ['infatuated', 'Infatuated', 'head over heels, blinded by it'],
         ['has_crush', 'Has a crush', 'has a crush on the other person'], ['charmed', 'Charmed', 'won over by someone'],
-        ['enchanted', 'Enchanted', 'under someone’s spell'], ['star_struck', 'Star struck', 'dazzled by someone they look up to'],
+        ['star_struck', 'Star struck', 'dazzled by someone they look up to'],
         ['fangirling', 'Fangirling', 'giddy over someone they’re a fan of'], ['yearning', 'Yearning', 'aching to be close to someone'],
         ['touch_starved', 'Touch-starved', 'aching to be touched'], ['protective', 'Protective', 'wanting to keep someone safe'],
         ['caretaker', 'Caretaker', 'looking after someone and seeing to their needs'], ['fatherly', 'Fatherly', 'patient and dad-like'],
@@ -121,7 +118,7 @@ export const CATEGORIES = [
         ['bashful', 'Bashful', 'embarrassed and coy'], ['flustered', 'Flustered', 'hot-faced and tongue-tied'],
     ]],
     ['angry', 'Angry & hostile', 'ϟ', '#eeac85', [
-        ['irked', 'Irked', 'a bit put out'], ['annoyed', 'Annoyed', 'irritated'],
+        ['annoyed', 'Annoyed', 'irritated'],
         ['frustrated', 'Frustrated', 'fed up that things aren’t working'], ['impatient', 'Impatient', 'sick of waiting'],
         ['angry', 'Angry', 'mad about something'], ['offended', 'Offended', 'insulted'],
         ['defensive', 'Defensive', 'quick to take things as an attack'], ['argumentative', 'Argumentative', 'itching for an argument'],
@@ -140,19 +137,17 @@ export const CATEGORIES = [
         ['mocking', 'Mocking', 'making fun of someone'], ['taunting', 'Taunting', 'goading and provoking'],
         ['cruel', 'Cruel', 'wants to hurt'], ['callous', 'Callous', 'doesn’t care how others feel'],
         ['insensitive', 'Insensitive', 'clumsy or careless about others’ feelings'], ['ruthless', 'Ruthless', 'will do whatever it takes, whoever gets hurt'],
-        ['merciless', 'Merciless', 'shows no mercy'], ['abusive', 'Abusive', 'wants to mistreat people'],
+        ['abusive', 'Abusive', 'wants to mistreat people'],
         ['predatory', 'Predatory', 'sizes people up as prey'],
     ]],
     ['calm', 'Calm & focused', '◎', '#8fcebc', [
         ['calm', 'Calm', 'settled and steady'], ['relaxed', 'Relaxed', 'easygoing and unbothered'],
-        ['laidback', 'Laidback', 'takes things as they come, hard to get worked up'],
         ['content', 'Content', 'happy with how things are'], ['satisfied', 'Satisfied', 'feels things are good enough'],
         ['relieved', 'Relieved', 'the pressure’s finally off'], ['patient', 'Patient', 'happy to wait'],
         ['grounded', 'Grounded', 'down to earth and practical'], ['stoic', 'Stoic', 'keeps their feelings to themselves'],
         ['stern', 'Stern', 'firm and serious'], ['quiet', 'Quiet', 'not saying much'],
         ['cautious', 'Cautious', 'careful, playing it safe'], ['vigilant', 'Vigilant', 'alert, watching for trouble'],
         ['observant', 'Observant', 'noticing every little detail'], ['focused', 'Focused', 'locked in'],
-        ['observing', 'Observing', 'hanging back and watching what’s going on'],
         ['deliberate', 'Deliberate', 'careful and purposeful'], ['planning', 'Planning', 'thinking a few steps ahead'],
         ['thinking', 'Thinking', 'lost in thought, mulling something over'], ['logical', 'Logical', 'thinks it through instead of reacting'],
         ['clinical', 'Clinical', 'cold, detached and precise'], ['clearheaded', 'Clear-headed', 'thinking clearly'],
@@ -249,6 +244,7 @@ export const CATEGORIES = [
         ['likes_bluntness', 'Likes bluntness', 'drawn to people who say exactly what they mean'],
     ]],
     ['dynamics', 'Roles & dynamics', '♛', '#d49bc9', [
+        ['princess_dominance', 'Princess dominance', 'gets their way with girly charm, playful bossiness and a princessy expectation of being indulged, without taking full control'],
         ['dominant', 'Dominant', 'wants to lead in a power dynamic'], ['submissive', 'Submissive', 'wants to give up control'],
         ['switch', 'Switch', 'enjoys both leading and giving up control'], ['top', 'Top', 'does the doing'],
         ['bottom', 'Bottom', 'has things done to them'], ['master', 'Master', 'authoritarian role'],
@@ -327,7 +323,7 @@ export const CATEGORIES = [
     ]],
     ['temperament', 'Personality', '✺', '#d6b58f', [
         ['arrogant', 'Arrogant', 'thinks they’re better than everyone'], ['prideful', 'Prideful', 'too proud to back down or admit fault'],
-        ['conceited', 'Conceited', 'vain and full of themselves'], ['vain', 'Vain', 'obsessed with their own image'],
+        ['vain', 'Vain', 'obsessed with their own image'],
         ['superior', 'Superior', 'sure they know better, lords it over people'], ['snobbish', 'Snobbish', 'looks down on anything beneath them'],
         ['entitled', 'Entitled', 'thinks they’re owed everything'], ['materialistic', 'Materialistic', 'judges everything by money and brands'],
         ['stubborn', 'Stubborn', 'won’t budge'], ['contrarian', 'Contrarian', 'disagrees on principle'],
@@ -387,9 +383,9 @@ export const CATEGORIES = [
         ['delusional', 'Delusional', 'believes things that aren’t true'], ['in_denial', 'In denial', 'refusing to face the truth'],
         ['believes_own_lies', 'Believes their own lies', 'has told the lie so long it’s true to them'], ['projecting', 'Projecting', 'pins their own feelings and faults on others'],
         ['victim_complex', 'Victim complex', 'always the victim in their own eyes'], ['manic', 'Manic', 'racing thoughts, reckless highs'],
-        ['unhinged', 'Unhinged', 'wild and off the rails'], ['insane', 'Insane', 'losing their mind'],
-        ['maniacal', 'Maniacal', 'wild-eyed and fixated'], ['morbid', 'Morbid', 'drawn to dark, grim things'],
-        ['macabre', 'Macabre', 'drawn to death and the grotesque'], ['narcissistic', 'Narcissistic', 'self-obsessed and hungry for admiration'],
+        ['unhinged', 'Unhinged', 'wild and off the rails'],
+        ['morbid', 'Morbid', 'drawn to dark, grim things'],
+        ['narcissistic', 'Narcissistic', 'self-obsessed and hungry for admiration'],
         ['covert_narcissist', 'Covert narcissist', 'quiet, wounded self-importance'], ['egotistical', 'Egotistical', 'full of themselves'],
         ['god_complexed', 'God Complexed', 'thinks they’re untouchable and always right'], ['histrionic', 'Histrionic', 'dramatic and attention-seeking'],
         ['psychopathic', 'Psychopathic', 'cold, charming, no remorse'], ['sociopathic', 'Sociopathic', 'doesn’t care about rules or other people'],
@@ -435,8 +431,8 @@ export const CATEGORIES = [
         ['athletic', 'Athletic', 'fit and sporty build'], ['petite', 'Petite', 'small and slight'],
         ['curvy', 'Curvy', 'curvy'], ['chubby', 'Chubby', 'chubby'],
         ['androgynous', 'Androgynous', 'neither obviously masculine nor feminine'], ['pale', 'Pale', 'pale skin'],
-        ['freckled', 'Freckled', 'freckles'], ['scarred', 'Scarred', 'visible scars'],
-        ['tattooed', 'Tattooed', 'has tattoos'], ['pierced', 'Pierced', 'has piercings'],
+        ['scarred', 'Scarred', 'visible scars'],
+        ['tattooed', 'Tattooed', 'has tattoos'],
     ], 'state'],
     ['aesthetic', 'Style & fashion', '✂', '#cfa9d9', [
         ['well_dressed', 'Well dressed', 'sharp, put-together clothes'], ['yuppie', 'Yuppie', '80s power suits and status'],
@@ -471,25 +467,22 @@ export const CATEGORIES = [
     ['job', 'Job', '⚒', '#b9c2a0', [
         ['teacher', 'Teacher', 'teaches for a living'], ['student', 'Student', 'a student'],
         ['photographer', 'Photographer', 'photographer'], ['artist', 'Artist', 'an artist'],
-        ['musician', 'Musician', 'musician'], ['writer', 'Writer', 'writer'],
-        ['model', 'Model', 'a model'], ['doctor', 'Doctor', 'doctor'],
-        ['nurse', 'Nurse', 'a nurse'], ['psychiatrist', 'Psychiatrist', 'psychiatrist'],
+        ['musician', 'Musician', 'musician'],
+        ['doctor', 'Doctor', 'doctor'],
+        ['psychiatrist', 'Psychiatrist', 'psychiatrist'],
         ['therapist', 'Therapist', 'a therapist'], ['scientist', 'Scientist', 'a scientist'],
-        ['detective', 'Detective', 'a detective'], ['police', 'Police', 'a cop'],
-        ['soldier', 'Soldier', 'serving or ex-military'], ['priest', 'Priest', 'a priest'],
         ['boss', 'Boss', 'runs the company'], ['assistant', 'Assistant', 'works as someone’s assistant'],
-        ['bartender', 'Bartender', 'a bartender'],
     ], 'state'],
     ['archetype', 'Archetype', '♞', '#c4a3a3', [
         ['antihero', 'Antihero', 'the hero, without the morals'], ['morally_grey', 'Morally grey', 'not good, not evil'],
-        ['bad_boy', 'Bad boy', 'trouble, and knows it'], ['golden_retriever', 'Golden retriever', 'warm, eager and loyal'],
-        ['himbo', 'Himbo', 'hot, sweet, not the brightest'], ['boy_next_door', 'Boy next door', 'sweet and ordinary'],
+        ['bad_boy', 'Bad boy', 'trouble, and knows it'],
+        ['boy_next_door', 'Boy next door', 'sweet and ordinary'],
         ['girl_next_door', 'Girl next door', 'sweet and ordinary'], ['lovable_weirdo', 'Lovable weirdo', 'odd in a way people warm to'],
-        ['manic_pixie', 'Manic pixie dream girl', 'manic pixie dream girl'], ['gentle_giant', 'Gentle giant', 'big and soft-hearted'],
+        ['manic_pixie', 'Manic pixie dream girl', 'manic pixie dream girl'],
         ['lone_wolf', 'Lone wolf', 'goes it alone'], ['outsider', 'Outsider', 'doesn’t fit in anywhere'],
         ['troublemaker', 'Troublemaker', 'trouble follows them'], ['trickster', 'Trickster', 'lives to stir things up'],
-        ['chosen_one', 'Chosen one', 'destined for something'], ['ice_queen', 'Ice queen', 'cold and untouchable'],
-        ['femme_fatale', 'Femme fatale', 'dangerous, seductive woman'], ['chick_magnet', 'Chick magnet', 'women can’t resist them'],
+        ['chosen_one', 'Chosen one', 'destined for something'],
+        ['chick_magnet', 'Chick magnet', 'women can’t resist them'],
         ['cool_teacher', 'Cool teacher', 'the teacher everyone likes'], ['auteur', 'Auteur', 'their art is a singular vision'],
         ['tortured_artist', 'Tortured artist', 'their pain feeds their art'], ['mad_artist', 'Mad artist', 'will do anything for their art'],
         ['mad_scientist', 'Mad scientist', 'brilliant, unhinged scientist'], ['showman', 'Showman', 'everything’s a performance for an audience'],
@@ -513,7 +506,7 @@ export const CATEGORIES = [
         ['secret_past', 'Secret past', 'hiding crimes, violence or worse'],
     ], 'state'],
     ['relationship', 'Relationship', '⚭', '#d7a0b4', [
-        ['strangers', 'Strangers', 'they don’t know each other'], ['friends', 'Friends', 'they’re friends'],
+        ['friends', 'Friends', 'they’re friends'],
         ['childhood_friends', 'Childhood friends', 'friends since they were kids'], ['roommates', 'Roommates', 'they live together'],
         ['coworkers', 'Coworkers', 'they work together'], ['neighbours', 'Neighbours', 'they live next door'],
         ['rivals', 'Rivals', 'they compete'], ['enemies', 'Enemies', 'they’re enemies'],
@@ -541,7 +534,7 @@ export const CATEGORIES = [
     ], 'state'],
     ['genre', 'Genre', '❖', '#b8a6e0', [
         ['romance', 'Romance', 'romance'], ['dark_romance', 'Dark romance', 'dark romance'],
-        ['romcom', 'Romantic comedy', 'romcom'], ['paranormal_romance', 'Paranormal romance', 'paranormal romance'],
+        ['romcom', 'Romantic comedy', 'romcom'],
         ['monster_romance', 'Monster romance', 'monster romance'], ['mafia_romance', 'Mafia romance', 'mafia romance'],
         ['chivalric_romance', 'Chivalric romance', 'knights and courtly love'], ['erotica', 'Erotica', 'sex-focused'],
         ['drama', 'Drama', 'drama'], ['angst', 'Angst', 'angst'],
@@ -555,16 +548,12 @@ export const CATEGORIES = [
         ['noir', 'Noir', 'noir'], ['horror', 'Horror', 'horror'],
         ['psychological_horror', 'Psychological horror', 'psychological horror'], ['psychosexual_horror', 'Psychosexual horror', 'psychosexual horror'],
         ['body_horror', 'Body horror', 'body horror'], ['erotic_horror', 'Erotic horror', 'erotic horror'],
-        ['cosmic_horror', 'Cosmic horror', 'cosmic horror'], ['folk_horror', 'Folk horror', 'folk horror'],
-        ['survival_horror', 'Survival horror', 'survival horror'], ['slasher', 'Slasher', 'slasher'],
+        ['slasher', 'Slasher', 'slasher'],
         ['gothic', 'Gothic fiction', 'gothic'], ['victorian_drama', 'Victorian drama', 'Victorian drama'],
         ['victorian_fantasy', 'Victorian fantasy', 'Victorian fantasy'], ['historical', 'Historical', 'historical'],
         ['supernatural', 'Supernatural', 'supernatural'], ['fantasy', 'Fantasy', 'fantasy'],
-        ['urban_fantasy', 'Urban fantasy', 'urban fantasy'], ['fairy_tale', 'Fairy tale', 'fairy tale'],
-        ['sci_fi', 'Sci-fi', 'sci-fi'], ['cyberpunk', 'Cyberpunk', 'cyberpunk'],
-        ['dystopian', 'Dystopian', 'dystopian'], ['post_apocalyptic', 'Post-apocalyptic', 'post-apocalyptic'],
+        ['post_apocalyptic', 'Post-apocalyptic', 'post-apocalyptic'],
         ['action', 'Action', 'action'], ['adventure', 'Adventure', 'adventure'],
-        ['war', 'War', 'war'],
     ], 'story'],
     ['tropes', 'Romance tropes', '❧', '#a8bfe0', [
         ['slow_burn', 'Slow burn', 'slow burn'], ['mutual_pining', 'Mutual pining', 'mutual pining'],
@@ -576,7 +565,7 @@ export const CATEGORIES = [
         ['second_chance', 'Second chance', 'second chance romance'], ['fake_dating', 'Fake relationship', 'fake relationship'],
         ['forced_proximity', 'Forced proximity', 'forced proximity'], ['only_one_bed', 'Only one bed', 'only one bed'],
         ['arranged_marriage', 'Arranged marriage', 'arranged marriage'], ['marriage_of_convenience', 'Marriage of convenience', 'marriage of convenience'],
-        ['office_romance', 'Office romance', 'office romance'], ['bodyguard', 'Bodyguard', 'bodyguard romance'],
+        ['office_romance', 'Office romance', 'office romance'],
         ['size_difference', 'Size difference', 'size difference'], ['beauty_and_beast', 'Beauty and the beast', 'beauty and the beast'],
         ['hurt_comfort', 'Hurt/comfort', 'hurt/comfort'], ['who_did_this', 'Who did this to you', 'furious protectiveness when they’re hurt'],
         ['fluff', 'Fluff', 'fluff'], ['villain_romance', 'Villain romance', 'falling for the villain'],
@@ -585,17 +574,16 @@ export const CATEGORIES = [
         ['trauma_bond', 'Trauma bond', 'bonded through shared trauma'],
     ], 'story'],
     ['plot', 'Plot tropes', '⚑', '#a8c8d8', [
-        ['found_family', 'Found family', 'found family'], ['redemption_arc', 'Redemption arc', 'redemption arc'],
         ['corruption_arc', 'Corruption arc', 'corruption arc'], ['descent_into_madness', 'Descent into madness', 'descent into madness'],
         ['broken_pedestal', 'Broken pedestal', 'someone idolised turns out to be flawed or worse'], ['devil_in_plain_sight', 'Devil in plain sight', 'the villain is trusted by everyone around them'],
         ['cat_and_mouse', 'Cat and mouse', 'cat and mouse'], ['curiosity_killed', 'Curiosity killed the cat', 'curiosity gets someone into trouble'],
         ['secret_identity', 'Secret identity', 'secret identity'], ['dark_secret', 'Dark secret', 'a dark secret waiting to come out'],
-        ['amnesia', 'Amnesia', 'amnesia'], ['betrayal', 'Betrayal', 'betrayal'],
+        ['betrayal', 'Betrayal', 'betrayal'],
         ['revenge', 'Revenge', 'revenge'], ['crime_of_passion', 'Crime of passion', 'crime of passion'],
         ['engineered_heroics', 'Engineered heroics', 'someone stages a danger so they can be the hero'], ['mind_control', 'Mind control', 'mind control'],
         ['experiment', 'Experiment', 'someone being experimented on'], ['cult', 'Cult', 'a cult'],
         ['escape', 'Escape', 'trying to escape'], ['survival', 'Survival', 'fighting to survive'],
-        ['haunting', 'Haunting', 'a haunting'], ['forbidden_magic', 'Forbidden magic', 'dark, forbidden magic'],
+        ['forbidden_magic', 'Forbidden magic', 'dark, forbidden magic'],
         ['uncontrolled_powers', 'Uncontrolled powers', 'powers they can’t control'], ['multiverse', 'Multiverse', 'hopping between realities'],
         ['dead_dove', 'Dead dove', 'dark content played straight, no softening'],
     ], 'story'],
@@ -640,8 +628,55 @@ export const RECIPES = {
 export const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, Number.isFinite(Number(v)) ? Number(v) : min));
 export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
 export const escapeHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Retired IDs are migrated once on load, including defaults and undo snapshots.
+export const MERGED_MOODS = {
+    "irked": "annoyed",
+    "conceited": "egotistical",
+    "macabre": "morbid",
+    "laidback": "relaxed",
+    "observing": "observant",
+    "lovestruck": "enamoured",
+    "enchanted": "charmed",
+    "maniacal": "unhinged",
+    "insane": "unhinged",
+    "merciless": "ruthless"
+};
+export const REMOVED_MOODS = ["freckled","pierced","writer","model","nurse","detective","police","soldier","priest","bartender","golden_retriever","himbo","gentle_giant","ice_queen","femme_fatale","strangers","paranormal_romance","cosmic_horror","folk_horror","survival_horror","urban_fantasy","fairy_tale","sci_fi","cyberpunk","dystopian","war","bodyguard","found_family","redemption_arc","amnesia","haunting","prose_documentary","prose_epistolary","prose_vignettes"];
+export function migrateCatalogue(state, knowledgeMaps = []) {
+    state.moods ??= {};
+    state.pins ??= {};
+    const privacy = { private: 0, scene: 1, suspected: 2, known: 3 };
+    for (const target of new Set(Object.values(MERGED_MOODS))) {
+        const ids = [target, ...Object.keys(MERGED_MOODS).filter(id => MERGED_MOODS[id] === target)];
+        if (!ids.slice(1).some(id => Object.hasOwn(state.moods, id) || Object.hasOwn(state.pins, id)
+            || knowledgeMaps.some(map => Object.hasOwn(map, id)))) continue;
+        const peak = Math.max(...ids.map(id => clamp(state.moods[id] ?? 0)));
+        for (const map of knowledgeMaps) {
+            // The strongest old setting supplies knowledge. Ties keep the more private choice.
+            // With no active setting, preserve an explicitly saved knowledge choice for later.
+            const candidates = peak > 0 ? ids.filter(id => clamp(state.moods[id] ?? 0) === peak)
+                : ids.filter(id => Object.hasOwn(map, id));
+            const chosen = candidates.sort((a, b) => privacy[knowledgeEntry(map[a]).mode] - privacy[knowledgeEntry(map[b]).mode])[0];
+            if (chosen) {
+                const entry = knowledgeEntry(map[chosen]);
+                if (entry.mode === 'scene') delete map[target]; else map[target] = entry;
+            }
+            for (const id of ids.slice(1)) delete map[id];
+        }
+        state.moods[target] = peak;
+        state.pins[target] = ids.some(id => Boolean(state.pins[id]));
+        for (const id of ids.slice(1)) { delete state.moods[id]; delete state.pins[id]; }
+    }
+    for (const id of REMOVED_MOODS) {
+        delete state.moods[id]; delete state.pins[id];
+        for (const map of knowledgeMaps) delete map[id];
+    }
+    for (const snapshot of state.history ?? []) migrateCatalogue(snapshot);
+    return state;
+}
 // Add catalogue entries to old chats in place, preserving their history and settings.
 export function extendCatalogue(state) {
+    migrateCatalogue(state);
     state.sceneBreathing ??= true;
     state.moods ??= {};
     state.pins ??= {};
@@ -652,6 +687,7 @@ export function extendCatalogue(state) {
     return state;
 }
 export function freshState(base = {}) {
+    base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [] });
     return {
         enabled: base.enabled ?? true, sceneBreathing: base.sceneBreathing ?? true, mode: base.mode === 'dynamic' ? 'dynamic' : 'manual',
         moods: Object.fromEntries(MOODS.map(m => [m.id, Math.round(clamp(base.moods?.[m.id] ?? 0))])),
@@ -680,6 +716,7 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    princess_dominance: 'gets their way with girly charm, playful bossiness and a princessy expectation of being indulged, without taking full control',
     reassurance_loop: 'needs proof they’re wanted, then starts doubting it again',
     testing_attachment: 'tests whether someone will stay or make an effort',
     push_pull: 'wants closeness, pulls away when it comes, then misses it',

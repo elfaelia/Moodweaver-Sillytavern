@@ -1,7 +1,7 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
-import { RELATIONSHIP_BY_ID, PAIR_FACT_IDS, activeRelationshipTags, cloneRelationships, relationshipKey } from './relationships.js';
+import { RELATIONSHIP_BY_ID, SHARED_BY_ID, SHARED_IDS, activeRelationshipTags, activeSharedTags, cloneRelationships, cleanCompare, relationshipKey } from './relationships.js';
 import { relationshipView } from './relationship-ui.js';
 
 const KEY = 'moodweaver';
@@ -12,16 +12,16 @@ let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = 
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
 const openCategories = new Set();
-let selectedPeer = '', removingRelation = false;
+let selectedPeer = '', removingRelation = '', pairView = 'mine';
 const openRelationGroups = new Set(['What they are']);
 const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
 // Everyone this person could feel something about: the main character, you, the rest of a group chat,
 // the cast, and anyone typed in by hand. Nobody has to be added first.
 const relationFor = key => { const want = resolveRelationName(key).toLowerCase(); return relationshipList().find(r => resolveRelationName(r.target).toLowerCase() === want); };
 function peers() {
-    const ch = target(), me = (subjectName() ?? '').toLowerCase(), list = [];
+    const ch = target(), self = (subjectName() ?? '').toLowerCase(), list = [];
     const push = (key, name, role, offScene = false) => {
-        if (!name || name.toLowerCase() === me || list.some(p => p.name.toLowerCase() === name.toLowerCase())) return;
+        if (!name || name.toLowerCase() === self || list.some(p => p.name.toLowerCase() === name.toLowerCase())) return;
         list.push({ key, name, role, offScene });
     };
     if (ch) push('{{char}}', ch.name, 'Main character');
@@ -29,7 +29,8 @@ function peers() {
     for (const m of members()) push(m.name, m.name, 'In this group chat');
     for (const p of getCast(ch)) push(p.name, p.name, p.inScene ? 'Cast · in scene' : 'Cast · off scene', !p.inScene);
     for (const r of relationshipList()) push(r.target, resolveRelationName(r.target), 'Not in the cast');
-    for (const p of list) p.relation = relationFor(p.key);
+    const me = personKeyOfSubject();
+    for (const p of list) { p.relation = relationFor(p.key); p.pair = getPair(me, keyForTarget(p.key)); }
     return list;
 }
 const currentPeer = () => { const all = peers(); return all.find(p => p.key === selectedPeer) ?? all[0]; };
@@ -48,23 +49,75 @@ function swapTarget(peer) {
     const member = members().find(m => m.name.toLowerCase() === peer.name.toLowerCase());
     return member ? { who: 'char', avatar: member.avatar } : null;
 }
-// Friends, dating, taller and the rest used to sit on each person's own sheet with no say over who they
-// were about. They now belong to a pairing, so older saves move them to the person they used to mean.
-function movePairFacts(state, targetKey, knowledgeMaps = []) {
-    if (!state?.moods) return state;
-    const moved = PAIR_FACT_IDS.filter(id => state.moods[id] > 0);
-    if (moved.length) {
-        state.relationships ??= [];
-        const want = resolveRelationName(targetKey).toLowerCase();
-        let relation = state.relationships.find(r => resolveRelationName(r.target).toLowerCase() === want);
-        if (!relation) { relation = cloneRelationships([{ id: newCastId(), target: targetKey }])[0]; state.relationships.push(relation); }
-        for (const id of moved) {
-            relation.moods[id] = Math.max(relation.moods[id] ?? 0, state.moods[id]);
-            for (const map of knowledgeMaps) if (map?.[id]) { map[relationshipKey(relation, id)] = map[id]; delete map[id]; }
-        }
+// Older saves kept some person-specific feelings on the sheet itself. They arrive as '{{other}}': whoever
+// that sheet used to point at, which is you for characters and the main character for you.
+function movePairFacts(state, targetKey) {
+    const list = state?.relationships;
+    if (!list?.some(r => r.target === '{{other}}')) return state;
+    for (const moved of list.filter(r => r.target === '{{other}}')) {
+        const existing = list.find(r => r !== moved && r.target === targetKey);
+        if (!existing) { moved.target = targetKey; continue; }
+        for (const [id, value] of Object.entries(moved.moods ?? {})) existing.moods[id] = Math.max(existing.moods[id] ?? 0, value);
+        if (!existing.compare?.value && moved.compare?.value) existing.compare = moved.compare;
+        list.splice(list.indexOf(moved), 1);
     }
-    for (const id of PAIR_FACT_IDS) { state.moods[id] = 0; if (state.pins) state.pins[id] = false; }
     return state;
+}
+// "Both of them" labels live once per pair of people in the chat, not on either person.
+const personKeyOfSubject = () => who === 'user' ? 'user' : who === 'cast' ? `cast:${selectedCast()?.id}` : `char:${target()?.avatar}`;
+function keyForTarget(value, ch = target(), cast = getCast(ch)) {
+    if (value === '{{char}}') return `char:${ch?.avatar}`;
+    if (value === '{{user}}') return 'user';
+    const name = resolveRelationName(value).toLowerCase();
+    if (name === playerName().toLowerCase()) return 'user';
+    const member = members().find(m => m.name.toLowerCase() === name);
+    if (member) return `char:${member.avatar}`;
+    const person = cast.find(p => p.name.toLowerCase() === name);
+    return person ? `cast:${person.id}` : `name:${name}`;
+}
+function nameForKey(key, ch = target(), labels = {}) {
+    if (key === 'user') return playerName();
+    if (key.startsWith('char:')) return ctx().characters.find(c => c.avatar === key.slice(5))?.name;
+    if (key.startsWith('cast:')) return getCast(ch).find(p => p.id === key.slice(5))?.name;
+    return labels[key] ?? key.slice(5);
+}
+const pairId = (a, b) => [a, b].sort().join('|');
+function getPair(a, b, create = false, labels = {}) {
+    const meta = ctx().chatMetadata[KEY]; if (!meta || !a || !b || a === b) return null;
+    meta.pairs ??= {};
+    const id = pairId(a, b);
+    if (!meta.pairs[id] && create) meta.pairs[id] = { members: [a, b], labels: {}, enabled: true, moods: {} };
+    const pair = meta.pairs[id];
+    if (pair) Object.assign(pair.labels ??= {}, labels);
+    return pair ?? null;
+}
+// Move shared labels (dating, enemies to lovers…) out of anyone's one-way side and into the pair.
+function migratePairs(ch = target()) {
+    const meta = ctx().chatMetadata[KEY]; if (!meta || !ch) return;
+    const cast = getCast(ch);
+    const sheets = [[getState(ch), `char:${ch.avatar}`], [getUserState(), 'user'], ...cast.map(p => [p.state, `cast:${p.id}`])];
+    for (const [state, owner] of sheets) for (const relation of state?.relationships ?? []) {
+        const ids = Object.keys(relation.moods ?? {}).filter(id => SHARED_IDS.has(id) && relation.moods[id] > 0);
+        if (!ids.length) continue;
+        const other = keyForTarget(relation.target, ch, cast); if (other === owner) continue;
+        const pair = getPair(owner, other, true, other.startsWith('name:') ? { [other]: resolveRelationName(relation.target) } : {});
+        for (const id of ids) { pair.moods[id] = Math.max(pair.moods[id] ?? 0, relation.moods[id]); relation.moods[id] = 0; }
+    }
+    const story = getStoryState(ch);
+    for (const relation of story?.relationships ?? []) {
+        const pair = getPair(`char:${ch.avatar}`, 'user', true);
+        for (const [id, value] of Object.entries(relation.moods ?? {})) if (SHARED_IDS.has(id) && value > 0) pair.moods[id] = Math.max(pair.moods[id] ?? 0, value);
+    }
+    if (story) story.relationships = [];
+}
+// Pairs that reach the prompt: switched on, something set, and at least one of the two is here.
+function pairExtras(ch) {
+    const meta = ctx().chatMetadata[KEY], cast = getCast(ch);
+    const present = new Set([`char:${ch.avatar}`, 'user', ...members().map(m => `char:${m.avatar}`), ...cast.filter(p => p.inScene).map(p => `cast:${p.id}`)]);
+    const rank = key => key.startsWith('char:') ? 0 : key === 'user' ? 1 : 2;
+    return Object.values(meta?.pairs ?? {}).filter(p => p.enabled !== false && p.members.some(k => present.has(k)) && activeSharedTags(p).length)
+        .map(p => ({ names: [...p.members].sort((a, b) => rank(a) - rank(b)).map(k => nameForKey(k, ch, p.labels)), moods: p.moods }))
+        .filter(p => p.names.every(Boolean));
 }
 const subjectName = () => who === 'user' ? playerName() : who === 'cast' ? selectedCast()?.name : target()?.name;
 const resolveRelationName = name => castName(name).replaceAll('{{char}}', target()?.name ?? '').replaceAll('{{user}}', playerName());
@@ -213,7 +266,8 @@ async function syncPrompt(forGeneration = false) {
         promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
     try {
-        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100), knowledge: getKnowledge(ch) }, story, cast: getCast(ch) });
+        migratePairs(ch);
+        const result = await budgetPrompt(state, String(ch.name).slice(0, 100), settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: playerName().slice(0, 100), knowledge: getKnowledge(ch) }, story, cast: getCast(ch), pairs: pairExtras(ch) });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -365,13 +419,14 @@ function render() {
     panel.querySelectorAll('[data-relation-group]').forEach(d => d.open ? openRelationGroups.add(d.dataset.relationGroup) : openRelationGroups.delete(d.dataset.relationGroup));
     panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
     const ch = target(), charState = getState(ch), allProfiles = profiles();
+    if (charState) migratePairs(ch);
     if (who === 'cast' && !selectedCast()) who = 'char';
     const state = charState ? viewState() : null, mine = who !== 'char';
     if (who === 'story') tab = 'mood';
     const kind = who === 'story' ? 'story' : tab === 'state' ? 'state' : 'mood';
     const active = state ? activeMoods(state) : [];
     const shown = active.filter(m => m.kind === kind && m.category !== 'relationship');
-    const relationshipCount = (state?.relationships ?? []).filter(r => r.enabled !== false).reduce((n, r) => n + activeRelationshipTags(r).length, 0);
+    const relationshipCount = state && who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
     const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length };
     const peer = state && who !== 'story' ? currentPeer() : null;
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
@@ -381,7 +436,7 @@ function render() {
     ${state ? `${personCard(ch, state)}
     ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts']].map(([k, icon, label]) =>
         `<button role="tab" data-tab="${k}" aria-pressed="${tab === k}">${icon} ${label}${counts[k] ? ` <small>${counts[k]}</small>` : ''}</button>`).join('')}</div>`}
-    ${tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
+    ${tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
     <div class="mw-summary"><div class="mw-section-label">${shown.length ? (kind === 'mood' ? 'ACTIVE MOODLETS' : kind === 'state' ? 'NEEDS & FACTS' : 'THE STORY SO FAR') : 'A CLEAN SLATE'}<span>${shown.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
         <div class="mw-chips">${shown.length ? shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
@@ -416,7 +471,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.12.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.13.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (manageOpen && panel.querySelector('.mw-manage')) panel.querySelector('.mw-manage').open = true;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
@@ -474,10 +529,15 @@ function setup() {
         if (e.target.hasAttribute('data-relation-search')) {
             filterRelationships(e.target.value); return;
         }
+        if (e.target.dataset.pairSlider || e.target.dataset.compareSlider) {
+            const value = Number(e.target.value), row = e.target.closest('.mw-mood');
+            row.querySelector('output').textContent = `${value}%`; row.querySelector('[data-lvl]').textContent = level(value);
+            e.target.style.setProperty('--mw-fill', `${value}%`); return;
+        }
         if (e.target.dataset.relSlider) {
             const id = e.target.dataset.relSlider, value = Number(e.target.value);
-            panel.querySelector(`[data-rel-value="${id}"]`).textContent = `${value}%`;
-            panel.querySelector(`[data-rel-level="${id}"]`).textContent = level(value);
+            const row = e.target.closest('.mw-mood');
+            row.querySelector('output').textContent = `${value}%`; row.querySelector('[data-lvl]').textContent = level(value);
             e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`); return;
         }
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
@@ -504,6 +564,27 @@ function setup() {
     panel.addEventListener('change', async e => {
         const input = e.target;
         if (input.hasAttribute('data-relation-enabled')) { const relation = selectedRelation(); if (relation) await changeState(() => { relation.enabled = input.checked; }); return; }
+        if (input.dataset.pairSlider && SHARED_BY_ID[input.dataset.pairSlider]) {
+            const peer = currentPeer(); if (!peer) return;
+            const other = keyForTarget(peer.key);
+            const pair = getPair(personKeyOfSubject(), other, true, other.startsWith('name:') ? { [other]: peer.name } : {});
+            pair.moods[input.dataset.pairSlider] = Number(input.value); await persist(); await syncPrompt(); render(); return;
+        }
+        if (input.hasAttribute('data-pair-enabled')) { const pair = currentPeer()?.pair; if (pair) { pair.enabled = input.checked; await persist(); await syncPrompt(); render(); } return; }
+        if (input.hasAttribute('data-compare-with') || input.hasAttribute('data-compare-favours') || input.dataset.compareSlider) {
+            const peer = currentPeer(); if (!peer) return;
+            await changeState(() => {
+                const relation = ensureRelation(peer), compare = cleanCompare(relation.compare);
+                if (input.hasAttribute('data-compare-with')) { compare.with = input.value; if (input.value && !compare.value) compare.value = 50; }
+                else if (input.hasAttribute('data-compare-favours')) compare.favours = input.value;
+                else compare.value = Number(input.value);
+                relation.compare = compare;
+            }); return;
+        }
+        if (input.hasAttribute('data-relation-note')) {
+            const peer = currentPeer(); if (!peer) return;
+            await changeState(() => { ensureRelation(peer).note = String(input.value).replace(/\s+/g, ' ').trim().slice(0, 160); }); return;
+        }
         if (input.dataset.relSlider && RELATIONSHIP_BY_ID[input.dataset.relSlider]) {
             const peer = currentPeer(); if (!peer) return;
             await changeState(() => { ensureRelation(peer).moods[input.dataset.relSlider] = Number(input.value); }); return;
@@ -528,8 +609,8 @@ function setup() {
         }
         if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
         const field = input.dataset.field;
-        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); await syncPrompt(); return; }
-        if (field === 'cast') { selectedCastId = input.value; selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
+        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; selectedPeer = ''; removingRelation = ''; castAction = ''; status = ''; render(); await syncPrompt(); return; }
+        if (field === 'cast') { selectedCastId = input.value; selectedPeer = ''; removingRelation = ''; castAction = ''; status = ''; render(); return; }
         if (field === 'castInScene') {
             const person = selectedCast(); if (!person) return;
             person.inScene = input.checked; await persist(); await syncPrompt(); render(); return;
@@ -562,11 +643,12 @@ function setup() {
         const button = e.target.closest('button'); if (!button) return;
         if (button.dataset.who) {
             who = button.dataset.who; if (button.dataset.castId) selectedCastId = button.dataset.castId;
-            selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); return;
+            selectedPeer = ''; removingRelation = ''; castAction = ''; status = ''; render(); return;
         }
-        if (button.dataset.peer !== undefined) { selectedPeer = button.dataset.peer; removingRelation = false; render(); return; }
+        if (button.dataset.peer !== undefined) { selectedPeer = button.dataset.peer; removingRelation = ''; render(); return; }
+        if (button.dataset.pairTab) { pairView = button.dataset.pairTab; removingRelation = ''; render(); return; }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
-        if (button.dataset.tab) { tab = button.dataset.tab; search = ''; removingRelation = false; render(); return; }
+        if (button.dataset.tab) { tab = button.dataset.tab; search = ''; removingRelation = ''; render(); return; }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
             search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
@@ -578,10 +660,10 @@ function setup() {
                 try {
                     const typed = castName(panel.querySelector('[data-relation-new]').value);
                     const existing = peers().find(p => p.name.toLowerCase() === resolveRelationName(typed).toLowerCase());
-                    if (existing) { selectedPeer = existing.key; removingRelation = false; status = ''; render(); break; }
+                    if (existing) { selectedPeer = existing.key; removingRelation = ''; status = ''; render(); break; }
                     const name = validRelationName(typed);
                     const relation = cloneRelationships([{ id: newCastId(), target: name }])[0];
-                    relationshipList().push(relation); selectedPeer = name; removingRelation = false; status = '';
+                    relationshipList().push(relation); selectedPeer = name; removingRelation = ''; status = '';
                     await persist(viewState()); await syncPrompt(); render();
                 } catch (error) { status = error.message; renderStatus(); }
                 break;
@@ -591,7 +673,7 @@ function setup() {
                 const fromKey = who === 'char' ? (members().length > 1 ? target().name : '{{char}}') : who === 'user' ? '{{user}}' : selectedCast()?.name;
                 if (next.avatar) selectedAvatar = next.avatar;
                 if (next.castId) selectedCastId = next.castId;
-                who = next.who; selectedPeer = fromKey ?? ''; removingRelation = false; tab = 'rel';
+                who = next.who; selectedPeer = fromKey ?? ''; removingRelation = ''; tab = 'rel';
                 render(); await syncPrompt(); break;
             }
             case 'cast-new': castAction = castAction === 'adding' ? '' : 'adding'; render(); panel.querySelector('[data-cast-new]')?.focus(); break;
@@ -603,12 +685,18 @@ function setup() {
                 } catch (error) { status = error.message; renderStatus(); }
                 break;
             }
-            case 'relation-remove': removingRelation = true; render(); break;
-            case 'relation-cancel': removingRelation = false; render(); break;
+            case 'relation-remove': removingRelation = 'relation'; render(); break;
+            case 'pair-clear': removingRelation = 'pair'; render(); break;
+            case 'pair-clear-confirm': {
+                const peer = currentPeer(); const meta = ctx().chatMetadata[KEY];
+                if (peer && meta?.pairs) delete meta.pairs[pairId(personKeyOfSubject(), keyForTarget(peer.key))];
+                removingRelation = ''; await persist(); await syncPrompt(); render(); break;
+            }
+            case 'relation-cancel': removingRelation = ''; render(); break;
             case 'relation-remove-confirm': {
                 const relation = selectedRelation(); if (!relation) break;
                 const list = relationshipList(); list.splice(list.indexOf(relation), 1);
-                removingRelation = false;
+                removingRelation = '';
                 await persist(viewState()); await syncPrompt(); render(); break;
             }
             case 'cast-add': {
@@ -659,7 +747,7 @@ function setup() {
     });
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
-        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; selectedPeer = ''; removingRelation = false; castAction = ''; status = '';
+        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; selectedPeer = ''; removingRelation = ''; castAction = ''; status = '';
         ++promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         render(); void syncPrompt();
     });

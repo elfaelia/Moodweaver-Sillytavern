@@ -107,3 +107,10 @@
 .mw-pair .mw-cast-presence{margin:6px 0 10px}.mw-pair .mw-cast-presence button{font-size:10px}
 .mw-pair .mw-categories{margin:8px -4px 0}
 @media(max-width:520px){.mw-people{padding-left:18px;padding-right:18px}.mw-person-card,.mw-manage,.mw-new-cast,.mw-rel{margin-left:18px;margin-right:18px}.mw-tabs button{font-size:10.5px;padding:9px 2px}}
+
+/* 1.13: both-of-them view, comparisons and own words */
+.mw-pair-tabs{margin:10px 0 4px!important}.mw-pair-tabs small{display:inline-block;margin-left:3px;padding:0 5px;border-radius:9px;background:#ffffff14;font-size:9px;line-height:15px}
+.mw-compare{margin:10px 0;padding:10px 12px;border:1px solid #ffffff10;border-radius:10px;background:#ffffff04}.mw-compare>label{display:block;font-size:11px;color:var(--mw-muted);margin-bottom:6px}
+.mw-compare .mw-mood{border-top:0;padding-bottom:2px}
+.mw-note{display:block;font-size:11px;color:var(--mw-muted);margin:10px 0}.mw-note small{opacity:.7;margin-left:4px}
+.mw-panel .mw-note input{display:block;width:100%;margin-top:5px;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:8px 10px;font-size:12px}

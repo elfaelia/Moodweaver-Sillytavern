@@ -1,4 +1,4 @@
-import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey } from './relationships.js';
+import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText } from './relationships.js';
 
 export const PROSE_STYLES = [
     ['prose_conversational', 'Conversational', 'a natural speaking rhythm, everyday phrasing and easy transitions'],
@@ -55,10 +55,7 @@ export const CATEGORIES = [
         ['soft', 'Soft', 'gentle and tender'],
         ['caring', 'Caring', 'concerned for how someone feels and wants to help'],
         ['romantic', 'Romantic', 'in the mood for romance: tender gestures, setting a scene, saying how they feel'],
-        ['enamoured', 'Smitten', 'a crush or romantic fascination, up to head-over-heels infatuation'], ['in_love', 'In love', 'genuinely in love'],
 
-        ['charmed', 'Charmed', 'won over by someone'],
-        ['star_struck', 'Star struck', 'dazzled by someone they admire, up to giddy fandom'],
         ['yearning', 'Yearning', 'longing for someone or something out of reach'],
         ['touch_starved', 'Touch-starved', 'aching to be touched'], ['protective', 'Protective', 'wanting to keep someone safe'],
         ['caretaker', 'Caretaking', 'looking after someone, up to doting on their every need'], ['fatherly', 'Fatherly', 'patient and dad-like'],
@@ -77,13 +74,10 @@ export const CATEGORIES = [
     ['attachment', 'Attachment & obsession', '⛓', '#c6a0ef', [
         ['clingy', 'Clingy / needy', 'wants closeness and reassurance, up to needing constant attention'],
         ['codependent', 'Codependent', 'can’t feel okay without someone else'], ['fawning', 'Fawning', 'eager to please someone and keep them happy'],
-        ['worshipful', 'Worshipful', 'putting someone on a pedestal'], ['wrapped_around_finger', 'Wrapped around their finger', 'will do anything the other person wants'],
         ['obsessed', 'Obsessed', 'can’t stop thinking about someone or something'],
         ['possessive', 'Possessive', 'wants someone all to themselves'], ['jealous', 'Jealous', 'scared of losing someone to someone else'],
         ['envious', 'Envious', 'wants what someone else has'], ['yandere', 'Yandere', 'sweet and loving toward their person, obsessively possessive and willing to stalk, abduct or kill perceived rivals and threats for them'],
-        ['sees_muse', 'Sees a muse', 'sees the other person as their muse'], ['idealising', 'Aesthetic idealisation', 'sees someone as a beautiful, perfect image'],
-        ['preserving', 'Preserving', 'wants to keep someone exactly as they are'], ['collector', 'Collector', 'collects people, things or moments'],
-        ['making_worse', 'Making them worse', 'brings out the other person’s worst'], ['being_made_worse', 'Being made worse', 'the other person brings out their worst'],
+        ['collector', 'Collector', 'collects people, things or moments'],
         ['reassurance_loop', 'Reassurance never sticks', 'needs proof they’re wanted, then starts doubting it again'],
         ['testing_attachment', 'Testing the bond', 'tests whether someone will stay or make an effort'],
         ['push_pull', 'Push-pull attachment', 'wants closeness, pulls away when it comes, then misses it'],
@@ -127,9 +121,6 @@ export const CATEGORIES = [
         ['disgusted', 'Disgusted', 'repulsed by something or someone and shows it'], ['contemptuous', 'Contemptuous', 'thinks someone is beneath them'],
         ['passive_aggressive', 'Passive aggressive', 'hostile, but never says it outright'], ['violent', 'Violent', 'itching to get physical'],
         ['tranquil_fury', 'Tranquil fury', 'rage gone calm and cold'],
-        ['hates_other', 'Hates someone in the scene', 'hostility toward a named supporting character; choose who below'],
-        ['hates_user', 'Hates {{user}}', 'hostility toward the player’s character, from dislike to consuming hatred'],
-        ['hates_char', 'Hates {{char}}', 'hostility toward the main character, from dislike to consuming hatred'],
     ]],
     ['cruel', 'Cruel & controlling', '☠', '#d98f8f', [
         ['manipulative', 'Manipulative', 'playing people to get what they want'], ['gaslighting', 'Gaslighting', 'making someone doubt their own memory and mind'],
@@ -162,7 +153,6 @@ export const CATEGORIES = [
         ['deliberate', 'Deliberate', 'careful and purposeful'], ['planning', 'Planning', 'thinking a few steps ahead'],
         ['one_step_ahead', 'One step ahead', 'anticipates the next move and prepares before the others catch on'],
         ['one_step_behind', 'One step behind', 'catches on late and keeps reacting after things have already moved on'],
-        ['comparing_people', 'Comparing people', 'weighs two people against each other; choose who below'],
         ['thinking', 'Thinking', 'lost in thought, mulling something over'], ['logical', 'Logical', 'thinks it through instead of reacting'],
         ['clinical', 'Clinical', 'cold, detached and precise'], ['clearheaded', 'Clear-headed', 'thinking straight, nothing clouding their judgement'],
         ['professional', 'Professional', 'keeping it businesslike'], ['teaching', 'Teaching', 'in teacher mode, keen to explain and instruct'],
@@ -564,23 +554,6 @@ export const CATEGORIES = [
         ['hidden_trophies', 'Hidden trophies', 'keeps private reminders taken from victims or crimes'],
         ['escaped_justice', 'Escaped justice', 'committed serious violence and got away with it'],
     ], 'state'],
-    ['relationship', 'Relationship', '⚭', '#d7a0b4', [
-        ['friends', 'Friends', 'they’re friends'],
-        ['childhood_friends', 'Childhood friends', 'friends since they were kids'], ['roommates', 'Roommates', 'they live together'],
-        ['coworkers', 'Coworkers', 'they work together'], ['neighbours', 'Neighbours', 'they live next door'],
-        ['rivals', 'Rivals', 'they compete'], ['enemies', 'Enemies', 'they’re enemies'],
-        ['partners_in_crime', 'Partners in crime', 'in it together'], ['one_night_stand', 'One night stand', 'a one night stand'],
-        ['casual', 'Casual relationship', 'casual, no strings'], ['dating', 'Dating', 'they’re together'],
-        ['engaged', 'Engaged', 'engaged to the other person'], ['married', 'Married', 'they’re married'],
-        ['exes', 'Exes', 'they used to be together'], ['affair', 'Affair', 'one of them is cheating'],
-        ['secret_relationship', 'Secret relationship', 'their relationship is hidden from others'], ['sugar', 'Sugar arrangement', 'money for company'],
-        ['first_time', 'First time together', 'their first time together'], ['is_muse', 'Muse', 'the other person’s muse'],
-        ['power_imbalance', 'Power imbalance', 'one has power over the other, like boss or teacher'], ['age_gap', 'Age gap', 'a noticeable age gap between them'],
-        ['older', 'Older', 'older than the other person'], ['younger', 'Younger', 'younger than the other person'],
-        ['taller', 'Taller', 'taller than the other person'], ['shorter', 'Shorter', 'shorter than the other person'],
-        ['bigger', 'Bigger', 'bigger than the other person'], ['smaller', 'Smaller', 'smaller than the other person'],
-        ['stronger', 'Stronger', 'stronger than the other person'], ['smarter', 'Smarter', 'smarter than the other person'],
-    ], 'state'],
     ['setting', 'Place & time', '⌂', '#a9c2a1', [
         ['domestic', 'Domestic', 'everyday home life together'], ['cosy', 'Cosy', 'warm, soft and comfortable surroundings'],
         ['at_work', 'At work', 'at work, with the rules and people that come with it'], ['darkroom', 'Darkroom', 'in a photographic darkroom: red light, chemicals, privacy'],
@@ -646,22 +619,10 @@ export const CATEGORIES = [
         ['splatter_horror', 'Splatter horror', 'graphic bodily destruction and excess are a central part of the horror'],
     ], 'story'],
     ['tropes', 'Romance tropes', '❧', '#a8bfe0', [
-        ['slow_burn', 'Slow burn', 'the attraction builds slowly; payoff is delayed and earned'], ['mutual_pining', 'Mutual pining', 'both want each other and neither says it'],
-        ['unrequited_love', 'Unrequited love', 'one loves and the other doesn’t love them back'], ['secret_admirer', 'Secret admirer', 'someone admires from a distance without revealing themselves'],
-        ['first_love', 'First love', 'the first time falling in love, with all its intensity'], ['confession', 'Confession', 'building toward or living through a confession of feelings'],
-        ['friends_to_lovers', 'Friends to lovers', 'friends slowly becoming something more'], ['enemies_to_lovers', 'Enemies to lovers', 'hostility slowly turning into attraction'],
-        ['opposites_attract', 'Opposites attract', 'two very different people drawn together'], ['grumpy_sunshine', 'Grumpy/sunshine', 'a grump paired with a ray of sunshine'],
-        ['forbidden_love', 'Forbidden love', 'love that breaks rules or would cost them everything'], ['love_triangle', 'Love triangle', 'three people caught between desire and loyalty'],
-        ['second_chance', 'Second chance', 'two people getting another shot after it went wrong'], ['fake_dating', 'Fake relationship', 'pretending to be together until it gets real'],
-        ['forced_proximity', 'Forced proximity', 'stuck together with no way to avoid each other'], ['only_one_bed', 'Only one bed', 'circumstances force them to share a bed'],
-        ['arranged_marriage', 'Arranged marriage', 'married by someone else’s arrangement'], ['marriage_of_convenience', 'Marriage of convenience', 'married for practical reasons, not love'],
-        ['office_romance', 'Office romance', 'romance at work with all its risks'],
-        ['size_difference', 'Size difference', 'a big difference in size that keeps getting noticed'], ['beauty_and_beast', 'Beauty and the beast', 'gentleness finding something lovable in a monster'],
-        ['hurt_comfort', 'Hurt/comfort', 'one is hurt, the other takes care of them'], ['who_did_this', 'Who did this to you', 'furious protectiveness when they’re hurt'],
-        ['fluff', 'Fluff', 'light, sweet, feel-good moments'], ['villain_romance', 'Villain romance', 'falling for the villain'],
-        ['obsessive_love', 'Obsessive love', 'love that becomes fixation and consumes'], ['if_i_cant_have_you', 'If I can’t have you', 'if I can’t have you, no one can'],
-        ['captor_captive', 'Captor/captive', 'captor and captive'], ['stockholm', 'Stockholm syndrome', 'falling for their captor'],
-        ['trauma_bond', 'Trauma bond', 'bonded through shared trauma'],
+        
+        ['love_triangle', 'Love triangle', 'three people caught between desire and loyalty'],
+        
+        ['fluff', 'Fluff', 'light, sweet, feel-good moments'], 
     ], 'story'],
     ['plot', 'Plot tropes', '⚑', '#a8c8d8', [
         ['corruption_arc', 'Corruption arc', 'someone good slowly turning dark'], ['descent_into_madness', 'Descent into madness', 'a mind gradually coming apart'],
@@ -714,7 +675,7 @@ export const RECIPES = {
     'A brave face': { stoic: 65, hurt: 45, vulnerable: 30 },
     'Trouble brewing': { jealous: 50, anxious: 45, resentful: 25 },
     'Bright spark': { playful: 55, curious: 45, inspired: 35 },
-    'Quiet devotion': { enamoured: 55, protective: 45, warm: 35 },
+    'Quiet devotion': { affectionate: 55, protective: 45, warm: 35 },
 };
 export const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, Number.isFinite(Number(v)) ? Number(v) : min));
 export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
@@ -831,7 +792,35 @@ export const MERGED_SEARCH_NAMES = {
     "tired": ["Listless","Tired"]
 };
 export const REMOVED_MOODS = ["freckled","pierced","writer","model","nurse","detective","police","soldier","priest","bartender","golden_retriever","himbo","gentle_giant","ice_queen","femme_fatale","strangers","paranormal_romance","cosmic_horror","folk_horror","survival_horror","urban_fantasy","fairy_tale","sci_fi","cyberpunk","dystopian","war","bodyguard","found_family","redemption_arc","amnesia","haunting","prose_documentary","prose_epistolary","prose_vignettes"];
-export function migrateCatalogue(state, knowledgeMaps = []) {
+// Feelings about one particular person, and pair tropes, now live in relationships. '{{other}}' stands for
+// whoever that sheet used to point at; the panel resolves it for each person when the chat loads.
+function moveToRelationships(state, knowledgeMaps = [], snapshot = false) {
+    for (const [id, tag] of Object.entries(MOVED_TO_RELATIONSHIPS)) {
+        if (BY_ID[id]) continue;
+        const value = clamp(state.moods[id] ?? 0);
+        if (value > 0 && !snapshot) {
+            const target = MOVED_TARGET[id] ?? (id === 'hates_other' ? (state.targets?.hate || '{{other}}') : '{{other}}');
+            state.relationships ??= [];
+            let relation = state.relationships.find(r => r.target === target);
+            if (!relation) { relation = { id: `moved-${target.replace(/\W+/g, '').toLowerCase() || 'other'}-${state.relationships.length}`, target, enabled: true, moods: {} }; state.relationships.push(relation); }
+            relation.moods ??= {};
+            relation.moods[tag] = Math.max(clamp(relation.moods[tag] ?? 0), value);
+            for (const map of knowledgeMaps) if (map[id]) { map[relationshipKey(relation, tag)] = map[id]; }
+        }
+        delete state.moods[id]; delete state.pins?.[id];
+        for (const map of knowledgeMaps) delete map[id];
+    }
+    const compare = clamp(state.moods.comparing_people ?? 0);
+    if (!BY_ID.comparing_people && compare > 0 && !snapshot && state.targets?.compareA) {
+        state.relationships ??= [];
+        const target = state.targets.compareA;
+        let relation = state.relationships.find(r => r.target === target);
+        if (!relation) { relation = { id: `moved-compare-${state.relationships.length}`, target, enabled: true, moods: {} }; state.relationships.push(relation); }
+        relation.compare = { with: state.targets.compareB || '{{user}}', favours: 'neither', value: compare };
+    }
+    if (!BY_ID.comparing_people) { delete state.moods.comparing_people; delete state.pins?.comparing_people; }
+}
+export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
     state.moods ??= {};
     state.pins ??= {};
     const privacy = { private: 0, scene: 1, suspected: 2, known: 3 };
@@ -860,7 +849,8 @@ export function migrateCatalogue(state, knowledgeMaps = []) {
         delete state.moods[id]; delete state.pins[id];
         for (const map of knowledgeMaps) delete map[id];
     }
-    for (const snapshot of state.history ?? []) migrateCatalogue(snapshot);
+    moveToRelationships(state, knowledgeMaps, snapshot);
+    for (const old of state.history ?? []) migrateCatalogue(old, [], true);
     return state;
 }
 // Add catalogue entries to old chats in place, preserving their history and settings.
@@ -880,7 +870,8 @@ export function cleanTargets(targets = {}) {
         String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, 80)]));
 }
 export function freshState(base = {}) {
-    base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [] });
+    base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [],
+        relationships: (base.relationships ?? []).map(r => ({ ...r, moods: { ...r.moods } })) });
     return {
         enabled: base.enabled ?? true, sceneBreathing: base.sceneBreathing ?? true, mode: base.mode === 'dynamic' ? 'dynamic' : 'manual',
         moods: Object.fromEntries(MOODS.map(m => [m.id, Math.round(clamp(base.moods?.[m.id] ?? 0))])),
@@ -1329,7 +1320,8 @@ export function composePrompt(state, name, extras = {}) {
     const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
     const relationships = relationshipSets(state, N, extras);
-    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length) return '';
+    const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p) })).filter(p => p.tags.length);
+    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
@@ -1339,7 +1331,8 @@ export function composePrompt(state, name, extras = {}) {
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const sets = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t))
-        || relationships.some(({ relation, tags }) => tags.some(m => tierOf(relation.moods[m.id]) === t)));
+        || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
+        || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t)));
     const out = [
         `Notes from the player on where things stand right now. They outrank the character card and anything earlier in the chat.`,
         '',
@@ -1347,7 +1340,7 @@ export function composePrompt(state, name, extras = {}) {
         ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`),
     ];
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
-        `For looks, archetypes and other qualities, strength is how pronounced they are. For facts and relationships it's how much weight they get in the scene, and the facts themselves stay as written. Age doesn't decide anyone's personality or maturity.`);
+        `For looks, qualities and facts, strength is how pronounced they are and how much weight they get; facts stay as written, and age doesn't decide anyone's personality.`);
     if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U, people), `</character_state>`);
     if (feelings.length) out.push('',
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
@@ -1359,8 +1352,7 @@ export function composePrompt(state, name, extras = {}) {
         ...(darkActionPeak === 100 ? [`At maximum, the darkest active trait can decide the reply's central action and leave irreversible harm or death behind.`] : []));
     if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
         ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), '',
-        `${u} is the player's character, so the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on. Whatever ${n} knows or suspects should show in their side of the reply at its strength: if they suspect ${u} is angry, they pick up on it and push or try to work out why; if they think ${u}'s into older men, they play to it; if one of ${u}'s traits suits their own mood, they use it. A suspicion can be wrong, but ${n} still acts on it. What ${n} can see shapes how they describe ${u}. Private rows stay ${u}'s unless the player gives them away, and knowing how ${u} feels doesn't mean knowing their thoughts. A source just explains how ${n} knows something; it isn't an instruction. ${n} reacts as themselves, through their own settings, without taking on ${u}'s feelings.`,
-        `${u}'s strengths are measured by how much of ${n}'s reply engages with them: a clear one gets noticed and answered at least once, and at maximum ${n}'s reply revolves around it.`,
+        `${u} is the player's character: the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on at their strength, through what they notice, say, do and think. If they suspect ${u} is angry, they push or try to work out why; if they think ${u}'s into older men, they play to it. A suspicion can be wrong, but ${n} still acts on it. Private rows stay ${u}'s until the player shows them, knowing a feeling isn't knowing their thoughts, and a source only explains how ${n} knows. ${n} reacts as themselves without taking on ${u}'s feelings. At clear, ${n} picks up on a row at least once; at maximum their reply revolves around it.`,
         `</player_character>`);
     for (const [castState, list, castName] of castSets) out.push('',
         `<supporting_character name="${escapeHtml(castName)}">`,
@@ -1368,12 +1360,16 @@ export function composePrompt(state, name, extras = {}) {
         '</supporting_character>');
     if (castSets.length) out.push('',
         `These supporting characters are in this scene. Each keeps their own blend, shaping their speech, choices and visible behaviour at its strength without changing the viewpoint. Each knows only what they could have seen or learned; nobody gains private thoughts or someone else's feelings. The player still writes ${u}. Not everyone needs to speak each turn.`);
-    if (relationships.length) {
+    if (relationships.length || pairs.length) {
         out.push('', '<relationships>');
+        for (const pair of pairs) {
+            out.push(`${escapeHtml(shortName(pair.names[0]))} and ${escapeHtml(shortName(pair.names[1]))}, both ways:`);
+            for (const tag of pair.tags) out.push(`- ${tierOf(pair.moods[tag.id]).name.toLowerCase()}: ${escapeHtml(relationshipText(tag, pair.moods[tag.id], ''))}`);
+        }
         const heard = { known: `What ${n} knows for sure:`, suspected: `What ${n} suspects:`, scene: `What ${n} can pick up from the scene:`, private: `Private, ${n} doesn't know:` };
-        for (const { name: subject, target, relation, tags, isPlayer } of relationships) {
-            const to = escapeHtml(shortName(target));
-            out.push(`${escapeHtml(shortName(subject))} toward ${to}:`);
+        for (const { name: subject, target, relation, tags, isPlayer, compare, note } of relationships) {
+            const from = escapeHtml(shortName(subject)), to = escapeHtml(shortName(target));
+            out.push(`${from} toward ${to}:`);
             for (const mode of isPlayer ? KNOWLEDGE_ORDER : ['']) {
                 const rows = tags.filter(tag => !isPlayer || knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).mode === mode);
                 if (!rows.length) continue;
@@ -1384,16 +1380,17 @@ export function composePrompt(state, name, extras = {}) {
                     out.push(`- ${tierOf(value).name.toLowerCase()}: ${escapeHtml(relationshipText(tag, value, shortName(target)))}${source ? ` (source: ${escapeHtml(source)})` : ''}`);
                 }
             }
+            if (compare) out.push(`- ${tierOf(compare.value).name.toLowerCase()}: ${escapeHtml(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
+            if (note) out.push(`- in ${from}'s own words: “${escapeHtml(note)}”`);
         }
-        out.push('', `Each heading is one person's side: what they are to the other, how they see them and how they feel about them, at the strength given. It shapes how they treat, watch, speak to and speak about that person, and it mixes with the rest of their settings. Facts like dating or being taller are simply true, but feelings and opinions only run one way: the other person feels whatever their own side says, or whatever their card suggests if nothing is set, and an opinion isn't a fact about the person it's aimed at. None of this brings anyone into the scene who isn't already there.`);
-        if (relationships.some(r => r.isPlayer)) out.push(`${u}'s side works like the rest of ${u}'s rows: the player writes ${u}, ${n} acts on what they know or suspect, and private lines stay ${u}'s until the player shows them.`);
+        out.push('', `"Both ways" lines are true for both. Everything else is one person's side and only runs that way; an opinion is a view, not a fact. Relationships are part of the weave whether or not the other person is here: present, it shows in how they're treated, watched and spoken to; absent, it comes through in thoughts, memories, comparisons, plans, talk or reminders, without bringing them in. Clear surfaces at least once, strong shapes a real choice, and intense or maximum keeps coming back in fresh ways and ties into the main thing that happens.${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} acts on what they know or suspect, and private lines stay hidden until the player shows them.` : ''}`);
         out.push('</relationships>');
     }
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.category === 'attraction')) out.push('',
         `Attraction preferences describe what draws them in or puts them off; don't invent those qualities in the other person.`);
-    if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer'))) out.push('', `Differences in height, size, age and so on get played up as much as their strength says: noticed, felt and used in the scene.`);
+    if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer')) || pairs.some(p => p.moods.size_difference > 0)) out.push('', `Differences in height, size, age and so on get played up as much as their strength says: noticed, felt and used in the scene.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0,
-        ...relationships.map(r => r.relation.moods.age_gap ?? 0));
+        ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other${ageGapStrength >= 91 ? `, and at this strength the whole reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back in their exchanges` : ''}. Their other settings decide what they make of it.`);
     if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
@@ -1410,8 +1407,12 @@ export function composePrompt(state, name, extras = {}) {
         const high = tags.filter(tag => relation.moods[tag.id] >= 81).map(tag => `${escapeHtml(relationshipText(tag, relation.moods[tag.id], shortName(target)))} (${tierOf(relation.moods[tag.id]).name.toLowerCase()})`);
         if (high.length) top.push(`${escapeHtml(shortName(subject))} toward ${escapeHtml(shortName(target))}: ${high.join(', ')}`);
     }
+    for (const pair of pairs) {
+        const high = pair.tags.filter(tag => pair.moods[tag.id] >= 81).map(tag => `${escapeHtml(relationshipText(tag, pair.moods[tag.id], ''))} (${tierOf(pair.moods[tag.id]).name.toLowerCase()})`);
+        if (high.length) top.push(`${escapeHtml(shortName(pair.names[0]))} and ${escapeHtml(shortName(pair.names[1]))}: ${high.join(', ')}`);
+    }
     if (top.length) out.push('', `Turned up highest, so make sure these land hard: ${top.join('; ')}.`);
-    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${castSets.length || relationships.length ? 'the person who feels it' : n} instead of picking one. Show it through what ${castSets.length || relationships.length ? 'each person' : n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
+    out.push('', `Weave everything into the same moments rather than giving each its own turn, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit in ${castSets.length || relationships.length || pairs.length ? 'whoever feels it' : n}. Show it through what ${castSets.length || relationships.length || pairs.length ? 'people do' : `${n} does`}, say${castSets.length || relationships.length || pairs.length ? '' : 's'}, think${castSets.length || relationships.length || pairs.length ? '' : 's'} and notice${castSets.length || relationships.length || pairs.length ? '' : 's'}, not by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} Never mention these notes.`);
     return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

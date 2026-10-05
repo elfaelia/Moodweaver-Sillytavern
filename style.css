@@ -75,3 +75,35 @@
 .mw-knowledge-row label small { display: block; font-size: 10px; color: var(--mw-muted); margin-top: 3px; }
 .mw-knowledge-row select { width: 100%; min-width: 0; margin: 0; font-size: 11px; }
 .mw-panel .mw-knowledge-row input { grid-column: 1 / -1; width: 100%; box-sizing: border-box; font-size: 11px; padding: 8px 10px; border: 1px solid var(--mw-line); border-radius: 8px; background: #11151e; color: var(--mw-text); }
+
+/* 1.12 Sims-style layout: household row, person card, three tabs, relationship list. */
+.mw-people{display:flex;gap:8px;overflow-x:auto;padding:4px 24px 12px;margin-top:6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.mw-people::-webkit-scrollbar{display:none}
+.mw-panel .mw-person{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;width:64px;padding:6px 2px;border:0;background:none;font-size:10px;color:var(--mw-muted)}
+.mw-person>span:last-child{max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-avatar{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#262b36;border:2px solid #ffffff18;color:#dfe6dc;font-size:16px;font-weight:600}
+.mw-person.is-main .mw-avatar{border-color:#a8cdb170}.mw-person.is-you .mw-avatar{border-color:#c0acd970}.mw-person.is-story .mw-avatar{border-color:#b8a6e070;color:#cfc3ef}
+.mw-person.is-away .mw-avatar{opacity:.45;border-style:dashed}.mw-person-add .mw-avatar{background:none;border-style:dashed;color:#9aa3ad}
+.mw-panel .mw-person[aria-pressed=true]{color:var(--mw-text)}.mw-person[aria-pressed=true] .mw-avatar{background:#354237;border-color:#b5d9a6;box-shadow:0 0 0 3px #a8cdb122,0 0 16px #a5d79633}
+.mw-new-cast{margin:0 24px 12px}.mw-panel .mw-new-cast input,.mw-panel .mw-peer-add input,.mw-panel .mw-manage input{background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:8px 10px;font-size:12px}
+.mw-person-card{display:flex;align-items:center;gap:13px;margin:0 24px;padding:14px;border:1px solid #ffffff10;border-radius:14px;background:linear-gradient(135deg,#ffffff07,transparent)}
+.mw-avatar-lg{width:50px;height:50px;font-size:21px;border-color:#a8cdb155}
+.mw-person-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.mw-person-info b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-person-info small{font-size:10px;color:var(--mw-muted)}.mw-feeling{font-size:11px;color:#c9c6d2;margin-top:3px}.mw-feeling b{color:var(--mw-accent,#b5d9a6);font-weight:600}
+.mw-person-toggles{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.mw-manage{margin:8px 24px 0}.mw-person-card+.mw-cast-confirm,.mw-manage+.mw-cast-confirm{margin:8px 24px 0}
+.mw-tabs{margin-top:14px;margin-bottom:14px}.mw-tabs button{font-size:11.5px;white-space:nowrap}.mw-tabs small{display:inline-block;min-width:16px;margin-left:3px;padding:0 5px;border-radius:9px;background:#ffffff14;font-size:9px;line-height:16px}
+.mw-mode.mw-small{margin-top:2px}.mw-mode.mw-small button{padding:7px 4px;font-size:11px}
+.mw-rel{margin:0 24px}
+.mw-peers{display:flex;flex-direction:column;gap:6px}
+.mw-panel .mw-peer{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9px 11px;border-radius:12px;background:#ffffff05;border:1px solid #ffffff10}
+.mw-panel .mw-peer.is-selected{background:#c0acd914;border-color:#c0acd955}.mw-peer.is-away{opacity:.6}
+.mw-peer .mw-avatar{width:34px;height:34px;font-size:14px}.mw-peer-text{display:flex;flex-direction:column;min-width:0;gap:1px}
+.mw-peer-text b{font-size:13px;font-weight:600}.mw-peer-text small{font-size:10px;color:var(--mw-muted)}
+.mw-peer-tags{font-size:10.5px;color:#d3cfe0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mw-peer-tags em{font-style:normal;color:#a99cc9}.mw-peer-tags i{color:#7f8692}
+.mw-peer-add{margin:8px 0 4px}
+.mw-pair{margin-top:12px;padding:14px;border:1px solid #c0acd933;border-radius:14px;background:#c0acd907}
+.mw-pair-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}.mw-pair-head h3{margin:3px 0 0;font-size:18px;font-weight:600}
+.mw-pair-head button{font-size:10.5px;white-space:nowrap}
+.mw-pair .mw-cast-presence{margin:6px 0 10px}.mw-pair .mw-cast-presence button{font-size:10px}
+.mw-pair .mw-categories{margin:8px -4px 0}
+@media(max-width:520px){.mw-people{padding-left:18px;padding-right:18px}.mw-person-card,.mw-manage,.mw-new-cast,.mw-rel{margin-left:18px;margin-right:18px}.mw-tabs button{font-size:10.5px;padding:9px 2px}}

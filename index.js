@@ -1,8 +1,8 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
-import { RELATIONSHIP_BY_ID, activeRelationshipTags, cloneRelationships, relationshipKey } from './relationships.js';
-import { relationshipPanel } from './relationship-ui.js';
+import { RELATIONSHIP_BY_ID, PAIR_FACT_IDS, activeRelationshipTags, cloneRelationships, relationshipKey } from './relationships.js';
+import { relationshipView } from './relationship-ui.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -12,10 +12,60 @@ let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = 
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
 const openCategories = new Set();
-let selectedRelationId = '', removingRelation = false;
-const openRelationGroups = new Set(['First impressions']);
+let selectedPeer = '', removingRelation = false;
+const openRelationGroups = new Set(['What they are']);
 const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
-const selectedRelation = () => relationshipList().find(r => r.id === selectedRelationId) ?? relationshipList()[0];
+// Everyone this person could feel something about: the main character, you, the rest of a group chat,
+// the cast, and anyone typed in by hand. Nobody has to be added first.
+const relationFor = key => { const want = resolveRelationName(key).toLowerCase(); return relationshipList().find(r => resolveRelationName(r.target).toLowerCase() === want); };
+function peers() {
+    const ch = target(), me = (subjectName() ?? '').toLowerCase(), list = [];
+    const push = (key, name, role, offScene = false) => {
+        if (!name || name.toLowerCase() === me || list.some(p => p.name.toLowerCase() === name.toLowerCase())) return;
+        list.push({ key, name, role, offScene });
+    };
+    if (ch) push('{{char}}', ch.name, 'Main character');
+    push('{{user}}', playerName(), 'Your character');
+    for (const m of members()) push(m.name, m.name, 'In this group chat');
+    for (const p of getCast(ch)) push(p.name, p.name, p.inScene ? 'Cast · in scene' : 'Cast · off scene', !p.inScene);
+    for (const r of relationshipList()) push(r.target, resolveRelationName(r.target), 'Not in the cast');
+    for (const p of list) p.relation = relationFor(p.key);
+    return list;
+}
+const currentPeer = () => { const all = peers(); return all.find(p => p.key === selectedPeer) ?? all[0]; };
+const selectedRelation = () => currentPeer()?.relation;
+function ensureRelation(peer) {
+    let relation = relationFor(peer.key);
+    if (!relation) { relation = cloneRelationships([{ id: newCastId(), target: peer.key }])[0]; relationshipList().push(relation); }
+    return relation;
+}
+// Where "their side" of a pairing lives, if that person has a panel of their own.
+function swapTarget(peer) {
+    if (peer.key === '{{char}}') return { who: 'char' };
+    if (peer.key === '{{user}}') return { who: 'user' };
+    const castMember = getCast().find(p => p.name.toLowerCase() === peer.name.toLowerCase());
+    if (castMember) return { who: 'cast', castId: castMember.id };
+    const member = members().find(m => m.name.toLowerCase() === peer.name.toLowerCase());
+    return member ? { who: 'char', avatar: member.avatar } : null;
+}
+// Friends, dating, taller and the rest used to sit on each person's own sheet with no say over who they
+// were about. They now belong to a pairing, so older saves move them to the person they used to mean.
+function movePairFacts(state, targetKey, knowledgeMaps = []) {
+    if (!state?.moods) return state;
+    const moved = PAIR_FACT_IDS.filter(id => state.moods[id] > 0);
+    if (moved.length) {
+        state.relationships ??= [];
+        const want = resolveRelationName(targetKey).toLowerCase();
+        let relation = state.relationships.find(r => resolveRelationName(r.target).toLowerCase() === want);
+        if (!relation) { relation = cloneRelationships([{ id: newCastId(), target: targetKey }])[0]; state.relationships.push(relation); }
+        for (const id of moved) {
+            relation.moods[id] = Math.max(relation.moods[id] ?? 0, state.moods[id]);
+            for (const map of knowledgeMaps) if (map?.[id]) { map[relationshipKey(relation, id)] = map[id]; delete map[id]; }
+        }
+    }
+    for (const id of PAIR_FACT_IDS) { state.moods[id] = 0; if (state.pins) state.pins[id] = false; }
+    return state;
+}
 const subjectName = () => who === 'user' ? playerName() : who === 'cast' ? selectedCast()?.name : target()?.name;
 const resolveRelationName = name => castName(name).replaceAll('{{char}}', target()?.name ?? '').replaceAll('{{user}}', playerName());
 function validRelationName(value, exceptId = '') {
@@ -70,7 +120,7 @@ function getState(ch = target()) {
     c.chatMetadata[KEY] ??= { version: 1, characters: {} };
     const key = `char:${ch.avatar}`;
     const state = c.chatMetadata[KEY].characters[key] ??= freshState(settings().baselines[key]);
-    return extendCatalogue(state);
+    return movePairFacts(extendCatalogue(state), '{{user}}');
 }
 // The player's own character is shared by every character in the chat, so it lives once per chat.
 const playerName = () => String(ctx().name1 || '').trim() || 'You';
@@ -82,7 +132,7 @@ function getUserState() {
     // Knowledge must move with the old values before retired persona IDs are removed.
     const meta = c.chatMetadata[KEY];
     migrateCatalogue(meta.user, Object.values(meta.personaKnowledge ?? {}));
-    const state = extendCatalogue(meta.user);
+    const state = movePairFacts(extendCatalogue(meta.user), '{{char}}', Object.values(meta.personaKnowledge ?? {}));
     state.mode = 'manual';
     return state;
 }
@@ -128,7 +178,9 @@ function knowledgePanel(state, ch) {
 function getCast(ch = target()) {
     if (!ch || !ctx().chatId) return [];
     getState(ch);
-    return castFor(ctx().chatMetadata[KEY], settings().castDefaults, `char:${ch.avatar}`);
+    const cast = castFor(ctx().chatMetadata[KEY], settings().castDefaults, `char:${ch.avatar}`);
+    for (const person of cast) movePairFacts(person.state, '{{user}}');
+    return cast;
 }
 const selectedCast = () => getCast().find(person => person.id === selectedCastId) ?? getCast()[0];
 function saveCastDefault(ch = target()) {
@@ -252,17 +304,6 @@ function targetFields(m, state) {
         : m.id === 'comparing_people' ? [['compareA', 'Compare', 'Someone in the scene'], ['compareB', 'With', '{{user}}']] : [];
     return fields.length ? `<div class="mw-target-fields">${fields.map(([key, label, placeholder]) => `<label>${label}<input type="text" data-target="${key}" maxlength="80" list="${key === 'hate' ? 'mw-hate-names' : 'mw-cast-names'}" placeholder="${esc(placeholder)}" value="${esc(state.targets?.[key] ?? '')}"></label>`).join('')}</div>` : '';
 }
-function castPanel(ch) {
-    const cast = getCast(ch), person = selectedCast();
-    return `<div class="mw-cast"><p class="mw-fine">Supporting characters in ${esc(ch.name)}’s chats. Give each their own blend, then switch “In this scene” off when they leave. Manual controls; no extra model requests.</p>
-        <div class="mw-cast-add"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Add someone, e.g. Chloe"><button data-action="cast-add">＋ Add</button></div>
-        ${person ? `<label class="mw-cast-picker">Edit character<select data-field="cast">${cast.map(p => `<option value="${esc(p.id)}" ${p.id === person.id ? 'selected' : ''}>${esc(p.name)}${p.inScene ? ' · in scene' : ' · off scene'}</option>`).join('')}</select></label>
-        <div class="mw-cast-presence"><label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In this scene</label><span class="mw-fine">${cast.filter(p => p.inScene && p.state.enabled).length} present</span></div>
-        <details class="mw-cast-edit"><summary>Rename or remove ${esc(person.name)}</summary><div class="mw-cast-add"><input type="text" data-field="castName" maxlength="80" aria-label="Supporting character name" value="${esc(person.name)}"><button data-action="cast-remove">Remove</button></div></details>` : '<p class="mw-fine">Add a name to start. Their moods and facts will appear below.</p>'}
-        <div class="mw-actions"><button data-action="cast-default">Save cast for ${esc(ch.name)}</button>${settings().castDefaults[`char:${ch.avatar}`]?.length ? '<button data-action="cast-load">Load saved cast</button>' : ''}</div>
-        ${castAction ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${castAction}-confirm">${castAction === 'load' ? 'Replace this chat’s cast' : 'Remove from this chat'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}
-        <p class="mw-fine">Saves all these profiles for new ${esc(ch.name)} chats. Existing chats keep their own versions; new chats start with everyone off scene.</p></div>`;
-}
 function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
@@ -272,6 +313,46 @@ function row(m, state) {
         <input id="mw-${m.id}" type="range" min="0" max="100" step="1" value="${value}" data-slider="${m.id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
         <small>${m.cue}</small>${targetFields(m, state)}</div>`;
 }
+function dynamicBlock(state, mine, allProfiles) {
+    return !mine && state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
+        <p class="mw-fine">Uses the actual model shown in brackets. Sends recent chat text and a short character excerpt to that profile. Your roleplay connection stays selected. One extra request per scene read; provider charges apply.</p>
+        <div class="mw-actions"><button data-action="analyse" ${pending || !state.profile || !state.enabled ? 'disabled' : ''}>✧ Read scene now</button>${pending ? '<button data-action="cancel">Stop</button>' : ''}<button data-action="undo" ${!state.history?.length ? 'disabled' : ''}>Undo last read</button></div>
+        <details class="mw-tuning"><summary>Emotional rhythm</summary><label>Sensitivity <output>${state.sensitivity}%</output><input aria-label="Sensitivity" type="range" min="10" max="100" value="${state.sensitivity}" data-field="sensitivity"></label>
+        <label>Inertia <output>${state.inertia}%</output><input aria-label="Inertia" type="range" min="0" max="95" value="${state.inertia}" data-field="inertia"></label>
+        <p class="mw-fine">Higher sensitivity allows stronger reactions. Higher inertia makes changes slower. Mood carryover advances on successful scene reads, not real-world time.</p>
+        <label>Fade absent moods toward zero by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> points per read, before inertia</label>
+        <label>Read every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> new user turns</label></details></div>` : '';
+}
+function peopleBar(ch) {
+    const cast = getCast(ch);
+    const chip = (attrs, pressed, icon, name, extra = '') => `<button class="mw-person ${extra}" ${attrs} aria-pressed="${pressed}"><span class="mw-avatar">${icon}</span><span>${esc(name)}</span></button>`;
+    return `<div class="mw-people" role="group" aria-label="Whose settings">
+        ${chip('data-who="char"', who === 'char', esc(String(ch.name).trim()[0] ?? '◆').toUpperCase(), ch.name, 'is-main')}
+        ${chip('data-who="user"', who === 'user', esc(playerName().trim()[0] ?? '◇').toUpperCase(), playerName(), 'is-you')}
+        ${cast.map(p => chip(`data-who="cast" data-cast-id="${esc(p.id)}"`, who === 'cast' && selectedCast()?.id === p.id, esc(p.name.trim()[0]?.toUpperCase() ?? '♧'), p.name, p.inScene ? '' : 'is-away')).join('')}
+        <button class="mw-person mw-person-add" data-action="cast-new" aria-pressed="${castAction === 'adding'}" title="Add a supporting character"><span class="mw-avatar">＋</span><span>Cast</span></button>
+        ${chip('data-who="story"', who === 'story', '❖', 'Story', 'is-story')}
+    </div>
+    ${castAction === 'adding' ? `<div class="mw-cast-add mw-new-cast"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Name, e.g. Chloe"><button data-action="cast-add">Add to cast</button></div>` : ''}`;
+}
+function personCard(ch, state) {
+    const person = who === 'cast' ? selectedCast() : null;
+    const name = who === 'story' ? 'The story' : subjectName();
+    const role = who === 'char' ? 'Main character' : who === 'user' ? 'Your character · you write them' : who === 'story' ? 'Genre, tropes and style for this whole chat' : `Supporting character · ${person?.inScene ? 'in this scene' : 'off scene'}`;
+    const top = activeMoods(state).find(m => m.kind === 'mood');
+    const feeling = who === 'story' ? '' : top ? `<span class="mw-feeling" style="--mw-accent:${top.color}">Feeling <b>${esc(tagLabel(top).toLowerCase())}</b> · ${level(state.moods[top.id]).toLowerCase()}</span>` : '<span class="mw-feeling">No moodlets yet</span>';
+    return `<div class="mw-person-card">
+        <span class="mw-avatar mw-avatar-lg">${who === 'story' ? '❖' : esc(String(name).trim()[0]?.toUpperCase() ?? '?')}</span>
+        <div class="mw-person-info"><b>${esc(name)}</b><small>${esc(role)}</small>${feeling}</div>
+        <div class="mw-person-toggles"><label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'On' : 'Send'}</label>
+        ${person ? `<label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In scene</label>` : ''}</div>
+    </div>
+    ${person ? `<details class="mw-cast-edit mw-manage"><summary>Manage ${esc(person.name)} and the cast</summary>
+        <div class="mw-cast-add"><input type="text" data-field="castName" maxlength="80" aria-label="Supporting character name" value="${esc(person.name)}"><button data-action="cast-remove">Remove</button></div>
+        <div class="mw-actions"><button data-action="cast-default">Save cast for ${esc(ch.name)}</button>${settings().castDefaults[`char:${ch.avatar}`]?.length ? '<button data-action="cast-load">Load saved cast</button>' : ''}</div>
+        <p class="mw-fine">The cast belongs to ${esc(ch.name)}’s chats. Saving it gives new ${esc(ch.name)} chats the same people, starting off scene. Rename by editing the name; relationships follow.</p></details>` : ''}
+    ${castAction && castAction !== 'adding' ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${castAction}-confirm">${castAction === 'load' ? 'Load saved cast' : 'Remove'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}`;
+}
 function render() {
     if (!panel) return;
     const scroll = panel.scrollTop;
@@ -279,46 +360,44 @@ function render() {
     const tuningOpen = panel.querySelector('.mw-tuning')?.open;
     const inspectorOpen = panel.querySelector('.mw-inspector')?.open;
     const knowledgeOpen = panel.querySelector('.mw-knowledge')?.open;
-    const relationshipsOpen = panel.querySelector('.mw-relationships')?.open;
+    const manageOpen = panel.querySelector('.mw-manage')?.open;
     const relationSearch = panel.querySelector('[data-relation-search]')?.value ?? '';
     panel.querySelectorAll('[data-relation-group]').forEach(d => d.open ? openRelationGroups.add(d.dataset.relationGroup) : openRelationGroups.delete(d.dataset.relationGroup));
     panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
     const ch = target(), charState = getState(ch), allProfiles = profiles();
+    if (who === 'cast' && !selectedCast()) who = 'char';
     const state = charState ? viewState() : null, mine = who !== 'char';
-    if (tab === 'story') tab = 'mood';
+    if (who === 'story') tab = 'mood';
+    const kind = who === 'story' ? 'story' : tab === 'state' ? 'state' : 'mood';
     const active = state ? activeMoods(state) : [];
+    const shown = active.filter(m => m.kind === kind && m.category !== 'relationship');
     const relationshipCount = (state?.relationships ?? []).filter(r => r.enabled !== false).reduce((n, r) => n + activeRelationshipTags(r).length, 0);
+    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length };
+    const peer = state && who !== 'story' ? currentPeer() : null;
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
-    <div class="mw-context"><label>Character<select data-field="character" aria-label="Character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
-        ${state ? `<label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'Enabled' : 'Send'}</label>` : ''}</div>
-    <div class="mw-mode mw-who" role="group" aria-label="Whose tags">${[['char', '◆', ch.name], ['user', '◇', playerName()], ['cast', '♧', 'Cast'], ['story', '❖', 'Story']].map(([k, icon, label]) => `<button data-who="${k}" aria-pressed="${who === k}">${icon} ${esc(label)}</button>`).join('')}</div>
-    <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
-    ${who === 'user' ? `<p class="mw-explainer">Your sliders describe ${esc(playerName())} in this chat. Strength and what another character knows are separate; set their knowledge below. You still write your own words, actions and thoughts.</p>` : who === 'cast' ? castPanel(ch) : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
-    <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
-    ${state ? `${who !== 'story' ? relationshipPanel(state, { subject: subjectName(), focus: ch.name, player: playerName(), names: [...new Set([playerName(), ...members().map(c => c.name), ...getCast(ch).map(p => p.name)])], selectedId: selectedRelationId, knowledge: getKnowledge(ch), isPlayer: who === 'user', remove: removingRelation, openGroups: openRelationGroups }) : ''}<div class="mw-summary"><div class="mw-section-label">${active.length || relationshipCount ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length + relationshipCount} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
-        <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${relationshipCount ? 'Relationship feelings are set above.' : 'No mood directions yet. Start with a blend or move a slider.'}</p>`}</div>
+    ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
+    ${peopleBar(ch)}
+    ${state ? `${personCard(ch, state)}
+    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts']].map(([k, icon, label]) =>
+        `<button role="tab" data-tab="${k}" aria-pressed="${tab === k}">${icon} ${label}${counts[k] ? ` <small>${counts[k]}</small>` : ''}</button>`).join('')}</div>`}
+    ${tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
+    <div class="mw-summary"><div class="mw-section-label">${shown.length ? (kind === 'mood' ? 'ACTIVE MOODLETS' : kind === 'state' ? 'NEEDS & FACTS' : 'THE STORY SO FAR') : 'A CLEAN SLATE'}<span>${shown.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
+        <div class="mw-chips">${shown.length ? shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
-        ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
-    ${who === 'user' ? knowledgePanel(state, ch) : ''}
-    ${!mine && state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
-        <p class="mw-fine">Uses the actual model shown in brackets. Sends recent chat text and a short character excerpt to that profile. Your roleplay connection stays selected. One extra request per scene read; provider charges apply.</p>
-        <div class="mw-actions"><button data-action="analyse" ${pending || !state.profile || !state.enabled ? 'disabled' : ''}>✧ Read scene now</button>${pending ? '<button data-action="cancel">Stop</button>' : ''}<button data-action="undo" ${!state.history?.length ? 'disabled' : ''}>Undo last read</button></div>
-        <details class="mw-tuning"><summary>Emotional rhythm</summary><label>Sensitivity <output>${state.sensitivity}%</output><input aria-label="Sensitivity" type="range" min="10" max="100" value="${state.sensitivity}" data-field="sensitivity"></label>
-        <label>Inertia <output>${state.inertia}%</output><input aria-label="Inertia" type="range" min="0" max="95" value="${state.inertia}" data-field="inertia"></label>
-        <p class="mw-fine">Higher sensitivity allows stronger reactions. Higher inertia makes changes slower. Mood carryover advances on successful scene reads, not real-world time.</p>
-        <label>Fade absent moods toward zero by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> points per read, before inertia</label>
-        <label>Read every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> new user turns</label></details></div>` : ''}
-    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="group" aria-label="Section">${[['mood', '♡ Moods & traits'], ['state', '⌂ Facts & scene']].map(([k, label]) => {
-        const n = active.filter(m => m.kind === k).length;
-        return `<button data-tab="${k}" aria-pressed="${tab === k}">${label}${n ? ` · ${n}` : ''}</button>`; }).join('')}</div>`}
-    <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search moods and states" value="${esc(search)}"><select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Add a starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select></div>
+        ${kind === 'mood' && state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
+    ${kind === 'mood' && who === 'char' ? `<div class="mw-mode mw-small" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ Dynamic</button></div>
+    <p class="mw-explainer">${state.mode === 'manual' ? 'You set the feeling. Mix as many as you like.' : 'The scene shapes the feeling. Pin anything you want to keep exactly as it is.'}</p>` : ''}
+    ${kind === 'mood' && who === 'user' ? `<p class="mw-explainer">How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.</p>${knowledgePanel(state, ch)}` : ''}
+    ${kind === 'mood' ? dynamicBlock(state, mine, allProfiles) : ''}
+    <div class="mw-tools"><input class="mw-search" type="search" placeholder="Search…" aria-label="Search" value="${esc(search)}">${kind === 'mood' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">＋ Starter blend</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select>` : ''}</div>
     <div class="mw-scale"><span>Off</span>${[...TIERS].reverse().map(t => `<span>${t.name}</span>`).join('')}</div>
     <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
-    <datalist id="mw-hate-names">${getCast(ch).filter(p => who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist><div class="mw-categories">${CATEGORIES.map(([id, name, icon, color, , kind = 'mood']) => {
+    <datalist id="mw-hate-names">${getCast(ch).filter(p => who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist>
+    <div class="mw-categories">${CATEGORIES.filter(([id, , , , , k = 'mood']) => k === kind && id !== 'relationship').map(([id, name, icon, color, , k = 'mood']) => {
         const list = MOODS.filter(m => m.category === id && (state.moods[m.id] > 0 || !(who === 'char' && m.id === 'hates_char' || who === 'user' && m.id === 'hates_user'))), n = list.filter(m => state.moods[m.id]).length;
-        return `<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
-    }).join('')}</div><p class="mw-no-results" hidden>Nothing matches.</p>
+        return `<details data-category="${id}" data-kind="${k}" style="--mw-accent:${color}" ${openCategories.has(id) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+    }).join('')}</div><p class="mw-no-results" hidden>Nothing matches.</p>`}
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
         <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
         <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
@@ -337,12 +416,12 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.11.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.12.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    if (manageOpen && panel.querySelector('.mw-manage')) panel.querySelector('.mw-manage').open = true;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
     if (knowledgeOpen && panel.querySelector('.mw-knowledge')) panel.querySelector('.mw-knowledge').open = true;
-    if (relationshipsOpen && panel.querySelector('.mw-relationships')) panel.querySelector('.mw-relationships').open = true;
     if (panel.querySelector('[data-relation-search]')) { panel.querySelector('[data-relation-search]').value = relationSearch; filterRelationships(relationSearch); }
     filterRows(); renderPreview(); panel.scrollTop = scroll; toggleTop();
 }
@@ -424,10 +503,10 @@ function setup() {
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
-        if (input.hasAttribute('data-relation-select')) { selectedRelationId = input.value; removingRelation = false; render(); return; }
         if (input.hasAttribute('data-relation-enabled')) { const relation = selectedRelation(); if (relation) await changeState(() => { relation.enabled = input.checked; }); return; }
         if (input.dataset.relSlider && RELATIONSHIP_BY_ID[input.dataset.relSlider]) {
-            const relation = selectedRelation(); if (relation) await changeState(() => { relation.moods[input.dataset.relSlider] = Number(input.value); }); return;
+            const peer = currentPeer(); if (!peer) return;
+            await changeState(() => { ensureRelation(peer).moods[input.dataset.relSlider] = Number(input.value); }); return;
         }
         if (input.dataset.relKnowledge && who === 'user' && RELATIONSHIP_BY_ID[input.dataset.relKnowledge]) {
             const relation = selectedRelation(); if (!relation) return;
@@ -449,8 +528,8 @@ function setup() {
         }
         if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
         const field = input.dataset.field;
-        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); await syncPrompt(); return; }
-        if (field === 'cast') { selectedCastId = input.value; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
+        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); await syncPrompt(); return; }
+        if (field === 'cast') { selectedCastId = input.value; selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
         if (field === 'castInScene') {
             const person = selectedCast(); if (!person) return;
             person.inScene = input.checked; await persist(); await syncPrompt(); render(); return;
@@ -481,30 +560,41 @@ function setup() {
     });
     panel.addEventListener('click', async e => {
         const button = e.target.closest('button'); if (!button) return;
-        if (button.dataset.who) { who = button.dataset.who; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
-        if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
-        if (button.dataset.tab) {
-            tab = button.dataset.tab;
-            panel.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab)));
-            filterRows(); return;
+        if (button.dataset.who) {
+            who = button.dataset.who; if (button.dataset.castId) selectedCastId = button.dataset.castId;
+            selectedPeer = ''; removingRelation = false; castAction = ''; status = ''; render(); return;
         }
+        if (button.dataset.peer !== undefined) { selectedPeer = button.dataset.peer; removingRelation = false; render(); return; }
+        if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
+        if (button.dataset.tab) { tab = button.dataset.tab; search = ''; removingRelation = false; render(); return; }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
-            search = ''; panel.querySelector('.mw-search').value = ''; tab = BY_ID[button.dataset.jump]?.kind ?? tab;
-            panel.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab))); filterRows();
+            search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
             category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
         switch (button.dataset.action) {
             case 'relation-add': {
                 try {
-                    const name = validRelationName(panel.querySelector('[data-relation-new]').value);
+                    const typed = castName(panel.querySelector('[data-relation-new]').value);
+                    const existing = peers().find(p => p.name.toLowerCase() === resolveRelationName(typed).toLowerCase());
+                    if (existing) { selectedPeer = existing.key; removingRelation = false; status = ''; render(); break; }
+                    const name = validRelationName(typed);
                     const relation = cloneRelationships([{ id: newCastId(), target: name }])[0];
-                    relationshipList().push(relation); selectedRelationId = relation.id; removingRelation = false; status = '';
+                    relationshipList().push(relation); selectedPeer = name; removingRelation = false; status = '';
                     await persist(viewState()); await syncPrompt(); render();
                 } catch (error) { status = error.message; renderStatus(); }
                 break;
             }
+            case 'rel-swap': {
+                const peer = currentPeer(), next = peer && swapTarget(peer); if (!next) break;
+                const fromKey = who === 'char' ? (members().length > 1 ? target().name : '{{char}}') : who === 'user' ? '{{user}}' : selectedCast()?.name;
+                if (next.avatar) selectedAvatar = next.avatar;
+                if (next.castId) selectedCastId = next.castId;
+                who = next.who; selectedPeer = fromKey ?? ''; removingRelation = false; tab = 'rel';
+                render(); await syncPrompt(); break;
+            }
+            case 'cast-new': castAction = castAction === 'adding' ? '' : 'adding'; render(); panel.querySelector('[data-cast-new]')?.focus(); break;
             case 'relation-rename': {
                 try {
                     const relation = selectedRelation(); if (!relation) break;
@@ -518,13 +608,13 @@ function setup() {
             case 'relation-remove-confirm': {
                 const relation = selectedRelation(); if (!relation) break;
                 const list = relationshipList(); list.splice(list.indexOf(relation), 1);
-                selectedRelationId = ''; removingRelation = false;
+                removingRelation = false;
                 await persist(viewState()); await syncPrompt(); render(); break;
             }
             case 'cast-add': {
                 try {
                     const person = addCastMember(getCast(), panel.querySelector('[data-cast-new]').value, newCastId(), [playerName(), ...members().map(ch => ch.name)]);
-                    selectedCastId = person.id; castAction = ''; status = `${person.name} added to this chat’s cast.`;
+                    selectedCastId = person.id; who = 'cast'; selectedPeer = ''; castAction = ''; status = `${person.name} added to this chat’s cast.`;
                     await persist(); await syncPrompt(); render();
                 } catch (error) { status = error.message; renderStatus(); }
                 break;
@@ -569,7 +659,7 @@ function setup() {
     });
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
-        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; selectedRelationId = ''; removingRelation = false; castAction = ''; status = '';
+        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; selectedPeer = ''; removingRelation = false; castAction = ''; status = '';
         ++promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         render(); void syncPrompt();
     });

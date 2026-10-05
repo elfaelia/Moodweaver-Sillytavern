@@ -1,6 +1,8 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
+import { RELATIONSHIP_BY_ID, activeRelationshipTags, cloneRelationships, relationshipKey } from './relationships.js';
+import { relationshipPanel } from './relationship-ui.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -10,6 +12,19 @@ let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = 
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
 const openCategories = new Set();
+let selectedRelationId = '', removingRelation = false;
+const openRelationGroups = new Set(['First impressions']);
+const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
+const selectedRelation = () => relationshipList().find(r => r.id === selectedRelationId) ?? relationshipList()[0];
+const subjectName = () => who === 'user' ? playerName() : who === 'cast' ? selectedCast()?.name : target()?.name;
+const resolveRelationName = name => castName(name).replaceAll('{{char}}', target()?.name ?? '').replaceAll('{{user}}', playerName());
+function validRelationName(value, exceptId = '') {
+    const name = castName(value), resolved = resolveRelationName(name).toLowerCase();
+    if (!name) throw new Error('Choose who this relationship is about.');
+    if (resolved === subjectName()?.toLowerCase()) throw new Error('Choose someone other than the person whose feelings you’re editing.');
+    if (relationshipList().some(r => r.id !== exceptId && resolveRelationName(r.target).toLowerCase() === resolved)) throw new Error('That person already has a relationship blend here. Pick them from the list.');
+    return name;
+}
 
 function settings() {
     const c = ctx();
@@ -166,7 +181,7 @@ function renderPreview() {
     const preview = panel.querySelector('[data-preview]');
     if (preview) preview.textContent = promptInfo.prompt || 'No mood directions are being sent.';
     const audit = panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every active mood, fact and story setting is sent, using the same strength words shown on the sliders. Numbers are not sent.\nFormat: user role · depth ${settings().depth}${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target; nothing was dropped or shortened.` : ''}`;
+    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: user role · depth ${settings().depth}${promptInfo.overBudget ? `\n${promptInfo.overBudget} tokens above the ${promptInfo.target}-token target; nothing was dropped or shortened.` : ''}`;
     const last = panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
@@ -264,11 +279,15 @@ function render() {
     const tuningOpen = panel.querySelector('.mw-tuning')?.open;
     const inspectorOpen = panel.querySelector('.mw-inspector')?.open;
     const knowledgeOpen = panel.querySelector('.mw-knowledge')?.open;
+    const relationshipsOpen = panel.querySelector('.mw-relationships')?.open;
+    const relationSearch = panel.querySelector('[data-relation-search]')?.value ?? '';
+    panel.querySelectorAll('[data-relation-group]').forEach(d => d.open ? openRelationGroups.add(d.dataset.relationGroup) : openRelationGroups.delete(d.dataset.relationGroup));
     panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
     const ch = target(), charState = getState(ch), allProfiles = profiles();
     const state = charState ? viewState() : null, mine = who !== 'char';
     if (tab === 'story') tab = 'mood';
     const active = state ? activeMoods(state) : [];
+    const relationshipCount = (state?.relationships ?? []).filter(r => r.enabled !== false).reduce((n, r) => n + activeRelationshipTags(r).length, 0);
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     <div class="mw-context"><label>Character<select data-field="character" aria-label="Character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>
@@ -277,8 +296,8 @@ function render() {
     <div class="mw-chat-name" title="${esc(ctx().chatId)}">This chat · ${esc(ctx().chatId)}</div>
     ${who === 'user' ? `<p class="mw-explainer">Your sliders describe ${esc(playerName())} in this chat. Strength and what another character knows are separate; set their knowledge below. You still write your own words, actions and thoughts.</p>` : who === 'cast' ? castPanel(ch) : who === 'story' ? '<p class="mw-explainer">Genre, tropes, writing style and author influences for this whole chat.</p>' : `<div class="mw-mode" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ &nbsp; Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ &nbsp; Dynamic</button></div>
     <p class="mw-explainer">${state.mode === 'manual' ? 'Set the feeling. Mix as many shades as you like.' : 'The scene shapes the feeling. Pin any mood to keep your say. Facts and story settings stay as you set them.'}</p>`}
-    ${state ? `<div class="mw-summary"><div class="mw-section-label">${active.length ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length} active${active.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
-        <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : '<p>No mood directions yet. Start with a blend or move a slider.</p>'}</div>
+    ${state ? `${who !== 'story' ? relationshipPanel(state, { subject: subjectName(), focus: ch.name, player: playerName(), names: [...new Set([playerName(), ...members().map(c => c.name), ...getCast(ch).map(p => p.name)])], selectedId: selectedRelationId, knowledge: getKnowledge(ch), isPlayer: who === 'user', remove: removingRelation, openGroups: openRelationGroups }) : ''}<div class="mw-summary"><div class="mw-section-label">${active.length || relationshipCount ? 'THE CURRENT BLEND' : 'A CLEAN SLATE'}<span>${active.length + relationshipCount} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off, pins too">Clear all</button>` : ''}</span></div>
+        <div class="mw-chips">${active.length ? active.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${m.label}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${relationshipCount ? 'Relationship feelings are set above.' : 'No mood directions yet. Start with a blend or move a slider.'}</p>`}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${who === 'user' ? knowledgePanel(state, ch) : ''}
@@ -318,14 +337,24 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.10.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.11.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
     if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
     if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
     if (knowledgeOpen && panel.querySelector('.mw-knowledge')) panel.querySelector('.mw-knowledge').open = true;
+    if (relationshipsOpen && panel.querySelector('.mw-relationships')) panel.querySelector('.mw-relationships').open = true;
+    if (panel.querySelector('[data-relation-search]')) { panel.querySelector('[data-relation-search]').value = relationSearch; filterRelationships(relationSearch); }
     filterRows(); renderPreview(); panel.scrollTop = scroll; toggleTop();
 }
 function toggleTop() { const b = panel?.querySelector('.mw-to-top'); if (b) b.hidden = panel.scrollTop < 500; }
+function filterRelationships(value) {
+    const term = value.trim().toLowerCase();
+    panel.querySelectorAll('[data-relation-group]').forEach(group => {
+        let visible = 0;
+        group.querySelectorAll('[data-relation-row]').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) visible++; });
+        group.hidden = !visible; group.open = term ? visible > 0 : openRelationGroups.has(group.dataset.relationGroup);
+    });
+}
 function filterRows() {
     const term = search.trim().toLowerCase();
     let shown = 0;
@@ -363,6 +392,15 @@ function setup() {
     }
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
+        if (e.target.hasAttribute('data-relation-search')) {
+            filterRelationships(e.target.value); return;
+        }
+        if (e.target.dataset.relSlider) {
+            const id = e.target.dataset.relSlider, value = Number(e.target.value);
+            panel.querySelector(`[data-rel-value="${id}"]`).textContent = `${value}%`;
+            panel.querySelector(`[data-rel-level="${id}"]`).textContent = level(value);
+            e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`); return;
+        }
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
         if (['hate', 'compareA', 'compareB'].includes(e.target.dataset.target)) {
             const state = viewState(); if (!state) return;
@@ -386,6 +424,17 @@ function setup() {
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
+        if (input.hasAttribute('data-relation-select')) { selectedRelationId = input.value; removingRelation = false; render(); return; }
+        if (input.hasAttribute('data-relation-enabled')) { const relation = selectedRelation(); if (relation) await changeState(() => { relation.enabled = input.checked; }); return; }
+        if (input.dataset.relSlider && RELATIONSHIP_BY_ID[input.dataset.relSlider]) {
+            const relation = selectedRelation(); if (relation) await changeState(() => { relation.moods[input.dataset.relSlider] = Number(input.value); }); return;
+        }
+        if (input.dataset.relKnowledge && who === 'user' && RELATIONSHIP_BY_ID[input.dataset.relKnowledge]) {
+            const relation = selectedRelation(); if (!relation) return;
+            const knowledge = getKnowledge(target(), true), key = relationshipKey(relation, input.dataset.relKnowledge);
+            if (input.value === 'scene') delete knowledge[key]; else knowledge[key] = knowledgeEntry({ ...knowledge[key], mode: input.value });
+            await persist(); await syncPrompt(); render(); return;
+        }
         if (input.dataset.target) return;
         const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
         if (knowledgeId && who === 'user' && BY_ID[knowledgeId]?.kind !== 'story' && BY_ID[knowledgeId]) {
@@ -400,8 +449,8 @@ function setup() {
         }
         if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
         const field = input.dataset.field;
-        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; castAction = ''; status = ''; render(); await syncPrompt(); return; }
-        if (field === 'cast') { selectedCastId = input.value; castAction = ''; status = ''; render(); return; }
+        if (field === 'character') { selectedAvatar = input.value; selectedCastId = ''; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); await syncPrompt(); return; }
+        if (field === 'cast') { selectedCastId = input.value; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
         if (field === 'castInScene') {
             const person = selectedCast(); if (!person) return;
             person.inScene = input.checked; await persist(); await syncPrompt(); render(); return;
@@ -416,6 +465,7 @@ function setup() {
             const old = person.name; person.name = name;
             for (const s of [getState(), getUserState(), ...getCast().map(p => p.state)]) {
                 for (const key of ['hate', 'compareA', 'compareB']) if (s?.targets?.[key] === old) s.targets[key] = name;
+                for (const relation of s?.relationships ?? []) if (relation.target.toLowerCase() === old.toLowerCase()) relation.target = name;
             }
             await persist(); await syncPrompt(); render(); return;
         }
@@ -431,7 +481,7 @@ function setup() {
     });
     panel.addEventListener('click', async e => {
         const button = e.target.closest('button'); if (!button) return;
-        if (button.dataset.who) { who = button.dataset.who; castAction = ''; status = ''; render(); return; }
+        if (button.dataset.who) { who = button.dataset.who; selectedRelationId = ''; removingRelation = false; castAction = ''; status = ''; render(); return; }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
         if (button.dataset.tab) {
             tab = button.dataset.tab;
@@ -446,6 +496,31 @@ function setup() {
             category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
         switch (button.dataset.action) {
+            case 'relation-add': {
+                try {
+                    const name = validRelationName(panel.querySelector('[data-relation-new]').value);
+                    const relation = cloneRelationships([{ id: newCastId(), target: name }])[0];
+                    relationshipList().push(relation); selectedRelationId = relation.id; removingRelation = false; status = '';
+                    await persist(viewState()); await syncPrompt(); render();
+                } catch (error) { status = error.message; renderStatus(); }
+                break;
+            }
+            case 'relation-rename': {
+                try {
+                    const relation = selectedRelation(); if (!relation) break;
+                    relation.target = validRelationName(panel.querySelector('[data-relation-target]').value, relation.id);
+                    await persist(viewState()); await syncPrompt(); render();
+                } catch (error) { status = error.message; renderStatus(); }
+                break;
+            }
+            case 'relation-remove': removingRelation = true; render(); break;
+            case 'relation-cancel': removingRelation = false; render(); break;
+            case 'relation-remove-confirm': {
+                const relation = selectedRelation(); if (!relation) break;
+                const list = relationshipList(); list.splice(list.indexOf(relation), 1);
+                selectedRelationId = ''; removingRelation = false;
+                await persist(viewState()); await syncPrompt(); render(); break;
+            }
             case 'cast-add': {
                 try {
                     const person = addCastMember(getCast(), panel.querySelector('[data-cast-new]').value, newCastId(), [playerName(), ...members().map(ch => ch.name)]);
@@ -476,7 +551,7 @@ function setup() {
             case 'clear': {
                 const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : who === 'cast' ? selectedCast()?.name : target()?.name;
                 if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed.`)) break;
-                await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } s.reason = ''; }); break;
+                await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } for (const r of s.relationships ?? []) for (const key of Object.keys(r.moods)) r.moods[key] = 0; s.reason = ''; }); break;
             }
             case 'reset': await changeState(s => { for (const m of MOODS) if (!s.pins[m.id]) s.moods[m.id] = 0; s.reason = ''; }); break;
             case 'undo': await changeState(s => {
@@ -494,7 +569,7 @@ function setup() {
     });
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
-        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; castAction = ''; status = '';
+        cancelAnalysis(); selectedAvatar = ''; selectedCastId = ''; selectedRelationId = ''; removingRelation = false; castAction = ''; status = '';
         ++promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         render(); void syncPrompt();
     });

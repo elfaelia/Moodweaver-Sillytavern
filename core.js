@@ -1,3 +1,5 @@
+import { cloneRelationships, relationshipSets, relationshipCue, relationshipKey } from './relationships.js';
+
 export const PROSE_STYLES = [
     ['prose_conversational', 'Conversational', 'a natural speaking rhythm, everyday phrasing and easy transitions'],
     ['prose_deadpan', 'Deadpan', 'dry, straight-faced narration that lets absurdity speak for itself'],
@@ -884,6 +886,7 @@ export function freshState(base = {}) {
         moods: Object.fromEntries(MOODS.map(m => [m.id, Math.round(clamp(base.moods?.[m.id] ?? 0))])),
         pins: Object.fromEntries(MOODS.map(m => [m.id, Boolean(base.pins?.[m.id])])),
         targets: cleanTargets(base.targets),
+        relationships: cloneRelationships(base.relationships),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
@@ -1323,9 +1326,10 @@ export function composePrompt(state, name, extras = {}) {
     const theirs = live(player?.state).filter(m => m.kind !== 'story');
     const story = live(storyState).filter(m => m.kind === 'story');
     const cast = liveCast(extras);
-    if (!mine.length && !theirs.length && !story.length && !cast.length) return '';
     const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
+    const relationships = relationshipSets(state, N, extras);
+    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
@@ -1334,7 +1338,8 @@ export function composePrompt(state, name, extras = {}) {
     const deadDoveStrength = storyState?.moods?.dead_dove ?? 0;
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const sets = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets];
-    const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t)));
+    const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t))
+        || relationships.some(({ relation, tags }) => tags.some(m => tierOf(relation.moods[m.id]) === t)));
     const out = [
         `Notes from the player on where things stand right now. They outrank the character card and anything earlier in the chat.`,
         '',
@@ -1363,6 +1368,26 @@ export function composePrompt(state, name, extras = {}) {
         '</supporting_character>');
     if (castSets.length) out.push('',
         `These supporting characters are in this scene. Each keeps their own blend, shaping their speech, choices and visible behaviour at its strength without changing the viewpoint. Each knows only what they could have seen or learned; nobody gains private thoughts or someone else's feelings. The player still writes ${u}. Not everyone needs to speak each turn.`);
+    if (relationships.length) {
+        out.push('', '<relationships>');
+        for (const { name: subject, target, relation, tags, isPlayer } of relationships) {
+            out.push(`${escapeHtml(subject)} → ${escapeHtml(target)}:`);
+            const groups = isPlayer ? KNOWLEDGE_ORDER : [''];
+            for (const mode of groups) {
+                const rows = tags.filter(tag => !isPlayer || knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).mode === mode);
+                if (!rows.length) continue;
+                if (isPlayer) out.push({ known: `Known to ${n}:`, suspected: `Suspected by ${n}:`, scene: 'Scene only:', private: 'Private:' }[mode]);
+                for (const tag of rows) {
+                    const value = relation.moods[tag.id];
+                    const source = isPlayer ? knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).source : '';
+                    out.push(`- ${tierOf(value).name.toLowerCase()}: ${relationshipCue(tag, value)}${source ? ` (source: ${escapeHtml(source)})` : ''}`);
+                }
+            }
+        }
+        out.push('Each arrow runs one way: these are the first person’s feelings toward the second, not objective facts or proof of anything mutual. Mix them with that person’s other settings at their full strengths. Stronger feelings shape attention, choices and treatment more; quieter ones still colour the mix. Keep the viewpoint and established scene. These feelings don’t summon anyone or reveal private thoughts.');
+        if (relationships.some(r => r.isPlayer)) out.push(`${u} stays the player’s to write. Known means ${n} knows this feeling; Suspected means they can act on a hunch without being sure. Scene only uses existing knowledge or visible clues; Private needs clues the player actually gives. Strength changes how much their response engages with it, not how certain they are. Other characters only know what they could have learned.`);
+        out.push('</relationships>');
+    }
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.category === 'attraction')) out.push('',
         `Attraction preferences describe what draws them in or puts them off; don't invent those qualities in the other person.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id))) out.push('', `Differences between ${n} and ${u} in height, size, age and so on get played up as much as their strength says.`);
@@ -1380,7 +1405,7 @@ export function composePrompt(state, name, extras = {}) {
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject })} (${tierOf(st.moods[m.id]).name.toLowerCase()})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     if (top.length) out.push('', `Turned up highest, so make sure these land hard: ${top.join('; ')}.`);
-    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${castSets.length ? 'the person who feels it' : n} instead of picking one. Show it through what ${castSets.length ? 'each person' : n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
+    out.push('', `Weave everything into the same moments rather than giving each setting its own turn. Each keeps its full strength however many are on, so a busy list doesn't water anything down. When two strong ones pull different ways, write both and let the tension sit in ${castSets.length || relationships.length ? 'the person who feels it' : n} instead of picking one. Show it through what ${castSets.length || relationships.length ? 'each person' : n} does, says, thinks and notices rather than by naming it.${state.sceneBreathing !== false ? ` Keep the scene moving while it plays out.` : ''} Never mention these notes.`);
     return `<moodweaver focus_character="${escapeHtml(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
@@ -1389,7 +1414,8 @@ export async function budgetPrompt(state, name, budget, countTokens, extras = {}
     const tokens = prompt ? await countTokens(prompt) : 0;
     // The target is a warning only. Nothing the player set is ever dropped or shortened.
     return { prompt, tokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
-        selectedIds: all.map(m => m.id), omittedIds: [], omitted: 0 };
+        selectedIds: [...all.map(m => m.id), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
+            .flatMap(({ name: subject, relation, tags }) => tags.map(tag => `${subject}:${relationshipKey(relation, tag.id)}`))], omittedIds: [], omitted: 0 };
 }
 export function parseAnalysis(text) {
     const clean = String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');

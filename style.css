@@ -53,6 +53,14 @@
 .mw-to-top{position:sticky;bottom:14px;background:#354237;color:#d4e8cd;border:1px solid #a8cdb140;display:block;margin:-34px 4px 0 auto;width:34px;height:34px;border-radius:50%;padding:0;font-size:16px;line-height:1;opacity:.85;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.35)}.mw-to-top[hidden]{display:none}
 
 .mw-knowledge { margin-bottom: 18px; }
+.mw-relationships{margin:0 24px 18px;padding:14px;border:1px solid #c0acd933;border-radius:12px;background:#c0acd907}
+.mw-relationships>summary{cursor:pointer;font-size:13px;color:var(--mw-text)}.mw-relationships>summary small{display:block;margin:3px 0 0 15px;font-size:10px;color:var(--mw-muted)}
+.mw-panel .mw-relationships input[type=text]{width:100%;min-width:0;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:8px 10px;font-size:12px}
+.mw-relationships .mw-cast-presence{margin-top:10px;flex-wrap:wrap}.mw-relationships .mw-cast-presence button{font-size:10px}
+.mw-relation-groups>details{margin-top:8px;border-top:1px solid var(--mw-line)}.mw-relation-groups>details>summary{display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12px;padding:12px 0;list-style:none}.mw-relation-groups>details>summary::-webkit-details-marker{display:none}.mw-relation-groups>details>summary span{color:var(--mw-accent)}.mw-relation-groups>details>summary small{margin-left:auto;color:var(--mw-muted)}.mw-relation-groups>details>summary:after{content:'+';color:var(--mw-muted)}.mw-relation-groups>details[open]>summary:after{content:'−'}
+.mw-rel-knowledge{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--mw-muted);margin-top:8px}.mw-rel-knowledge select{flex:1;max-width:130px;margin:0;font-size:10px}
+.mw-relationships .mw-row-head label{min-width:0;overflow-wrap:anywhere}.mw-relationships .mw-row-head>span{flex-shrink:0}
+@media(max-width:520px){.mw-relationships{margin-left:18px;margin-right:18px}}
 .mw-cast{margin:0 24px 18px;padding:14px;border:1px solid #a8cdb12b;border-radius:12px;background:#a8cdb105}
 .mw-cast-add{display:flex;gap:8px;margin:10px 0}.mw-cast-add>input{flex:1;min-width:0}.mw-cast-add>button{flex:0 0 auto}
 .mw-panel .mw-cast input[type=text],.mw-panel .mw-target-fields input{width:100%;min-width:0;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:8px 10px;font-size:12px}

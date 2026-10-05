@@ -16,7 +16,9 @@ The extension starts in Manual with no active moods and no analyser profile sele
 
 ## What is included
 
-Version 1.10.0 includes **927 sliders in 44 collapsible categories**, plus a **Cast** tab for supporting characters. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+Version 1.11.0 includes **927 sliders in 44 collapsible categories**, a **Cast** tab for supporting characters, and **41 relationship feelings** that can be set separately toward each person. There are five additive starter blends; these preserve pinned values and leave unrelated moods alone.
+
+Open **Relationships** on the main character, persona or Cast panel. Add someone to create a pairing such as Mark → Chloe, then mix their feelings using four collapsible groups. Each pairing has its own strengths and send switch. Persona relationships also have knowledge choices. See [the relationship guide](RELATIONSHIPS-1.11.0.md). This update was not tested at the owner's request.
 
 Version 1.10.0 adds Doe-eyed, Prissy, Homophobic, One step ahead, One step behind, Comparing people, and three directed hate settings. Choose names underneath an active comparison or supporting-character hate slider. The Cast tab gives supporting characters their own moods and facts, saved per chat and main character, with reusable defaults and an explicit scene-presence switch. See [the cast guide](CAST-1.10.0.md). The [1.9.16 dark-content controls](DARK-CONTENT-1.9.16.md) are also included.
 

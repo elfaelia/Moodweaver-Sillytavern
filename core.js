@@ -1,3 +1,4 @@
+import { TURN_BY_ID, LIKES_TO_TURNS } from './turns.js';
 import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText } from './relationships.js';
 
 export const PROSE_STYLES = [
@@ -188,64 +189,6 @@ export const CATEGORIES = [
         ['bond_fuelled_attraction', 'Attraction through closeness', 'familiarity and emotional closeness feed their attraction'],
         ['banter_fuelled_attraction', 'Attraction through banter', 'gets drawn in by a lively back-and-forth'],
         ['conflicted_attraction', 'Conflicted attraction', 'drawn to someone while disliking things about them'],
-    ]],
-    ['attraction', 'Attraction preferences', '✦', '#d69bbb', [
-        ['likes_older_men', 'Likes older men', 'into older men'], ['likes_younger_men', 'Likes younger men', 'into younger men'],
-        ['likes_older_women', 'Likes older women', 'into older women'], ['likes_younger_women', 'Likes younger women', 'into younger women'],
-        ['hot_for_teacher', 'Hot for teacher', 'into teachers and their authority'],
-        ['likes_masculinity', 'Likes masculinity (in others)', 'drawn to masculinity in others'],
-        ['likes_femininity', 'Likes femininity (in others)', 'drawn to femininity in others'],
-        ['likes_hands', 'Likes hands', 'drawn to other people’s hands'],
-        ['likes_feet', 'Likes feet', 'drawn to other people’s feet'],
-        ['likes_veins', 'Likes veins', 'finds visible veins attractive'],
-        ['likes_eyes', 'Likes eyes', 'drawn to other people’s eyes'],
-        ['likes_smiles', 'Likes smiles', 'finds people’s smiles attractive'],
-        ['likes_lips', 'Likes lips', 'drawn to other people’s lips'],
-        ['likes_long_hair', 'Likes long hair', 'finds long hair attractive'],
-        ['likes_short_hair', 'Likes short hair', 'finds short hair attractive'],
-        ['likes_facial_hair', 'Likes facial hair', 'finds facial hair attractive'],
-        ['likes_body_hair', 'Likes body hair', 'finds body hair attractive'],
-        ['likes_scars', 'Likes scars', 'finds scars attractive'],
-        ['likes_tattoos', 'Likes tattoos', 'finds tattoos attractive'],
-        ['likes_piercings', 'Likes piercings', 'finds piercings attractive'],
-        ['likes_soft_bodies', 'Likes soft bodies', 'drawn to soft bodies'],
-        ['likes_muscular_builds', 'Likes muscular builds', 'drawn to muscular builds'],
-        ['likes_tall_people', 'Likes tall people', 'finds tall people attractive'],
-        ['likes_short_people', 'Likes short people', 'finds short people attractive'],
-        ['likes_deep_voices', 'Likes deep voices', 'finds deep voices attractive'],
-        ['likes_high_voices', 'Likes high voices', 'finds high-pitched voices attractive'],
-        ['likes_raspy_voices', 'Likes raspy voices', 'finds raspy voices attractive'],
-        ['likes_accents', 'Likes accents', 'drawn to distinctive accents'],
-        ['likes_confidence', 'Likes confidence', 'drawn to confidence in others'],
-        ['likes_shyness', 'Likes shyness', 'drawn to shyness in others'],
-        ['likes_kindness', 'Likes kindness', 'drawn to kindness in others'],
-        ['likes_intelligence', 'Likes intelligence', 'drawn to intelligence in others'],
-        ['likes_humour', 'Likes humour', 'drawn to people who make them laugh'],
-        ['drawn_to_innocent_people', 'Drawn to innocent people', 'drawn to innocence in others'],
-        ['drawn_to_evil_people', 'Drawn to evil people', 'drawn to people with a cruel or wicked streak'],
-        ['attracted_to_crying', 'Attracted to crying', 'finds tears and crying attractive'],
-        ['attracted_to_laughing', 'Attracted to laughing', 'finds the sound and sight of laughter attractive'],
-        ['likes_ruggedness', 'Likes ruggedness', 'drawn to rugged looks and a rough-around-the-edges manner'],
-        ['likes_their_smell', 'Likes their smell', 'drawn to {other}’s natural scent'],
-        ['likes_promiscuity', 'Likes promiscuity', 'finds promiscuity appealing in a partner'],
-        ['dislikes_promiscuity', 'Dislikes promiscuity', 'put off by promiscuity in a partner'],
-        ['dislikes_intelligence', 'Dislikes intelligence', 'finds intelligence in others off-putting'],
-        ['likes_shoulders', 'Likes shoulders', 'drawn to other people’s shoulders'],
-        ['likes_backs', 'Likes backs', 'drawn to the shape of other people’s backs'],
-        ['likes_necks', 'Likes necks', 'drawn to other people’s necks'],
-        ['likes_waists', 'Likes waists', 'drawn to the shape of other people’s waists'],
-        ['likes_freckles', 'Likes freckles', 'finds freckles attractive'],
-        ['likes_glasses', 'Likes glasses', 'finds people attractive in glasses'],
-        ['likes_elegance', 'Likes elegance', 'drawn to elegance in how people dress and move'],
-        ['likes_perfume', 'Likes perfume / cologne', 'drawn to the perfume or cologne someone wears'],
-        ['likes_expressive_faces', 'Likes expressive faces', 'drawn to faces that show every passing feeling'],
-        ['likes_composure', 'Likes composure', 'drawn to people who keep their cool'],
-        ['likes_awkwardness', 'Likes awkwardness', 'finds awkward pauses and fumbled words endearing'],
-        ['likes_competence', 'Likes competence', 'drawn to people who know what they’re doing'],
-        ['likes_ambition', 'Likes ambition', 'drawn to people with big plans and the drive to chase them'],
-        ['likes_rebelliousness', 'Likes rebelliousness', 'drawn to people who push back against rules'],
-        ['likes_mystery', 'Likes mystery', 'drawn to people they can’t quite figure out'],
-        ['likes_bluntness', 'Likes bluntness', 'drawn to people who say exactly what they mean'],
     ]],
     ['dynamics', 'Roles & dynamics', '♛', '#d49bc9', [
         ['princess_dominance', 'Princess dominance', 'gets their way with girly charm, playful bossiness and a princessy expectation of being indulged, without taking full control'],
@@ -850,12 +793,26 @@ export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
         for (const map of knowledgeMaps) delete map[id];
     }
     moveToRelationships(state, knowledgeMaps, snapshot);
+    for (const [id, to] of Object.entries(LIKES_TO_TURNS)) {
+        if (BY_ID[id]) continue;
+        const value = clamp(state.moods[id] ?? 0);
+        if (value > 0 && !snapshot) {
+            const turn = to.replace('-', ''), signed = to.startsWith('-') ? -value : value;
+            state.prefs ??= {};
+            if (Math.abs(signed) > Math.abs(state.prefs[turn] ?? 0)) state.prefs[turn] = signed;
+            if (Array.isArray(state.loadout) && !state.loadout.includes(`turn:${turn}`)) state.loadout.push(`turn:${turn}`);
+        }
+        delete state.moods[id]; delete state.pins?.[id];
+        for (const map of knowledgeMaps) delete map[id];
+    }
     for (const old of state.history ?? []) migrateCatalogue(old, [], true);
     return state;
 }
 // Add catalogue entries to old chats in place, preserving their history and settings.
 export function extendCatalogue(state) {
     migrateCatalogue(state);
+    state.causes = cleanCauses(state.causes); state.prefs = cleanPrefs(state.prefs); state.custom = cleanCustom(state.custom);
+    state.loadout = cleanLoadout(state.loadout, state);
     state.sceneBreathing ??= true;
     state.moods ??= {};
     state.pins ??= {};
@@ -869,6 +826,31 @@ export function cleanTargets(targets = {}) {
     return Object.fromEntries(['hate', 'compareA', 'compareB'].map(key => [key,
         String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, 80)]));
 }
+const text = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
+// "because…" notes on individual moods and facts.
+export function cleanCauses(causes = {}) {
+    return Object.fromEntries(Object.entries(causes ?? {}).filter(([id]) => BY_ID[id]).map(([id, v]) => [id, text(v, 100)]).filter(([, v]) => v));
+}
+// Turn-ons are positive, turn-offs negative.
+export function cleanPrefs(prefs = {}) {
+    return Object.fromEntries(Object.entries(prefs ?? {}).filter(([id]) => TURN_BY_ID[id])
+        .map(([id, v]) => [id, Math.max(-100, Math.min(100, Math.round(Number(v) || 0)))]).filter(([, v]) => v));
+}
+// The player's own rows, written in their own words.
+export const CUSTOM_KINDS = ['mood', 'state', 'story'];
+export function cleanCustom(list = []) {
+    return (Array.isArray(list) ? list : []).slice(0, 40).map(row => ({ id: text(row?.id, 40) || Math.random().toString(36).slice(2, 10),
+        kind: CUSTOM_KINDS.includes(row?.kind) ? row.kind : 'mood', text: text(row?.text, 100), value: clamp(Math.round(Number(row?.value) || 0)), cause: text(row?.cause, 100) }))
+        .filter(row => row.text);
+}
+// Which rows this person shows by default. Catalogue ids, plus 'turn:<id>' for turn-ons.
+export function cleanLoadout(list, state) {
+    const valid = id => BY_ID[id] || (id.startsWith('turn:') && TURN_BY_ID[id.slice(5)]);
+    const base = Array.isArray(list) ? list : [
+        ...MOODS.filter(m => (state?.moods?.[m.id] ?? 0) > 0).map(m => m.id),
+        ...Object.keys(state?.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)];
+    return [...new Set(base.map(String).filter(valid))];
+}
 export function freshState(base = {}) {
     base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [],
         relationships: (base.relationships ?? []).map(r => ({ ...r, moods: { ...r.moods } })) });
@@ -878,6 +860,8 @@ export function freshState(base = {}) {
         pins: Object.fromEntries(MOODS.map(m => [m.id, Boolean(base.pins?.[m.id])])),
         targets: cleanTargets(base.targets),
         relationships: cloneRelationships(base.relationships),
+        causes: cleanCauses(base.causes), prefs: cleanPrefs(base.prefs), custom: cleanCustom(base.custom),
+        loadout: cleanLoadout(base.loadout, base),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
@@ -1279,7 +1263,7 @@ function listLines(state, list, other, people = {}) {
     const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
     return groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g)
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
-        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other, state.moods[m.id], state, people)}`)]);
+        .map(m => `- ${tierOf(state.moods[m.id]).name.toLowerCase()}: ${moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}`)]);
 }
 export const KNOWLEDGE_MODES = ['scene', 'private', 'suspected', 'known'];
 export function knowledgeEntry(entry) {
@@ -1298,15 +1282,29 @@ function personaLines(state, list, other, knowledge = {}, subject = 'the player�
     const groups = new Map(KNOWLEDGE_ORDER.map(mode => [mode, []]));
     for (const m of list) {
         const entry = knowledgeEntry(knowledge?.[m.id]);
-        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other, state.moods[m.id], state, people)
+        groups.get(entry.mode).push('- ' + tierOf(state.moods[m.id]).name.toLowerCase() + ': ' + moodName(m, other, state.moods[m.id], state, people) + causeOf(state, m.id)
             + (entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : ''));
     }
     return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
 }
 const live = s => s?.enabled ? activeMoods(s) : [];
+const causeOf = (state, id) => state?.causes?.[id] ? `, because ${escapeHtml(state.causes[id])}` : '';
+// Turn-ons and the player's own rows, for one person. Kinds pick which of their own rows belong here.
+function extraLines(state, kinds = ['mood', 'state'], prefsHeading = 'Turn-ons and turn-offs:') {
+    if (!state?.enabled) return [];
+    const out = [];
+    const prefs = kinds.includes('mood') ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
+    if (prefs.length) out.push(prefsHeading, ...prefs.map(([id, v]) => `- ${tierOf(Math.abs(v)).name.toLowerCase()} turn-${v > 0 ? 'on' : 'off'}: ${escapeHtml(TURN_BY_ID[id].noun)}`));
+    const own = (state.custom ?? []).filter(r => r.value > 0 && kinds.includes(r.kind)).sort((a, b) => b.value - a.value);
+    if (own.length) out.push('Other:', ...own.map(r => `- ${tierOf(r.value).name.toLowerCase()}: ${escapeHtml(r.text)}${r.cause ? `, because ${escapeHtml(r.cause)}` : ''}`));
+    return out;
+}
+const extraValues = (state, kinds = ['mood', 'state']) => !state?.enabled ? [] : [
+    ...(kinds.includes('mood') ? Object.values(state.prefs ?? {}).filter(Boolean).map(Math.abs) : []),
+    ...(state.custom ?? []).filter(r => r.value > 0 && kinds.includes(r.kind)).map(r => r.value)];
 // Off-scene profiles are storage only: no names, traits or tokens leak into the prompt.
 const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filter(person =>
-    person.inScene && String(person.name ?? '').trim() && live(person.state).some(m => m.kind !== 'story'));
+    person.inScene && String(person.name ?? '').trim() && (live(person.state).some(m => m.kind !== 'story') || extraLines(person.state).length));
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
 const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'sir', 'lady', 'lord']);
 const shortName = full => { const first = full.split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? full : first; };
@@ -1320,8 +1318,11 @@ export function composePrompt(state, name, extras = {}) {
     const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
     const relationships = relationshipSets(state, N, extras);
-    const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p) })).filter(p => p.tags.length);
-    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length) return '';
+    const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p), memories: (p.memories ?? []).filter(m => m.value >= 41 && m.text) }))
+        .filter(p => p.tags.length || p.memories.length);
+    const mineExtra = extraLines(state), storyExtra = extraLines(storyState, ['story']);
+    const theirsExtra = extraLines(player?.state, ['mood', 'state'], `${escapeHtml(shortName(String(player?.name ?? '').trim() || 'the player’s character'))}'s turn-ons and turn-offs (picked up from how they react):`);
+    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
@@ -1332,7 +1333,8 @@ export function composePrompt(state, name, extras = {}) {
     const sets = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets];
     const used = TIERS.filter(t => sets.some(([st, list]) => list.some(m => tierOf(st.moods[m.id]) === t))
         || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
-        || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t)));
+        || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
+        || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
     const out = [
         `Notes from the player on where things stand right now. They outrank the character card and anything earlier in the chat.`,
         '',
@@ -1341,8 +1343,8 @@ export function composePrompt(state, name, extras = {}) {
     ];
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, qualities and facts, strength is how pronounced they are and how much weight they get; facts stay as written, and age doesn't decide anyone's personality.`);
-    if (mine.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U, people), `</character_state>`);
-    if (feelings.length) out.push('',
+    if (mine.length || mineExtra.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
+    if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
     );
@@ -1350,13 +1352,13 @@ export function composePrompt(state, name, extras = {}) {
         `Dark character settings are behavioural, not private labels: ${n} makes choices and takes actions that fit them at their listed strengths.`,
         ...(darkActionPeak >= 81 ? [`When murder, abduction, torture or severe violence serves ${n}'s goal and matches the active settings, let ${n} choose it and follow through rather than replacing it with a threat, a sudden conscience or an interrupted attempt.`] : []),
         ...(darkActionPeak === 100 ? [`At maximum, the darkest active trait can decide the reply's central action and leave irreversible harm or death behind.`] : []));
-    if (theirs.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
-        ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), '',
+    if (theirs.length || theirsExtra.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
+        ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra, '',
         `${u} is the player's character: the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on at their strength, through what they notice, say, do and think. If they suspect ${u} is angry, they push or try to work out why; if they think ${u}'s into older men, they play to it. A suspicion can be wrong, but ${n} still acts on it. Private rows stay ${u}'s until the player shows them, knowing a feeling isn't knowing their thoughts, and a source only explains how ${n} knows. ${n} reacts as themselves without taking on ${u}'s feelings. At clear, ${n} picks up on a row at least once; at maximum their reply revolves around it.`,
         `</player_character>`);
     for (const [castState, list, castName] of castSets) out.push('',
         `<supporting_character name="${escapeHtml(castName)}">`,
-        ...listLines(castState, list, U, { ...people, subject: castName }),
+        ...listLines(castState, list, U, { ...people, subject: castName }), ...extraLines(castState),
         '</supporting_character>');
     if (castSets.length) out.push('',
         `These supporting characters are in this scene. Each keeps their own blend, shaping their speech, choices and visible behaviour at its strength without changing the viewpoint. Each knows only what they could have seen or learned; nobody gains private thoughts or someone else's feelings. The player still writes ${u}. Not everyone needs to speak each turn.`);
@@ -1365,6 +1367,8 @@ export function composePrompt(state, name, extras = {}) {
         for (const pair of pairs) {
             out.push(`${escapeHtml(shortName(pair.names[0]))} and ${escapeHtml(shortName(pair.names[1]))}, both ways:`);
             for (const tag of pair.tags) out.push(`- ${tierOf(pair.moods[tag.id]).name.toLowerCase()}: ${escapeHtml(relationshipText(tag, pair.moods[tag.id], ''))}`);
+            if (pair.memories.length) out.push(`What they remember:`, ...[...pair.memories].sort((a, b) => b.value - a.value)
+                .map(m => `- ${tierOf(m.value).name.toLowerCase()}: ${escapeHtml(m.text)}${m.who && m.who !== 'both' ? ` (only ${escapeHtml(shortName(m.who))} remembers this)` : ''}`));
         }
         const heard = { known: `What ${n} knows for sure:`, suspected: `What ${n} suspects:`, scene: `What ${n} can pick up from the scene:`, private: `Private, ${n} doesn't know:` };
         for (const { name: subject, target, relation, tags, isPlayer, compare, note } of relationships) {
@@ -1383,17 +1387,17 @@ export function composePrompt(state, name, extras = {}) {
             if (compare) out.push(`- ${tierOf(compare.value).name.toLowerCase()}: ${escapeHtml(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
             if (note) out.push(`- in ${from}'s own words: “${escapeHtml(note)}”`);
         }
-        out.push('', `"Both ways" lines are true for both. Everything else is one person's side and only runs that way; an opinion is a view, not a fact. Relationships are part of the weave whether or not the other person is here: present, it shows in how they're treated, watched and spoken to; absent, it comes through in thoughts, memories, comparisons, plans, talk or reminders, without bringing them in. Clear surfaces at least once, strong shapes a real choice, and intense or maximum keeps coming back in fresh ways and ties into the main thing that happens.${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} acts on what they know or suspect, and private lines stay hidden until the player shows them.` : ''}`);
+        out.push('', `"Both ways" lines are true for both. Everything else is one person's side and only runs that way; an opinion is a view, not a fact. Relationships are part of the weave whether or not the other person is here: present, it shows in how they're treated, watched and spoken to; absent, it comes through in thoughts, memories, comparisons, plans, talk or reminders, without bringing them in. Clear surfaces at least once, strong shapes a real choice, and intense or maximum keeps coming back in fresh ways and ties into the main thing that happens.${pairs.some(p => p.memories.length) ? ' Memories really happened; they come back at their strength as thoughts, references or how a moment lands.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} acts on what they know or suspect, and private lines stay hidden until the player shows them.` : ''}`);
         out.push('</relationships>');
     }
-    if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.category === 'attraction')) out.push('',
-        `Attraction preferences describe what draws them in or puts them off; don't invent those qualities in the other person.`);
+    if ([state, player?.state, ...cast.map(p => p.state)].some(st => st?.enabled && Object.values(st.prefs ?? {}).some(Boolean))) out.push('',
+        `Turn-ons and turn-offs are what draws someone in or puts them off. When they meet one, let it land at its strength, but don't invent those qualities in anyone.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer')) || pairs.some(p => p.moods.size_difference > 0)) out.push('', `Differences in height, size, age and so on get played up as much as their strength says: noticed, felt and used in the scene.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0,
         ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look beside each other, the lives they've led, what they take for granted and how they read each other${ageGapStrength >= 91 ? `, and at this strength the whole reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back in their exchanges` : ''}. Their other settings decide what they make of it.`);
-    if (story.length) out.push('', 'The story:', ...listLines(storyState, story, U), '',
+    if (story.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, story, U), ...storyExtra, '',
         `Blend these into one story rather than taking turns, with the strongest setting the tone. They shape what concretely happens, its pacing, stakes and consequences, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming story setting is an organising principle for nearly every beat, not a garnish; commit to its conventions instead of retreating into a safer neighbouring genre.` : ''}`,
         ...(darkStoryPeak ? [`Dark story settings change events rather than merely adding grim description.${darkStoryPeak >= 81 ? ` Serious injury, murder, lasting terror and bad outcomes remain live possibilities, and danger is allowed to follow through.` : ''}${darkStoryPeak === 100 ? ` At maximum, build the reply around the harshest active dark setting that fits the established fiction and leave a concrete, irreversible consequence.` : ''}`] : []),
         ...(deadDoveStrength ? [`Dead Dove is an emphasis tag: every other active dark tag is meant literally, exactly as advertised. It never quietly turns murder into a scare, torture into a threat, or cruelty into an excuse for rescue or reform.`] : []));

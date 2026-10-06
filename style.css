@@ -114,3 +114,18 @@
 .mw-compare .mw-mood{border-top:0;padding-bottom:2px}
 .mw-note{display:block;font-size:11px;color:var(--mw-muted);margin:10px 0}.mw-note small{opacity:.7;margin-left:4px}
 .mw-panel .mw-note input{display:block;width:100%;margin-top:5px;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:8px 10px;font-size:12px}
+
+/* 1.14: per-person lists, turn-ons, your own rows, because boxes, memories */
+.mw-panel .mw-list{flex:0 0 auto;width:26px;height:26px;margin-left:4px;padding:0;border-radius:50%;font-size:13px;line-height:1;background:#ffffff08;border:1px solid #ffffff14;color:var(--mw-muted)}
+.mw-panel .mw-list.is-in{background:#354237;border-color:#b5d9a6;color:#d4e8cd}
+.mw-panel .mw-primary{flex:0 0 auto;background:#354237;border:1px solid #a8cdb155;color:#d4e8cd;font-size:12px;padding:8px 12px;border-radius:9px}
+.mw-tools{display:flex;gap:8px;align-items:center}.mw-tools .mw-search{flex:1;min-width:0}
+.mw-panel .mw-cause{display:block;width:100%;margin-top:7px;background:#10131b;color:var(--mw-text);border:1px dashed #ffffff22;border-radius:8px;padding:6px 9px;font-size:11.5px}
+.mw-panel .mw-turn input[type=range]{background:linear-gradient(to right,#343943 var(--mw-from),var(--mw-accent) var(--mw-from),var(--mw-accent) var(--mw-to),#343943 var(--mw-to))}
+.mw-turn-ends{display:flex;justify-content:space-between;margin:-6px 0 2px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#7f8692}
+.mw-custom{margin:16px 24px 6px}.mw-custom .mw-section-label{margin:0 0 6px}.mw-custom .mw-cast-add{margin-top:8px}
+.mw-panel .mw-own-text{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid #ffffff1c;color:var(--mw-text);font-size:13px;padding:2px 0}
+.mw-panel .mw-own select{width:100%;margin-top:4px;background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:8px;padding:6px 8px;font-size:11.5px}
+.mw-empty-list{margin:14px 24px!important;padding:14px;border:1px dashed #ffffff1c;border-radius:12px;text-align:center}
+.mw-pair-tabs button{font-size:10.5px!important;padding:7px 2px!important}
+@media(max-width:520px){.mw-custom{margin-left:18px;margin-right:18px}}

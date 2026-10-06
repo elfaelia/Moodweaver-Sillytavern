@@ -12,7 +12,7 @@ const groupsHtml = (cats, values, openGroups, row) => cats.map(([category, icon,
 }).join('');
 
 // Sims-style list of everyone else, then the selected pairing underneath: their side, or both of them.
-export function relationshipView({ subject, peers, selectedKey, relation, pair, view, knowledge, isPlayer, focus, openGroups, swapLabel, removing }) {
+export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing }) {
     const selected = peers.find(p => p.key === selectedKey) ?? peers[0];
     const list = peers.map(p => {
         const shared = p.pair ? activeSharedTags(p.pair) : [], mine = p.relation ? activeRelationshipTags(p.relation) : [];
@@ -29,7 +29,14 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
     const values = relation?.moods ?? {}, shared = pair?.moods ?? {};
     const others = peers.filter(p => p.key !== selected.key);
     const compare = relation?.compare ?? { with: '', favours: 'them', value: 0 };
-    const body = view === 'both' ? `
+    const memories = pair?.memories ?? [];
+    const whoOptions = [['both', 'Both remember'], [selfKey, `Only ${subject} remembers`], [otherKey, `Only ${selected.name} remembers`]];
+    const body = view === 'mem' ? `
+        <p class="mw-fine">Moments that really happened between them. Memories at clear or above are sent, and the stronger one is, the more it comes back.</p>
+        ${memories.map(m => `<div class="mw-mood mw-own"><div class="mw-row-head"><input type="text" class="mw-own-text" data-mem-text="${esc(m.id)}" maxlength="160" value="${esc(m.text)}" aria-label="Memory"><span data-lvl>${level(m.value)}</span><output>${m.value}%</output><button type="button" class="mw-list" data-mem-remove="${esc(m.id)}" title="Forget this" aria-label="Forget this">×</button></div>
+            <input type="range" min="0" max="100" step="1" value="${m.value}" data-mem="${esc(m.id)}" style="--mw-fill:${m.value}%" aria-label="How often it comes back">
+            <select data-mem-who="${esc(m.id)}" aria-label="Who remembers">${whoOptions.map(([v, l]) => `<option value="${esc(v)}" ${m.who === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`).join('')}
+        <div class="mw-cast-add"><input type="text" data-mem-new maxlength="160" placeholder="e.g. he caught her crying in the darkroom" aria-label="New memory"><button data-action="mem-add">＋ Remember</button></div>` : view === 'both' ? `
         <p class="mw-fine">True for both of them and sent once. Use ${esc(subject)}’s side for anything one-way.</p>
         ${pair ? `<div class="mw-cast-presence"><label class="mw-toggle"><input type="checkbox" data-pair-enabled ${pair.enabled !== false ? 'checked' : ''}> Send this</label><button data-action="pair-clear">Clear</button></div>` : ''}
         <input type="search" data-relation-search placeholder="Find a status or trope…" aria-label="Search">
@@ -51,7 +58,7 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
         <div class="mw-pair">
             <div class="mw-pair-head"><div><span class="mw-eyebrow">${esc(subject.toUpperCase())} &amp; ${esc(selected.name.toUpperCase())}</span><h3>${esc(selected.name)}</h3></div>
                 ${swapLabel ? `<button data-action="rel-swap" title="Switch to their side of this relationship">⇄ ${esc(swapLabel)}</button>` : ''}</div>
-            <div class="mw-mode mw-small mw-pair-tabs" role="group" aria-label="Which side"><button data-pair-tab="mine" aria-pressed="${view !== 'both'}">→ ${esc(subject)}’s side${mineCount ? ` <small>${mineCount}</small>` : ''}</button><button data-pair-tab="both" aria-pressed="${view === 'both'}">⚭ Both of them${bothCount ? ` <small>${bothCount}</small>` : ''}</button></div>
+            <div class="mw-mode mw-small mw-pair-tabs" role="group" aria-label="Which side"><button data-pair-tab="mine" aria-pressed="${view === 'mine' || !['both', 'mem'].includes(view)}">→ ${esc(subject)}${mineCount ? ` <small>${mineCount}</small>` : ''}</button><button data-pair-tab="both" aria-pressed="${view === 'both'}">⚭ Both${bothCount ? ` <small>${bothCount}</small>` : ''}</button><button data-pair-tab="mem" aria-pressed="${view === 'mem'}">✎ Memories${memories.length ? ` <small>${memories.length}</small>` : ''}</button></div>
             ${removing ? `<div class="mw-cast-confirm"><p class="mw-fine">${removing === 'pair' ? `Clear everything set for both ${esc(subject)} and ${esc(selected.name)}?` : `Clear everything ${esc(subject)} feels about ${esc(selected.name)}?`}</p><div class="mw-actions"><button data-action="${removing === 'pair' ? 'pair-clear-confirm' : 'relation-remove-confirm'}">Clear it</button><button data-action="relation-cancel">Keep it</button></div></div>` : ''}
             ${body}
         </div></div>`;

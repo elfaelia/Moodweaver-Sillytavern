@@ -41,7 +41,9 @@
 .mw-panel .mw-fine{font-size:10px;line-height:1.6;color:var(--mw-muted);margin:9px 0}
 .mw-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.mw-actions button{font-size:11px}
 .mw-tuning summary{font-size:11px;color:#c3bdce;cursor:pointer;padding:8px 0}.mw-tuning label{display:block;font-size:11px;margin:10px 0}.mw-tuning output{float:right;color:#b7cda9}
-.mw-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 24px 12px}.mw-tools select,.mw-tools input[type=search]{font-size:11px;margin:0}
+/* Search gets its own full-width row; actions stay below it on narrow screens. */
+.mw-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 24px 12px}.mw-tools select,.mw-tools input[type=search]{font-size:11px;margin:0}
+.mw-tools>button,.mw-tools>select{min-width:0;max-width:100%}.mw-tools>.mw-primary:last-child{grid-column:1 / -1}
 .mw-scale{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 10px;font-size:9px;color:#858b97;padding:0 28px 12px}
 .mw-categories{margin:0 16px}.mw-categories>details{border-top:1px solid var(--mw-line)}
 .mw-categories summary{display:flex;align-items:center;gap:10px;padding:14px 10px;cursor:pointer;list-style:none;font-size:12px;font-weight:550;user-select:none}.mw-categories summary::-webkit-details-marker{display:none}.mw-categories summary:after{content:'+';font-size:17px;font-weight:300;color:#8e939e;margin-left:4px}.mw-categories details[open]>summary:after{content:'−'}
@@ -129,7 +131,6 @@
 .mw-panel .mw-list{flex:0 0 auto;width:26px;height:26px;margin-left:4px;padding:0;border-radius:50%;font-size:13px;line-height:1;background:#ffffff08;border:1px solid #ffffff14;color:var(--mw-muted)}
 .mw-panel .mw-list.is-in{background:#354237;border-color:#b5d9a6;color:#d4e8cd}
 .mw-panel .mw-primary{flex:0 0 auto;background:#354237;border:1px solid #a8cdb155;color:#d4e8cd;font-size:12px;padding:8px 12px;border-radius:9px}
-.mw-tools{display:flex;gap:8px;align-items:center}.mw-tools .mw-search{flex:1;min-width:0}
 .mw-panel .mw-cause{display:block;width:100%;margin-top:7px;background:#10131b;color:var(--mw-text);border:1px dashed #ffffff22;border-radius:8px;padding:6px 9px;font-size:11.5px}
 .mw-panel .mw-turn input[type=range]{background:linear-gradient(to right,#343943 var(--mw-from),var(--mw-accent) var(--mw-from),var(--mw-accent) var(--mw-to),#343943 var(--mw-to))}
 .mw-turn-ends{display:flex;justify-content:space-between;margin:-6px 0 2px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#7f8692}

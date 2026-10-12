@@ -140,3 +140,30 @@
 .mw-empty-list{margin:14px 24px!important;padding:14px;border:1px dashed #ffffff1c;border-radius:12px;text-align:center}
 .mw-pair-tabs button{font-size:10.5px!important;padding:7px 2px!important}
 @media(max-width:520px){.mw-custom{margin-left:18px;margin-right:18px}}
+
+/* 1.20: Traits tab and turn-ons block */
+.mw-panel .mw-mode.mw-tabs{grid-template-columns:repeat(6,minmax(0,1fr))}.mw-panel .mw-mode.mw-tabs button{grid-column:span 2}
+.mw-turns-head{display:flex;gap:12px;align-items:center;margin:22px 24px 8px;padding:12px 14px;border:1px solid #d7a0b42e;border-radius:14px;background:linear-gradient(135deg,#d7a0b412,#c0acd90a)}.mw-turns-head[hidden]{display:none}
+.mw-turns-icon{flex:none;width:22px;text-align:center;font-size:18px;color:#d7a0b4}
+.mw-turns-head b{display:block;font-size:12.5px;font-weight:600;letter-spacing:.02em}.mw-turns-head small{display:block;font-size:10.5px;line-height:1.4;color:var(--mw-muted)}.mw-turns-head em{font-style:normal;color:#e3b9c9}
+.mw-panel .mw-chip-turn.is-off{border-style:dashed;background:transparent}.mw-chip-turn.is-off span{color:#b9b4c4}
+@media(max-width:520px){.mw-turns-head{margin-left:18px;margin-right:18px}}
+
+/* 1.21: inventory */
+.mw-inventory .mw-summary .mw-fine{margin:0}
+.mw-inv-list{display:flex;flex-direction:column;gap:8px;margin:12px 24px 0}
+.mw-inv-item{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border:1px solid #c9b37e33;border-radius:12px;background:linear-gradient(135deg,#c9b37e10,transparent)}
+.mw-inv-item.is-stored{opacity:.55;border-style:dashed;background:transparent}
+.mw-inv-check{position:relative;flex:none;width:26px;height:26px;cursor:pointer}.mw-inv-check input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.mw-inv-check span{display:block;width:26px;height:26px;border-radius:8px;border:1.5px solid #c9b37e88;background:#10131b}
+.mw-inv-check input:checked+span{background:#c9b37e;border-color:#c9b37e}.mw-inv-check input:checked+span::after{content:'✓';display:block;text-align:center;line-height:23px;font-size:14px;font-weight:700;color:#191c24}
+.mw-inv-check input:focus-visible+span{outline:2px solid #c9b37e;outline-offset:2px}
+.mw-inv-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.mw-panel .mw-inv-fields input{width:100%;min-width:0;box-sizing:border-box;background:transparent;color:var(--mw-text);border:1px solid transparent;border-radius:7px;padding:4px 6px}
+.mw-panel .mw-inv-fields input:focus{background:#10131b;border-color:#ffffff1c;outline:none}
+.mw-panel .mw-inv-fields .mw-inv-name{font-size:14px;font-weight:600}.mw-panel .mw-inv-fields .mw-inv-note{font-size:12px;color:var(--mw-muted)}
+.mw-inv-item .mw-list{flex:none;min-width:36px;min-height:36px}
+.mw-panel .mw-inv-add{margin:12px 24px 18px}.mw-panel .mw-inv-add input{background:#10131b;color:var(--mw-text);border:1px solid #ffffff1c;border-radius:10px;padding:9px 12px;font-size:13px}
+@media(max-width:520px){.mw-inv-list,.mw-panel .mw-inv-add{margin-left:18px;margin-right:18px}}
+/* iPhone: Safari zooms into any field under 16px, so touch screens get 16px text in every field */
+@media(pointer:coarse){.mw-panel input[type=text],.mw-panel input[type=search],.mw-panel input[type=number],.mw-panel select,.mw-panel textarea{font-size:16px!important}}

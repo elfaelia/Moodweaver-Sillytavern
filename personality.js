@@ -1,22 +1,22 @@
-// Optional writing lenses, not assessments. Positive/negative are fictional expressions,
+// Optional writing lenses, not assessments. Good/bad side are how the type comes out in fiction,
 // not extra MBTI types or claims that a type makes someone good or bad.
 export const PERSONALITY_TYPES = [
-    ['ISTJ', 'Practical planner', 'private, concrete, logical and organised', 'dependable, thorough and fair', 'rigid, fault-finding and resistant to change'],
-    ['ISFJ', 'Quiet supporter', 'private, concrete, people-minded and organised', 'attentive, loyal and considerate', 'self-effacing, overprotective and quietly resentful'],
-    ['INFJ', 'Reflective idealist', 'private, pattern-minded, people-minded and organised', 'insightful, principled and encouraging', 'self-righteous, secretive and sure they know what others need'],
-    ['INTJ', 'Independent strategist', 'private, pattern-minded, logical and organised', 'far-sighted, independent and willing to improve a plan', 'dismissive, controlling and convinced their plan is best'],
-    ['ISTP', 'Hands-on problem solver', 'private, concrete, logical and adaptable', 'resourceful, calm and quick to find a practical fix', 'detached, reckless and impatient with other people’s needs'],
-    ['ISFP', 'Quiet individualist', 'private, concrete, people-minded and adaptable', 'gentle, observant and true to their values', 'avoidant, touchy and ruled by the feeling of the moment'],
-    ['INFP', 'Imaginative idealist', 'private, possibility-minded, people-minded and adaptable', 'empathetic, imaginative and open to other ways of living', 'escapist, self-absorbed and disappointed that reality won’t match the ideal'],
-    ['INTP', 'Curious analyst', 'private, possibility-minded, logical and adaptable', 'inventive, questioning and honest about what they don’t know', 'pedantic, emotionally distant and stuck analysing instead of acting'],
-    ['ESTP', 'Bold improviser', 'outgoing, concrete, logical and adaptable', 'alert, direct and good at thinking on their feet', 'impulsive, domineering and chasing the next thrill'],
-    ['ESFP', 'Expressive enthusiast', 'outgoing, concrete, people-minded and adaptable', 'warm, lively and quick to include people', 'attention-hungry, impulsive and unwilling to face consequences'],
-    ['ENFP', 'Possibility chaser', 'outgoing, possibility-minded, people-minded and adaptable', 'curious, encouraging and good at seeing potential', 'scattered, approval-seeking and quick to abandon commitments'],
-    ['ENTP', 'Restless challenger', 'outgoing, possibility-minded, logical and adaptable', 'inventive, quick-witted and willing to question assumptions', 'argumentative, opportunistic and treating people like puzzles to win'],
-    ['ESTJ', 'Direct organiser', 'outgoing, concrete, logical and organised', 'decisive, reliable and clear about responsibilities', 'bossy, inflexible and judging everyone by their own standards'],
-    ['ESFJ', 'Social caretaker', 'outgoing, concrete, people-minded and organised', 'welcoming, dependable and attentive to what people need', 'intrusive, approval-hungry and policing how others should behave'],
-    ['ENFJ', 'People-focused guide', 'outgoing, pattern-minded, people-minded and organised', 'encouraging, perceptive and good at bringing people together', 'controlling, image-conscious and managing people for their own idea of harmony'],
-    ['ENTJ', 'Driven organiser', 'outgoing, pattern-minded, logical and organised', 'decisive, strategic and good at turning plans into action', 'ruthless, impatient and treating people as obstacles or resources'],
+    ['ISTJ', 'Practical planner', 'introverted, detail-focused, logic-led and likes structure', 'dependable, thorough and fair', 'rigid, fault-finding and resistant to change'],
+    ['ISFJ', 'Quiet supporter', 'introverted, detail-focused, values-led and likes structure', 'attentive, loyal and considerate', 'self-effacing, overprotective and quietly resentful'],
+    ['INFJ', 'Reflective idealist', 'introverted, big-picture, values-led and likes structure', 'insightful, principled and encouraging', 'self-righteous, secretive and sure they know what others need'],
+    ['INTJ', 'Independent strategist', 'introverted, big-picture, logic-led and likes structure', 'far-sighted, independent and willing to improve a plan', 'dismissive, controlling and convinced their plan is best'],
+    ['ISTP', 'Hands-on problem solver', 'introverted, detail-focused, logic-led and goes with the flow', 'resourceful, calm and quick to find a practical fix', 'detached, reckless and impatient with other people’s needs'],
+    ['ISFP', 'Quiet individualist', 'introverted, detail-focused, values-led and goes with the flow', 'gentle, observant and true to their values', 'avoidant, touchy and ruled by the feeling of the moment'],
+    ['INFP', 'Imaginative idealist', 'introverted, big-picture, values-led and goes with the flow', 'empathetic, imaginative and open to other ways of living', 'escapist, self-absorbed and disappointed that reality won’t match the ideal'],
+    ['INTP', 'Curious analyst', 'introverted, big-picture, logic-led and goes with the flow', 'inventive, questioning and honest about what they don’t know', 'pedantic, emotionally distant and stuck analysing instead of acting'],
+    ['ESTP', 'Bold improviser', 'outgoing, detail-focused, logic-led and goes with the flow', 'alert, direct and good at thinking on their feet', 'impulsive, domineering and chasing the next thrill'],
+    ['ESFP', 'Expressive enthusiast', 'outgoing, detail-focused, values-led and goes with the flow', 'warm, lively and quick to include people', 'attention-hungry, impulsive and unwilling to face consequences'],
+    ['ENFP', 'Possibility chaser', 'outgoing, big-picture, values-led and goes with the flow', 'curious, encouraging and good at seeing potential', 'scattered, approval-seeking and quick to abandon commitments'],
+    ['ENTP', 'Restless challenger', 'outgoing, big-picture, logic-led and goes with the flow', 'inventive, quick-witted and willing to question assumptions', 'argumentative, opportunistic and treating people like puzzles to win'],
+    ['ESTJ', 'Direct organiser', 'outgoing, detail-focused, logic-led and likes structure', 'decisive, reliable and clear about responsibilities', 'bossy, inflexible and judging everyone by their own standards'],
+    ['ESFJ', 'Social caretaker', 'outgoing, detail-focused, values-led and likes structure', 'welcoming, dependable and attentive to what people need', 'intrusive, approval-hungry and policing how others should behave'],
+    ['ENFJ', 'People-focused guide', 'outgoing, big-picture, values-led and likes structure', 'encouraging, perceptive and good at bringing people together', 'controlling, image-conscious and managing people for their own idea of harmony'],
+    ['ENTJ', 'Driven organiser', 'outgoing, big-picture, logic-led and likes structure', 'decisive, strategic and good at turning plans into action', 'ruthless, impatient and treating people as obstacles or resources'],
 ].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative }));
 export const PERSONALITY_BY_ID = Object.fromEntries(PERSONALITY_TYPES.map(t => [t.id, t]));
 export const ENNEAGRAM_TYPES = [
@@ -102,9 +102,15 @@ export function activePersonalities(state) {
         .filter(p => p.enabled && p.type && p.strength > 0);
 }
 export function activePersonality(state) { return activePersonalities(state)[0] ?? null; }
-export function personalityCue(p) {
+// opts.name: whose type this is. opts.isPlayer: the player's own character, written by the player,
+// so the type tells the bot how that person comes across rather than what to make them do.
+export function personalityCue(p, opts = {}) {
     const t = (p.system === 'enneagram' ? ENNEAGRAM_BY_ID : PERSONALITY_BY_ID)[p.type];
     if (!t) return '';
-    const expression = p.expression === 'balanced' ? `strengths: ${t.positive}; flaws: ${t.negative}` : `${p.expression} expression: ${t[p.expression]}`;
-    return `${p.system === 'enneagram' ? 'Enneagram ' : 'MBTI '}${t.id}, ${t.core}; ${expression}${p.strength >= 70 ? '; a driving pattern throughout this reply' : ''}`;
+    const who = opts.name || 'they';
+    const side = p.expression === 'balanced' ? `good side: ${t.positive}; bad side: ${t.negative}`
+        : p.expression === 'positive' ? `mostly their good side: ${t.positive}` : `mostly their bad side: ${t.negative}`;
+    const label = p.system === 'enneagram' ? `Enneagram ${t.id} (${t.label})` : `MBTI ${t.id} (${t.label})`;
+    const drive = p.strength >= 70 ? (opts.isPlayer ? `; a big part of how ${who} comes across` : `; drives ${who}'s choices all reply`) : '';
+    return `${label}: ${t.core}; ${side}${drive}`;
 }

@@ -1,4 +1,4 @@
-import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, SHARED_IDS, activeRelationshipTags, activeSharedTags, cloneRelationships, cleanCompare, relationshipKey } from './relationships.js';
@@ -389,7 +389,23 @@ function turnRow(t, state) {
         <input id="mw-turn-${t.id}" type="range" min="-100" max="100" step="1" value="${v}" data-turn="${t.id}" style="${turnFill(v)}" aria-valuetext="${turnLevel(v)}">
         <div class="mw-turn-ends"><span>Turn-off</span><span>Turn-on</span></div><small>${esc(t.cue)}</small></div>`;
 }
-const CUSTOM_HINT = { mood: 'e.g. needs control of the camera', state: 'e.g. still wearing his jacket', story: 'e.g. everything happens after dark' };
+// Inventory: things this person has. Ticked items are sent; unticked ones stay saved for later.
+function inventoryView(state, ch) {
+    const items = state.inventory ?? [], name = subjectName(), carried = items.filter(i => i.carried).length;
+    const intro = who === 'user' ? `Things ${esc(playerName())} has. You decide when you use them; ${esc(ch.name)} only knows about what they could see or already know of.`
+        : `Things ${esc(name)} has. The AI can use them when the moment fits, never just to show them off.`;
+    return `<section class="mw-inventory">
+        <div class="mw-summary"><div class="mw-section-label">${items.length ? 'INVENTORY' : 'EMPTY POCKETS'}<span>${carried} carried${items.length > carried ? ` · ${items.length - carried} stored` : ''}</span></div>
+        <p class="mw-fine">${intro} Untick an item to keep it saved without sending it.</p></div>
+        <div class="mw-inv-list">${items.map(i => `<div class="mw-inv-item ${i.carried ? '' : 'is-stored'}" data-inv-row="${esc(i.id)}">
+            <label class="mw-inv-check" title="${i.carried ? 'Carried: sent to the AI' : 'Stored: not sent'}"><input type="checkbox" data-inv-carried="${esc(i.id)}" ${i.carried ? 'checked' : ''} aria-label="Carry ${esc(i.text)}"><span></span></label>
+            <div class="mw-inv-fields"><input type="text" class="mw-inv-name" data-inv-text="${esc(i.id)}" maxlength="60" value="${esc(i.text)}" aria-label="Item">
+            <input type="text" class="mw-inv-note" data-inv-note="${esc(i.id)}" maxlength="80" value="${esc(i.note)}" placeholder="where / details (optional)" aria-label="Where or details"></div>
+            <button type="button" class="mw-list" data-inv-remove="${esc(i.id)}" title="Delete" aria-label="Delete ${esc(i.text)}">×</button></div>`).join('')}</div>
+        <div class="mw-cast-add mw-inv-add"><input type="text" data-inv-new maxlength="60" enterkeyhint="done" placeholder="Add an item…" aria-label="New item"><button data-action="inv-add" class="mw-primary">＋ Add</button></div>
+    </section>`;
+}
+const CUSTOM_HINT = { mood: 'e.g. needs control of the camera', trait: 'e.g. never apologises, ever', state: 'e.g. still wearing his jacket', story: 'e.g. everything happens after dark' };
 function customBlock(state, kind, whose) {
     const rows = (state.custom ?? []).filter(r => r.kind === kind);
     return `<div class="mw-custom"><div class="mw-section-label">YOUR OWN<span>sent exactly as you write it</span></div>
@@ -399,22 +415,23 @@ function customBlock(state, kind, whose) {
         <div class="mw-cast-add"><input type="text" data-custom-new="${kind}" maxlength="100" placeholder="${CUSTOM_HINT[kind]}" aria-label="Write your own for ${esc(whose)}"><button data-action="custom-add" data-kind="${kind}">＋ Add</button></div></div>`;
 }
 // Each person only shows their own list until you go looking for more.
-function catalogueBlock(state, kind, ch, whose) {
+function catalogueBlock(state, kind, ch, whose) { // kind here is the tab's section: mood, trait, state or story
     const listed = new Set([...(state.loadout ?? []), ...MOODS.filter(m => state.moods[m.id] > 0).map(m => m.id),
         ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)]);
     const show = id => browsing || listed.has(id);
-    const cats = CATEGORIES.filter(([, , , , , k = 'mood']) => k === kind).map(([id, name, icon, color, , k = 'mood']) => {
+    const sectionOfCategory = (id, k) => k === 'story' ? 'story' : TRAIT_CATEGORIES.has(id) ? 'trait' : k;
+    const cats = CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOfCategory(id, k) === kind).map(([id, name, icon, color, , k = 'mood']) => {
         const list = MOODS.filter(m => m.category === id && show(m.id)), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
-        return `<details data-category="${id}" data-kind="${k}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+        return `<details data-category="${id}" data-kind="${sectionOfCategory(id, k)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
     }).join('');
-    const turns = kind !== 'mood' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
+    const turns = kind !== 'trait' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
         const list = rows.filter(([id]) => show(`turn:${id}`)), key = `turn-${group.toLowerCase().replace(/\W+/g, '-')}`;
         if (!list.length) return '';
         const n = list.filter(([id]) => state.prefs?.[id]).length;
-        return `<details data-category="${key}" data-kind="mood" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>Turn-ons & offs · ${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
+        return `<details data-category="${key}" data-kind="trait" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
     }).join('');
-    const label = kind === 'mood' ? 'moodlets' : kind === 'state' ? 'needs and facts' : 'story settings';
+    const label = { mood: 'moodlets', trait: 'traits', state: 'needs and facts', story: 'story settings' }[kind];
     return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${browsing ? 'Search available ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(search)}">${browsing ? `<button data-action="browse-done" class="mw-primary">Done</button>`
             : `<button data-action="browse" class="mw-primary">＋ Add ${label}</button>${kind === 'mood' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend…</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select>` : ''}`}</div>
     ${browsing ? `<p class="mw-explainer">Everything available. Tap ＋ or move a slider to put it on ${esc(whose)}’s list.</p>` : ''}
@@ -422,7 +439,7 @@ function catalogueBlock(state, kind, ch, whose) {
     <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
     <datalist id="mw-hate-names">${getCast(ch).filter(p => who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist>
     ${!browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}’s list yet. Tap “＋ Add ${label}” to pick from everything, or write your own below.</p>` : ''}
-    <div class="mw-categories">${cats}${turns}</div><p class="mw-no-results" hidden>Nothing matches.</p>
+    <div class="mw-categories">${cats}</div>${turns ? `<div class="mw-turns-head"><span class="mw-turns-icon">⇋</span><div><b>Turn-ons & turn-offs</b><small>What ${esc(whose)} likes or can’t stand in <em>other people</em>. Slide right for a turn-on, left for a turn-off.</small></div></div><div class="mw-categories mw-turn-categories">${turns}</div>` : ''}<p class="mw-no-results" hidden>Nothing matches.</p>
     ${browsing ? '' : customBlock(state, kind, whose)}`;
 }
 function dynamicBlock(state, mine, allProfiles) {
@@ -451,7 +468,7 @@ function personCard(ch, state) {
     const person = who === 'cast' ? selectedCast() : null;
     const name = who === 'story' ? 'The story' : subjectName();
     const role = who === 'char' ? 'Main character' : who === 'user' ? 'Your character · you write them' : who === 'story' ? 'Genre, tropes and style for this whole chat' : `Supporting character · ${person?.inScene ? 'in this scene' : 'off scene'}`;
-    const top = activeMoods(state).find(m => m.kind === 'mood');
+    const top = activeMoods(state).find(m => sectionOf(m) === 'mood');
     const feeling = who === 'story' ? '' : top ? `<span class="mw-feeling" style="--mw-accent:${top.color}">Feeling <b>${esc(tagLabel(top).toLowerCase())}</b> · ${level(state.moods[top.id]).toLowerCase()}</span>` : '<span class="mw-feeling">No moodlets yet</span>';
     return `<div class="mw-person-card">
         <span class="mw-avatar mw-avatar-lg">${who === 'story' ? '❖' : esc(String(name).trim()[0]?.toUpperCase() ?? '?')}</span>
@@ -473,11 +490,12 @@ function render() {
     if (who === 'cast' && !selectedCast()) who = 'char';
     const state = charState ? viewState() : null, mine = who !== 'char';
     if (who === 'story') tab = 'mood';
-    const kind = who === 'story' ? 'story' : tab === 'state' ? 'state' : 'mood';
+    const kind = who === 'story' ? 'story' : ['state', 'trait'].includes(tab) ? tab : 'mood';
     const active = state ? activeMoods(state) : [];
-    const shown = active.filter(m => m.kind === kind && m.category !== 'relationship');
+    const shown = active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
+    const turnsSet = state && kind === 'trait' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]) : [];
     const relationshipCount = state && who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonalities(state).length };
+    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + Object.values(state?.prefs ?? {}).filter(Boolean).length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonalities(state).length, inv: (state?.inventory ?? []).filter(i => i.carried).length };
     const peer = state && who !== 'story' ? currentPeer() : null;
     const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
     const snapshot = savedPanel(view), sameView = panel.dataset.view === view;
@@ -488,16 +506,17 @@ function render() {
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch)}
     ${state ? `${personCard(ch, state)}
-    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts'], ['personality', '◈', 'Personality']].map(([k, icon, label]) =>
+    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['trait', '❂', 'Traits'], ['personality', '◈', 'Personality'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts'], ['inv', '❒', 'Inventory']].map(([k, icon, label]) =>
         `<button role="tab" data-tab="${k}" aria-pressed="${tab === k}">${icon} ${label}${counts[k] ? ` <small>${counts[k]}</small>` : ''}</button>`).join('')}</div>`}
-    ${tab === 'personality' && who !== 'story' ? personalityView({ state, isPlayer: who === 'user', focus: ch.name, knowledge: getKnowledge(ch) }) : tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
-    <div class="mw-summary"><div class="mw-section-label">${shown.length ? (kind === 'mood' ? 'ACTIVE MOODLETS' : kind === 'state' ? 'NEEDS & FACTS' : 'THE STORY SO FAR') : 'A CLEAN SLATE'}<span>${shown.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
-        <div class="mw-chips">${shown.length ? shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
+    ${tab === 'inv' && who !== 'story' ? inventoryView(state, ch) : tab === 'personality' && who !== 'story' ? personalityView({ state, isPlayer: who === 'user', focus: ch.name, knowledge: getKnowledge(ch) }) : tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
+    <div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? ({ mood: 'ACTIVE MOODLETS', trait: 'WHO THEY ARE', state: 'NEEDS & FACTS', story: 'THE STORY SO FAR' })[kind] : 'A CLEAN SLATE'}<span>${shown.length + turnsSet.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
+        <div class="mw-chips">${shown.length || turnsSet.length ? turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="Adjust ${esc(TURN_BY_ID[id].label)}"><span>${v > 0 ? '♥' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('') + shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'trait' ? 'Nothing set yet. Kinks, roles, temperament, morals and turn-ons go here.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
         ${kind === 'mood' && state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${kind === 'mood' && who === 'char' ? `<div class="mw-mode mw-small" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ Dynamic</button></div>
     <p class="mw-explainer">${state.mode === 'manual' ? 'You set the feeling. Mix as many as you like.' : 'The scene shapes the feeling. Pin anything you want to keep exactly as it is.'}</p>` : ''}
-    ${kind === 'mood' && who === 'user' ? `<p class="mw-explainer">How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.</p>${knowledgePanel(state, ch)}` : ''}
+    ${['mood', 'trait'].includes(kind) && who === 'user' ? `<p class="mw-explainer">How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.</p>${knowledgePanel(state, ch)}` : ''}
+    ${kind === 'trait' && who !== 'user' ? `<p class="mw-explainer">Who ${esc(subjectName())} is underneath. Traits stay put: the scene reader never changes them.</p>` : ''}
     ${kind === 'mood' ? dynamicBlock(state, mine, allProfiles) : ''}
     ${catalogueBlock(state, kind, ch, who === 'story' ? 'the story' : subjectName())}`}
     <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
@@ -518,7 +537,7 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.17.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.21.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     restorePanelFields(panel, snapshot);
     filterRows(); filterRelationships(panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(panel);
     renderPreview(); restorePanelPosition(panel, snapshot, sameView); toggleTop();
@@ -563,6 +582,8 @@ function filterRows() {
         showGroupMatches(d, count, term);
     });
     panel.querySelectorAll('[data-custom-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) shown++; });
+    const turnsHead = panel.querySelector('.mw-turns-head');
+    if (turnsHead) turnsHead.hidden = ![...panel.querySelectorAll('.mw-turn-group')].some(d => !d.hidden);
     const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
 }
 async function changeState(mutator) {
@@ -634,6 +655,9 @@ function setup() {
             e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`);
         }
     });
+    panel.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && e.target.hasAttribute('data-inv-new')) { e.preventDefault(); panel.querySelector('[data-action="inv-add"]')?.click(); }
+    });
     panel.addEventListener('change', async e => {
         const input = e.target;
         if (input.dataset.personality) {
@@ -687,6 +711,13 @@ function setup() {
             const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });
             if (next.mode === 'scene') delete knowledge[knowledgeId]; else knowledge[knowledgeId] = next;
             await persist(); await syncPrompt(); render(); return;
+        }
+        if (input.dataset.invCarried !== undefined || input.dataset.invText !== undefined || input.dataset.invNote !== undefined) {
+            const id = input.dataset.invCarried ?? input.dataset.invText ?? input.dataset.invNote;
+            await changeState(s => { const item = (s.inventory ??= []).find(i => i.id === id); if (!item) return;
+                if (input.dataset.invCarried !== undefined) item.carried = input.checked;
+                else if (input.dataset.invText !== undefined) { const t = input.value.replace(/\s+/g, ' ').trim().slice(0, 60); if (t) item.text = t; }
+                else item.note = input.value.replace(/\s+/g, ' ').trim().slice(0, 80); }); return;
         }
         if (input.dataset.cause !== undefined) { await changeState(s => { s.causes = { ...s.causes, [input.dataset.cause]: input.value.trim().slice(0, 100) }; }); return; }
         if (input.dataset.turn !== undefined && TURN_BY_ID[input.dataset.turn]) {
@@ -763,6 +794,7 @@ function setup() {
                 if (id.startsWith('turn:')) { const { [id.slice(5)]: _, ...rest } = s.prefs; s.prefs = rest; }
                 else { s.moods[id] = 0; s.pins[id] = false; const { [id]: __, ...causes } = s.causes; s.causes = causes; } }); return;
         }
+        if (button.dataset.invRemove) { const id = button.dataset.invRemove; await changeState(s => { s.inventory = (s.inventory ?? []).filter(i => i.id !== id); }); return; }
         if (button.dataset.customRemove) { const id = button.dataset.customRemove; await changeState(s => { s.custom = s.custom.filter(r => r.id !== id); }); return; }
         if (button.dataset.memRemove) {
             const pair = currentPeer()?.pair; if (!pair) return;
@@ -772,7 +804,7 @@ function setup() {
         if (button.dataset.tab) { tab = button.dataset.tab; search = ''; browsing = false; removingRelation = ''; render(); return; }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
-            clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
+            clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = button.dataset.jump.startsWith('turn:') ? 'trait' : sectionOf(BY_ID[button.dataset.jump]); render();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
             category.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
@@ -799,6 +831,11 @@ function setup() {
             }
             case 'browse': browsing = true; search = ''; render(); panel.querySelector('.mw-search')?.focus(); break;
             case 'browse-done': browsing = false; search = ''; render(); break;
+            case 'inv-add': {
+                const t = panel.querySelector('[data-inv-new]')?.value.replace(/\s+/g, ' ').trim().slice(0, 60); if (!t) break;
+                await changeState(s => { (s.inventory ??= []).push({ id: newId(), text: t, note: '', carried: true }); });
+                panel.querySelector('[data-inv-new]')?.focus(); break;
+            }
             case 'custom-add': {
                 const kind = button.dataset.kind, field = panel.querySelector(`[data-custom-new="${kind}"]`);
                 const t = field?.value.replace(/\s+/g, ' ').trim().slice(0, 100); if (!t) break;

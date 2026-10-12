@@ -1,7 +1,12 @@
 // Turn-ons and turn-offs: one two-way slider per thing. Right is a turn-on, left a turn-off.
-// Each row: id, what it is (sent as written), description for the panel.
+// Each row: id, noun, panel description, optional short wording for the prompt.
 export const TURN_CATEGORIES = [
     ['Looks & body', '✦', '#d69bbb', [
+        ["smile_lines", "smile lines", "lines that deepen around the eyes or mouth when someone smiles"],
+        ["facial_asymmetry", "facial asymmetry", "distinctive uneven features rather than a perfectly balanced face"],
+        ["expressive_eyebrows", "expressive eyebrows", "brows that give away amusement, skepticism or concentration"],
+        ["calloused_hands", "calloused hands", "hands showing the wear of work, craft or practice"],
+        ["dishevelled_hair", "dishevelled hair", "hair that has fallen out of place or never quite stayed tidy"],
         ['femininity', 'femininity', 'soft, feminine ways of looking and moving'], ['masculinity', 'masculinity', 'rugged, masculine ways of looking and moving'],
         ['androgyny', 'androgyny', 'looks that sit between masculine and feminine'], ['ruggedness', 'ruggedness', 'rough looks and a rough-around-the-edges manner'],
         ['elegance', 'elegance', 'grace in how someone dresses and moves'], ['makeup', 'makeup', 'a made-up face, from subtle to dramatic'],
@@ -17,11 +22,21 @@ export const TURN_CATEGORIES = [
         ['lingerie', 'lingerie', 'someone dressed in lingerie'],
     ]],
     ['Voice & senses', '♪', '#9fc6c0', [
+        ["precise_diction", "precise diction", "carefully formed words and a distinct, deliberate way of speaking"],
+        ["singing_voices", "singing voices", "how someone’s voice changes when they sing"],
+        ["unhurried_speech", "unhurried speech", "someone taking their time with words and pauses"],
+        ["ink_paper_scent", "ink and paper scents", "the smell of books, paper or ink on someone’s clothes or hands"],
+        ["smoke_scent", "the scent of smoke", "a lingering smoky scent on someone’s clothes or hair"],
         ['deep_voices', 'deep voices', 'a low, deep voice'], ['high_voices', 'high voices', 'a light, high voice'], ['raspy_voices', 'raspy voices', 'a rough, raspy voice'],
         ['accents', 'accents', 'a distinctive accent'], ['scent', 'someone’s natural scent', 'how someone smells up close'], ['perfume', 'perfume or cologne', 'what someone wears to smell good'],
         ['laughter', 'laughter', 'the sound and sight of someone laughing'], ['crying', 'tears and crying', 'someone in tears'],
     ]],
     ['Personality & behaviour', '❦', '#c9b37e', [
+        ["contradictory_sides", "contradictory sides", "someone whose tastes or behaviour pull in unexpected directions", "people with unexpectedly contradictory sides"],
+        ["personal_rituals", "personal rituals", "small repeated habits that feel particular to that person", "someone’s small personal rituals"],
+        ["gallows_humour", "gallows humour", "finding humour in grim situations without making them less grim"],
+        ["unusual_fixations", "unusual fixations", "a person’s intense fascination with something obscure or unexpected"],
+        ["social_polish", "social polish", "someone who knows how to handle a room and make an exchange look easy"],
         ["desperation", "desperation", "someone wanting something badly enough that it shows"],
         ["messiness", "messiness", "untidy habits, dishevelled looks and a little chaos"],
         ["angry_people", "anger in others", "someone visibly angry or losing their temper"],
@@ -45,6 +60,11 @@ export const TURN_CATEGORIES = [
         ['artistic_types', 'artistic types', 'artists, musicians and creative people'],
     ]],
     ['Types', '◇', '#c0acd9', [
+        ["performers", "performers", "people who command an audience through acting, dance or performance"],
+        ["researchers", "researchers", "people absorbed in investigating, questioning and finding things out"],
+        ["craftspeople", "craftspeople", "people who make or restore things with practiced hands"],
+        ["provocateurs", "provocateurs", "people who deliberately challenge taste, convention or comfortable assumptions", "people who deliberately provoke and challenge convention"],
+        ["outsiders", "outsiders", "people who sit outside a group’s norms or sense of belonging", "people who do not fit the surrounding crowd"],
         ["musicians", "musicians", "people who sing, play instruments or make music"],
         ["artists", "visual artists", "people who draw, paint, photograph or sculpt"],
         ["nerds", "nerds", "people deeply absorbed in niche or technical interests"],
@@ -56,7 +76,7 @@ export const TURN_CATEGORIES = [
         ['evil_people', 'a cruel or wicked streak', 'someone with something dark in them'], ['danger', 'danger', 'someone who could hurt them'],
     ]],
 ];
-export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue]) => ({ id, noun, cue, group, color,
+export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt = noun]) => ({ id, noun, cue, prompt, group, color,
     label: noun[0].toUpperCase() + noun.slice(1) })));
 export const TURN_BY_ID = Object.fromEntries(TURN_TAGS.map(t => [t.id, t]));
 // The old "likes ___" moods and where they go. A minus sign means it was a dislike.

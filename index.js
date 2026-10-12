@@ -6,7 +6,7 @@ import { relationshipView } from './relationship-ui.js';
 import { TURN_CATEGORIES, TURN_BY_ID } from './turns.js';
 import { cleanPersonality, activePersonality } from './personality.js';
 import { personalityView, filterPersonality } from './personality-ui.js';
-import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, restoreGroupOpen, clearPanelSearch, rememberGroupChoice } from './panel-state.js';
+import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, clearPanelSearch, rememberGroupChoice } from './panel-state.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -15,10 +15,9 @@ const defaults = { tokenBudget: 800, depth: 0, placementVersion: 1, sceneMessage
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 const generationSnapshots = new Map();
-const openCategories = new Set();
 let selectedPeer = '', removingRelation = '', pairView = 'mine', browsing = false;
 const newId = () => Math.random().toString(36).slice(2, 10);
-const openRelationGroups = new Set(['What they are']);
+const openRelationGroups = new Set();
 const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
 // Everyone this person could feel something about: the main character, you, the rest of a group chat,
 // the cast, and anyone typed in by hand. Nobody has to be added first.
@@ -407,13 +406,13 @@ function catalogueBlock(state, kind, ch, whose) {
     const cats = CATEGORIES.filter(([, , , , , k = 'mood']) => k === kind).map(([id, name, icon, color, , k = 'mood']) => {
         const list = MOODS.filter(m => m.category === id && show(m.id)), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
-        return `<details data-category="${id}" data-kind="${k}" style="--mw-accent:${color}" ${openCategories.has(id) || !browsing ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+        return `<details data-category="${id}" data-kind="${k}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
     }).join('');
     const turns = kind !== 'mood' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
         const list = rows.filter(([id]) => show(`turn:${id}`)), key = `turn-${group.toLowerCase().replace(/\W+/g, '-')}`;
         if (!list.length) return '';
         const n = list.filter(([id]) => state.prefs?.[id]).length;
-        return `<details data-category="${key}" data-kind="mood" style="--mw-accent:${color}" ${openCategories.has(key) || !browsing ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>Turn-ons & offs · ${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
+        return `<details data-category="${key}" data-kind="mood" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>Turn-ons & offs · ${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
     }).join('');
     const label = kind === 'mood' ? 'moodlets' : kind === 'state' ? 'needs and facts' : 'story settings';
     return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${browsing ? 'Search available ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(search)}">${browsing ? `<button data-action="browse-done" class="mw-primary">Done</button>`
@@ -519,12 +518,18 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.16.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.17.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     restorePanelFields(panel, snapshot);
     filterRows(); filterRelationships(panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(panel);
     renderPreview(); restorePanelPosition(panel, snapshot, sameView); toggleTop();
 }
 function toggleTop() { const b = panel?.querySelector('.mw-to-top'); if (b) b.hidden = panel.scrollTop < 500; }
+function showGroupMatches(group, count, term) {
+    const badge = group.querySelector('summary small');
+    if (!badge) return;
+    badge.dataset.unfiltered ??= badge.textContent;
+    badge.textContent = term ? `${count} ${count === 1 ? 'match' : 'matches'}` : badge.dataset.unfiltered;
+}
 function filterRelationships(value) {
     const term = value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     let shown = 0;
@@ -532,7 +537,7 @@ function filterRelationships(value) {
         let visible = 0;
         group.querySelectorAll('[data-relation-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) visible++; });
         group.hidden = !visible; shown += visible;
-        if (term) group.open = visible > 0; else restoreGroupOpen(group, savedPanel(panel.dataset.view), openRelationGroups.has(group.dataset.relationGroup));
+        showGroupMatches(group, visible, term);
     });
     const none = panel.querySelector('[data-relation-empty]'); if (none) none.hidden = shown > 0;
 }
@@ -555,7 +560,7 @@ function filterRows() {
         });
         const inTab = who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === tab;
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
-        if (term) d.open = count > 0; else restoreGroupOpen(d, savedPanel(panel.dataset.view), !browsing || openCategories.has(d.dataset.category));
+        showGroupMatches(d, count, term);
     });
     panel.querySelectorAll('[data-custom-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) shown++; });
     const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
@@ -766,7 +771,7 @@ function setup() {
         if (button.dataset.jump) {
             clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
-            category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
+            category.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
         switch (button.dataset.action) {
             case 'relation-add': {

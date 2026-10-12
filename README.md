@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.17.0:** 90 new options at the requested category counts, with brief prompt descriptions and niche roles/preferences. Saved and searched categories now stay collapsed until you open them; search shows match counts without forcing groups open. See [the complete additions and sources](UPDATE-1.17.0.md). No tests run, as requested.
+
 **1.16.0:** 100 new catalogue options across psychosexual patterns, kinks, roles, dark character traits and story pressure, everyday moods, individual personality traits and shared relationships. All start off and use the existing strength and knowledge rules. See [the additions and sources](UPDATE-1.16.0.md). No tests run, as requested.
 
 **1.15.1:** fixes the mobile search field collapsing beside the Add button. Search now occupies a full-width row above the actions. Removed an older flex layout rule that overrode the intended grid. No tests run, as requested.

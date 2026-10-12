@@ -16,11 +16,9 @@ export function capturePanel(panel) {
     const focusedRow = focused?.closest(tracked);
     const anchor = visible(focusedRow) ? focusedRow : [...panel.querySelectorAll(tracked)].find(visible);
     const searches = Object.fromEntries([...panel.querySelectorAll('input[type="search"]')].map(el => [keyOf(el), el.value]));
-    const filtering = Object.values(searches).some(v => v.trim());
     const details = { ...previous?.details };
     for (const el of panel.querySelectorAll('details')) {
-        // Search temporarily opens matching groups; don't mistake that for a user choice.
-        if (filtering && (el.hasAttribute('data-category') || el.hasAttribute('data-relation-group'))) continue;
+        // Filtering leaves folds alone, so choices made while searching count too.
         const key = keyOf(el); if (key) details[key] = el.open;
     }
     const snapshot = {

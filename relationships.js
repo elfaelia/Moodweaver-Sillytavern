@@ -4,6 +4,14 @@
 // Each row: id, label, description for the panel, wording sent to the model ({other} becomes their name).
 export const SHARED_CATEGORIES = [
     ['What they are', '⚭', '#d7a0b4', [
+        ["reluctant_allies", "Reluctant allies", "working together because they need to, with distrust still in the way", "reluctant allies: working together because they need to, with distrust still in the way"],
+        ["estranged_friends", "Estranged friends", "used to be close; old familiarity keeps meeting the distance between them", "estranged friends: used to be close; old familiarity keeps meeting the distance between them"],
+        ["pen_pals", "Pen pals", "a connection built through letters or messages, with distance shaping what they share", "pen pals: a connection built through letters or messages, with distance shaping what they share"],
+        ["long_distance", "Long distance", "a relationship shaped by time apart, limited contact and anticipated reunions", "long distance: a relationship shaped by time apart, limited contact and anticipated reunions"],
+        ["queerplatonic", "Queerplatonic partners", "a committed bond outside ordinary friendship and romance expectations", "queerplatonic partners: a committed bond outside ordinary friendship and romance expectations"],
+        ["open_relationship", "Open relationship", "together with an agreement allowing other connections; follow their established terms", "open relationship: together with an agreement allowing other connections; follow their established terms"],
+        ["polycule_members", "Polycule members", "part of the same network of relationships; direct bonds follow established history", "polycule members: part of the same network of relationships; direct bonds follow established history"],
+        ["in_laws", "In-laws", "connected through marriage, with family expectations shaping how they get along", "in-laws: connected through marriage, with family expectations shaping how they get along"],
         ['strangers', 'Strangers', 'they don’t know each other yet', 'strangers'],
         ['acquaintances', 'Acquaintances', 'they know each other a little, nothing more', 'acquaintances'],
         ['classmates', 'Classmates', 'they study together', 'classmates'],
@@ -42,6 +50,14 @@ export const SHARED_CATEGORIES = [
         ['age_gap', 'Big age gap', 'a gap in age that both of them feel', 'a big age gap between them'],
     ]],
     ['Their story', '❧', '#a8bfe0', [
+        ["right_person_wrong_time", "Right person, wrong time", "the connection fits but their current circumstances get in its way", "right person, wrong time: the connection fits but their current circumstances get in its way"],
+        ["fast_chemistry_slow_trust", "Fast chemistry, slow trust", "attraction comes easily while trust takes time and evidence", "fast chemistry, slow trust: attraction comes easily while trust takes time and evidence"],
+        ["mutual_blackmail", "Mutual blackmail", "each knows something damaging about the other, keeping both tied to uneasy terms", "mutual blackmail: each knows something damaging about the other, keeping both tied to uneasy terms"],
+        ["shared_alibi", "Shared alibi", "they depend on the same version of events and both have something to lose", "shared alibi: they depend on the same version of events and both have something to lose"],
+        ["public_rivals_private_allies", "Public rivals, private allies", "they help each other in private while keeping up a public rivalry", "public rivals, private allies: they help each other in private while keeping up a public rivalry"],
+        ["growing_apart", "Growing apart", "their lives and priorities are drifting apart despite what they once shared", "growing apart: their lives and priorities are drifting apart despite what they once shared"],
+        ["rebuilding_trust", "Rebuilding trust", "trust was damaged; what they do now slowly earns it back or loses it again", "rebuilding trust: trust was damaged; what they do now slowly earns it back or loses it again"],
+        ["bound_by_promise", "Bound by a promise", "a promise between them keeps shaping choices as keeping it becomes harder", "bound by a promise: a promise between them keeps shaping choices as keeping it becomes harder"],
         ['slow_burn', 'Slow burn', 'the attraction builds slowly; payoff is delayed and earned', 'slow burn'],
         ['mutual_pining', 'Mutual pining', 'both want each other and neither says it', 'mutual pining'],
         ['unrequited_love', 'Unrequited love', 'one loves and the other doesn’t love them back', 'unrequited love'],

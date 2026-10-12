@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.16.0:** 100 new catalogue options across psychosexual patterns, kinks, roles, dark character traits and story pressure, everyday moods, individual personality traits and shared relationships. All start off and use the existing strength and knowledge rules. See [the additions and sources](UPDATE-1.16.0.md). No tests run, as requested.
+
 **1.15.1:** fixes the mobile search field collapsing beside the Add button. Search now occupies a full-width row above the actions. Removed an older flex layout rule that overrode the intended grid. No tests run, as requested.
 
 **1.15.0:** search your saved lists as well as the catalogue; search relationship people, feelings, shared settings, memories, and persona knowledge. Selection updates preserve the visible row, focus, open categories and search. Each character, persona and cast member also has a separate **Personality** tab for an optional MBTI writing lens. See [the update notes](UPDATE-1.15.0.md). No tests were run for this release at the owner's request.

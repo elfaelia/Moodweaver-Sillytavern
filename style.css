@@ -3,6 +3,16 @@
 #moodweaver-launcher span{color:#b1dcaa;font-size:19px;text-shadow:0 0 12px #95dc9266}
 .mw-panel{--mw-text:#eeeae2;--mw-muted:#aaa9b4;--mw-line:#ffffff12;--mw-accent:#a8cdb1;position:fixed;inset:60px 18px auto auto;margin:0;width:min(470px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 88px);box-sizing:border-box;overflow:auto;border:1px solid #a8cdb135;border-radius:20px;padding:0;background:#191c24;color:var(--mw-text);box-shadow:0 24px 90px #0009;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;z-index:3100;scrollbar-width:thin;scrollbar-color:#4f535e transparent;color-scheme:dark;text-align:left}
 .mw-panel *{box-sizing:border-box}
+.mw-panel{overflow-anchor:none;scroll-behavior:auto}
+.mw-panel .mw-tools>.mw-search{grid-column:1 / -1}
+.mw-panel .mw-tabs{display:grid;grid-template-columns:1fr 1fr}
+.mw-personality{margin:0 24px 18px;padding:14px;border:1px solid #a6a0cb33;border-radius:12px;background:#a6a0cb08;--mw-accent:#b7acd7}
+.mw-type-label{display:block;margin-top:12px;font-size:11px;color:var(--mw-muted)}
+.mw-type-description{margin:12px 0;font-size:11px;line-height:1.6}
+.mw-type-description p{margin-top:6px}.mw-type-description span{color:#b7acd7}
+.mw-personality>details{font-size:11px;color:var(--mw-muted);margin-top:12px}.mw-personality summary{cursor:pointer}
+.mw-rel>[data-filter-list]{margin-bottom:10px}
+@media(max-width:520px){.mw-personality{margin-left:18px;margin-right:18px}}
 .mw-panel [hidden]{display:none!important}
 #moodweaver-launcher[hidden],.mw-panel[hidden],.mw-settings-entry[hidden]{display:none!important}
 .mw-panel button,.mw-panel input,.mw-panel select{font:inherit}

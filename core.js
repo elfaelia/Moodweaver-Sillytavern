@@ -1,3 +1,4 @@
+import { cleanPersonality, activePersonality, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS } from './turns.js';
 import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText } from './relationships.js';
 
@@ -52,6 +53,7 @@ export const CATEGORIES = [
         ['unhesitating', 'Unhesitating', 'acts as soon as they decide, without second-guessing or pulling back'],
     ]],
     ['closeness', 'Love & closeness', '♡', '#e8a7bb', [
+        ["reassuring", "Reassuring", "steadies people with a calm manner, practical help and words that put them at ease"],
         ['warm', 'Warm', 'friendly, kind and sweet'], ['affectionate', 'Affectionate', 'fond and tender toward someone, up to open adoration'],
         ['soft', 'Soft', 'gentle and tender'],
         ['caring', 'Caring', 'concerned for how someone feels and wants to help'],
@@ -99,6 +101,7 @@ export const CATEGORIES = [
 
     ]],
     ['scared', 'Scared & uneasy', '⚠', '#b0a5e8', [
+        ["squeamish", "Squeamish", "easily unsettled by blood, injury or bodily unpleasantness"],
         ['afraid', 'Afraid', 'uneasy or easily spooked, up to terror and panic'],
         ['anxious', 'Anxious / worried', 'uneasy, tense or fretting, up to consuming worry'],
 
@@ -163,6 +166,9 @@ export const CATEGORIES = [
 
     ]],
     ['masks', 'Hiding & showing', '◐', '#a6c3b0', [
+        ["masking_amusement", "Masking (Hidden amusement)", "finds it funny but keeps a straight face and hides their amusement"],
+        ["performative", "Performative", "plays up reactions and gestures for how they will look to an audience"],
+        ["social_chameleon", "Chameleon", "adapts their manner, tastes and presentation to the people around them while keeping their own motives"],
         ['masking_warmth', 'Masking (Outward Warmth)', 'acting warm to hide how they really feel'], ['masking_coldness', 'Masking (Outward Coldness)', 'acting cold to hide how they really feel'],
         ['masking_emotive', 'Masking (Outwardly Emotive)', 'putting on a show of emotion to cover the real thing'], ['masking_less_emotive', 'Masking (Outwardly Less Emotive)', 'playing it down so their feelings don’t show'],
         ['lying', 'Lying', 'hiding the truth or making things up'], ['secretive', 'Secretive', 'keeps things to themselves'],
@@ -238,6 +244,7 @@ export const CATEGORIES = [
         ['soft_bondage', 'Soft bondage', 'into gentle restraint and soft bindings'],
     ]],
     ['psychosexual', 'Psychosexual', '⚘', '#c792b0', [
+        ["repressed_voyeur", "Repressed voyeur", "drawn to watching private moments but denies or suppresses the interest; attention and self-restraint pull against each other"],
         ['sex_is_power', 'Sex as power', 'sex is about power and control to them'], ['violent_desire', 'Violent desire', 'desire and violence tangled together'],
         ['fear_arousal', 'Fear arousal', 'fear and arousal blur together for them'], ['morbid_desire', 'Morbid desire', 'desire tangled up with death and decay'],
         ['fetishistic', 'Fetishistic', 'fixated on one object, body part or act'], ['artistic_pervert', 'Artistic pervert', 'dresses perversion up as art'],
@@ -249,6 +256,9 @@ export const CATEGORIES = [
         ['mother_issues', 'Mother issues', 'unresolved stuff with their mother'], ['father_issues', 'Father issues', 'unresolved stuff with their father'],
     ]],
     ['manner', 'Manner & presence', '❦', '#9fc0d8', [
+        ["intense_presence", "Intense", "brings concentrated attention and forceful energy; even small exchanges feel charged"],
+        ["morbid_humour", "Morbid sense of humour", "finds humour in death, misfortune and grim absurdity"],
+        ["cool_vibes", "Cool (vibes)", "comes across as effortlessly stylish and self-possessed, without trying too hard"],
         ['suave', 'Suave', 'smooth and charming'], ['gentlemanly', 'Gentlemanly', 'courteous, old-fashioned manners'],
         ['classy', 'Classy', 'tasteful and put-together'], ['elegant', 'Elegant', 'graceful and refined'],
         ['dignified', 'Dignified', 'composed and self-respecting'], ['eloquent', 'Eloquent', 'well-spoken, a way with words'],
@@ -269,6 +279,14 @@ export const CATEGORIES = [
         ['princess', 'Princess', 'princess vibes, expects to be treated like one'],
     ]],
     ['temperament', 'Personality', '✺', '#d6b58f', [
+        ["repulsive_personality", "Repulsive (as a person)", "has an unpleasant manner and ugly attitudes that put people off"],
+        ["annoying_personality", "Annoying (as a person)", "grates on people through irritating habits, interruptions or needless fuss"],
+        ["whiny", "Whiny", "complains in a drawn-out, put-upon way and keeps pressing for sympathy"],
+        ["petulant", "Petulant", "sulks and snaps when denied what they want"],
+        ["disciplined", "Disciplined", "sticks to routines and commitments even when tempted to give in"],
+        ["methodical", "Methodical", "works through things in an orderly sequence and checks the details"],
+        ["cowardly", "Cowardly", "avoids personal risk and backs down when courage would cost them"],
+        ["uptight", "Uptight", "tense about rules, impropriety and losing control; struggles to loosen up"],
         ['arrogant', 'Arrogant', 'thinks they’re better than everyone'], ['prideful', 'Prideful', 'too proud to back down or admit fault'],
         ['vain', 'Vain', 'obsessed with their own image'],
         ['superior', 'Superior', 'sure they know better, lords it over people'], ['snobbish', 'Snobbish', 'looks down on anything beneath them'],
@@ -303,6 +321,7 @@ export const CATEGORIES = [
         ['good_sport', 'Good sport', 'takes teasing and losing in stride'],
     ]],
     ['views', 'Morals & views', '☯', '#d8b98f', [
+        ["elitist", "Elitist", "believes a select few deserve influence and respect, judging others by status, taste or ability"],
         ['idealistic', 'Idealistic', 'believes things can be better'], ['cynical', 'Cynical', 'assumes the worst about people'],
         ['jaded', 'Jaded', 'seen it all, worn down'], ['nihilistic', 'Nihilistic', 'believes nothing really matters, so why bother'],
         ['skeptical', 'Skeptical', 'doesn’t buy it'], ['fanatic', 'Fanatic', 'all-in on a cause'],
@@ -326,6 +345,11 @@ export const CATEGORIES = [
         ['chaotic_evil', 'Chaotic evil', 'cruel and lawless'],
     ]],
     ['psychology', 'Mind & psychology', '◈', '#a6a0cb', [
+        ["psychologically_aware", "Psychologically aware", "thinks in motives, coping habits and patterns when trying to understand people"],
+        ["self_aware", "Self-aware", "recognises their own motives, faults and effect on other people"],
+        ["unself_aware", "Unself-aware", "misses their own motives and faults, even when these are obvious to others"],
+        ["emotionally_intelligent", "Emotionally intelligent", "reads emotional cues and handles feelings with care and tact, without knowing private thoughts"],
+        ["ocd", "OCD", "unwanted intrusive thoughts and compulsive rituals or mental checking; follow their established symptoms"],
         ['age_regressed', 'Age Regressed', 'a nonsexual younger headspace, seeking familiar comfort and reassurance'],
         ['traumatised', 'Traumatised', 'haunted by something that happened to them'], ['depressed', 'Depressed', 'flat, hopeless and heavy'],
         ['empty', 'Empty', 'feels hollow inside, like nothing quite reaches them'], ['emotionless', 'Emotionless', 'numb, feels nothing'],
@@ -353,6 +377,7 @@ export const CATEGORIES = [
         ['compartmentalised_violence', 'Compartmentalised violence', 'keeps brutality sealed away from an otherwise ordinary, functional life'],
     ]],
     ['body', 'Body', '✚', '#d7a39b', [
+        ["needs_toilet", "Needs the toilet", "needs the toilet; urgency distracts them and affects how long they can wait"],
         ['injured', 'Injured', 'hurt badly enough that it affects how they move'], ['bleeding', 'Bleeding', 'bleeding from a wound that needs attention'],
         ['bruised', 'Bruised', 'covered in bruises'], ['sore', 'Sore', 'aching muscles that make every movement felt'],
         ['headache', 'Has a headache', 'a pounding head that makes noise and light harder to bear'], ['sick', 'Sick', 'unwell: queasy, feverish or run down'],
@@ -366,6 +391,8 @@ export const CATEGORIES = [
         ['hallucinating', 'Hallucinating', 'seeing or hearing things that aren’t there'],
     ], 'state'],
     ['bedroom', 'In the bedroom', '❣', '#d7a0b4', [
+        ["bedroom_hard", "Hard", "has an erection; strength sets how firm and noticeable it is"],
+        ["bedroom_soft", "Soft", "their penis is soft; strength sets how pronounced this physical state is"],
         ['undressed', 'Undressed', 'naked or half-dressed'], ['in_lingerie', 'In lingerie', 'wearing lingerie, dressed to be looked at'],
         ['restrained', 'Restrained', 'tied up or held down'], ['blindfolded', 'Blindfolded', 'can’t see; everything else feels sharper'],
         ['gagged', 'Gagged', 'can’t speak; only muffled sounds get out'], ['collared', 'Collared', 'wears the other person’s collar'],
@@ -373,6 +400,7 @@ export const CATEGORIES = [
         ['bedroom_tight', 'Tight', 'physically tight during sex'], ['bedroom_loose', 'Loose', 'physically loose during sex'],
     ], 'state'],
     ['substances', 'Substances', '☍', '#c8a0a0', [
+        ["substance_abuser", "Substance abuser", "keeps using alcohol or drugs despite harm, shaping routines and priorities; not automatically intoxicated now"],
         ['tipsy', 'Tipsy', 'a little drunk'], ['drunk', 'Drunk', 'had too much to drink'],
         ['blackout_drunk', 'Blackout drunk', 'too drunk to remember'], ['hungover', 'Hungover', 'paying for last night'],
         ['high', 'High', 'high on something, perception and judgement shifted'], ['stoned', 'Stoned', 'high on weed'],
@@ -415,6 +443,8 @@ export const CATEGORIES = [
         ['voice_moaning', 'Moaning', 'moans a lot'], ['voice_squealing', 'Squealing', 'squeals a lot'],
     ], 'state'],
     ['background', 'Background', '✎', '#b4c49a', [
+        ["illiterate", "Illiterate", "cannot read or write; this says nothing about their intelligence"],
+        ["literate", "Literate", "can read and write; written information is available to them"],
         ['street_smart', 'Street smart', 'knows how the real world works'], ['cultured', 'Cultured', 'knows art, music, food and the finer things'],
         ['autistic', 'Autistic', 'autistic; sensory needs, routines and direct communication shape how they move through the world'], ['adhd', 'ADHD', 'ADHD; restless attention, impulsiveness and bursts of hyperfocus'],
         ['sensory_seeking', 'Sensory seeking', 'seeks out strong sensations, textures and pressure'], ['sensory_avoidant', 'Sensory avoidant', 'easily overwhelmed by noise, light and touch'],
@@ -433,6 +463,8 @@ export const CATEGORIES = [
         ['boss', 'Boss', 'runs the company'], ['assistant', 'Assistant', 'works as someone’s assistant and handles their needs'],
     ], 'state'],
     ['archetype', 'Archetype', '♞', '#c4a3a3', [
+        ["amoral_artist", "Amoral artist", "puts the work and their artistic vision above concern for the people affected"],
+        ["deluded_messiah", "Deluded messiah", "believes they were chosen to save or redeem others and treats disagreement as proof they must persist"],
         ['antihero', 'Antihero', 'the hero, without the morals'], ['morally_grey', 'Morally grey', 'not good, not evil'],
         ['bad_boy', 'Bad boy', 'trouble, and knows it'],
         ['boy_next_door', 'Boy next door', 'sweet and ordinary'],
@@ -690,6 +722,11 @@ export const MERGED_MOODS = {
     "listless": "tired"
 };
 export const MERGED_SEARCH_NAMES = {
+    paranoid: ['Severe paranoia', 'Paranoia'],
+    masking_amusement: ['not finding it funny', 'hiding laughter', 'masking funny'],
+    unself_aware: ['un self-aware', 'not self aware', 'lacks self-awareness'],
+    repressed_voyeur: ['repressive voyeurist', 'repressed voyeurist'],
+    social_chameleon: ['Chameleon trait'],
     "angry": ["irked","Annoyed","Offended","Angry"],
     "egotistical": ["conceited"],
     "morbid": ["macabre"],
@@ -814,6 +851,7 @@ export function extendCatalogue(state) {
     state.causes = cleanCauses(state.causes); state.prefs = cleanPrefs(state.prefs); state.custom = cleanCustom(state.custom);
     state.loadout = cleanLoadout(state.loadout, state);
     state.sceneBreathing ??= true;
+    state.personality = cleanPersonality(state.personality);
     state.moods ??= {};
     state.pins ??= {};
     for (const { id } of MOODS) {
@@ -859,6 +897,7 @@ export function freshState(base = {}) {
         moods: Object.fromEntries(MOODS.map(m => [m.id, Math.round(clamp(base.moods?.[m.id] ?? 0))])),
         pins: Object.fromEntries(MOODS.map(m => [m.id, Boolean(base.pins?.[m.id])])),
         targets: cleanTargets(base.targets),
+        personality: cleanPersonality(base.personality),
         relationships: cloneRelationships(base.relationships),
         causes: cleanCauses(base.causes), prefs: cleanPrefs(base.prefs), custom: cleanCustom(base.custom),
         loadout: cleanLoadout(base.loadout, base),
@@ -886,6 +925,37 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    needs_toilet: "needs the toilet; urgency distracts them and affects how long they can wait",
+    illiterate: "cannot read or write; this says nothing about their intelligence",
+    literate: "can read and write; written information is available to them",
+    bedroom_hard: "has an erection; strength sets how firm and noticeable it is",
+    bedroom_soft: "their penis is soft; strength sets how pronounced this physical state is",
+    squeamish: "easily unsettled by blood, injury or bodily unpleasantness",
+    repulsive_personality: "has an unpleasant manner and ugly attitudes that put people off",
+    annoying_personality: "grates on people through irritating habits, interruptions or needless fuss",
+    whiny: "complains in a drawn-out, put-upon way and keeps pressing for sympathy",
+    petulant: "sulks and snaps when denied what they want",
+    disciplined: "sticks to routines and commitments even when tempted to give in",
+    methodical: "works through things in an orderly sequence and checks the details",
+    cowardly: "avoids personal risk and backs down when courage would cost them",
+    uptight: "tense about rules, impropriety and losing control; struggles to loosen up",
+    intense_presence: "brings concentrated attention and forceful energy; even small exchanges feel charged",
+    morbid_humour: "finds humour in death, misfortune and grim absurdity",
+    cool_vibes: "comes across as effortlessly stylish and self-possessed, without trying too hard",
+    masking_amusement: "finds it funny but keeps a straight face and hides their amusement",
+    performative: "plays up reactions and gestures for how they will look to an audience",
+    social_chameleon: "adapts their manner, tastes and presentation to the people around them while keeping their own motives",
+    reassuring: "steadies people with a calm manner, practical help and words that put them at ease",
+    psychologically_aware: "thinks in motives, coping habits and patterns when trying to understand people",
+    self_aware: "recognises their own motives, faults and effect on other people",
+    unself_aware: "misses their own motives and faults, even when these are obvious to others",
+    emotionally_intelligent: "reads emotional cues and handles feelings with care and tact, without knowing private thoughts",
+    ocd: "unwanted intrusive thoughts and compulsive rituals or mental checking; follow their established symptoms",
+    elitist: "believes a select few deserve influence and respect, judging others by status, taste or ability",
+    repressed_voyeur: "drawn to watching private moments but denies or suppresses the interest; attention and self-restraint pull against each other",
+    amoral_artist: "puts the work and their artistic vision above concern for the people affected",
+    deluded_messiah: "believes they were chosen to save or redeem others and treats disagreement as proof they must persist",
+    substance_abuser: "keeps using alcohol or drugs despite harm, shaping routines and priorities; not automatically intoxicated now",
     doe_eyed: 'wide, soft, expressive eyes with an innocent, open look',
     prissy: 'prissy: prim, fussy about propriety and easily put out by anything coarse or untidy',
     homophobic: 'homophobic: prejudice against gay people colours their judgments, remarks and treatment of others',
@@ -1301,14 +1371,22 @@ function extraLines(state, kinds = ['mood', 'state'], prefsHeading = 'Turn-ons a
 }
 const extraValues = (state, kinds = ['mood', 'state']) => !state?.enabled ? [] : [
     ...(kinds.includes('mood') ? Object.values(state.prefs ?? {}).filter(Boolean).map(Math.abs) : []),
+    ...(kinds.includes('mood') && activePersonality(state) ? [activePersonality(state).strength] : []),
     ...(state.custom ?? []).filter(r => r.value > 0 && kinds.includes(r.kind)).map(r => r.value)];
 // Off-scene profiles are storage only: no names, traits or tokens leak into the prompt.
 const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filter(person =>
-    person.inScene && String(person.name ?? '').trim() && (live(person.state).some(m => m.kind !== 'story') || extraLines(person.state).length));
+    person.inScene && String(person.name ?? '').trim() && (live(person.state).some(m => m.kind !== 'story') || extraLines(person.state).length || activePersonality(person.state)));
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
 const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'sir', 'lady', 'lord']);
 const shortName = full => { const first = full.split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? full : first; };
 // extras: { player: { state, name }, story: state } — the player's character and the chat's story settings.
+function personalityLines(state, knowledge, observer = '') {
+    const p = activePersonality(state); if (!p) return [];
+    const entry = knowledgeEntry(knowledge?.personality);
+    const gate = knowledge ? ({ scene: 'use what the scene shows or establishes', private: 'private; not known to others', suspected: `suspected by ${observer}`, known: `known by ${observer}` })[entry.mode] : '';
+    return ['Personality type' + (gate ? ' (' + gate + ')' : '') + ':',
+        '- ' + tierOf(p.strength).name.toLowerCase() + ': ' + personalityCue(p) + (knowledge && entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : '')];
+}
 export function composePrompt(state, name, extras = {}) {
     const { player = null, story: storyState = null } = extras;
     const mine = live(state).filter(m => m.kind !== 'story');
@@ -1317,12 +1395,13 @@ export function composePrompt(state, name, extras = {}) {
     const cast = liveCast(extras);
     const N = String(name ?? '').trim() || 'the character', n = escapeHtml(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = escapeHtml(shortName(U));
+    const personalities = [state, player?.state, ...cast.map(p => p.state)].filter(s => activePersonality(s));
     const relationships = relationshipSets(state, N, extras);
     const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p), memories: (p.memories ?? []).filter(m => m.value >= 41 && m.text) }))
         .filter(p => p.tags.length || p.memories.length);
     const mineExtra = extraLines(state), storyExtra = extraLines(storyState, ['story']);
     const theirsExtra = extraLines(player?.state, ['mood', 'state'], `${escapeHtml(shortName(String(player?.name ?? '').trim() || 'the player’s character'))}'s turn-ons and turn-offs (picked up from how they react):`);
-    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length) return '';
+    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length && !personalities.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
@@ -1343,7 +1422,8 @@ export function composePrompt(state, name, extras = {}) {
     ];
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, qualities and facts, strength is how pronounced they are and how much weight they get; facts stay as written, and age doesn't decide anyone's personality.`);
-    if (mine.length || mineExtra.length) out.push('', `<character_state name="${escapeHtml(N)}">`, ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
+    if (personalities.length) out.push('', 'Personality types are writing lenses: use the selected expression at its strength in attention, decisions and manner. Mix them with current moods and relationships; a type neither cancels those nor spreads to other people. For the player’s character, follow its knowledge setting and leave their choices to the player.');
+    if (mine.length || mineExtra.length || activePersonality(state)) out.push('', `<character_state name="${escapeHtml(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
     if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their other feelings decide how openly that comes out.`] : []),
@@ -1352,13 +1432,14 @@ export function composePrompt(state, name, extras = {}) {
         `Dark character settings are behavioural, not private labels: ${n} makes choices and takes actions that fit them at their listed strengths.`,
         ...(darkActionPeak >= 81 ? [`When murder, abduction, torture or severe violence serves ${n}'s goal and matches the active settings, let ${n} choose it and follow through rather than replacing it with a threat, a sudden conscience or an interrupted attempt.`] : []),
         ...(darkActionPeak === 100 ? [`At maximum, the darkest active trait can decide the reply's central action and leave irreversible harm or death behind.`] : []));
-    if (theirs.length || theirsExtra.length) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
+    if (theirs.length || theirsExtra.length || activePersonality(player?.state)) out.push('', `<player_character name="${escapeHtml(U)}" controlled_by="player">`,
+        ...personalityLines(player.state, player.knowledge ?? {}, n),
         ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra, '',
         `${u} is the player's character: the player writes everything ${u} says, does and thinks. These rows are for ${n} to act on at their strength, through what they notice, say, do and think. If they suspect ${u} is angry, they push or try to work out why; if they think ${u}'s into older men, they play to it. A suspicion can be wrong, but ${n} still acts on it. Private rows stay ${u}'s until the player shows them, knowing a feeling isn't knowing their thoughts, and a source only explains how ${n} knows. ${n} reacts as themselves without taking on ${u}'s feelings. At clear, ${n} picks up on a row at least once; at maximum their reply revolves around it.`,
         `</player_character>`);
     for (const [castState, list, castName] of castSets) out.push('',
         `<supporting_character name="${escapeHtml(castName)}">`,
-        ...listLines(castState, list, U, { ...people, subject: castName }), ...extraLines(castState),
+        ...personalityLines(castState), ...listLines(castState, list, U, { ...people, subject: castName }), ...extraLines(castState),
         '</supporting_character>');
     if (castSets.length) out.push('',
         `These supporting characters are in this scene. Each keeps their own blend, shaping their speech, choices and visible behaviour at its strength without changing the viewpoint. Each knows only what they could have seen or learned; nobody gains private thoughts or someone else's feelings. The player still writes ${u}. Not everyone needs to speak each turn.`);
@@ -1425,7 +1506,7 @@ export async function budgetPrompt(state, name, budget, countTokens, extras = {}
     const tokens = prompt ? await countTokens(prompt) : 0;
     // The target is a warning only. Nothing the player set is ever dropped or shortened.
     return { prompt, tokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
-        selectedIds: [...all.map(m => m.id), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
+        selectedIds: [...all.map(m => m.id), ...[state, extras.player?.state, ...liveCast(extras).map(p => p.state)].map(activePersonality).filter(Boolean).map(p => `personality:${p.type}`), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
             .flatMap(({ name: subject, relation, tags }) => tags.map(tag => `${subject}:${relationshipKey(relation, tag.id)}`))], omittedIds: [], omitted: 0 };
 }
 export function parseAnalysis(text) {

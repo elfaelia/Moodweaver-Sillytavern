@@ -4,6 +4,10 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.15.0:** search your saved lists as well as the catalogue; search relationship people, feelings, shared settings, memories, and persona knowledge. Selection updates preserve the visible row, focus, open categories and search. Each character, persona and cast member also has a separate **Personality** tab for an optional MBTI writing lens. See [the update notes](UPDATE-1.15.0.md). No tests were run for this release at the owner's request.
+
+Install all runtime files together, including the new `personality.js`, `personality-ui.js` and `panel-state.js` modules. Refresh SillyTavern after updating.
+
 Reload SillyTavern after installation, open a character chat, and click **◆ Moods** at the lower right. There is also an **Open mood panel** button in Extensions settings.
 
 1. In **Manual**, move a slider or add a starter blend. Zero means that mood contributes no direction. Feelings do not need to add up to 100.

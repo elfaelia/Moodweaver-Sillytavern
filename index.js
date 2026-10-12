@@ -4,6 +4,9 @@ import { castFor, addCastMember, castDefaults, castName, newCastId } from './cas
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, SHARED_IDS, activeRelationshipTags, activeSharedTags, cloneRelationships, cleanCompare, relationshipKey } from './relationships.js';
 import { relationshipView } from './relationship-ui.js';
 import { TURN_CATEGORIES, TURN_BY_ID } from './turns.js';
+import { cleanPersonality, activePersonality } from './personality.js';
+import { personalityView, filterPersonality } from './personality-ui.js';
+import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, restoreGroupOpen, clearPanelSearch, rememberGroupChoice } from './panel-state.js';
 
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
@@ -223,12 +226,14 @@ function knowledgePanel(state, ch) {
     const knowledge = getKnowledge(ch);
     return `<details class="mw-knowledge mw-advanced"><summary>What ${esc(ch.name)} knows <small>${active.length} active tags</small></summary>
         <p class="mw-fine">This covers your current feelings as well as traits and preferences. Scene only follows what they can see or already know. Private needs clues you actually give. Suspected is an impression they can act on but might get wrong. Known means they know, including how you feel now. Higher strengths should shape their response more; their own settings decide how. You still write your reactions.</p>
+        <input type="search" id="mw-knowledge-search" data-filter-list="knowledge" placeholder="Find an active trait or mood…" aria-label="Search persona knowledge">
         ${active.length ? active.map(m => {
             const entry = knowledgeEntry(knowledge[m.id]);
-            return `<div class="mw-knowledge-row"><label for="mw-knowledge-${m.id}">${esc(tagLabel(m))} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
+            return `<div class="mw-knowledge-row" data-knowledge-row="${m.id}" data-filter-item="knowledge" data-search="${esc(tagLabel(m) + ' ' + m.cue + ' ' + (MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}"><label for="mw-knowledge-${m.id}">${esc(tagLabel(m))} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
                 <select id="mw-knowledge-${m.id}" data-knowledge="${m.id}" aria-label="What ${esc(ch.name)} knows: ${esc(m.label)}">${KNOWLEDGE_MODES.map((mode, i) => `<option value="${mode}" ${entry.mode === mode ? 'selected' : ''}>${['Scene only', 'Private', 'Suspected', 'Known'][i]}</option>`).join('')}</select>
                 ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${m.id}" aria-label="Source for ${esc(m.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
         }).join('') : '<p class="mw-fine">Enable a persona tag and it will appear here.</p>'}
+        <p class="mw-fine" data-filter-empty="knowledge" hidden>No matching active traits or moods.</p>
         <p class="mw-fine">Each active tag is sent once, with its existing strength. Source notes add tokens only when filled in. Turning a tag off stops sending it; its knowledge choice is kept for next time.</p></details>`;
 }
 function getCast(ch = target()) {
@@ -389,7 +394,7 @@ const CUSTOM_HINT = { mood: 'e.g. needs control of the camera', state: 'e.g. sti
 function customBlock(state, kind, whose) {
     const rows = (state.custom ?? []).filter(r => r.kind === kind);
     return `<div class="mw-custom"><div class="mw-section-label">YOUR OWN<span>sent exactly as you write it</span></div>
-        ${rows.map(r => `<div class="mw-mood mw-own"><div class="mw-row-head"><input type="text" class="mw-own-text" data-custom-text="${esc(r.id)}" maxlength="100" value="${esc(r.text)}" aria-label="Your own setting"><span data-lvl>${level(r.value)}</span><output>${r.value}%</output><button type="button" class="mw-list" data-custom-remove="${esc(r.id)}" title="Delete" aria-label="Delete">×</button></div>
+        ${rows.map(r => `<div class="mw-mood mw-own" data-custom-row="${esc(r.id)}" data-search="${esc(r.text)}"><div class="mw-row-head"><input type="text" class="mw-own-text" data-custom-text="${esc(r.id)}" maxlength="100" value="${esc(r.text)}" aria-label="Your own setting"><span data-lvl>${level(r.value)}</span><output>${r.value}%</output><button type="button" class="mw-list" data-custom-remove="${esc(r.id)}" title="Delete" aria-label="Delete">×</button></div>
             <input type="range" min="0" max="100" step="1" value="${r.value}" data-custom="${esc(r.id)}" style="--mw-fill:${r.value}%" aria-label="Strength">
             ${r.value ? causeBox(`data-custom-cause="${esc(r.id)}"`, r.cause) : ''}</div>`).join('')}
         <div class="mw-cast-add"><input type="text" data-custom-new="${kind}" maxlength="100" placeholder="${CUSTOM_HINT[kind]}" aria-label="Write your own for ${esc(whose)}"><button data-action="custom-add" data-kind="${kind}">＋ Add</button></div></div>`;
@@ -411,7 +416,7 @@ function catalogueBlock(state, kind, ch, whose) {
         return `<details data-category="${key}" data-kind="mood" style="--mw-accent:${color}" ${openCategories.has(key) || !browsing ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>Turn-ons & offs · ${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
     }).join('');
     const label = kind === 'mood' ? 'moodlets' : kind === 'state' ? 'needs and facts' : 'story settings';
-    return `<div class="mw-tools">${browsing ? `<input class="mw-search" type="search" placeholder="Search everything…" aria-label="Search" value="${esc(search)}"><button data-action="browse-done" class="mw-primary">Done</button>`
+    return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${browsing ? 'Search available ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(search)}">${browsing ? `<button data-action="browse-done" class="mw-primary">Done</button>`
             : `<button data-action="browse" class="mw-primary">＋ Add ${label}</button>${kind === 'mood' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend…</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select>` : ''}`}</div>
     ${browsing ? `<p class="mw-explainer">Everything available. Tap ＋ or move a slider to put it on ${esc(whose)}’s list.</p>` : ''}
     <div class="mw-scale"><span>Off</span>${[...TIERS].reverse().map(t => `<span>${t.name}</span>`).join('')}</div>
@@ -463,15 +468,7 @@ function personCard(ch, state) {
 }
 function render() {
     if (!panel) return;
-    const scroll = panel.scrollTop;
-    const advancedOpen = panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')?.open;
-    const tuningOpen = panel.querySelector('.mw-tuning')?.open;
-    const inspectorOpen = panel.querySelector('.mw-inspector')?.open;
-    const knowledgeOpen = panel.querySelector('.mw-knowledge')?.open;
-    const manageOpen = panel.querySelector('.mw-manage')?.open;
-    const relationSearch = panel.querySelector('[data-relation-search]')?.value ?? '';
-    panel.querySelectorAll('[data-relation-group]').forEach(d => d.open ? openRelationGroups.add(d.dataset.relationGroup) : openRelationGroups.delete(d.dataset.relationGroup));
-    panel.querySelectorAll('details[data-category]').forEach(d => d.open ? openCategories.add(d.dataset.category) : openCategories.delete(d.dataset.category));
+    capturePanel(panel);
     const ch = target(), charState = getState(ch), allProfiles = profiles();
     if (charState) migratePairs(ch);
     if (who === 'cast' && !selectedCast()) who = 'char';
@@ -481,16 +478,20 @@ function render() {
     const active = state ? activeMoods(state) : [];
     const shown = active.filter(m => m.kind === kind && m.category !== 'relationship');
     const relationshipCount = state && who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length };
+    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonality(state) ? 1 : 0 };
     const peer = state && who !== 'story' ? currentPeer() : null;
+    const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
+    const snapshot = savedPanel(view), sameView = panel.dataset.view === view;
+    search = snapshot?.searches['#mw-catalogue-search'] ?? '';
+    panel.dataset.view = view;
     panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch)}
     ${state ? `${personCard(ch, state)}
-    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts']].map(([k, icon, label]) =>
+    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts'], ['personality', '◈', 'Personality']].map(([k, icon, label]) =>
         `<button role="tab" data-tab="${k}" aria-pressed="${tab === k}">${icon} ${label}${counts[k] ? ` <small>${counts[k]}</small>` : ''}</button>`).join('')}</div>`}
-    ${tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
+    ${tab === 'personality' && who !== 'story' ? personalityView({ state, isPlayer: who === 'user', focus: ch.name, knowledge: getKnowledge(ch) }) : tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
     <div class="mw-summary"><div class="mw-section-label">${shown.length ? (kind === 'mood' ? 'ACTIVE MOODLETS' : kind === 'state' ? 'NEEDS & FACTS' : 'THE STORY SO FAR') : 'A CLEAN SLATE'}<span>${shown.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
         <div class="mw-chips">${shown.length ? shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
         <p data-budget-warning class="mw-fine" hidden></p>
@@ -518,36 +519,45 @@ function render() {
         <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
         <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
         <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.14.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
-    if (manageOpen && panel.querySelector('.mw-manage')) panel.querySelector('.mw-manage').open = true;
-    if (advancedOpen && panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)')) panel.querySelector('.mw-advanced:not(.mw-inspector):not(.mw-knowledge)').open = true;
-    if (tuningOpen && panel.querySelector('.mw-tuning')) panel.querySelector('.mw-tuning').open = true;
-    if (inspectorOpen && panel.querySelector('.mw-inspector')) panel.querySelector('.mw-inspector').open = true;
-    if (knowledgeOpen && panel.querySelector('.mw-knowledge')) panel.querySelector('.mw-knowledge').open = true;
-    if (panel.querySelector('[data-relation-search]')) { panel.querySelector('[data-relation-search]').value = relationSearch; filterRelationships(relationSearch); }
-    filterRows(); renderPreview(); panel.scrollTop = scroll; toggleTop();
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.15.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    restorePanelFields(panel, snapshot);
+    filterRows(); filterRelationships(panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(panel);
+    renderPreview(); restorePanelPosition(panel, snapshot, sameView); toggleTop();
 }
 function toggleTop() { const b = panel?.querySelector('.mw-to-top'); if (b) b.hidden = panel.scrollTop < 500; }
 function filterRelationships(value) {
-    const term = value.trim().toLowerCase();
+    const term = value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    let shown = 0;
     panel.querySelectorAll('[data-relation-group]').forEach(group => {
         let visible = 0;
-        group.querySelectorAll('[data-relation-row]').forEach(row => { row.hidden = !row.textContent.toLowerCase().includes(term); if (!row.hidden) visible++; });
-        group.hidden = !visible; group.open = term ? visible > 0 : openRelationGroups.has(group.dataset.relationGroup);
+        group.querySelectorAll('[data-relation-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) visible++; });
+        group.hidden = !visible; shown += visible;
+        if (term) group.open = visible > 0; else restoreGroupOpen(group, savedPanel(panel.dataset.view), openRelationGroups.has(group.dataset.relationGroup));
+    });
+    const none = panel.querySelector('[data-relation-empty]'); if (none) none.hidden = shown > 0;
+}
+const searchText = row => [row.textContent, row.dataset.aliases ?? '', row.dataset.search ?? '', ...[...row.querySelectorAll('input[type="text"]')].map(i => i.value)].join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+function filterLocalLists() {
+    panel.querySelectorAll('[data-filter-list]').forEach(input => {
+        const key = input.dataset.filterList, term = input.value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        let count = 0;
+        panel.querySelectorAll(`[data-filter-item="${key}"]`).forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) count++; });
+        const none = panel.querySelector(`[data-filter-empty="${key}"]`); if (none) none.hidden = count > 0;
     });
 }
 function filterRows() {
-    const term = search.trim().toLowerCase();
+    const term = search.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     let shown = 0;
     panel.querySelectorAll('[data-category]').forEach(d => {
         let count = 0;
         d.querySelectorAll('[data-mood]').forEach(row => {
-            row.hidden = !(row.textContent + ' ' + (row.dataset.aliases ?? '')).toLowerCase().includes(term); if (!row.hidden) count++;
+            row.hidden = !searchText(row).includes(term); if (!row.hidden) count++;
         });
         const inTab = who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === tab;
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
-        d.open = term ? count > 0 : !browsing || openCategories.has(d.dataset.category);
+        if (term) d.open = count > 0; else restoreGroupOpen(d, savedPanel(panel.dataset.view), !browsing || openCategories.has(d.dataset.category));
     });
+    panel.querySelectorAll('[data-custom-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) shown++; });
     const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
 }
 async function changeState(mutator) {
@@ -573,6 +583,13 @@ function setup() {
     }
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
+        if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
+        if (e.target.id === 'mw-type-search') { filterPersonality(panel); return; }
+        if (e.target.dataset.personality === 'strength') {
+            const v = Number(e.target.value), row = e.target.closest('.mw-mood');
+            row.querySelector('output').textContent = `${v}%`; row.querySelector('[data-lvl]').textContent = level(v);
+            e.target.style.setProperty('--mw-fill', `${v}%`); e.target.setAttribute('aria-valuetext', `${v} percent, ${level(v)}`); return;
+        }
         if (e.target.hasAttribute('data-relation-search')) {
             filterRelationships(e.target.value); return;
         }
@@ -599,7 +616,7 @@ function setup() {
             void persist(state); void syncPrompt(); return;
         }
         const sourceId = e.target.dataset.knowledgeSource;
-        if (sourceId && who === 'user' && BY_ID[sourceId]) {
+        if (sourceId && who === 'user' && (BY_ID[sourceId] || sourceId === 'personality')) {
             const knowledge = getKnowledge(target(), true);
             knowledge[sourceId] = knowledgeEntry({ ...knowledgeEntry(knowledge[sourceId]), source: e.target.value });
             // Keep the draft in metadata before any other control can redraw the panel.
@@ -614,6 +631,14 @@ function setup() {
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
+        if (input.dataset.personality) {
+            const field = input.dataset.personality;
+            await changeState(s => {
+                const p = cleanPersonality(s.personality);
+                p[field] = field === 'enabled' ? input.checked : field === 'strength' ? Number(input.value) : input.value;
+                s.personality = cleanPersonality(p);
+            }); return;
+        }
         if (input.hasAttribute('data-relation-enabled')) { const relation = selectedRelation(); if (relation) await changeState(() => { relation.enabled = input.checked; }); return; }
         if (input.dataset.pairSlider && SHARED_BY_ID[input.dataset.pairSlider]) {
             const peer = currentPeer(); if (!peer) return;
@@ -648,7 +673,7 @@ function setup() {
         }
         if (input.dataset.target) return;
         const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
-        if (knowledgeId && who === 'user' && BY_ID[knowledgeId]?.kind !== 'story' && BY_ID[knowledgeId]) {
+        if (knowledgeId && who === 'user' && (knowledgeId === 'personality' || BY_ID[knowledgeId] && BY_ID[knowledgeId].kind !== 'story')) {
             const knowledge = getKnowledge(target(), true);
             const previous = knowledgeEntry(knowledge[knowledgeId]);
             const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });
@@ -711,6 +736,8 @@ function setup() {
         });
     });
     panel.addEventListener('click', async e => {
+        const summary = e.target.closest('summary');
+        if (summary?.parentElement.matches('details')) rememberGroupChoice(panel, summary.parentElement);
         const button = e.target.closest('button'); if (!button) return;
         if (button.dataset.who) {
             who = button.dataset.who; browsing = false; if (button.dataset.castId) selectedCastId = button.dataset.castId;
@@ -737,7 +764,7 @@ function setup() {
         if (button.dataset.tab) { tab = button.dataset.tab; search = ''; browsing = false; removingRelation = ''; render(); return; }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
-            search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
+            clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = BY_ID[button.dataset.jump]?.kind === 'state' ? 'state' : 'mood'; render();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
             category.open = true; openCategories.add(category.dataset.category); row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
@@ -831,7 +858,7 @@ function setup() {
                 const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : who === 'cast' ? selectedCast()?.name : target()?.name;
                 if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed. Their list stays, so you can set a new scene quickly.`)) break;
                 await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } for (const r of s.relationships ?? []) for (const key of Object.keys(r.moods)) r.moods[key] = 0;
-                    s.causes = {}; s.prefs = {}; for (const r of s.custom ?? []) { r.value = 0; r.cause = ''; } s.reason = ''; }); break;
+                    s.causes = {}; s.prefs = {}; s.personality = { ...cleanPersonality(s.personality), enabled: false }; for (const r of s.custom ?? []) { r.value = 0; r.cause = ''; } s.reason = ''; }); break;
             }
             case 'reset': await changeState(s => { for (const m of MOODS) if (!s.pins[m.id]) s.moods[m.id] = 0; s.reason = ''; }); break;
             case 'undo': await changeState(s => {

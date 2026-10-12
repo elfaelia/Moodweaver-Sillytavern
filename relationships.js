@@ -136,6 +136,7 @@ export const RELATIONSHIP_CATEGORIES = [
         ['suspicious_of', 'Suspicious of', 'thinks they’re up to something', 'suspicious of {other}'],
     ]],
     ['Friendship & trust', '♡', '#dba6b9', [
+        ['devoted', 'Devoted to', 'keeps choosing them and making time or sacrifices for them', 'devoted to {other}; makes them a priority and follows through'],
         ['likes', 'Likes', 'enjoys them and is glad when they’re around', 'likes {other}'],
         ['enjoys_company', 'Enjoys their company', 'time with them is easy and fun', 'enjoys {other}’s company'],
         ['comfortable_with', 'Comfortable with', 'can relax and be themselves around them', 'comfortable around {other}'],
@@ -226,6 +227,7 @@ export const RELATIONSHIP_CATEGORIES = [
         ['regrets', 'Regrets', 'wishes things had gone differently with them', 'regrets how things went with {other}'],
     ]],
     ['Dislike & hostility', '↯', '#d69d95', [
+        ['cold_shoulder', 'Giving the cold shoulder', 'deliberately withholds warmth and attention from them', 'gives {other} the cold shoulder, withholding warmth and attention'],
         ['irritated_by', 'Irritated by', 'little things they do grate', 'irritated by {other}'],
         ['sick_of', 'Sick of', 'had enough of them', 'sick of {other}'],
         ['cant_stand', 'Can’t stand', 'their presence alone is too much', 'can’t stand {other}'],

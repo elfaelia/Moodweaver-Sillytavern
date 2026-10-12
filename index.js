@@ -4,7 +4,7 @@ import { castFor, addCastMember, castDefaults, castName, newCastId } from './cas
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, SHARED_IDS, activeRelationshipTags, activeSharedTags, cloneRelationships, cleanCompare, relationshipKey } from './relationships.js';
 import { relationshipView } from './relationship-ui.js';
 import { TURN_CATEGORIES, TURN_BY_ID } from './turns.js';
-import { cleanPersonality, activePersonality } from './personality.js';
+import { cleanPersonality, cleanEnneagram, activePersonalities } from './personality.js';
 import { personalityView, filterPersonality } from './personality-ui.js';
 import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, clearPanelSearch, rememberGroupChoice } from './panel-state.js';
 
@@ -477,7 +477,7 @@ function render() {
     const active = state ? activeMoods(state) : [];
     const shown = active.filter(m => m.kind === kind && m.category !== 'relationship');
     const relationshipCount = state && who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonality(state) ? 1 : 0 };
+    const counts = { mood: active.filter(m => m.kind === 'mood').length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonalities(state).length };
     const peer = state && who !== 'story' ? currentPeer() : null;
     const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
     const snapshot = savedPanel(view), sameView = panel.dataset.view === view;
@@ -589,7 +589,7 @@ function setup() {
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
-        if (e.target.id === 'mw-type-search') { filterPersonality(panel); return; }
+        if (['mw-type-search', 'mw-enneagram-search'].includes(e.target.id)) { filterPersonality(panel); return; }
         if (e.target.dataset.personality === 'strength') {
             const v = Number(e.target.value), row = e.target.closest('.mw-mood');
             row.querySelector('output').textContent = `${v}%`; row.querySelector('[data-lvl]').textContent = level(v);
@@ -621,7 +621,7 @@ function setup() {
             void persist(state); void syncPrompt(); return;
         }
         const sourceId = e.target.dataset.knowledgeSource;
-        if (sourceId && who === 'user' && (BY_ID[sourceId] || sourceId === 'personality')) {
+        if (sourceId && who === 'user' && (BY_ID[sourceId] || ['personality', 'enneagram'].includes(sourceId))) {
             const knowledge = getKnowledge(target(), true);
             knowledge[sourceId] = knowledgeEntry({ ...knowledgeEntry(knowledge[sourceId]), source: e.target.value });
             // Keep the draft in metadata before any other control can redraw the panel.
@@ -638,10 +638,13 @@ function setup() {
         const input = e.target;
         if (input.dataset.personality) {
             const field = input.dataset.personality;
+            const system = input.dataset.personalitySystem === 'enneagram' ? 'enneagram' : 'personality';
+            const clean = system === 'enneagram' ? cleanEnneagram : cleanPersonality;
+            if (!['enabled', 'type', 'expression', 'strength'].includes(field)) return;
             await changeState(s => {
-                const p = cleanPersonality(s.personality);
+                const p = clean(s[system]);
                 p[field] = field === 'enabled' ? input.checked : field === 'strength' ? Number(input.value) : input.value;
-                s.personality = cleanPersonality(p);
+                s[system] = clean(p);
             }); return;
         }
         if (input.hasAttribute('data-relation-enabled')) { const relation = selectedRelation(); if (relation) await changeState(() => { relation.enabled = input.checked; }); return; }
@@ -678,7 +681,7 @@ function setup() {
         }
         if (input.dataset.target) return;
         const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
-        if (knowledgeId && who === 'user' && (knowledgeId === 'personality' || BY_ID[knowledgeId] && BY_ID[knowledgeId].kind !== 'story')) {
+        if (knowledgeId && who === 'user' && (['personality', 'enneagram'].includes(knowledgeId) || BY_ID[knowledgeId] && BY_ID[knowledgeId].kind !== 'story')) {
             const knowledge = getKnowledge(target(), true);
             const previous = knowledgeEntry(knowledge[knowledgeId]);
             const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });
@@ -863,7 +866,7 @@ function setup() {
                 const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : who === 'cast' ? selectedCast()?.name : target()?.name;
                 if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed. Their list stays, so you can set a new scene quickly.`)) break;
                 await changeState(s => { for (const m of MOODS) { s.moods[m.id] = 0; s.pins[m.id] = false; } for (const r of s.relationships ?? []) for (const key of Object.keys(r.moods)) r.moods[key] = 0;
-                    s.causes = {}; s.prefs = {}; s.personality = { ...cleanPersonality(s.personality), enabled: false }; for (const r of s.custom ?? []) { r.value = 0; r.cause = ''; } s.reason = ''; }); break;
+                    s.causes = {}; s.prefs = {}; s.personality = { ...cleanPersonality(s.personality), enabled: false }; s.enneagram = { ...cleanEnneagram(s.enneagram), enabled: false }; for (const r of s.custom ?? []) { r.value = 0; r.cause = ''; } s.reason = ''; }); break;
             }
             case 'reset': await changeState(s => { for (const m of MOODS) if (!s.pins[m.id]) s.moods[m.id] = 0; s.reason = ''; }); break;
             case 'undo': await changeState(s => {

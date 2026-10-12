@@ -19,22 +19,92 @@ export const PERSONALITY_TYPES = [
     ['ENTJ', 'Driven organiser', 'outgoing, pattern-minded, logical and organised', 'decisive, strategic and good at turning plans into action', 'ruthless, impatient and treating people as obstacles or resources'],
 ].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative }));
 export const PERSONALITY_BY_ID = Object.fromEntries(PERSONALITY_TYPES.map(t => [t.id, t]));
+export const ENNEAGRAM_TYPES = [
+    [
+        "1",
+        "Reformer",
+        "needs to live up to their standards",
+        "fair, responsible and willing to improve things",
+        "critical, resentful and unable to forgive mistakes"
+    ],
+    [
+        "2",
+        "Helper",
+        "needs to feel wanted through what they give",
+        "generous, attentive and able to accept care",
+        "intrusive, possessive and making help into a debt"
+    ],
+    [
+        "3",
+        "Achiever",
+        "needs to feel valuable through success",
+        "capable, motivating and honest about effort",
+        "image-led, competitive and hiding anything that looks like failure"
+    ],
+    [
+        "4",
+        "Individualist",
+        "needs a life that feels personally meaningful",
+        "emotionally honest, creative and sensitive to nuance",
+        "envious, self-absorbed and attached to feeling misunderstood"
+    ],
+    [
+        "5",
+        "Investigator",
+        "needs understanding and enough space to cope",
+        "insightful, independent and generous with knowledge",
+        "withdrawn, hoarding time and analysing instead of engaging"
+    ],
+    [
+        "6",
+        "Loyalist",
+        "needs trust and something dependable to stand on",
+        "loyal, questioning and brave despite doubt",
+        "suspicious, second-guessing and testing people for betrayal"
+    ],
+    [
+        "7",
+        "Enthusiast",
+        "needs freedom and possibilities to look forward to",
+        "inventive, enthusiastic and able to enjoy the present",
+        "scattered, overindulgent and escaping uncomfortable feelings"
+    ],
+    [
+        "8",
+        "Challenger",
+        "needs control of their own life",
+        "direct, protective and willing to share power",
+        "domineering, confrontational and treating vulnerability as defeat"
+    ],
+    [
+        "9",
+        "Peacemaker",
+        "needs inner peace and connection",
+        "receptive, steady and able to bridge differences",
+        "avoidant, stubbornly passive and losing touch with their own wants"
+    ]
+].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative }));
+export const ENNEAGRAM_BY_ID = Object.fromEntries(ENNEAGRAM_TYPES.map(t => [t.id, t]));
 export const PERSONALITY_EXPRESSIONS = ['balanced', 'positive', 'negative'];
-export function cleanPersonality(value = {}) {
+function cleanType(value, catalogue) {
     return {
         enabled: value?.enabled === true,
-        type: PERSONALITY_BY_ID[value?.type] ? value.type : '',
+        type: catalogue[value?.type] ? String(value.type) : '',
         expression: PERSONALITY_EXPRESSIONS.includes(value?.expression) ? value.expression : 'balanced',
         strength: Math.round(Math.max(0, Math.min(100, Number.isFinite(Number(value?.strength)) ? Number(value.strength) : 50))),
     };
 }
-export function activePersonality(state) {
-    const p = cleanPersonality(state?.personality);
-    return state?.enabled && p.enabled && p.type && p.strength > 0 ? p : null;
+export const cleanPersonality = (value = {}) => cleanType(value, PERSONALITY_BY_ID);
+export const cleanEnneagram = (value = {}) => cleanType(value, ENNEAGRAM_BY_ID);
+export function activePersonalities(state) {
+    if (!state?.enabled) return [];
+    return [{ ...cleanPersonality(state.personality), system: 'personality' }, { ...cleanEnneagram(state.enneagram), system: 'enneagram' }]
+        .filter(p => p.enabled && p.type && p.strength > 0);
 }
+export function activePersonality(state) { return activePersonalities(state)[0] ?? null; }
 export function personalityCue(p) {
-    const t = PERSONALITY_BY_ID[p.type];
+    const t = (p.system === 'enneagram' ? ENNEAGRAM_BY_ID : PERSONALITY_BY_ID)[p.type];
     if (!t) return '';
     const expression = p.expression === 'balanced' ? `strengths: ${t.positive}; flaws: ${t.negative}` : `${p.expression} expression: ${t[p.expression]}`;
-    return `${t.id}, ${t.core}; ${expression}`;
+    return `${p.system === 'enneagram' ? 'Enneagram ' : 'MBTI '}${t.id}, ${t.core}; ${expression}${p.strength >= 70 ? '; a driving pattern throughout this reply' : ''}`;
 }

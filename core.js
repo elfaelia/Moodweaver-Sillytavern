@@ -1,4 +1,4 @@
-import { cleanPersonality, activePersonality, personalityCue } from './personality.js';
+import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalities, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS } from './turns.js';
 import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText } from './relationships.js';
 
@@ -37,6 +37,7 @@ export const AUTHOR_INSPIRATIONS = [
 
 export const CATEGORIES = [
     ['happy', 'Happy & lively', '✧', '#e5ca7f', [
+        ['small_wonder', 'Small wonder', 'finds unexpected delight in an ordinary detail and gives it their full attention'],
         ["awe_struck", "Awe-struck", "caught by something extraordinary; ordinary concerns feel smaller beside it"],
         ["celebratory", "Celebratory", "wants to mark a good moment and make an occasion of it"],
         ['happy', 'Happy', 'pleased and in good spirits, up to outright delight'],
@@ -48,6 +49,7 @@ export const CATEGORIES = [
         ['experimental', 'Experimental', 'up for trying new things'],
     ]],
     ['bold', 'Confident & driven', '⚑', '#e2b06f', [
+        ["contagious_possibility","Contagious possibility","makes ambitious plans feel reachable and pulls other people into believing in them"],
         ["unapologetic", "Unapologetic", "owns their wants and choices without softening them to win approval"],
         ["in_their_element", "In their element", "familiar ground brings out easy confidence and a sure sense of what to do"],
         ["vindicated", "Vindicated", "feels proved right after being doubted and wants that recognised"],
@@ -83,6 +85,9 @@ export const CATEGORIES = [
         ['touch_giving', 'Physical touch (giving)', 'shows love through touch'], ['touch_receiving', 'Physical touch (receiving)', 'feels loved when touched'],
     ]],
     ['attachment', 'Attachment & obsession', '⛓', '#c6a0ef', [
+        ["rescue_entitlement","Rescue entitlement","thinks helping someone has earned a special place in their life, whether they agreed or not"],
+        ["chosen_belonging","Chosen belonging","invests in a bond because it feels like a place they chose rather than a role imposed on them"],
+        ["idealised_stranger","Idealised stranger","fills gaps in a barely known person with an imagined connection"],
         ["limerent", "Limerent", "fixates on whether affection is returned, building hope and despair around small signs"],
         ["rescue_fixation", "Rescue fixation", "needs to be someone’s rescuer and struggles when that person stops needing help"],
         ["emotional_scorekeeping", "Emotional scorekeeping", "counts who reached out, cared more or made the last sacrifice"],
@@ -110,6 +115,7 @@ export const CATEGORIES = [
         ['icy', 'Cold (manner)', 'cold and unfriendly'], ['disenchanted', 'Disenchanted', 'the magic’s worn off'],
     ]],
     ['sad', 'Sad & hurt', '☂', '#a5b5f3', [
+        ["missing_old_self","Missing their old self","misses who they were before life narrowed their choices"],
         ["unacknowledged_grief", "Unacknowledged grief", "carries a loss they cannot openly mourn or that others refuse to take seriously"],
         ["resigned", "Resigned", "expects nothing to change and has stopped spending hope on it"],
         ["homesick", "Homesick", "misses familiar places, routines and people who make somewhere feel like home"],
@@ -123,6 +129,9 @@ export const CATEGORIES = [
 
     ]],
     ['scared', 'Scared & uneasy', '⚠', '#b0a5e8', [
+        ["replaceable","Feeling replaceable","reads small changes in attention as signs they are becoming less important"],
+        ["status_panic","Status panic","feels humiliated by being outclassed and scrambles to restore their standing"],
+        ["fear_of_owing","Afraid of owing","struggles to accept help because being indebted feels like losing control"],
         ["dreading", "Dreading", "an approaching event hangs over them and colours what happens before it"],
         ["out_of_place", "Out of place", "feels they don’t belong here and keeps noticing the difference"],
         ["squeamish", "Squeamish", "easily unsettled by blood, injury or bodily unpleasantness"],
@@ -151,6 +160,9 @@ export const CATEGORIES = [
         ['tranquil_fury', 'Tranquil fury', 'rage gone calm and cold'],
     ]],
     ['cruel', 'Cruel & controlling', '☠', '#d98f8f', [
+        ["paternalistic_control","Paternalistic control","makes other people’s decisions for them and calls it knowing what is best for them"],
+        ["dividing_loyalties","Dividing loyalties","feeds rivalries and competing loyalties so others stay easier to direct"],
+        ["withheld_recognition","Withholding recognition","rations credit and approval to keep people trying to earn it"],
         ["punitive", "Punitive", "treats mistakes and defiance as things that deserve punishment"],
         ["malicious_compliance", "Malicious compliance", "follows the letter of a request to spite the person who made it"],
         ["scapegoating", "Scapegoating", "loads blame onto someone convenient so their own faults stay out of view"],
@@ -200,6 +212,9 @@ export const CATEGORIES = [
 
     ]],
     ['masks', 'Hiding & showing', '◐', '#a6c3b0', [
+        ["defensive_joking","Joking through hurt","turns painful feelings into jokes before anyone can take them seriously"],
+        ["borrowed_normality","Borrowed normality","copies ordinary reactions to pass as someone who feels what everyone else seems to feel"],
+        ["charm_as_armour","Charm as armour","uses charm to keep an exchange on familiar ground when honesty feels exposing"],
         ["strategic_vulnerability", "Strategic vulnerability", "reveals a carefully chosen weakness to disarm someone or shape their impression"],
         ["overcompensating", "Overcompensating", "overplays a quality to cover the insecurity or feeling underneath"],
         ["plausible_deniability", "Plausible deniability", "leaves intentions half-spoken so they can deny the meaning someone takes from them"],
@@ -380,6 +395,12 @@ export const CATEGORIES = [
         ['princess', 'Princess', 'princess vibes, expects to be treated like one'],
     ]],
     ['temperament', 'Personality', '✺', '#d6b58f', [
+        ["quiet_intervention","Quietly interventionist","seems reserved but steps in when someone is being treated unfairly"],
+        ["restless_reinventor","Restless reinventor","keeps reaching for a new version of life, even when the old one looks enviable"],
+        ["talent_spotter","Talent spotter","notices unpolished ability and gives unusually specific attention to what someone could become"],
+        ["aesthetic_gatekeeper","Aesthetic gatekeeper","treats personal taste as authority and decides whose work deserves to count"],
+        ["ritualised_self_presentation","Ritualised self-presentation","follows exact grooming and presentation routines to keep their preferred image intact"],
+        ["proxy_competitor","Proxy competitor","gets others to carry a rivalry while keeping their own involvement out of sight"],
         ["diplomatic", "Diplomatic", "looks for wording and compromises people can accept without losing face"],
         ["open_minded", "Open-minded", "gives unfamiliar ideas a hearing and can change their mind"],
         ["dogmatic", "Dogmatic", "treats their beliefs as settled truth and dismisses challenges to them"],
@@ -438,6 +459,9 @@ export const CATEGORIES = [
         ['good_sport', 'Good sport', 'takes teasing and losing in stride'],
     ]],
     ['views', 'Morals & views', '☯', '#d8b98f', [
+        ["research_absolutism","Research above people","treats knowledge and results as more important than the people bearing the cost"],
+        ["taste_as_morality","Taste as morality","mistakes refined taste for personal worth and treats bad taste as a character flaw"],
+        ["freedom_over_security","Freedom over security","would rather face uncertainty than accept safety that costs them control of their own life"],
         ["moral_absolutist", "Moral absolutist", "believes some acts are right or wrong regardless of motive or circumstance"],
         ["moral_relativist", "Moral relativist", "judges right and wrong through context and perspective rather than one fixed rule"],
         ["respectability_obsessed", "Respectability obsessed", "treats looking proper in public as more important than what happens behind the scenes"],
@@ -470,6 +494,9 @@ export const CATEGORIES = [
         ['chaotic_evil', 'Chaotic evil', 'cruel and lawless'],
     ]],
     ['psychology', 'Mind & psychology', '◈', '#a6a0cb', [
+        ["undoing_fixation","Undoing fixation","keeps imagining how a different choice could repair what already happened"],
+        ["narrative_capture","Narrative capture","fits people into a private story and edits away anything that contradicts it"],
+        ["preemptive_betrayal","Pre-emptive betrayal","expects others to turn on them and strikes first, helping create the betrayal they feared"],
         ["confirmation_bias", "Confirmation bias", "notices what supports their existing view and discounts what challenges it"],
         ["black_white_thinking", "Black-and-white thinking", "sorts people and situations into extremes, struggling to hold mixed judgments"],
         ["emotional_reasoning", "Emotional reasoning", "treats how something feels as evidence of what must be true"],
@@ -689,6 +716,12 @@ export const CATEGORIES = [
         ['combat_aftermath', 'Combat aftermath', 'show the shock, mess, evidence and consequences left after violence'],
     ], 'story'],
     ['dark_plot', 'Dark story pressure', '☠', '#985f72', [
+        ["manufactured_crisis","Manufactured crisis","a supposed rescuer helped cause the danger; their help makes the trap tighter"],
+        ["identity_erasure","Identity erasure","records, relationships and routines stop recognising a person, threatening their place in the world"],
+        ["inescapable_observation","Inescapable observation","being watched changes ordinary behaviour; privacy becomes difficult to trust"],
+        ["repeating_experiment","Repeating experiment","an ordeal returns with altered rules, and what was learned last time may now be a liability"],
+        ["inherited_debt","Inherited debt","someone inherits the consequences of another person’s wrongdoing and gets pulled into settling them"],
+        ["betrayal_cascade","Betrayal cascade","one exposed betrayal breaks other alliances, forcing choices that make the damage spread"],
         ["institutional_betrayal", "Institutional betrayal", "institutions protect their own reputation while the people relying on them pay the price"],
         ["conspiracy_of_silence", "Conspiracy of silence", "several people know something is wrong and keep choosing silence"],
         ["false_refuge", "False refuge", "a place or person offering safety turns out to be part of the danger"],
@@ -759,6 +792,15 @@ export const CATEGORIES = [
         ['dead_dove', 'Dead dove', 'dark content played straight, no softening'],
     ], 'story'],
     ['writing', 'Writing style', '✒', '#b3b3d6', [
+        ["prose_vulgar","Vulgar","blunt, coarse language and casual swearing in the narration, shaped by the viewpoint voice"],
+        ["prose_associative","Associative","one concrete detail leads into another thought or memory, then returns to the scene"],
+        ["prose_accumulative","Accumulative","build pressure through gathering details and clauses that keep adding weight"],
+        ["prose_circular","Circular","return to an opening image or idea with its meaning changed by what happened"],
+        ["prose_self_correcting","Self-correcting","let the narrator revise, qualify or catch themselves mid-thought"],
+        ["prose_bathos","Bathos","let something mundane puncture a grand or solemn moment without turning every beat into a joke"],
+        ["prose_estrangement","Defamiliarising","describe familiar things from an unusual angle so they briefly feel strange"],
+        ["prose_double_edged","Double-edged","let apparently harmless phrasing carry a second meaning the scene makes clear"],
+        ["prose_compressed","Compressed","pack implication into precise details; leave connective explanation out without losing clarity"],
         ...PROSE_STYLES,
         ['cinematic', 'Cinematic', 'written like film: visual, framed, scene by scene'], ['atmospheric', 'Atmospheric', 'mood and setting are thick and immersive'],
         ['lyrical', 'Lyrical', 'lyrical, poetic prose'], ['purple_prose', 'Purple prose', 'ornate, flowery prose'],
@@ -1049,6 +1091,7 @@ export function extendCatalogue(state) {
     state.loadout = cleanLoadout(state.loadout, state);
     state.sceneBreathing ??= true;
     state.personality = cleanPersonality(state.personality);
+    state.enneagram = cleanEnneagram(state.enneagram);
     state.moods ??= {};
     state.pins ??= {};
     for (const { id } of MOODS) {
@@ -1095,6 +1138,7 @@ export function freshState(base = {}) {
         pins: Object.fromEntries(MOODS.map(m => [m.id, Boolean(base.pins?.[m.id])])),
         targets: cleanTargets(base.targets),
         personality: cleanPersonality(base.personality),
+        enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
         causes: cleanCauses(base.causes), prefs: cleanPrefs(base.prefs), custom: cleanCustom(base.custom),
         loadout: cleanLoadout(base.loadout, base),
@@ -1122,6 +1166,33 @@ export const TIERS = [
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
+    small_wonder: 'finds unexpected delight in an ordinary detail and gives it their full attention',
+    defensive_joking: "turns painful feelings into jokes before anyone can take them seriously",
+    borrowed_normality: "copies ordinary reactions to pass as someone who feels what everyone else seems to feel",
+    charm_as_armour: "uses charm to keep an exchange on familiar ground when honesty feels exposing",
+    replaceable: "reads small changes in attention as signs they are becoming less important",
+    status_panic: "feels humiliated by being outclassed and scrambles to restore their standing",
+    fear_of_owing: "struggles to accept help because being indebted feels like losing control",
+    undoing_fixation: "keeps imagining how a different choice could repair what already happened",
+    narrative_capture: "fits people into a private story and edits away anything that contradicts it",
+    preemptive_betrayal: "expects others to turn on them and strikes first, helping create the betrayal they feared",
+    quiet_intervention: "seems reserved but steps in when someone is being treated unfairly",
+    restless_reinventor: "keeps reaching for a new version of life, even when the old one looks enviable",
+    talent_spotter: "notices unpolished ability and gives unusually specific attention to what someone could become",
+    aesthetic_gatekeeper: "treats personal taste as authority and decides whose work deserves to count",
+    ritualised_self_presentation: "follows exact grooming and presentation routines to keep their preferred image intact",
+    proxy_competitor: "gets others to carry a rivalry while keeping their own involvement out of sight",
+    paternalistic_control: "makes other people’s decisions for them and calls it knowing what is best for them",
+    dividing_loyalties: "feeds rivalries and competing loyalties so others stay easier to direct",
+    withheld_recognition: "rations credit and approval to keep people trying to earn it",
+    research_absolutism: "treats knowledge and results as more important than the people bearing the cost",
+    taste_as_morality: "mistakes refined taste for personal worth and treats bad taste as a character flaw",
+    freedom_over_security: "would rather face uncertainty than accept safety that costs them control of their own life",
+    missing_old_self: "misses who they were before life narrowed their choices",
+    contagious_possibility: "makes ambitious plans feel reachable and pulls other people into believing in them",
+    rescue_entitlement: "thinks helping someone has earned a special place in their life, whether they agreed or not",
+    chosen_belonging: "invests in a bond because it feels like a place they chose rather than a role imposed on them",
+    idealised_stranger: "fills gaps in a barely known person with an imagined connection",
     unapologetic: "owns their wants and choices without softening them to win approval",
     in_their_element: "familiar ground brings out easy confidence and a sure sense of what to do",
     limerent: "fixates on whether affection is returned, building hope and despair around small signs",
@@ -1705,7 +1776,7 @@ function extraLines(state, kinds = ['mood', 'state'], prefsHeading = 'Turn-ons a
 }
 const extraValues = (state, kinds = ['mood', 'state']) => !state?.enabled ? [] : [
     ...(kinds.includes('mood') ? Object.values(state.prefs ?? {}).filter(Boolean).map(Math.abs) : []),
-    ...(kinds.includes('mood') && activePersonality(state) ? [activePersonality(state).strength] : []),
+    ...(kinds.includes('mood') ? activePersonalities(state).map(p => p.strength) : []),
     ...(state.custom ?? []).filter(r => r.value > 0 && kinds.includes(r.kind)).map(r => r.value)];
 // Off-scene profiles are storage only: no names, traits or tokens leak into the prompt.
 const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filter(person =>
@@ -1715,11 +1786,12 @@ const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.
 const shortName = full => { const first = full.split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? full : first; };
 // extras: { player: { state, name }, story: state } — the player's character and the chat's story settings.
 function personalityLines(state, knowledge, observer = '') {
-    const p = activePersonality(state); if (!p) return [];
-    const entry = knowledgeEntry(knowledge?.personality);
-    const gate = knowledge ? ({ scene: 'use what the scene shows or establishes', private: 'private; not known to others', suspected: `suspected by ${observer}`, known: `known by ${observer}` })[entry.mode] : '';
-    return ['Personality type' + (gate ? ' (' + gate + ')' : '') + ':',
-        '- ' + tierOf(p.strength).name.toLowerCase() + ': ' + personalityCue(p) + (knowledge && entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : '')];
+    return activePersonalities(state).flatMap(p => {
+        const entry = knowledgeEntry(knowledge?.[p.system]);
+        const gate = knowledge ? ({ scene: 'use what the scene shows or establishes', private: 'private; not known to others', suspected: `suspected by ${observer}`, known: `known by ${observer}` })[entry.mode] : '';
+        return [(p.system === 'enneagram' ? 'Enneagram' : 'Personality type') + (gate ? ' (' + gate + ')' : '') + ':',
+            '- ' + tierOf(p.strength).name.toLowerCase() + ': ' + personalityCue(p) + (knowledge && entry.source ? ' (source: ' + escapeHtml(entry.source) + ')' : '')];
+    });
 }
 export function composePrompt(state, name, extras = {}) {
     const { player = null, story: storyState = null } = extras;
@@ -1756,7 +1828,7 @@ export function composePrompt(state, name, extras = {}) {
     ];
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, qualities and facts, strength is how pronounced they are and how much weight they get; facts stay as written, and age doesn't decide anyone's personality.`);
-    if (personalities.length) out.push('', 'Personality types are writing lenses: use the selected expression at its strength in attention, decisions and manner. Mix them with current moods and relationships; a type neither cancels those nor spreads to other people. For the player’s character, follow its knowledge setting and leave their choices to the player.');
+    if (personalities.length) out.push('', 'Types shape attention, motives, decisions and voice; never name or explain the labels in the story. A driving pattern should keep changing what they notice, choose and say throughout the reply, not appear as one token gesture. Blend both types with moods and relationships; each person keeps their own. For the player’s character, use only what their knowledge tier allows and leave their actions and inner life to the player.');
     if (mine.length || mineExtra.length || activePersonality(state)) out.push('', `<character_state name="${escapeHtml(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
     if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
         `That's how ${n} is right now. Their card fills in anything that isn't set, but nothing listed gets swapped for what they'd usually feel, and they don't pick up extra feelings to tie the list together. It mixes the way it does in real people: the strongest lead, the rest colour how they come out, and holding something in doesn't mean it's gone. Only something big knocks a strong feeling down.`,
@@ -1840,7 +1912,7 @@ export async function budgetPrompt(state, name, budget, countTokens, extras = {}
     const tokens = prompt ? await countTokens(prompt) : 0;
     // The target is a warning only. Nothing the player set is ever dropped or shortened.
     return { prompt, tokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
-        selectedIds: [...all.map(m => m.id), ...[state, extras.player?.state, ...liveCast(extras).map(p => p.state)].map(activePersonality).filter(Boolean).map(p => `personality:${p.type}`), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
+        selectedIds: [...all.map(m => m.id), ...[state, extras.player?.state, ...liveCast(extras).map(p => p.state)].flatMap(activePersonalities).map(p => `${p.system}:${p.type}`), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
             .flatMap(({ name: subject, relation, tags }) => tags.map(tag => `${subject}:${relationshipKey(relation, tag.id)}`))], omittedIds: [], omitted: 0 };
 }
 export function parseAnalysis(text) {

@@ -1,4 +1,5 @@
-import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, TIERS, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, blendAnalysis, sceneData, analysisMessages, fingerprint } from './core.js';
+import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
+import { applyLibrary, cleanLibrary, libraryPrompt, librarySections, newLibraryId, isTurnGroup, turnGroupKey } from './library.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, SHARED_IDS, activeRelationshipTags, activeSharedTags, cloneRelationships, cleanCompare, relationshipKey } from './relationships.js';
@@ -11,13 +12,15 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const defaults = { tokenBudget: 800, depth: 0, placementVersion: 1, sceneMessages: 8, sceneChars: 12000, outputTokens: 800, baselines: {}, promptVersion: 3 };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 4, library: [], readerProfile: '' };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
+// UI-only: the settings sheet, and the "make your own" editor ({ kind, id? editing a library entry, fromOwn? promoting a one-off row }).
+let settingsOpen = false, maker = null, appliedLibrary = null;
 const generationSnapshots = new Map();
 let selectedPeer = '', removingRelation = '', pairView = 'mine', browsing = false;
 const newId = () => Math.random().toString(36).slice(2, 10);
-const openRelationGroups = new Set();
+const openRelationGroups = new Set(), autoOpened = new Set();
 const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
 // Everyone this person could feel something about: the main character, you, the rest of a group chat,
 // the cast, and anyone typed in by hand. Nobody has to be added first.
@@ -140,6 +143,16 @@ function settings() {
     const saved = c.extensionSettings[KEY];
     // The v2 prompt explains each strength tier in words, so the old 320 default is too tight.
     if ((saved.promptVersion ?? 1) < 3) { if ([320, 500].includes(saved.tokenBudget ?? 320)) saved.tokenBudget = 800; saved.promptVersion = 3; }
+    // 1.22: the target matches the ~2000-token goal, and the reader looks at fewer, more recent messages.
+    if (saved.promptVersion < 4) {
+        if ((saved.tokenBudget ?? 800) === 800) saved.tokenBudget = 2000;
+        if ((saved.sceneMessages ?? 8) === 8) saved.sceneMessages = 6;
+        if ((saved.sceneChars ?? 12000) === 12000) saved.sceneChars = 8000;
+        saved.promptVersion = 4; c.saveSettingsDebounced();
+    }
+    // Your library has to be in the catalogue before any saved state is cleaned, or its values would be dropped.
+    saved.library = Array.isArray(saved.library) ? saved.library : [];
+    if (appliedLibrary !== saved.library) { saved.library = applyLibrary(saved.library); appliedLibrary = saved.library; }
     // Move the former default after the latest message once; keep other custom depths.
     if (!saved.placementVersion) {
         if (saved.depth == null || Number(saved.depth) === 1) saved.depth = 0;
@@ -149,8 +162,8 @@ function settings() {
     return Object.assign(saved, {
         tokenBudget: clamp(saved.tokenBudget ?? 800, 160, 3000),
         depth: Math.round(clamp(saved.depth ?? 0, 0, 10)),
-        sceneMessages: clamp(c.extensionSettings[KEY].sceneMessages ?? 8, 2, 30),
-        sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 12000, 2000, 40000),
+        sceneMessages: Math.round(clamp(c.extensionSettings[KEY].sceneMessages ?? 6, 2, 20)),
+        sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 8000, 2000, 40000),
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 4000),
         baselines: c.extensionSettings[KEY].baselines ?? {},
         castDefaults: c.extensionSettings[KEY].castDefaults ?? {},
@@ -289,6 +302,8 @@ async function syncPrompt(forGeneration = false) {
 }
 function renderPreview() {
     if (!panel) return;
+    const mini = panel.querySelector('[data-token-mini]');
+    if (mini) { mini.textContent = promptInfo.tokens ? `≈ ${promptInfo.tokens} tokens sent${promptInfo.overBudget ? ` · ${promptInfo.overBudget} over your ${promptInfo.target} target` : ''}` : ''; mini.classList.toggle('is-over', Boolean(promptInfo.overBudget)); }
     const count = panel.querySelector('[data-token-count]');
     if (count) count.textContent = `${promptInfo.tokens} counted tokens · ${promptInfo.selectedIds?.length || 0} active states sent`;
     const preview = panel.querySelector('[data-preview]');
@@ -312,34 +327,55 @@ function renderStatus() {
 function cancelAnalysis() {
     pending?.controller.abort();
 }
-async function analyse(ch = target(), force = false) {
-    const state = getState(ch), c = ctx();
-    if (suspended || !state || !state.enabled || pending) return;
-    if (!state.profile) { status = 'Choose an analyser connection profile first.'; renderStatus(); return; }
-    const snapshot = identity(ch), revision = state.revision, metadata = c.chatMetadata;
+// ---- Scene reader ----
+// Works for whoever is open (not the story), in manual mode too: tap Read, keep editing by hand.
+const readerProfile = () => settings().readerProfile || getState()?.profile || '';
+const sceneStart = () => Number(ctx().chatMetadata[KEY]?.sceneStart) || 0;
+function readerSubject(whom = who, ch = target()) {
+    if (whom === 'user') {
+        const pu = ctx().powerUserSettings;
+        return { state: getUserState(), person: { name: playerName(), description: pu?.persona_description ?? '' }, key: 'user' };
+    }
+    if (whom === 'cast') { const p = selectedCast(); return p ? { state: p.state, person: { name: p.name }, key: `cast:${p.id}` } : null; }
+    return { state: getState(ch), person: ch, key: `char:${ch?.avatar}` };
+}
+function readerRequest(subject, scope) {
+    const data = sceneData(ctx().chat, subject.person, subject.state, settings(), { sceneStart: sceneStart(), scope });
+    return { data, messages: analysisMessages(data) };
+}
+// Rough count for the panel only (about 3.6 characters per token), so cost is visible before tapping.
+const roughTokens = messages => Math.round(messages.reduce((n, m) => n + m.content.length, 0) / 3.6);
+async function analyse(force = false, whom = who, ch = target()) {
+    const c = ctx(), subject = readerSubject(whom, ch);
+    const state = subject?.state;
+    if (suspended || !state || !state.enabled || pending || whom === 'story') return;
+    const profile = readerProfile();
+    if (!profile) { status = 'Pick a reader connection under ✧ Scene reader first.'; renderStatus(); return; }
+    const snapshot = identity(ch) + subject.key, revision = state.revision, metadata = c.chatMetadata;
     const fp = fingerprint(c.chat), userCount = c.chat.filter(m => m.is_user && !m.is_system).length;
     if (!force && (fp === state.lastFingerprint || (state.lastUserCount >= 0 && userCount > state.lastUserCount && userCount - state.lastUserCount < state.interval))) return;
+    const scope = cleanScope(state.readScope);
+    const { data, messages } = readerRequest(subject, scope);
     const controller = new AbortController();
     pending = { controller, snapshot };
     const timer = setTimeout(() => controller.abort(), 45000);
-    status = 'Reading the scene…'; render();
+    status = `Reading the scene for ${subject.person.name}…`; render();
     try {
-        const service = c.ConnectionManagerRequestService;
         // No fallback to the main model: a missing or invalid profile is an error.
-        const response = await service.sendRequest(state.profile,
-            analysisMessages(sceneData(c.chat, ch, state, settings())), settings().outputTokens,
+        const response = await c.ConnectionManagerRequestService.sendRequest(profile, messages, settings().outputTokens,
             { stream: false, signal: controller.signal, extractData: true, includePreset: false, includeInstruct: true });
-        if (controller.signal.aborted || metadata !== ctx().chatMetadata || snapshot !== identity(ch) || revision !== state.revision || fp !== fingerprint(ctx().chat)) {
-            status = 'Scene or controls changed; the old analysis was discarded.'; return;
+        if (controller.signal.aborted || metadata !== ctx().chatMetadata || snapshot !== identity(ch) + readerSubject(whom, ch)?.key || revision !== state.revision || fp !== fingerprint(ctx().chat)) {
+            status = 'The scene or your settings changed while reading, so that read was thrown away.'; return;
         }
-        const result = parseAnalysis(response?.content ?? '');
-        state.history = [...(state.history || []).slice(-9), { moods: { ...state.moods }, reason: state.reason, updatedAt: state.updatedAt }];
-        state.moods = blendAnalysis(state, result);
+        const result = parseAnalysis(response?.content ?? '', data);
+        state.history = [...(state.history || []).slice(-9), { moods: { ...state.moods }, custom: state.custom.map(r => ({ id: r.id, value: r.value })),
+            wants: structuredClone(state.wants ?? []), reason: state.reason, updatedAt: state.updatedAt }];
+        applyAnalysis(state, result, scope);
         state.reason = result.reason; state.updatedAt = Date.now(); state.lastFingerprint = fp; state.lastUserCount = userCount;
         await persist(state);
-        status = 'Moods updated. Pinned levels were kept.';
+        status = `Updated from the scene${Object.values(state.pins).some(Boolean) ? '; pinned ones were left alone' : ''}.${result.added?.length ? ` ${result.added.length} new want${result.added.length > 1 ? 's' : ''} or fear${result.added.length > 1 ? 's' : ''} added.` : ''}`;
     } catch (error) {
-        status = controller.signal.aborted ? 'Analysis stopped or timed out. Previous moods kept.' : (error.message || 'Analysis failed. Previous moods kept.');
+        status = controller.signal.aborted ? 'Reading stopped or timed out. Nothing changed.' : (error.message || 'Reading failed. Nothing changed.');
     } finally {
         clearTimeout(timer); pending = null;
         await syncPrompt(); render();
@@ -351,7 +387,7 @@ globalThis.moodweaverBeforeGeneration = async (_chat, _contextSize, _abort, type
         ++promptVersion; ctx().setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); return;
     }
     const ch = target(true), state = getState(ch);
-    if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(ch);
+    if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
     await syncPrompt(true);
     generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: promptInfo.prompt });
     if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
@@ -359,20 +395,23 @@ globalThis.moodweaverBeforeGeneration = async (_chat, _contextSize, _abort, type
 };
 
 const tagLabel = m => m.label.replaceAll('{{user}}', playerName()).replaceAll('{{char}}', target()?.name ?? 'main character');
+const fmtTokens = n => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 function targetFields(m, state) {
     if (!state.moods[m.id]) return '';
     const fields = m.id === 'hates_other' ? [['hate', 'Who?', 'Name of someone in the scene']]
         : m.id === 'comparing_people' ? [['compareA', 'Compare', 'Someone in the scene'], ['compareB', 'With', '{{user}}']] : [];
     return fields.length ? `<div class="mw-target-fields">${fields.map(([key, label, placeholder]) => `<label>${label}<input type="text" data-target="${key}" maxlength="80" list="${key === 'hate' ? 'mw-hate-names' : 'mw-cast-names'}" placeholder="${esc(placeholder)}" value="${esc(state.targets?.[key] ?? '')}"></label>`).join('')}</div>` : '';
 }
+// Your library options get a ✎ so you can fix their wording or move them to another section.
+const editButton = (id, label) => `<button type="button" class="mw-edit" data-lib-edit="${esc(id)}" title="Edit your option" aria-label="Edit ${esc(label)}">✎</button>`;
 function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
-    return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
+    return `<div class="mw-mood ${m.custom ? 'is-yours' : ''}" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
         <div class="mw-row-head"><label for="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
         <output for="mw-${m.id}" data-value="${m.id}">${value}%</output>
-        <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin this exact level in dynamic mode">${pin ? '◆' : '◇'}</button>${listButton(m.id, state)}</div>
+        <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${m.custom ? editButton(m.id, m.label) : ''}${listButton(m.id, state)}</div>
         <input id="mw-${m.id}" type="range" min="0" max="100" step="1" value="${value}" data-slider="${m.id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
-        <small>${m.cue}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) : ''}</div>`;
+        <small>${esc(m.cue)}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) : ''}</div>`;
 }
 const causeBox = (attr, value) => `<input type="text" class="mw-cause" ${attr} maxlength="100" value="${esc(value ?? '')}" placeholder="because… (optional)" aria-label="Because">`;
 // In the list: × takes it off this person's list. While adding: ＋ puts it on, ✓ shows it's there.
@@ -385,9 +424,9 @@ const turnLevel = v => v === 0 ? 'Neutral' : `${level(Math.abs(v))} turn-${v > 0
 const turnFill = v => v >= 0 ? `--mw-from:50%;--mw-to:${50 + v / 2}%` : `--mw-from:${50 + v / 2}%;--mw-to:50%`;
 function turnRow(t, state) {
     const v = state.prefs?.[t.id] ?? 0;
-    return `<div class="mw-mood mw-turn" data-mood="turn:${t.id}" style="--mw-accent:${t.color}"><div class="mw-row-head"><label for="mw-turn-${t.id}">${esc(t.label)}</label><span data-lvl>${turnLevel(v)}</span>${listButton(`turn:${t.id}`, state)}</div>
+    return `<div class="mw-mood mw-turn ${t.custom ? 'is-yours' : ''}" data-mood="turn:${t.id}" style="--mw-accent:${t.color}"><div class="mw-row-head"><label for="mw-turn-${t.id}">${esc(t.label)}</label><span data-lvl>${turnLevel(v)}</span>${t.custom ? editButton(t.id, t.label) : ''}${listButton(`turn:${t.id}`, state)}</div>
         <input id="mw-turn-${t.id}" type="range" min="-100" max="100" step="1" value="${v}" data-turn="${t.id}" style="${turnFill(v)}" aria-valuetext="${turnLevel(v)}">
-        <div class="mw-turn-ends"><span>Turn-off</span><span>Turn-on</span></div><small>${esc(t.cue)}</small></div>`;
+        <div class="mw-turn-ends"><span>✕ Turn-off</span><span>Turn-on ♡</span></div><small>${esc(t.cue)}</small></div>`;
 }
 // Inventory: things this person has. Ticked items are sent; unticked ones stay saved for later.
 function inventoryView(state, ch) {
@@ -405,52 +444,138 @@ function inventoryView(state, ch) {
         <div class="mw-cast-add mw-inv-add"><input type="text" data-inv-new maxlength="60" enterkeyhint="done" placeholder="Add an item…" aria-label="New item"><button data-action="inv-add" class="mw-primary">＋ Add</button></div>
     </section>`;
 }
-const CUSTOM_HINT = { mood: 'e.g. needs control of the camera', trait: 'e.g. never apologises, ever', state: 'e.g. still wearing his jacket', story: 'e.g. everything happens after dark' };
+// ---- Make your own ----
+const MAKER_HINT = {
+    mood: ['e.g. Smitten and terrified', 'falling for them and scared of it'],
+    trait: ['e.g. Breeding', 'wants to get someone pregnant, and says so'],
+    turn: ['e.g. Rings on fingers', 'heavy rings on someone’s hands'],
+    state: ['e.g. Wearing his jacket', 'still wearing the jacket he lent her'],
+    story: ['e.g. Everything after dark', 'every scene happens at night'],
+};
+const lastGroup = { trait: 'appetites' };
+const libraryEntry = id => settings().library.find(e => e.id === id);
+function makerDraft() {
+    const d = maker?.draft ?? {};
+    return { label: String(d.label ?? '').replace(/\s+/g, ' ').trim().slice(0, 60), cue: String(d.cue ?? '').replace(/\s+/g, ' ').trim().slice(0, 160), group: d.group, dark: d.dark === true };
+}
+function openMaker(kind, { id = '', fromOwn = '' } = {}) {
+    const sections = librarySections(kind, TRAIT_CATEGORIES), entry = id ? libraryEntry(id) : null;
+    const own = fromOwn ? viewState()?.custom.find(r => r.id === fromOwn) : null;
+    const group = entry?.group ?? lastGroup[kind] ?? sections[0]?.[0];
+    maker = { kind, id, fromOwn, draft: entry ? { ...entry } : { label: own?.text ?? '', cue: '', group, dark: false } };
+}
+const makerPreview = d => !d.label ? '…' : isTurnGroup(d.group) ? `turn-on: ${libraryPrompt(d)}` : libraryPrompt(d);
+function makerView(kind, whose) {
+    if (!maker || maker.kind !== kind) return `<button type="button" class="mw-maker-open" data-action="maker-open" data-kind="${kind}"><span>✎</span> Make your own</button>`;
+    const d = maker.draft, sections = librarySections(kind, TRAIT_CATEGORIES), [hintName, hintCue] = MAKER_HINT[kind];
+    const editing = Boolean(maker.id);
+    return `<section class="mw-maker" id="mw-maker">
+        <div class="mw-maker-head"><span class="mw-maker-icon">✎</span><div><b>${editing ? 'Edit your option' : maker.fromOwn ? 'Save to your library' : 'Make your own'}</b>
+            <small>${editing ? 'Changes apply everywhere it’s used.' : 'Library options join the list for every character and stay searchable.'}</small></div></div>
+        <label class="mw-field">Name<input type="text" data-maker="label" maxlength="60" value="${esc(d.label)}" placeholder="${esc(hintName)}"></label>
+        <label class="mw-field">What it means <small>optional · sent to the AI</small><input type="text" data-maker="cue" maxlength="160" value="${esc(d.cue)}" placeholder="${esc(hintCue)}"></label>
+        <label class="mw-field">Goes under<select data-maker="group">${sections.map(([id, name]) => `<option value="${esc(id)}" ${id === d.group ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
+        ${kind === 'turn' ? '' : `<label class="mw-toggle mw-dark-toggle"><input type="checkbox" data-maker="dark" ${d.dark ? 'checked' : ''}> ☠ Dark: the AI actually follows through</label>`}
+        <p class="mw-sent">Sent as <q data-maker-preview>${esc(makerPreview(makerDraft()))}</q></p>
+        <div class="mw-actions">${editing ? `<button class="mw-primary" data-action="maker-save">Save changes</button><button class="mw-danger" data-action="maker-delete">Delete</button>`
+            : `<button class="mw-primary" data-action="maker-save">＋ Save to library</button>${kind === 'turn' || maker.fromOwn ? '' : `<button data-action="maker-once">Just for ${esc(whose)}</button>`}`}<button data-action="maker-cancel">Cancel</button></div>
+    </section>`;
+}
+// One-off rows written for one person, plus the editor.
 function customBlock(state, kind, whose) {
-    const rows = (state.custom ?? []).filter(r => r.kind === kind);
-    return `<div class="mw-custom"><div class="mw-section-label">YOUR OWN<span>sent exactly as you write it</span></div>
-        ${rows.map(r => `<div class="mw-mood mw-own" data-custom-row="${esc(r.id)}" data-search="${esc(r.text)}"><div class="mw-row-head"><input type="text" class="mw-own-text" data-custom-text="${esc(r.id)}" maxlength="100" value="${esc(r.text)}" aria-label="Your own setting"><span data-lvl>${level(r.value)}</span><output>${r.value}%</output><button type="button" class="mw-list" data-custom-remove="${esc(r.id)}" title="Delete" aria-label="Delete">×</button></div>
+    const rows = kind === 'turn' ? [] : (state.custom ?? []).filter(r => r.kind === kind);
+    return `<div class="mw-custom">${rows.length ? `<div class="mw-section-label">Just for ${esc(whose)}<span>sent as written</span></div>` : ''}
+        ${rows.map(r => `<div class="mw-mood mw-own" data-custom-row="${esc(r.id)}" data-search="${esc(r.text)}"><div class="mw-row-head"><input type="text" class="mw-own-text" data-custom-text="${esc(r.id)}" maxlength="100" value="${esc(r.text)}" aria-label="Your own setting"><span data-lvl>${level(r.value)}</span><output>${r.value}%</output><button type="button" class="mw-list" data-own-promote="${esc(r.id)}" title="Save to your library for every character" aria-label="Save to library">⇪</button><button type="button" class="mw-list" data-custom-remove="${esc(r.id)}" title="Delete" aria-label="Delete">×</button></div>
             <input type="range" min="0" max="100" step="1" value="${r.value}" data-custom="${esc(r.id)}" style="--mw-fill:${r.value}%" aria-label="Strength">
             ${r.value ? causeBox(`data-custom-cause="${esc(r.id)}"`, r.cause) : ''}</div>`).join('')}
-        <div class="mw-cast-add"><input type="text" data-custom-new="${kind}" maxlength="100" placeholder="${CUSTOM_HINT[kind]}" aria-label="Write your own for ${esc(whose)}"><button data-action="custom-add" data-kind="${kind}">＋ Add</button></div></div>`;
+        ${makerView(kind, whose)}</div>`;
 }
+const SECTION_LABEL = { mood: 'moodlets', trait: 'traits', turn: 'turn-ons', state: 'needs and facts', story: 'story settings' };
 // Each person only shows their own list until you go looking for more.
-function catalogueBlock(state, kind, ch, whose) { // kind here is the tab's section: mood, trait, state or story
+function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: mood, trait, turn, state or story
     const listed = new Set([...(state.loadout ?? []), ...MOODS.filter(m => state.moods[m.id] > 0).map(m => m.id),
         ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)]);
     const show = id => browsing || listed.has(id);
     const sectionOfCategory = (id, k) => k === 'story' ? 'story' : TRAIT_CATEGORIES.has(id) ? 'trait' : k;
-    const cats = CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOfCategory(id, k) === kind).map(([id, name, icon, color, , k = 'mood']) => {
+    const cats = kind === 'turn' ? '' : CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOfCategory(id, k) === kind).map(([id, name, icon, color, , k = 'mood']) => {
         const list = MOODS.filter(m => m.category === id && show(m.id)), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
-        return `<details data-category="${id}" data-kind="${sectionOfCategory(id, k)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} active` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+        return `<details data-category="${id}" data-kind="${sectionOfCategory(id, k)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
     }).join('');
-    const turns = kind !== 'trait' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
-        const list = rows.filter(([id]) => show(`turn:${id}`)), key = `turn-${group.toLowerCase().replace(/\W+/g, '-')}`;
+    const turns = kind !== 'turn' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
+        const list = rows.filter(([id]) => show(`turn:${id}`) && TURN_BY_ID[id]), key = turnGroupKey(group);
         if (!list.length) return '';
         const n = list.filter(([id]) => state.prefs?.[id]).length;
-        return `<details data-category="${key}" data-kind="trait" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
+        return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
     }).join('');
-    const label = { mood: 'moodlets', trait: 'traits', state: 'needs and facts', story: 'story settings' }[kind];
-    return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${browsing ? 'Search available ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(search)}">${browsing ? `<button data-action="browse-done" class="mw-primary">Done</button>`
+    const label = SECTION_LABEL[kind];
+    return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${browsing ? 'Search all ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(search)}">${browsing ? `<button data-action="browse-done" class="mw-primary">✓ Done</button>`
             : `<button data-action="browse" class="mw-primary">＋ Add ${label}</button>${kind === 'mood' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend…</option>${Object.keys(RECIPES).map(r => `<option>${r}</option>`).join('')}</select>` : ''}`}</div>
-    ${browsing ? `<p class="mw-explainer">Everything available. Tap ＋ or move a slider to put it on ${esc(whose)}’s list.</p>` : ''}
-    <div class="mw-scale"><span>Off</span>${[...TIERS].reverse().map(t => `<span>${t.name}</span>`).join('')}</div>
+    ${browsing ? `<p class="mw-explainer">Everything available, your own options included. Tap ＋ or move a slider to put it on ${esc(whose)}’s list.</p>` : ''}
     <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
     <datalist id="mw-hate-names">${getCast(ch).filter(p => who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist>
-    ${!browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}’s list yet. Tap “＋ Add ${label}” to pick from everything, or write your own below.</p>` : ''}
-    <div class="mw-categories">${cats}</div>${turns ? `<div class="mw-turns-head"><span class="mw-turns-icon">⇋</span><div><b>Turn-ons & turn-offs</b><small>What ${esc(whose)} likes or can’t stand in <em>other people</em>. Slide right for a turn-on, left for a turn-off.</small></div></div><div class="mw-categories mw-turn-categories">${turns}</div>` : ''}<p class="mw-no-results" hidden>Nothing matches.</p>
+    ${!browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}’s list yet. Tap “＋ Add ${label}” to pick from everything, or make your own below.</p>` : ''}
+    <div class="mw-categories ${kind === 'turn' ? 'mw-turn-categories' : ''}">${cats}${turns}</div><p class="mw-no-results" hidden>Nothing matches.</p>
     ${browsing ? '' : customBlock(state, kind, whose)}`;
 }
-function dynamicBlock(state, mine, allProfiles) {
-    return !mine && state.mode === 'dynamic' ? `<div class="mw-dynamic"><label>Scene analyser<select data-field="profile"><option value="">Choose a connection profile…</option>${state.profile && !allProfiles.some(p => p.id === state.profile) ? '<option selected value="'+esc(state.profile)+'">Unavailable profile — choose another</option>' : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === state.profile ? 'selected' : ''}>${esc(p.name)} · [${esc(p.model)}]</option>`).join('')}</select></label>
-        <p class="mw-fine">Uses the actual model shown in brackets. Sends recent chat text and a short character excerpt to that profile. Your roleplay connection stays selected. One extra request per scene read; provider charges apply.</p>
-        <div class="mw-actions"><button data-action="analyse" ${pending || !state.profile || !state.enabled ? 'disabled' : ''}>✧ Read scene now</button>${pending ? '<button data-action="cancel">Stop</button>' : ''}<button data-action="undo" ${!state.history?.length ? 'disabled' : ''}>Undo last read</button></div>
-        <details class="mw-tuning"><summary>Emotional rhythm</summary><label>Sensitivity <output>${state.sensitivity}%</output><input aria-label="Sensitivity" type="range" min="10" max="100" value="${state.sensitivity}" data-field="sensitivity"></label>
-        <label>Inertia <output>${state.inertia}%</output><input aria-label="Inertia" type="range" min="0" max="95" value="${state.inertia}" data-field="inertia"></label>
-        <p class="mw-fine">Higher sensitivity allows stronger reactions. Higher inertia makes changes slower. Mood carryover advances on successful scene reads, not real-world time.</p>
-        <label>Fade absent moods toward zero by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> points per read, before inertia</label>
-        <label>Read every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> new user turns</label></details></div>` : '';
+// ---- Scene reader card (Moodlets tab) ----
+const SCOPES = [['mood', '✦', 'Moodlets'], ['body', '✚', 'Body'], ['trait', '❂', 'Traits'], ['wants', '☆', 'Wants']];
+function readerBlock(state) {
+    if (who === 'story') return '';
+    const allProfiles = profiles(), profile = readerProfile(), scope = cleanScope(state.readScope), subject = readerSubject();
+    const anyScope = SCOPES.some(([k]) => scope[k]);
+    const est = subject && anyScope ? roughTokens(readerRequest(subject, scope).messages) : 0;
+    const start = sceneStart(), chatLen = ctx().chat?.length ?? 0;
+    return `<section class="mw-reader">
+        <div class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>Reads the latest messages and moves ${esc(subjectName())}’s sliders to match. Pinned ◆ ones stay put.</small></div></div>
+        <div class="mw-scope" role="group" aria-label="What to read">${SCOPES.map(([k, icon, label]) => `<button type="button" class="mw-scope-chip" data-scope="${k}" aria-pressed="${scope[k]}">${icon} ${label}</button>`).join('')}</div>
+        <div class="mw-reader-go"><button class="mw-primary mw-read" data-action="analyse" ${pending || !profile || !state.enabled || !anyScope ? 'disabled' : ''}>${pending ? 'Reading…' : '✧ Read the scene'}</button>${pending ? '<button data-action="cancel">Stop</button>' : `<button data-action="undo" ${!state.history?.length ? 'disabled' : ''} title="Undo the last read">↶ Undo</button>`}</div>
+        <p class="mw-reader-meta">Last ${settings().sceneMessages} messages${start ? ' since your scene marker' : ''} · about ${fmtTokens(est)} tokens a read${scope.trait ? ' · traits roughly double it' : ''}</p>
+        ${!profile ? '<p class="mw-fine mw-warn">Pick a connection for the reader below. A small, cheap model does the job.</p>' : ''}
+        <details class="mw-tuning" data-reader-tuning ${!profile ? 'open' : ''}><summary>Reader settings</summary>
+            <label>Connection<select data-reader="profile"><option value="">Choose a connection profile…</option>${profile && !allProfiles.some(p => p.id === profile) ? `<option selected value="${esc(profile)}">Unavailable profile, choose another</option>` : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === profile ? 'selected' : ''}>${esc(p.name)} · ${esc(p.model)}</option>`).join('')}</select></label>
+            <div class="mw-seg-label">Recent messages it reads</div>
+            <div class="mw-seg" role="group" aria-label="Recent messages">${[4, 6, 10, 16].map(n => `<button type="button" data-reader-msgs="${n}" aria-pressed="${settings().sceneMessages === n}">${n}</button>`).join('')}</div>
+            <div class="mw-scene-mark">${start && start < chatLen ? `<span>⟲ Scene starts at message ${start + 1} of ${chatLen}</span><button type="button" data-action="scene-clear">Remove</button>`
+                : `<button type="button" data-action="scene-mark">⟲ New scene starts at the latest message</button>`}</div>
+            <p class="mw-fine">Mark the start of a new scene and nothing older ever gets read, however long the chat is.</p>
+            <label>Follow the read <output data-follow-out>${state.follow}%</output><input type="range" min="10" max="100" data-field="follow" value="${state.follow}" style="--mw-fill:${(state.follow - 10) / .9}%" aria-label="Follow the read"></label>
+            <p class="mw-fine">100 sets sliders exactly to what the reader sees. Lower keeps some of what you had.</p>
+            <label class="mw-inline">Fade feelings the scene stops showing by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> a read</label>
+            ${who === 'char' ? `<label class="mw-toggle"><input type="checkbox" data-auto-read ${state.mode === 'dynamic' ? 'checked' : ''}> Read automatically before each reply</label>
+            ${state.mode === 'dynamic' ? `<label class="mw-inline">Every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> of your messages</label>` : ''}` : ''}
+            <p class="mw-fine">Sends recent chat text${who === 'char' ? ' and a short card excerpt' : ''} to that connection. One extra request per read.</p>
+        </details>
+    </section>`;
+}
+// ---- Wants, goals & fears ----
+const WANT_META = {
+    want: ['☆', 'Wants', 'What they’re after right now', '#e5ca7f', 'e.g. get him to admit it'],
+    goal: ['⚑', 'Goals', 'Bigger aims that play out over time', '#8fcebc', 'e.g. take over the family firm'],
+    fear: ['☾', 'Fears', 'What they dread or avoid', '#b0a5e8', 'e.g. being left again'],
+};
+function wantRow(w) {
+    return `<div class="mw-mood mw-want" data-want-row="${esc(w.id)}" data-filter-item="wants"><textarea class="mw-want-text" data-want-text="${esc(w.id)}" maxlength="120" rows="1" aria-label="${esc(w.kind)}">${esc(w.text)}</textarea>
+        <div class="mw-want-controls"><input type="range" min="0" max="100" step="1" value="${w.value}" data-want-value="${esc(w.id)}" style="--mw-fill:${w.value}%" aria-label="How much it drives them">
+        <span data-lvl>${level(w.value)}</span><output>${w.value}%</output>
+        <button type="button" class="mw-list mw-tick" data-want-done="${esc(w.id)}" title="${w.kind === 'fear' ? 'Over it: stop sending' : 'Came true: stop sending'}" aria-label="Done">✓</button><button type="button" class="mw-list" data-want-remove="${esc(w.id)}" title="Delete" aria-label="Delete">×</button></div>
+        ${w.read ? '<small class="mw-from-scene">✧ picked up from the scene</small>' : ''}</div>`;
+}
+function wantsView(state, ch) {
+    const items = state.wants ?? [], name = subjectName(), done = items.filter(w => w.done);
+    const intro = who === 'user' ? `What ${esc(name)} is after and afraid of. ${esc(ch.name)} doesn’t know these unless you show them, but the story gives you openings now and then and brushes up against your fears.`
+        : `What drives ${esc(name)} underneath. These steer choices when the moment touches them and never get announced or recapped. Strength is how hard it pulls.`;
+    return `<section class="mw-wants"><p class="mw-explainer">${intro}</p>
+        ${WANT_KINDS.map(kind => {
+            const [icon, title, sub, color, hint] = WANT_META[kind], list = items.filter(w => w.kind === kind && !w.done);
+            return `<div class="mw-want-card" style="--mw-accent:${color}">
+                <div class="mw-want-head"><span class="mw-want-icon">${icon}</span><div><b>${title}</b><small>${sub}</small></div>${list.length ? `<em>${list.length}</em>` : ''}</div>
+                ${list.map(wantRow).join('') || `<p class="mw-want-empty">${kind === 'fear' ? 'Nothing scares them yet.' : kind === 'goal' ? 'No big plans yet.' : 'Nothing they’re after yet.'}</p>`}
+                <div class="mw-cast-add mw-want-add"><input type="text" data-want-new="${kind}" maxlength="120" enterkeyhint="done" placeholder="${esc(hint)}" aria-label="New ${title.toLowerCase().slice(0, -1)}"><button type="button" data-action="want-add" data-kind="${kind}" aria-label="Add">＋</button></div></div>`;
+        }).join('')}
+        ${done.length ? `<details class="mw-want-done" data-want-done-list><summary>Came true or let go <small>${done.length}</small></summary>${done.map(w => `<div class="mw-done-row"><span>${WANT_META[w.kind][0]} ${esc(w.text)}</span><button type="button" class="mw-list" data-want-restore="${esc(w.id)}" title="Bring back">↺</button><button type="button" class="mw-list" data-want-remove="${esc(w.id)}" title="Delete">×</button></div>`).join('')}</details>` : ''}
+        <p class="mw-fine mw-wants-tip">Tip: switch on ☆ Wants in the scene reader (Moods tab) and it’ll update strengths, tick off what came true and suggest new ones.</p>
+    </section>`;
 }
 function peopleBar(ch) {
     const cast = getCast(ch);
@@ -464,17 +589,20 @@ function peopleBar(ch) {
     </div>
     ${castAction === 'adding' ? `<div class="mw-cast-add mw-new-cast"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Name, e.g. Chloe"><button data-action="cast-add">Add to cast</button></div>` : ''}`;
 }
+
 function personCard(ch, state) {
     const person = who === 'cast' ? selectedCast() : null;
     const name = who === 'story' ? 'The story' : subjectName();
-    const role = who === 'char' ? 'Main character' : who === 'user' ? 'Your character · you write them' : who === 'story' ? 'Genre, tropes and style for this whole chat' : `Supporting character · ${person?.inScene ? 'in this scene' : 'off scene'}`;
+    const role = who === 'char' ? 'Main character' : who === 'user' ? 'Your character · you write them' : who === 'story' ? 'Genre, tropes and style for this chat' : `Side character · ${person?.inScene ? 'in this scene' : 'off scene'}`;
     const top = activeMoods(state).find(m => sectionOf(m) === 'mood');
     const feeling = who === 'story' ? '' : top ? `<span class="mw-feeling" style="--mw-accent:${top.color}">Feeling <b>${esc(tagLabel(top).toLowerCase())}</b> · ${level(state.moods[top.id]).toLowerCase()}</span>` : '<span class="mw-feeling">No moodlets yet</span>';
-    return `<div class="mw-person-card">
+    const canRead = who !== 'story' && readerProfile() && state.enabled;
+    return `<div class="mw-person-card" style="--mw-accent:${top?.color ?? '#a8cdb1'}">
         <span class="mw-avatar mw-avatar-lg">${who === 'story' ? '❖' : esc(String(name).trim()[0]?.toUpperCase() ?? '?')}</span>
         <div class="mw-person-info"><b>${esc(name)}</b><small>${esc(role)}</small>${feeling}</div>
         <div class="mw-person-toggles"><label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'On' : 'Send'}</label>
-        ${person ? `<label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In scene</label>` : ''}</div>
+        ${person ? `<label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In scene</label>` : ''}
+        ${canRead ? `<button type="button" class="mw-quick-read" data-action="analyse" ${pending ? 'disabled' : ''} title="Read the scene now (settings in the Moods tab)">${pending ? '…' : '✧ Read'}</button>` : ''}</div>
     </div>
     ${person ? `<details class="mw-cast-edit mw-manage"><summary>Manage ${esc(person.name)} and the cast</summary>
         <div class="mw-cast-add"><input type="text" data-field="castName" maxlength="80" aria-label="Supporting character name" value="${esc(person.name)}"><button data-action="cast-remove">Remove</button></div>
@@ -482,62 +610,95 @@ function personCard(ch, state) {
         <p class="mw-fine">The cast belongs to ${esc(ch.name)}’s chats. Saving it gives new ${esc(ch.name)} chats the same people, starting off scene. Rename by editing the name; relationships follow.</p></details>` : ''}
     ${castAction && castAction !== 'adding' ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${castAction}-confirm">${castAction === 'load' ? 'Load saved cast' : 'Remove'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}`;
 }
+// One sticky row of icon tabs: fits a phone screen and stays reachable while scrolling long lists.
+const TABS = [['mood', '✦', 'Moods', '#b5d9a6'], ['trait', '❂', 'Traits', '#d6b58f'], ['turn', '⇋', 'Turn-ons', '#e0a3bb'], ['personality', '◈', 'Type', '#b7acd7'],
+    ['rel', '♡', 'Bonds', '#e8a7bb'], ['state', '⌂', 'Needs', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
+const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${TABS.map(([k, icon, label, color]) =>
+    `<button type="button" role="tab" data-tab="${k}" aria-selected="${tab === k}" aria-pressed="${tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;
+// ---- Settings sheet (⚙): what's sent, your library, defaults and limits ----
+function libraryList() {
+    const lib = settings().library;
+    if (!lib.length) return '<p class="mw-fine">Nothing yet. Use “✎ Make your own” at the bottom of any tab, or ⇪ on a one-off row.</p>';
+    const groupName = id => { const c = CATEGORIES.find(row => row[0] === id); if (c) return `${c[2]} ${c[1]}`; const t = TURN_CATEGORIES.find(([g]) => turnGroupKey(g) === id); return t ? `${t[1]} Turn-ons · ${t[0]}` : id; };
+    return `<input type="search" data-filter-list="library" placeholder="Find one of yours…" aria-label="Search your library"><div class="mw-lib-list">${lib.map(e => `<div class="mw-lib-row" data-filter-item="library"><div><b>${esc(e.label)}${e.dark ? ' <em>☠</em>' : ''}</b><small>${esc(groupName(e.group))}</small></div>${editButton(e.id, e.label)}</div>`).join('')}</div><p class="mw-fine" data-filter-empty="library" hidden>No matches.</p>`;
+}
+function settingsView(state) {
+    const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : subjectName();
+    return `<section class="mw-settings">
+        <div class="mw-settings-head"><button type="button" class="mw-back" data-action="settings-close">‹ Back</button><b>Settings</b><small>${esc(whose)}</small></div>
+        <details class="mw-advanced" data-settings="sent" open><summary>What is sent to the model</summary>
+            <p class="mw-fine">Moodweaver’s own note only. Your card, preset, lore and chat history get sent too.</p>
+            <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Tell it to keep scenes moving</label>
+            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><pre data-audit></pre>
+            <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
+            <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
+        <details class="mw-advanced" data-settings="library"><summary>Your library <small>${settings().library.length} options</small></summary>${libraryList()}</details>
+        <details class="mw-advanced" data-settings="defaults"><summary>Defaults for new chats</summary>
+            <p class="mw-fine">Each chat keeps its own settings. Saving a default seeds ${esc(whose)}’s future chats; existing chats stay as they are.</p>
+            <div class="mw-actions"><button data-action="baseline">${who === 'cast' ? 'Save the whole cast' : who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moodlets</button></div></details>
+        <details class="mw-advanced" data-settings="limits"><summary>Prompt & reader limits</summary>
+            <label>Token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"></label>
+            <label>Depth from the end <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"></label>
+            <p class="mw-fine">The target only warns; nothing is cut. Depth 0 puts the note after your latest message (best); 1 puts it before.</p>
+            <label>Reader text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
+            <label>Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"></label>
+            <p class="mw-fine">Text cap is in characters. Raise the reply cap if a thinking model runs out before it answers.</p></details>
+    </section>`;
+}
+function sectionContent(state, kind, ch, active, relationshipCount) {
+    const shown = kind === 'turn' ? [] : active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
+    const turnsSet = kind === 'turn' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
+    const whose = who === 'story' ? 'the story' : subjectName();
+    const heading = { mood: 'Active moodlets', trait: 'Who they are', turn: 'Turn-ons & turn-offs', state: 'Needs & facts', story: 'The story so far' }[kind];
+    const empty = { mood: 'Nothing set. Start with a starter blend, move a slider or read the scene.', trait: 'Nothing set yet. Kinks, roles, temperament and morals go here.', turn: 'Nothing set yet. What they like or can’t stand in other people goes here.', state: 'Nothing set. Body, looks, background and the scene go here.', story: 'No genre or style set for this chat yet.' }[kind];
+    const chips = turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="Adjust ${esc(TURN_BY_ID[id].label)}"><span>${v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('')
+        + shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('');
+    const explainer = who === 'user' && kind === 'turn' ? `What ${esc(playerName())} likes or can’t stand in other people. The story works these in now and then; ${esc(ch.name)} only learns them from how you react.`
+        : kind === 'turn' ? `What ${esc(whose)} likes or can’t stand in <em>other people</em>. Slide right for a turn-on, left for a turn-off.`
+        : who === 'user' && ['mood', 'trait'].includes(kind) ? `How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.`
+        : kind === 'trait' ? `Who ${esc(whose)} is underneath. Traits stay put unless you switch on ❂ Traits in the scene reader.` : '';
+    return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${active.length || relationshipCount || turnsSet.length ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
+        <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
+        ${kind === 'mood' && state.reason ? `<div class="mw-observation">✧ ${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
+    ${kind === 'mood' ? readerBlock(state) : ''}
+    ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
+    ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}
+    ${catalogueBlock(state, kind, ch, whose)}`;
+}
 function render() {
     if (!panel) return;
     capturePanel(panel);
-    const ch = target(), charState = getState(ch), allProfiles = profiles();
+    const ch = target(), charState = getState(ch);
     if (charState) migratePairs(ch);
     if (who === 'cast' && !selectedCast()) who = 'char';
-    const state = charState ? viewState() : null, mine = who !== 'char';
+    const state = charState ? viewState() : null;
     if (who === 'story') tab = 'mood';
-    const kind = who === 'story' ? 'story' : ['state', 'trait'].includes(tab) ? tab : 'mood';
+    const kind = who === 'story' ? 'story' : ['state', 'trait', 'turn'].includes(tab) ? tab : 'mood';
     const active = state ? activeMoods(state) : [];
-    const shown = active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
-    const turnsSet = state && kind === 'trait' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]) : [];
     const relationshipCount = state && who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + Object.values(state?.prefs ?? {}).filter(Boolean).length, rel: relationshipCount, state: active.filter(m => m.kind === 'state' && m.category !== 'relationship').length, personality: activePersonalities(state).length, inv: (state?.inventory ?? []).filter(i => i.carried).length };
+    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
+        rel: relationshipCount, state: active.filter(m => m.kind === 'state' && sectionOf(m) === 'state').length, personality: activePersonalities(state).length,
+        inv: (state?.inventory ?? []).filter(i => i.carried).length, wants: (state?.wants ?? []).filter(w => !w.done && w.value > 0).length };
     const peer = state && who !== 'story' ? currentPeer() : null;
-    const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
+    const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', settingsOpen ? 'settings' : tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
     const snapshot = savedPanel(view), sameView = panel.dataset.view === view;
     search = snapshot?.searches['#mw-catalogue-search'] ?? '';
     panel.dataset.view = view;
-    panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-diamond">◆</span><div><span class="mw-eyebrow">A LITTLE INNER WEATHER</span><h2>Moodweaver</h2></div></div><button class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div>
+    const lead = active.find(m => sectionOf(m) === 'mood');
+    const body = settingsOpen ? settingsView(state)
+        : `${personCard(ch, state)}${who === 'story' ? '' : tabBar(counts)}
+        ${who !== 'story' && tab === 'inv' ? inventoryView(state, ch)
+        : who !== 'story' && tab === 'personality' ? personalityView({ state, isPlayer: who === 'user', focus: ch.name, knowledge: getKnowledge(ch) })
+        : who !== 'story' && tab === 'wants' ? wantsView(state, ch)
+        : who !== 'story' && tab === 'rel' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
+        : sectionContent(state, kind, ch, active, relationshipCount)}`;
+    panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><span class="mw-plumbob" style="--mw-plumbob:${lead?.color ?? '#b5d9a6'}" aria-hidden="true">◆</span><h2>Moodweaver</h2></div>
+        <div class="mw-top-actions"><button type="button" class="mw-icon-btn" data-action="${settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch)}
-    ${state ? `${personCard(ch, state)}
-    ${who === 'story' ? '' : `<div class="mw-mode mw-tabs" role="tablist" aria-label="Section">${[['mood', '✦', 'Moodlets'], ['trait', '❂', 'Traits'], ['personality', '◈', 'Personality'], ['rel', '♥', 'Relationships'], ['state', '⌂', 'Needs & facts'], ['inv', '❒', 'Inventory']].map(([k, icon, label]) =>
-        `<button role="tab" data-tab="${k}" aria-pressed="${tab === k}">${icon} ${label}${counts[k] ? ` <small>${counts[k]}</small>` : ''}</button>`).join('')}</div>`}
-    ${tab === 'inv' && who !== 'story' ? inventoryView(state, ch) : tab === 'personality' && who !== 'story' ? personalityView({ state, isPlayer: who === 'user', focus: ch.name, knowledge: getKnowledge(ch) }) : tab === 'rel' && who !== 'story' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation }) : `
-    <div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? ({ mood: 'ACTIVE MOODLETS', trait: 'WHO THEY ARE', state: 'NEEDS & FACTS', story: 'THE STORY SO FAR' })[kind] : 'A CLEAN SLATE'}<span>${shown.length + turnsSet.length} active${active.length || relationshipCount ? ` · <button class="mw-clear" data-action="clear" title="Turn everything off for this person, pins too">Clear all</button>` : ''}</span></div>
-        <div class="mw-chips">${shown.length || turnsSet.length ? turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="Adjust ${esc(TURN_BY_ID[id].label)}"><span>${v > 0 ? '♥' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('') + shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('') : `<p>${kind === 'mood' ? 'Nothing set. Start with a starter blend or move a slider.' : kind === 'trait' ? 'Nothing set yet. Kinks, roles, temperament, morals and turn-ons go here.' : kind === 'state' ? 'Nothing set. Body, looks, background and the scene go here.' : 'No genre or style set for this chat yet.'}</p>`}</div>
-        <p data-budget-warning class="mw-fine" hidden></p>
-        ${kind === 'mood' && state.reason ? `<div class="mw-observation">${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
-    ${kind === 'mood' && who === 'char' ? `<div class="mw-mode mw-small" role="group" aria-label="Mood mode"><button data-mode="manual" aria-pressed="${state.mode === 'manual'}">☷ Manual</button><button data-mode="dynamic" aria-pressed="${state.mode === 'dynamic'}">✧ Dynamic</button></div>
-    <p class="mw-explainer">${state.mode === 'manual' ? 'You set the feeling. Mix as many as you like.' : 'The scene shapes the feeling. Pin anything you want to keep exactly as it is.'}</p>` : ''}
-    ${['mood', 'trait'].includes(kind) && who === 'user' ? `<p class="mw-explainer">How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.</p>${knowledgePanel(state, ch)}` : ''}
-    ${kind === 'trait' && who !== 'user' ? `<p class="mw-explainer">Who ${esc(subjectName())} is underneath. Traits stay put: the scene reader never changes them.</p>` : ''}
-    ${kind === 'mood' ? dynamicBlock(state, mine, allProfiles) : ''}
-    ${catalogueBlock(state, kind, ch, who === 'story' ? 'the story' : subjectName())}`}
-    <details class="mw-inspector mw-advanced"><summary>What is sent to the model?</summary>
-        <p class="mw-fine">Exact Moodweaver contribution, not the whole SillyTavern prompt. Character cards, presets, lore and chat history can also influence the reply.</p>
-        <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Give scenes breathing room</label>
-        <p class="mw-fine">Each line uses the strength word shown on its slider. 81–90 is intense, 91–99 is overwhelming, and 100 is maximum: a defining part of the whole reply. Values in the same band share wording. The strongest sections come first. Equally strong settings mix without being toned down; lower ones add smaller touches. Pins lock values; they don’t add importance.</p>
-        <div data-token-count class="mw-token-count"></div><pre data-audit></pre>
-        <b>Current prepared injection</b><pre data-preview></pre>
-        <b>Last generation preparation</b><pre data-last-prompt></pre>
-        <p class="mw-fine">The last preparation is kept in memory for this chat and character. It records what this extension queued, not proof of a completed API request. Use SillyTavern’s message prompt inspector for the complete assembled prompt.</p></details>
-    <details class="mw-advanced"><summary>Prompt, budgets & character defaults</summary>
-        <p class="mw-fine">Saved separately for each chat and character. Save this setup as a character default to seed their future chats; existing chats keep their own blend.</p>
-        <div class="mw-actions"><button data-action="baseline">${who === 'cast' ? 'Save entire cast for this character' : who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default for this character' : 'Save character default'}</button><button data-action="reset">Clear unpinned moods</button></div>
-        <label>Mood prompt token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"> tokens</label>
-        <label>Prompt depth <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"> messages from the end</label>
-        <p class="mw-fine">0 puts Moodweaver after your latest message (recommended); 1 puts it before. Lower numbers keep the note closer to the reply. This changes its placement, not a guaranteed priority over your preset.</p>
-        <label>Recent messages for analyser <input type="number" data-setting="sceneMessages" min="2" max="30" value="${settings().sceneMessages}"></label>
-        <label>Scene text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"> characters</label>
-        <label>Analyser output cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"> tokens</label>
-        <p class="mw-fine">Settings apply globally. The token target is only a warning; nothing is ever dropped or shortened. A large blend can exceed this target; the inspector shows the full count. Analyser caps remain limits. Counts use SillyTavern’s selected tokenizer; provider counts may differ.</p></details>` : ''}` }
-    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer">Small shifts. Complicated feelings. · v1.21.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    ${state ? body : ''}`}
+    <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v1.22.0</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     restorePanelFields(panel, snapshot);
     filterRows(); filterRelationships(panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(panel);
     renderPreview(); restorePanelPosition(panel, snapshot, sameView); toggleTop();
@@ -579,12 +740,14 @@ function filterRows() {
         });
         const inTab = who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === tab;
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
+        // While searching, open groups with matches so results are one tap away; fold them back after.
+        const key = d.dataset.category;
+        if (term && count && inTab && !d.open) { d.open = true; autoOpened.add(key); }
+        else if (!term && autoOpened.has(key)) { d.open = false; autoOpened.delete(key); }
         showGroupMatches(d, count, term);
     });
     panel.querySelectorAll('[data-custom-row]').forEach(row => { row.hidden = !searchText(row).includes(term); if (!row.hidden) shown++; });
-    const turnsHead = panel.querySelector('.mw-turns-head');
-    if (turnsHead) turnsHead.hidden = ![...panel.querySelectorAll('.mw-turn-group')].some(d => !d.hidden);
-    const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0;
+    const none = panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0 || !term;
 }
 async function changeState(mutator) {
     const s = viewState(); if (!s) return;
@@ -592,12 +755,12 @@ async function changeState(mutator) {
 }
 function openPanel() {
     if (suspended) return;
-    render(); if (!panel.open) panel.show(); void syncPrompt();
+    render(); if (!panel.open) { panel.show(); panel.focus({ preventScroll: true }); } void syncPrompt();
 }
 function setup() {
     if (document.getElementById('moodweaver-panel')) return;
     settings();
-    panel = document.createElement('dialog'); panel.id = 'moodweaver-panel'; panel.className = 'mw-panel';
+    panel = document.createElement('dialog'); panel.id = 'moodweaver-panel'; panel.className = 'mw-panel'; panel.tabIndex = -1;
     panel.setAttribute('aria-label', 'Moodweaver character moods'); document.body.append(panel);
     const launcher = document.createElement('button'); launcher.id = 'moodweaver-launcher'; launcher.innerHTML = '<span>◆</span> Moods';
     launcher.title = 'Open Moodweaver'; launcher.setAttribute('aria-controls', panel.id); launcher.onclick = openPanel; document.body.append(launcher);
@@ -610,6 +773,17 @@ function setup() {
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
+        if (e.target.dataset.maker && maker) {
+            const f = e.target.dataset.maker; maker.draft[f] = f === 'dark' ? e.target.checked : e.target.value;
+            if (f === 'group') lastGroup[maker.kind] = e.target.value;
+            const q = panel.querySelector('[data-maker-preview]'); if (q) q.textContent = makerPreview(makerDraft()); return;
+        }
+        if (e.target.dataset.wantValue !== undefined || e.target.dataset.field === 'follow') {
+            const v = Number(e.target.value), row = e.target.closest('.mw-mood');
+            if (row) { row.querySelector('output').textContent = `${v}%`; row.querySelector('[data-lvl]').textContent = level(v); e.target.style.setProperty('--mw-fill', `${v}%`); }
+            else { panel.querySelector('[data-follow-out]').textContent = `${v}%`; e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
+            return;
+        }
         if (['mw-type-search', 'mw-enneagram-search'].includes(e.target.id)) { filterPersonality(panel); return; }
         if (e.target.dataset.personality === 'strength') {
             const v = Number(e.target.value), row = e.target.closest('.mw-mood');
@@ -657,9 +831,23 @@ function setup() {
     });
     panel.addEventListener('keydown', e => {
         if (e.key === 'Enter' && e.target.hasAttribute('data-inv-new')) { e.preventDefault(); panel.querySelector('[data-action="inv-add"]')?.click(); }
+        if (e.key === 'Enter' && e.target.dataset.wantNew) { e.preventDefault(); panel.querySelector(`[data-action="want-add"][data-kind="${e.target.dataset.wantNew}"]`)?.click(); }
+        if (e.key === 'Enter' && e.target.dataset.maker === 'label') { e.preventDefault(); panel.querySelector('[data-maker="cue"]')?.focus(); }
     });
     panel.addEventListener('change', async e => {
         const input = e.target;
+        if (input.dataset.maker) return; // drafts live in memory until saved
+        if (input.dataset.wantText !== undefined || input.dataset.wantValue !== undefined) {
+            const id = input.dataset.wantText ?? input.dataset.wantValue;
+            await changeState(s => { const w = s.wants.find(x => x.id === id); if (!w) return;
+                if (input.dataset.wantValue !== undefined) w.value = Number(input.value);
+                else { const t = input.value.replace(/\s+/g, ' ').trim().slice(0, 120); if (t) { w.text = t; w.read = false; } } }); return;
+        }
+        if (input.dataset.reader === 'profile') {
+            settings().readerProfile = input.value; const main = getState(); if (main) main.profile = input.value;
+            ctx().saveSettingsDebounced(); await persist(main); render(); return;
+        }
+        if (input.hasAttribute('data-auto-read')) { await changeState(s => { s.mode = input.checked ? 'dynamic' : 'manual'; s.lastFingerprint = ''; s.lastUserCount = -1; }); return; }
         if (input.dataset.personality) {
             const field = input.dataset.personality;
             const system = input.dataset.personalitySystem === 'enneagram' ? 'enneagram' : 'personality';
@@ -772,6 +960,7 @@ function setup() {
             if (field === 'sensitivity') s[field] = clamp(s[field], 10, 100);
             if (field === 'decay') s[field] = clamp(s[field], 0, 20);
             if (field === 'interval') s[field] = clamp(s[field], 1, 10);
+            if (field === 'follow') s[field] = clamp(s[field], 10, 100);
         });
     });
     panel.addEventListener('click', async e => {
@@ -779,7 +968,7 @@ function setup() {
         if (summary?.parentElement.matches('details')) rememberGroupChoice(panel, summary.parentElement);
         const button = e.target.closest('button'); if (!button) return;
         if (button.dataset.who) {
-            who = button.dataset.who; browsing = false; if (button.dataset.castId) selectedCastId = button.dataset.castId;
+            who = button.dataset.who; browsing = false; maker = null; settingsOpen = false; if (button.dataset.castId) selectedCastId = button.dataset.castId;
             selectedPeer = ''; removingRelation = ''; castAction = ''; status = ''; render(); return;
         }
         if (button.dataset.peer !== undefined) { selectedPeer = button.dataset.peer; removingRelation = ''; render(); return; }
@@ -801,10 +990,26 @@ function setup() {
             pair.memories = (pair.memories ?? []).filter(m => m.id !== button.dataset.memRemove); await persist(); await syncPrompt(); render(); return;
         }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
-        if (button.dataset.tab) { tab = button.dataset.tab; search = ''; browsing = false; removingRelation = ''; render(); return; }
+        if (button.dataset.wing !== undefined) { await changeState(s => { s.enneagram = cleanEnneagram({ ...cleanEnneagram(s.enneagram), wing: button.dataset.wing }); }); return; }
+        if (button.dataset.scope) { const k = button.dataset.scope; await changeState(s => { s.readScope = cleanScope({ ...s.readScope, [k]: !cleanScope(s.readScope)[k] }); }); return; }
+        if (button.dataset.readerMsgs) { settings().sceneMessages = Number(button.dataset.readerMsgs); ctx().saveSettingsDebounced(); render(); return; }
+        if (button.dataset.libEdit) {
+            const entry = libraryEntry(button.dataset.libEdit); if (!entry) return;
+            const m = BY_ID[entry.id], kindOf = isTurnGroup(entry.group) ? 'turn' : sectionOf(m);
+            if (kindOf === 'story') who = 'story'; else { if (who === 'story') who = 'char'; tab = kindOf; }
+            settingsOpen = false; browsing = false; openMaker(kindOf, { id: entry.id }); render();
+            panel.querySelector('#mw-maker')?.scrollIntoView({ block: 'center' }); return;
+        }
+        if (button.dataset.ownPromote) { openMaker(who === 'story' ? 'story' : tab, { fromOwn: button.dataset.ownPromote }); render(); panel.querySelector('#mw-maker')?.scrollIntoView({ block: 'center' }); return; }
+        if (button.dataset.wantDone || button.dataset.wantRestore) {
+            const id = button.dataset.wantDone || button.dataset.wantRestore;
+            await changeState(s => { const w = s.wants.find(x => x.id === id); if (w) w.done = Boolean(button.dataset.wantDone); }); return;
+        }
+        if (button.dataset.wantRemove) { const id = button.dataset.wantRemove; await changeState(s => { s.wants = s.wants.filter(w => w.id !== id); }); return; }
+        if (button.dataset.tab) { tab = button.dataset.tab; search = ''; browsing = false; removingRelation = ''; maker = null; render(); return; }
         if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
         if (button.dataset.jump) {
-            clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = button.dataset.jump.startsWith('turn:') ? 'trait' : sectionOf(BY_ID[button.dataset.jump]); render();
+            clearPanelSearch(panel, '.mw-search'); search = ''; if (who !== 'story') tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render();
             const row = panel.querySelector(`[data-mood="${button.dataset.jump}"]`), category = row.closest('details');
             category.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input').focus(); return;
         }
@@ -829,7 +1034,51 @@ function setup() {
                 who = next.who; selectedPeer = fromKey ?? ''; removingRelation = ''; tab = 'rel';
                 render(); await syncPrompt(); break;
             }
-            case 'browse': browsing = true; search = ''; render(); panel.querySelector('.mw-search')?.focus(); break;
+            case 'settings': settingsOpen = true; maker = null; render(); panel.scrollTo({ top: 0 }); break;
+            case 'settings-close': settingsOpen = false; render(); break;
+            case 'maker-open': openMaker(button.dataset.kind); render(); panel.querySelector('[data-maker="label"]')?.focus(); break;
+            case 'maker-cancel': maker = null; render(); break;
+            case 'maker-save': {
+                const d = makerDraft(); if (!maker) break;
+                if (!d.label) { status = 'Give it a name first.'; renderStatus(); panel.querySelector('[data-maker="label"]')?.focus(); break; }
+                const lib = settings().library, editing = maker.id, id = editing || newLibraryId();
+                if (!editing && lib.some(e => e.label.toLowerCase() === d.label.toLowerCase() && e.group === d.group)) { status = 'You already have one with that name in that section.'; renderStatus(); break; }
+                settings().library = cleanLibrary(editing ? lib.map(e => e.id === id ? { ...e, ...d, id } : e) : [...lib, { id, ...d }]);
+                settings(); ctx().saveSettingsDebounced(); lastGroup[maker.kind] = d.group;
+                const fromOwn = maker.fromOwn; maker = null;
+                if (!editing) await changeState(s => {
+                    const own = fromOwn ? s.custom.find(r => r.id === fromOwn) : null, value = own?.value || 50;
+                    if (isTurnGroup(d.group)) { s.prefs = { ...s.prefs, [id]: value }; s.loadout.push(`turn:${id}`); }
+                    else { s.moods[id] = value; s.loadout.push(id); if (own?.cause) s.causes = { ...s.causes, [id]: own.cause }; }
+                    if (own) s.custom = s.custom.filter(r => r !== own);
+                });
+                status = editing ? `“${d.label}” updated everywhere.` : `“${d.label}” saved to your library and switched on here.`;
+                await syncPrompt(); render();
+                const saved = panel.querySelector(`[data-mood="${isTurnGroup(d.group) ? `turn:${id}` : id}"]`);
+                if (saved) { saved.closest('details').open = true; saved.scrollIntoView({ block: 'center' }); }
+                break;
+            }
+            case 'maker-once': {
+                const d = makerDraft(), kind = maker?.kind; if (!kind) break;
+                if (!d.label) { status = 'Give it a name first.'; renderStatus(); break; }
+                maker = null;
+                await changeState(s => { s.custom.push({ id: newId(), kind, text: (d.cue ? `${d.label}: ${d.cue}` : d.label).slice(0, 100), value: 50, cause: '' }); }); break;
+            }
+            case 'maker-delete': {
+                const entry = maker?.id && libraryEntry(maker.id); if (!entry) break;
+                if (!confirm(`Delete “${entry.label}” from your library? It disappears from every character.`)) break;
+                settings().library = cleanLibrary(settings().library.filter(e => e.id !== entry.id)); settings(); ctx().saveSettingsDebounced();
+                maker = null; status = `“${entry.label}” deleted.`; await syncPrompt(); render(); break;
+            }
+            case 'want-add': {
+                const kind = button.dataset.kind, field = panel.querySelector(`[data-want-new="${kind}"]`);
+                const t = field?.value.replace(/\s+/g, ' ').trim().slice(0, 120); if (!t || !WANT_KINDS.includes(kind)) break;
+                await changeState(s => { s.wants = cleanWants([...s.wants, { id: newId(), kind, text: t, value: 50 }]); });
+                panel.querySelector(`[data-want-new="${kind}"]`)?.focus(); break;
+            }
+            case 'scene-mark': { const meta = ctx().chatMetadata[KEY]; if (!meta) break; meta.sceneStart = Math.max(0, ctx().chat.length - 1); status = 'New scene marked. The reader ignores everything before it.'; await persist(); render(); break; }
+            case 'scene-clear': { const meta = ctx().chatMetadata[KEY]; if (meta) delete meta.sceneStart; await persist(); render(); break; }
+            case 'browse': browsing = true; maker = null; search = ''; render(); panel.querySelector('.mw-search')?.focus(); break;
             case 'browse-done': browsing = false; search = ''; render(); break;
             case 'inv-add': {
                 const t = panel.querySelector('[data-inv-new]')?.value.replace(/\s+/g, ' ').trim().slice(0, 60); if (!t) break;
@@ -898,7 +1147,7 @@ function setup() {
             case 'top': panel.scrollTo({ top: 0, behavior: 'smooth' }); break;
             case 'close': panel.close(); document.getElementById('moodweaver-launcher').focus(); break;
             case 'cancel': cancelAnalysis(); break;
-            case 'analyse': await analyse(target(), true); break;
+            case 'analyse': await analyse(true); break;
             case 'clear': {
                 const whose = who === 'user' ? playerName() : who === 'story' ? 'the story' : who === 'cast' ? selectedCast()?.name : target()?.name;
                 if (!confirm(`Clear everything for ${whose}? Every slider goes to 0 and pins are removed. Their list stays, so you can set a new scene quickly.`)) break;
@@ -909,6 +1158,8 @@ function setup() {
             case 'undo': await changeState(s => {
                 const previous = s.history.pop(); if (!previous) return;
                 for (const m of MOODS) if (!s.pins[m.id]) s.moods[m.id] = previous.moods[m.id] ?? 0;
+                for (const r of previous.custom ?? []) { const row = s.custom.find(x => x.id === r.id); if (row) row.value = r.value; }
+                if (previous.wants) s.wants = cleanWants(previous.wants);
                 s.reason = previous.reason; s.updatedAt = previous.updatedAt;
             }); break;
             case 'baseline': {

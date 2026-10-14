@@ -167,3 +167,129 @@
 @media(max-width:520px){.mw-inv-list,.mw-panel .mw-inv-add{margin-left:18px;margin-right:18px}}
 /* iPhone: Safari zooms into any field under 16px, so touch screens get 16px text in every field */
 @media(pointer:coarse){.mw-panel input[type=text],.mw-panel input[type=search],.mw-panel input[type=number],.mw-panel select,.mw-panel textarea{font-size:16px!important}}
+
+/* 1.22: phone-first pass. Compact header, sticky icon tabs, scene reader, make-your-own, wants & fears, settings sheet. */
+.mw-panel{--mw-bg:#191c24;--mw-deep:#10131b}
+.mw-panel .mw-tab-icon,.mw-panel .mw-category-icon,.mw-panel .mw-want-icon,.mw-panel .mw-reader-icon,.mw-panel .mw-maker-icon,.mw-panel .mw-plumbob{font-variant-emoji:text;font-family:system-ui,"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",sans-serif}
+.mw-panel .mw-top{padding:14px 16px 10px;background:linear-gradient(120deg,#25362d66,transparent 70%)}
+.mw-brand{gap:10px}.mw-panel h2{font-size:19px;margin:0;letter-spacing:-.4px}
+.mw-plumbob{display:inline-block;font-size:26px;line-height:1;color:var(--mw-plumbob);transform:scaleX(.62);text-shadow:0 0 14px color-mix(in srgb,var(--mw-plumbob) 60%,transparent),0 0 2px var(--mw-plumbob);transition:color .6s,text-shadow .6s}
+.mw-top-actions{display:flex;align-items:center;gap:4px}
+.mw-panel .mw-icon-btn{border:0;background:none;color:#adb1b6;font-size:19px;width:38px;height:38px;padding:0;border-radius:50%}
+.mw-panel .mw-icon-btn[aria-pressed=true]{background:#354237;color:#d4e8cd}
+.mw-panel .mw-close{width:38px;height:38px;font-size:26px}
+.mw-panel .mw-people{padding:2px 16px 8px;margin-top:0}
+.mw-panel .mw-person{width:58px}.mw-panel .mw-people .mw-avatar{width:36px;height:36px;font-size:14px}
+.mw-panel .mw-person-card{margin:0 16px;padding:10px 12px;gap:11px;border-radius:14px}
+.mw-panel .mw-avatar-lg{width:42px;height:42px;font-size:18px;border-color:color-mix(in srgb,var(--mw-accent) 55%,transparent)}
+.mw-panel .mw-person-info b{font-size:14px}
+.mw-panel .mw-quick-read{font-size:11px;padding:6px 10px;border-radius:999px;background:#c1b0e814;border-color:#c1b0e840;color:#ddd3f5;white-space:nowrap}
+
+/* Tabs: one row, eight icons, stays pinned to the top while you scroll. */
+.mw-tabbar{position:sticky;top:0;z-index:8;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:2px;margin:12px 0 14px;padding:6px 8px;background:color-mix(in srgb,var(--mw-bg) 92%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--mw-line);border-bottom:1px solid var(--mw-line)}
+.mw-panel .mw-tabbar button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:6px 0 5px;border:0;border-radius:10px;background:none;color:var(--mw-muted)}
+.mw-tab-icon{font-size:17px;line-height:1.1;color:color-mix(in srgb,var(--mw-tab) 60%,#6d7380)}
+.mw-tab-label{font-size:9px;line-height:1.2;letter-spacing:-.15px;max-width:100%;overflow:hidden;white-space:nowrap}
+.mw-panel .mw-tabbar button[aria-pressed=true]{background:color-mix(in srgb,var(--mw-tab) 15%,transparent);color:var(--mw-text)}
+.mw-tabbar button[aria-pressed=true] .mw-tab-icon{color:var(--mw-tab);text-shadow:0 0 10px color-mix(in srgb,var(--mw-tab) 45%,transparent)}
+.mw-tabbar button>i{position:absolute;top:1px;right:calc(50% - 21px);min-width:14px;padding:0 3px;border-radius:7px;background:color-mix(in srgb,var(--mw-tab) 30%,#262b36);color:var(--mw-text);font:600 8.5px/14px system-ui;font-style:normal;text-align:center}
+
+/* Section bits */
+.mw-panel .mw-summary{margin:0 16px 14px;padding:12px 13px}
+.mw-panel .mw-section-label{font-size:10px;letter-spacing:.04em;color:#d3d0d8;margin-bottom:10px;font-weight:600}
+.mw-panel .mw-explainer{padding:4px 18px 12px}
+.mw-panel .mw-tools,.mw-panel .mw-custom,.mw-panel .mw-advanced{margin-left:16px;margin-right:16px}
+.mw-panel .mw-categories{margin:0 8px}
+.mw-panel .mw-empty-list{margin:12px 16px!important}
+.mw-mood.is-yours{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--mw-accent) 70%,transparent);padding-left:8px;margin-left:-8px}
+.mw-panel .mw-edit{flex:0 0 auto;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:none;color:color-mix(in srgb,var(--mw-accent,#a8cdb1) 75%,#999);font-size:14px}
+
+/* Scene reader */
+.mw-reader{margin:0 16px 14px;padding:12px 13px;border:1px solid #c1b0e830;border-radius:14px;background:linear-gradient(150deg,#c1b0e812,#c1b0e803)}
+.mw-reader-head,.mw-maker-head,.mw-want-head{display:flex;gap:10px;align-items:flex-start}
+.mw-reader-head b,.mw-maker-head b,.mw-want-head b{display:block;font-size:13px;font-weight:600}
+.mw-reader-head small,.mw-maker-head small,.mw-want-head small{display:block;font-size:10.5px;line-height:1.45;color:var(--mw-muted)}
+.mw-reader-icon{flex:none;width:22px;text-align:center;font-size:18px;color:#cfc0f2;text-shadow:0 0 12px #c1b0e866}
+.mw-scope{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0 10px}
+.mw-panel .mw-scope-chip{padding:6px 11px;border-radius:999px;font-size:11.5px;color:var(--mw-muted);background:transparent;border:1px dashed #ffffff22}
+.mw-panel .mw-scope-chip[aria-pressed=true]{color:#e9e2fb;background:#c1b0e820;border:1px solid #c1b0e866}
+.mw-reader-go{display:flex;gap:8px}.mw-panel .mw-read{flex:1;padding:10px 12px;font-size:13px;background:#3d3651;border-color:#c1b0e866;color:#ece6fb}
+.mw-reader-meta{font-size:10.5px;color:var(--mw-muted);margin:8px 0 0!important}
+.mw-panel .mw-warn{color:#e2c48f}
+.mw-reader .mw-tuning{margin-top:6px;border-top:1px solid var(--mw-line)}
+.mw-reader .mw-tuning label{display:block;font-size:11.5px;margin:10px 0}
+.mw-reader .mw-tuning output{float:right;color:#cfc0f2}
+.mw-panel .mw-inline input[type=number]{display:inline-block;width:56px;margin:0 4px;padding:4px 6px}
+.mw-seg-label{font-size:11.5px;margin:12px 0 6px}
+.mw-seg{display:flex;gap:4px;padding:3px;border-radius:10px;background:var(--mw-deep)}
+.mw-panel .mw-seg button{flex:1;padding:7px 0;border:0;background:none;font-size:12px;color:var(--mw-muted)}
+.mw-panel .mw-seg button[aria-pressed=true]{background:#3d3651;color:#ece6fb}
+.mw-scene-mark{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;font-size:11.5px;color:#d9d1ef}
+.mw-panel .mw-scene-mark button{font-size:11.5px}.mw-scene-mark>button:only-child{flex:1}
+
+/* Make your own */
+.mw-panel .mw-maker-open{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:14px 0 6px;padding:12px;border:1px dashed #ffffff26;border-radius:12px;background:none;color:#cfd8cb;font-size:12.5px}
+.mw-maker-open span{color:#b5d9a6}
+.mw-maker{margin:14px 0 6px;padding:13px;border:1px solid #b5d9a640;border-radius:14px;background:linear-gradient(150deg,#b5d9a60f,transparent)}
+.mw-maker-icon{flex:none;width:22px;text-align:center;font-size:17px;color:#b5d9a6}
+.mw-panel .mw-field{display:block;margin-top:11px;font-size:11.5px;color:#cfcdd6}.mw-field small{color:var(--mw-muted);margin-left:4px}
+.mw-panel .mw-field input{display:block;width:100%;margin-top:5px;background:var(--mw-deep);color:var(--mw-text);border:1px solid #ffffff1c;border-radius:9px;padding:9px 10px;font-size:13px}
+.mw-panel .mw-dark-toggle{margin-top:12px;white-space:normal;color:#e2b3b3}
+.mw-sent{margin-top:12px!important;font-size:11px;color:var(--mw-muted)}.mw-sent q{display:block;margin-top:4px;padding:8px 10px;border-radius:8px;background:var(--mw-deep);color:#d7e5cf;font:11.5px/1.5 ui-monospace,monospace;quotes:none}
+.mw-panel .mw-danger{color:#f0b4b4;border-color:#d98f8f55;background:#d98f8f12}
+.mw-custom .mw-section-label{margin-top:4px}
+
+/* Wants, goals & fears */
+.mw-wants{padding-bottom:4px}
+.mw-want-card{margin:0 16px 12px;padding:12px 13px 4px;border:1px solid color-mix(in srgb,var(--mw-accent) 28%,transparent);border-radius:14px;background:linear-gradient(150deg,color-mix(in srgb,var(--mw-accent) 9%,transparent),transparent 70%)}
+.mw-want-icon{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-size:16px;color:var(--mw-accent);background:color-mix(in srgb,var(--mw-accent) 14%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--mw-accent) 20%,transparent)}
+.mw-want-head>div{flex:1;min-width:0}.mw-want-head em{font-style:normal;font-size:11px;color:var(--mw-accent);padding-top:6px}
+.mw-want-empty{font-size:11.5px;color:#868c97;padding:10px 0 2px;font-style:italic}
+.mw-want-card .mw-mood{border-top:1px solid #ffffff09}
+.mw-panel .mw-want-add{margin:10px 0}.mw-panel .mw-want-add input{background:var(--mw-deep);color:var(--mw-text);border:1px solid #ffffff1c;border-radius:10px;padding:9px 11px;font-size:13px}
+.mw-panel .mw-want-add button{width:40px;padding:0;font-size:16px;color:var(--mw-accent);border-color:color-mix(in srgb,var(--mw-accent) 40%,transparent)}
+.mw-panel .mw-tick{color:#b5d9a6}
+.mw-from-scene{display:block;font-size:10px;color:#cfc0f2;margin-top:2px}
+.mw-want-done{margin:4px 16px 8px;font-size:12px}.mw-want-done summary{cursor:pointer;color:var(--mw-muted);padding:6px 0}
+.mw-done-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-top:1px solid var(--mw-line);color:#9da2ac;text-decoration:line-through;text-decoration-color:#ffffff30}.mw-done-row span{flex:1;min-width:0}
+.mw-panel .mw-wants-tip{margin:6px 18px 0}
+
+/* Settings sheet */
+.mw-settings{padding-bottom:6px}
+.mw-settings-head{display:flex;align-items:center;gap:10px;margin:8px 16px 4px}.mw-settings-head b{font-size:15px}.mw-settings-head small{margin-left:auto;color:var(--mw-muted);font-size:11px}
+.mw-panel .mw-back{padding:6px 10px;font-size:12px}
+.mw-settings .mw-advanced>summary{font-size:12.5px;color:var(--mw-text);padding:6px 0}.mw-settings .mw-advanced>summary small{color:var(--mw-muted);margin-left:6px}
+.mw-pre-label{display:block;font-size:11px;margin:10px 0 4px}
+.mw-lib-list{display:flex;flex-direction:column;margin-top:8px}
+.mw-lib-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--mw-line)}.mw-lib-row>div{flex:1;min-width:0}
+.mw-lib-row b{display:block;font-size:12.5px;font-weight:550}.mw-lib-row em{font-style:normal;color:#d98f8f}.mw-lib-row small{font-size:10.5px;color:var(--mw-muted)}
+.mw-panel .mw-personality{margin-left:16px;margin-right:16px}
+.mw-wings{margin-top:5px}
+.mw-panel .mw-rel{margin-left:16px;margin-right:16px}
+
+/* Touch: bigger thumbs and buttons, since fingers aren't cursors. */
+@media(pointer:coarse){
+    .mw-panel input[type=range]{height:6px;margin:15px 0 12px}
+    .mw-panel input[type=range]::-webkit-slider-thumb{height:22px;width:22px}
+    .mw-panel input[type=range]::-moz-range-thumb{height:18px;width:18px}
+    .mw-panel .mw-list,.mw-panel .mw-edit{width:32px;height:32px}
+    .mw-panel .mw-pin{width:30px;height:30px}
+    .mw-panel .mw-categories summary{padding:15px 10px}
+}
+@media(max-width:520px){
+    .mw-panel{top:28px;right:6px;width:calc(100vw - 12px);max-height:calc(100dvh - 40px);border-radius:18px}
+    .mw-tabbar{padding:5px 4px}
+}
+@media(prefers-reduced-motion:reduce){.mw-plumbob{transition:none}}
+
+.mw-panel:focus{outline:none}
+.mw-panel .mw-want-text{display:block;width:100%;resize:none;overflow:hidden;field-sizing:content;min-height:24px;background:transparent;border:0;border-bottom:1px solid #ffffff1c;color:var(--mw-text);font:13.5px/1.45 system-ui,sans-serif;padding:2px 0}
+.mw-panel .mw-want-text:focus{outline:none;border-bottom-color:var(--mw-accent)}
+.mw-want-controls{display:flex;align-items:center;gap:8px}.mw-want-controls input[type=range]{flex:1;min-width:0}
+.mw-want-controls>span{font-size:9px;color:var(--mw-muted)}.mw-want-controls output{font-size:11px;color:var(--mw-accent);min-width:31px;text-align:right;font-variant-numeric:tabular-nums}
+.mw-reader{--mw-accent:#c1b0e8}
+.mw-scope{gap:5px;flex-wrap:nowrap}.mw-panel .mw-scope-chip{flex:1 1 auto;padding:6px 6px;font-size:11px;white-space:nowrap}
+.mw-panel .mw-settings .mw-toggle{justify-content:flex-start;font-size:12px}
+.mw-footer [data-token-mini]{display:block;font-style:normal;color:#9aa89f;margin-bottom:3px}.mw-footer [data-token-mini].is-over{color:#e2c48f}.mw-footer [data-token-mini]:empty{display:none}
+.mw-person-card+.mw-summary{margin-top:14px}
+@media(max-width:380px){.mw-tab-label{font-size:8.5px;letter-spacing:-.35px}}

@@ -1,5 +1,7 @@
 // Optional writing lenses, not assessments. Good/bad side are how the type comes out in fiction,
 // not extra MBTI types or claims that a type makes someone good or bad.
+// Under pressure: how each type tends to crack, so coping shows in the story rather than the label.
+const MBTI_STRESS = {"ISTJ": "catastrophises and imagines everything going wrong", "ISFJ": "spirals into worst-case thinking and frets", "INFJ": "overindulges in food, sex or spending, or snaps at people", "INTJ": "turns reckless and chases sensation to escape", "ISTP": "gets oddly emotional and touchy about how others see them", "ISFP": "turns harsh, bossy and critical", "INFP": "turns cold and nitpicks everything", "INTP": "gets hypersensitive and takes rejection hard", "ESTP": "gets paranoid and reads dark meaning into everything", "ESFP": "imagines bleak futures and gets suspicious", "ENFP": "fixates on small details and withdraws", "ENTP": "fixates on small worries and aches and withdraws", "ESTJ": "feels unloved and overreacts emotionally", "ESFJ": "goes coldly critical and nitpicky", "ENFJ": "turns cold, blunt and harshly critical", "ENTJ": "feels unappreciated and overreacts emotionally"};
 export const PERSONALITY_TYPES = [
     ['ISTJ', 'Practical planner', 'introverted, detail-focused, logic-led and likes structure', 'dependable, thorough and fair', 'rigid, fault-finding and resistant to change'],
     ['ISFJ', 'Quiet supporter', 'introverted, detail-focused, values-led and likes structure', 'attentive, loyal and considerate', 'self-effacing, overprotective and quietly resentful'],
@@ -17,8 +19,20 @@ export const PERSONALITY_TYPES = [
     ['ESFJ', 'Social caretaker', 'outgoing, detail-focused, values-led and likes structure', 'welcoming, dependable and attentive to what people need', 'intrusive, approval-hungry and policing how others should behave'],
     ['ENFJ', 'People-focused guide', 'outgoing, big-picture, values-led and likes structure', 'encouraging, perceptive and good at bringing people together', 'controlling, image-conscious and managing people for their own idea of harmony'],
     ['ENTJ', 'Driven organiser', 'outgoing, big-picture, logic-led and likes structure', 'decisive, strategic and good at turning plans into action', 'ruthless, impatient and treating people as obstacles or resources'],
-].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative }));
+].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative, stress: MBTI_STRESS[id] }));
 export const PERSONALITY_BY_ID = Object.fromEntries(PERSONALITY_TYPES.map(t => [t.id, t]));
+// wing: the flavour a type lends as someone's wing. stress: how they cope when things go wrong.
+const ENNEAGRAM_EXTRA = {
+    1: { wing: 'a principled, self-controlled streak', stress: 'gets rigid, critical and quietly resentful; copes by fixing and controlling things' },
+    2: { wing: 'a warm, people-pleasing streak', stress: 'gets demanding and hurt at being unappreciated; copes by doing even more for others' },
+    3: { wing: 'a polished, image-aware streak', stress: 'goes numb and detached; copes by working harder and polishing the image' },
+    4: { wing: 'a moody, individualistic streak', stress: 'clings and fishes for reassurance; copes by sinking into their feelings' },
+    5: { wing: 'a private, cerebral streak', stress: 'gets scattered and restless; copes by retreating into their head' },
+    6: { wing: 'a loyal, wary streak', stress: 'gets defensive and blaming; copes by seeking reassurance or bracing for betrayal' },
+    7: { wing: 'a restless, fun-seeking streak', stress: 'gets critical and picky; copes by distracting themselves with the next thrill' },
+    8: { wing: 'a forceful, blunt streak', stress: 'withdraws and broods; copes by taking control and pushing harder' },
+    9: { wing: 'an easygoing, conflict-avoiding streak', stress: 'gets anxious and stubborn; copes by numbing out and going along with things' },
+};
 export const ENNEAGRAM_TYPES = [
     [
         "1",
@@ -83,7 +97,7 @@ export const ENNEAGRAM_TYPES = [
         "receptive, steady and able to bridge differences",
         "avoidant, stubbornly passive and losing touch with their own wants"
     ]
-].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative }));
+].map(([id, label, core, positive, negative]) => ({ id, label, core, positive, negative, ...ENNEAGRAM_EXTRA[id] }));
 export const ENNEAGRAM_BY_ID = Object.fromEntries(ENNEAGRAM_TYPES.map(t => [t.id, t]));
 export const PERSONALITY_EXPRESSIONS = ['balanced', 'positive', 'negative'];
 function cleanType(value, catalogue) {
@@ -95,22 +109,26 @@ function cleanType(value, catalogue) {
     };
 }
 export const cleanPersonality = (value = {}) => cleanType(value, PERSONALITY_BY_ID);
-export const cleanEnneagram = (value = {}) => cleanType(value, ENNEAGRAM_BY_ID);
+// A wing is one of the two neighbouring types: 3w2 or 3w4, 9w8 or 9w1.
+export const wingsOf = type => type ? [String(((Number(type) + 7) % 9) + 1), String((Number(type) % 9) + 1)] : [];
+export const cleanEnneagram = (value = {}) => {
+    const p = cleanType(value, ENNEAGRAM_BY_ID);
+    return { ...p, wing: wingsOf(p.type).includes(String(value?.wing)) ? String(value.wing) : '' };
+};
+export const enneagramName = p => p.type ? `${p.type}${p.wing ? `w${p.wing}` : ''}` : '';
 export function activePersonalities(state) {
     if (!state?.enabled) return [];
     return [{ ...cleanPersonality(state.personality), system: 'personality' }, { ...cleanEnneagram(state.enneagram), system: 'enneagram' }]
         .filter(p => p.enabled && p.type && p.strength > 0);
 }
 export function activePersonality(state) { return activePersonalities(state)[0] ?? null; }
-// opts.name: whose type this is. opts.isPlayer: the player's own character, written by the player,
-// so the type tells the bot how that person comes across rather than what to make them do.
-export function personalityCue(p, opts = {}) {
-    const t = (p.system === 'enneagram' ? ENNEAGRAM_BY_ID : PERSONALITY_BY_ID)[p.type];
+// One line per type, no labels: what drives them, which side shows, and how they crack under pressure.
+// opts.isPlayer: the player's own character, so it's about how they come across, not what to make them do.
+export function personalityCue(p) {
+    const en = p.system === 'enneagram', t = (en ? ENNEAGRAM_BY_ID : PERSONALITY_BY_ID)[p.type];
     if (!t) return '';
-    const who = opts.name || 'they';
     const side = p.expression === 'balanced' ? `good side: ${t.positive}; bad side: ${t.negative}`
         : p.expression === 'positive' ? `mostly their good side: ${t.positive}` : `mostly their bad side: ${t.negative}`;
-    const label = p.system === 'enneagram' ? `Enneagram ${t.id} (${t.label})` : `MBTI ${t.id} (${t.label})`;
-    const drive = p.strength >= 70 ? (opts.isPlayer ? `; a big part of how ${who} comes across` : `; drives ${who}'s choices all reply`) : '';
-    return `${label}: ${t.core}; ${side}${drive}`;
+    const wing = en && p.wing && ENNEAGRAM_BY_ID[p.wing] ? `, with ${ENNEAGRAM_BY_ID[p.wing].wing}` : '';
+    return `${en ? `Enneagram ${enneagramName(p)}` : t.id}: ${t.core}${wing}; ${side}; under pressure ${t.stress}`;
 }

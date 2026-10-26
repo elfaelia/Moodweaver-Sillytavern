@@ -83,7 +83,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
     const edit = editing ? `<section class="mw-board-edit">
         <p class="mw-fine">Anything you change here is pinned ◆ and sent as true until you unpin it. Clear a box to follow the board again.</p>
         ${editField('date', 'Date', pins.date || live.day, 80)}${editField('time', 'Time', pins.time || live.time, 40)}${editField('location', 'Location', live.location)}${editField('activity', 'Activity', live.activity)}
-        ${editField('charOutfit', `${esc(charName)}’s outfit`, live.charOutfit)}${editField('userOutfit', `${esc(userName)}’s outfit`, live.userOutfit)}${editField('horny', 'Horny', live.horny)}
+        ${editField('charOutfit', `${esc(charName)}’s outfit`, live.charOutfit)}${editField('userOutfit', `${esc(userName)}’s outfit`, live.userOutfit)}${live.meta.includeHorny ? editField('horny', 'Horny', live.horny) : ''}
         <div class="mw-actions"><button class="mw-primary" data-action="board-edit-done">✓ Done</button></div></section>` : '';
     const hornyV = live.hornyValue;
     return `<section class="mw-board">
@@ -94,14 +94,16 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · drag to set</small></h4>
             <div class="mw-needs">${live.needs.map(needCell).join('')}</div>
             <p class="mw-fine">Read from the board’s words. Faded bars haven’t come up yet. Low and critical needs, and any you set, go to the bot as things that change what ${esc(charName)} does.</p></div>
-        <div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
+        ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny">
-            ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>
+            ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}
         <div class="mw-board-block"><h4>${icon('body')} Physical State</h4>${tileGroup('physical', live.physical, focus, charName)}</div>
         <div class="mw-board-block mw-outfits"><h4>${icon('hanger')} Outfits</h4>
             ${[['charOutfit', charName], ['userOutfit', userName]].map(([key, who]) => `<div class="mw-outfit"><b>${esc(who)}</b><p>${esc(live[key]) || '<i>Not on the board yet</i>'}${pinMark(pins, key)}</p></div>`).join('')}</div>
         <div class="mw-board-foot">
             <label class="mw-toggle"><input type="checkbox" data-board-send ${send ? 'checked' : ''}> Send the board prompt in this chat</label>
+            <label class="mw-toggle"><input type="checkbox" data-board-horny ${live.meta.includeHorny ? 'checked' : ''}> Include Horny on this chat’s board</label>
+            <p class="mw-fine">Off by default. Hidden Horny pins aren't sent. Moodlets and attraction settings still work separately.</p>
             <label class="mw-toggle"><input type="checkbox" data-board-sync ${sync ? 'checked' : ''}> Present line moves the cast in and out</label>
             ${editing ? '' : `<button type="button" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
             <p class="mw-fine">${send ? 'Moodweaver sends your INFO BOARD format, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>

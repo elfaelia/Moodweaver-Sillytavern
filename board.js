@@ -4,17 +4,15 @@
 // matter on to the next reply. No extra model calls: the board is already in the reply.
 import { MOODS } from './core.js';
 
-// The player's INFO BOARD layout, kept character for character apart from the names.
-export const boardTemplate = (char, user) => `<div class="ihyll-style">
-📅 <b>Date:</b> [In-world date: Weekday, Month Day, Year] | [Season] | [Weather Emoji] | [Forecast: Temp (°C/°F)<br>
+// The board layout. The optional desire row is off unless selected for this chat.
+export const boardTemplate = (char, user, includeHorny = false) => `<div class="ihyll-style">
+📅 <b>Date:</b> [In-world date: Weekday, Month Day, Year] | [Season] | [Weather Emoji] | [Forecast: Temp (°C/°F)]<br>
 🕒 <b>Time:</b> [Scene time (12h AM/PM)]<br>
 🗺️ <b>Location:</b> [Location] | <b>Present:</b> [NPCs currently visible] | <b>Activity:</b> [NPC posture/activity]<br>
 👔 <b> ${char}’s Outfit:</b> [Current appearance & outfit, short]<br>
 👗 <b>${user}’s Outfit:</b> [Current appearance & outfit, short]<br>
-🧠 <b>State:</b> [2–5 words for ${char}'s internal condition / mood, right now: e.g. wired, guard up, tired or mean, etc. ${char}'s own state only, never a description of what ${user} said or did] 
-💎 <b>Physical State:</b> [State, no longer than one line, any injuries, hungry, dizzy, drunk, anything physical or biological should go here, no longer than one line.] | 
-</div>
-🦄 <b>Horny:</b> [State, no longer than one line] 
+🧠 <b>State:</b> [2–5 words for ${char}'s current mood; their own state, not a description of what ${user} said or did]<br>
+💎 <b>Physical State:</b> [One short line on their current bodily condition, injuries or needs]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}
 </div>`;
 
 // ---- Reading a board back ----
@@ -173,6 +171,7 @@ export function cleanBoardMeta(meta) {
     const list = v => [...new Set((Array.isArray(v) ? v : []).map(x => t(x, 90)).filter(Boolean))].slice(0, 12);
     return {
         send: typeof b.send === 'boolean' ? b.send : undefined,
+        includeHorny: b.includeHorny === true,
         pins: Object.fromEntries(EDIT_FIELDS.map(k => [k, t(b.pins?.[k], 200)]).filter(([, v]) => v)),
         needs: Object.fromEntries(Object.entries(b.needs ?? {}).filter(([k]) => NEED_IDS.has(k) || k === 'horny')
             .map(([k, v]) => [k, Math.round(Math.max(0, Math.min(100, Number(v) || 0)))])),
@@ -224,21 +223,22 @@ const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling har
 export function boardPromptLines({ send, live, char, user, n, u }) {
     if (!send && !live?.found) return [];
     const out = [];
+    const includeHorny = live?.meta?.includeHorny === true;
     if (send) out.push(`Info board: start every reply with this board, filled in for this moment from the previous beat. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user), '');
-    out.push(`The board is ${n}'s live state, not decoration, and the scene after it plays out from it: State is how they feel and act right now, Physical State limits and distracts them and shows on them, and Horny is how much sex is on their mind and how hard it pulls. Those three lines also sum up ${n}'s notes above in a few words, never a list.`);
+        boardTemplate(char, user, includeHorny), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; do not move it into Physical State.');
+    out.push(`The board reflects ${n}'s current settings and the scene; it doesn't create new feelings or needs. State sums up their mood, and Physical State records what their body is dealing with. An older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself is not a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
-        .filter(([k]) => b.pins[k]).map(([k, label]) => `- ${label}: ${pt(b.pins[k])}`);
+        .filter(([k]) => b.pins[k] && (k !== 'horny' || includeHorny)).map(([k, label]) => `- ${label}: ${pt(b.pins[k])}`);
     const keepState = live.state.filter(t => t.kept).map(t => t.text), keepBody = live.physical.filter(t => t.kept).map(t => t.text);
     if (pins.length || keepState.length || keepBody.length) out.push('', `The player set these. Keep them on the board and play them as true until they change:`, ...pins,
         ...(keepState.length ? [`- State includes: ${pt(keepState.join(', '))}`] : []), ...(keepBody.length ? [`- Physical State includes: ${pt(keepBody.join(', '))}`] : []));
     const cut = [...b.mute.state, ...b.mute.physical].filter(p => [live.board?.state, live.board?.physical].some(line => String(line ?? '').toLowerCase().includes(p.toLowerCase())));
     if (cut.length) out.push(`The player cut these. Drop them from the board and the scene: ${pt(cut.join(', '))}.`);
     const needs = live.needs.filter(nd => nd.pinned || (nd.known && nd.value <= 35));
-    if (needs.length || live.hornyPinned) out.push('', `${n}'s needs right now. Low ones nag and leak into mood and choices; a critical one takes over until it's dealt with or something worse wins:`,
+    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', `${n}'s needs right now. Low ones nag and leak into mood and choices; a critical one takes over until it's dealt with or something worse wins:`,
         ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn’t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
-        ...(live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
+        ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
     return out;
 }

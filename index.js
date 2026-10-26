@@ -932,6 +932,7 @@ function setup() {
         if (input.dataset.maker) return; // drafts live in memory until saved
         if (input.dataset.need) { const id = input.dataset.need, v = Number(input.value); await editBoard(b => { b.needs[id] = v; }); return; }
         if (input.hasAttribute('data-board-send')) { await editBoard(b => { b.send = input.checked; }); return; }
+        if (input.hasAttribute('data-board-horny')) { await editBoard(b => { b.includeHorny = input.checked; }); return; }
         if (input.hasAttribute('data-board-sync')) { settings().boardPresent = input.checked; ctx().saveSettingsDebounced(); render(); return; }
         if (input.dataset.boardAdd) {
             const kind = input.dataset.boardAdd, t = input.value.replace(/\s+/g, ' ').trim().slice(0, 60); if (!t || !['state', 'physical'].includes(kind)) return;

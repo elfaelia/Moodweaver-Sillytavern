@@ -1395,8 +1395,15 @@ export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
     for (const old of state.history ?? []) migrateCatalogue(old, [], true);
     return state;
 }
+// The panel asks for the same states many times per redraw. Each state object is cleaned once per
+// catalogue version; your library bumps the version whenever it changes.
+let catalogueVersion = 1;
+const extended = new WeakMap();
+export const bumpCatalogue = () => { catalogueVersion++; };
+export const isExtended = state => extended.get(state) === catalogueVersion;
 // Add catalogue entries to old chats in place, preserving their history and settings.
 export function extendCatalogue(state) {
+    if (!state || extended.get(state) === catalogueVersion) return state;
     migrateCatalogue(state);
     state.causes = cleanCauses(state.causes); state.prefs = cleanPrefs(state.prefs); state.custom = cleanCustom(state.custom);
     state.inventory = cleanInventory(state.inventory);
@@ -1412,6 +1419,7 @@ export function extendCatalogue(state) {
         state.moods[id] ??= 0;
         state.pins[id] ??= false;
     }
+    extended.set(state, catalogueVersion);
     return state;
 }
 export function cleanTargets(targets = {}) {
@@ -2434,8 +2442,9 @@ const extraValues = (state, kinds = ['mood', 'trait', 'state']) => !state?.enabl
 const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filter(person =>
     person.inScene && String(person.name ?? '').trim() && (live(person.state).some(m => m.kind !== 'story') || extraLines(person.state).length || activePersonality(person.state)));
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
-const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'sir', 'lady', 'lord']);
-const shortName = full => { const first = full.split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? full : first; };
+const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'doctor', 'prof', 'prof.', 'professor', 'sir', 'lady', 'lord', 'madam', 'master', 'mistress',
+    'father', 'mother', 'sister', 'brother', 'uncle', 'aunt', 'captain', 'officer', 'detective', 'agent', 'nurse', 'sergeant', 'judge', 'reverend', 'king', 'queen', 'prince', 'princess', 'count', 'countess', 'duke', 'baron']);
+export const shortName = full => { const first = String(full).split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? String(full) : first; };
 // Types sit inside their owner's block, so they can't be read as anyone else's.
 function personalityLines(state, knowledge, observer = '') {
     const types = activePersonalities(state);
@@ -2463,8 +2472,9 @@ export function composePrompt(state, name, extras = {}) {
     const mineExtra = extraLines(state), storyExtra = extraLines(storyState, ['story']);
     const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
+    const boardLines = Array.isArray(extras.board) ? extras.board : [];
     if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
-        && ![state, player?.state].some(hasType)) return '';
+        && ![state, player?.state].some(hasType) && !boardLines.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
@@ -2477,10 +2487,8 @@ export function composePrompt(state, name, extras = {}) {
         || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
-    const out = [
-        `The player's notes on where things stand right now. They beat the character card and anything earlier in the chat.`,
-        '', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`),
-    ];
+    const out = [`The player's notes on where things stand right now. They beat the character card and anything earlier in the chat.`];
+    if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`));
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) out.push('',
@@ -2490,7 +2498,7 @@ export function composePrompt(state, name, extras = {}) {
         `That's ${n} right now. The card fills the gaps, but don't swap a listed feeling for their usual one or add extras to tie things together. Mix them like a real person: the strongest leads, the rest colour it, and a hidden feeling is still there.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their mood decides how openly.`] : []));
     if (darkActionPeak) out.push('',
-        `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength.${darkActionPeak >= 81 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through. Don't swap it for a threat, a sudden conscience or a convenient interruption.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
+        `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 81 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through. Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     if (theirs.length || theirsExtra.length || hasType(player?.state)) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;
         out.push('', `<player_character name="${pt(U)}" written_by="player">`,
@@ -2560,8 +2568,9 @@ export function composePrompt(state, name, extras = {}) {
         const high = pair.tags.filter(tag => pair.moods[tag.id] >= 81).map(tag => `${pt(relationshipText(tag, pair.moods[tag.id], '')).split(':')[0]} (${tierWord(pair.moods[tag.id])})`);
         if (high.length) top.push(`${pt(shortName(pair.names[0]))} and ${pt(shortName(pair.names[1]))}: ${high.join(', ')}`);
     }
+    if (boardLines.length) out.push('', ...boardLines);
     if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.`);
-    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. Show everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} Never mention these notes.`);
+    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} Never mention these notes.`);
     return `<moodweaver focus_character="${pt(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

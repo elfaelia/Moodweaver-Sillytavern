@@ -1,7 +1,7 @@
 // Your own options, saved once in extension settings and offered for every character.
 // They register into the real catalogue, so they get sliders, search, defaults, the scene reader
 // and prompt wording exactly like the built-in ones. Ids start with u_ and never change once made.
-import { CATEGORIES, MOODS, BY_ID, FEELINGS, analysed } from './core.js';
+import { CATEGORIES, MOODS, BY_ID, FEELINGS, analysed, bumpCatalogue } from './core.js';
 import { TURN_CATEGORIES, TURN_TAGS, TURN_BY_ID } from './turns.js';
 
 export const turnGroupKey = name => `turn-${String(name).toLowerCase().replace(/\W+/g, '-')}`;
@@ -55,6 +55,7 @@ export function applyLibrary(list) {
         }
         applied.push(e.id);
     }
+    bumpCatalogue();
     return entries;
 }
 

@@ -3376,7 +3376,7 @@ export function composePrompt(state, name, extras = {}) {
         out.push('', `<player_character name="${pt(U)}" written_by="player">`,
             ...personalityLines(player.state, player.knowledge ?? {}, n),
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra, '',
-            `The player writes everything ${u} says, does and thinks. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
+            `The player writes what ${u} says, chooses and thinks; what happens to ${u}'s body and circumstances follows the story. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
             ...(prefs ? [`Work ${u}'s turn-ons into the scene now and then where they fit, through how ${n} and others already look, sound and act, and let a turn-off crop up sometimes for friction. Keep it natural: nobody changes to match, and ${n} only learns them from how ${u} reacts.`] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);

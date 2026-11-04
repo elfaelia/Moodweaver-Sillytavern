@@ -225,8 +225,8 @@ export function boardPromptLines({ send, live, char, user, n, u }) {
     const out = [];
     const includeHorny = live?.meta?.includeHorny === true;
     if (send) out.push(`Info board: start every reply with this board, filled in for this moment from the previous beat. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user, includeHorny), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; do not move it into Physical State.');
-    out.push(`The board reflects ${n}'s current settings and the scene; it doesn't create new feelings or needs. State sums up their mood, and Physical State records what their body is dealing with. An older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself is not a reason to increase it.' : ''}`);
+        boardTemplate(char, user, includeHorny), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
+    out.push(`The board reflects ${n}'s current settings and the scene; it doesn't create new feelings or needs. State sums up their mood, and Physical State records what their body is dealing with. An older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]

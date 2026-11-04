@@ -27,7 +27,7 @@ export function cleanLibrary(list) {
 // What actually gets sent, built the same way as the built-in PROMPT_NAME entries: "label: plain explanation".
 export function libraryPrompt(e) {
     const name = lowerFirst(e.label);
-    if (e.group === 'authors') return `write like ${e.label}${e.cue ? ` (${e.cue})` : ''}`;
+    if (String(e.group).startsWith('authors')) return e.cue ? `${e.label}: ${e.cue}` : e.label;
     return e.cue ? `${name}: ${e.cue}` : name;
 }
 

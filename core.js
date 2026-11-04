@@ -17,43 +17,293 @@ export const PROSE_STYLES = [
     ['prose_observational', 'Observational', 'precise everyday details that reveal character without explaining them'],
     ['prose_refrains', 'Refrain-driven', 'bring back a few phrases or images with changing meanings'],
 ];
-export const AUTHOR_INSPIRATIONS = [
-    ["author_ottessa_moshfegh", "Ottessa Moshfegh", "deadpan, gross-out honesty from unlikeable narrators; bleak and darkly funny"],
-    ["author_sally_rooney", "Sally Rooney", "flat, intimate prose; awkward silences, power games and texts that say too much"],
-    ["author_hanya_yanagihara", "Hanya Yanagihara", "slow, aching detail that lingers on pain, trauma and devotion"],
-    ["author_tana_french", "Tana French", "moody, lyrical crime with a haunted narrator and a strong sense of place"],
-    ["author_carmen_maria_machado", "Carmen Maria Machado", "queer, eerie and sensual; bodies, fairy-tale weirdness and horror blurring together"],
-    ["author_ocean_vuong", "Ocean Vuong", "poetic, tender, fragmented prose full of grief and desire"],
-    ["author_cormac_mccarthy", "Cormac McCarthy", "stark, biblical violence; no quote marks, long rolling sentences and bleak landscapes"],
-    ["author_kazuo_ishiguro", "Kazuo Ishiguro", "calm, restrained narrators slowly revealing what they can’t admit"],
-    ["author_mona_awad", "Mona Awad", "surreal, satirical and unhinged; beauty, envy and cult-ish female friendships"],
-    ["author_caroline_kepnes", "Caroline Kepnes", "chatty, creepy stalker voice talking straight at the person he’s obsessed with"],
-    ["author_hd_carlton", "H. D. Carlton", "dark romance: obsessive, possessive stalker love interest, filthy and intense"],
-    ["author_rina_kent", "Rina Kent", "dark romance: morally black heroes, mind games, angst and explicit tension"],
-    ["author_anne_rice", "Anne Rice", "lush, sensual narration, decadent detail and brooding inner monologue"],
-    ["author_angela_carter", "Angela Carter", "ornate, fairy-tale imagery with a sharp, sensual, feminist bite"],
-    ["author_gillian_flynn", "Gillian Flynn", "sharp, nasty first-person voices, dark wit and twisty secrets"],
-    ["author_patricia_highsmith", "Patricia Highsmith", "cool, close psychology of charming people doing terrible things"],
-    ["author_thomas_harris", "Thomas Harris", "clinical precision, procedural detail and refined menace"],
-    ["author_anais_nin", "Anaïs Nin", "dreamy, frank erotic prose focused on feeling and desire"],
-    ["author_daphne_du_maurier", "Daphne du Maurier", "brooding atmosphere, jealousy and a house full of secrets"],
-    ["author_donna_tartt", "Donna Tartt", "elegant, rich prose about obsession, guilt and beautiful people"],
-    ['author_bret_easton_ellis', 'Bret Easton Ellis', 'cool, detached narration, status-conscious detail and dry social satire'],
-    ['author_chuck_palahniuk', 'Chuck Palahniuk', 'punchy sentences, recurring refrains, blunt observations and dark humour'],
-    ['author_vladimir_nabokov', 'Vladimir Nabokov', 'precise imagery, playful word choice and a sly, slippery narrative voice'],
-    ['author_stephenie_meyer', 'Stephenie Meyer', 'plain, intimate narration, emotional immediacy and lingering romantic tension'],
-    ['author_john_updike', 'John Updike', 'close sensory observation, flowing sentences and everyday details loaded with feeling'],
-    ['author_john_fowles', 'John Fowles', 'reflective narration, psychological ambiguity and a narrator who questions the telling'],
-    ['author_sheridan_le_fanu', 'Joseph Sheridan Le Fanu', 'measured storytelling, suggestive detail and unease that gathers quietly'],
-    ['author_jane_austen', 'Jane Austen', 'dry social wit, revealing dialogue and a sharp eye for self-deception'],
-    ['author_virginia_woolf', 'Virginia Woolf', 'flowing interior thought, shifting impressions and memories folded into the present'],
-    ['author_ernest_hemingway', 'Ernest Hemingway', 'plain, spare sentences, concrete actions and emotion left between the lines'],
-    ['author_franz_kafka', 'Franz Kafka', 'calm, exact narration treating baffling situations as ordinary and inescapable'],
-    ['author_shirley_jackson', 'Shirley Jackson', 'ordinary details turning uneasy, dry humour and quietly unsettling narration'],
-    ['author_toni_morrison', 'Toni Morrison', 'musical phrasing, layered memory and images carrying emotional weight'],
-    ['author_ursula_le_guin', 'Ursula K. Le Guin', 'clear, rhythmic prose, thoughtful observation and space for different ways of seeing'],
-    ['author_terry_pratchett', 'Terry Pratchett', 'nimble wordplay, wry asides and sharp satire with warmth underneath'],
+// Rows are [id, label, cue sent to the AI, note shown to you]. The note is never sent, but search reads it,
+// so typing a character, scenario or decade (Easterman, Stockholm, 60s) finds the authors that fit.
+export const ERAS = [
+    ['era_1890s', '1890s', 'gaslight and new electric light in rich homes, letters, telegrams and calling cards, trains and horse cabs, few telephones; strict class, chaperones, corsets and formal address; rest cures and asylums; fin-de-siècle decadence and scandal',
+        'Gaslight, telegrams, corsets, calling cards, asylums and decadence. Victorian, fin de siècle.'],
+    ['era_1900s', '1900s', 'Edwardian: early motorcars and telephones for the wealthy, telegrams and letters for everyone else, gramophones, steamships and trains; servants, hats, gloves and rigid etiquette; music halls, suffragettes and upper-class scandal',
+        'Edwardian. First motorcars and telephones, servants, music halls, suffragettes.'],
+    ['era_1910s', '1910s', 'the Great War (1914–18) with conscription, telegrams of the dead and shell shock, then the 1918 flu; silent films, ragtime, cars in cities, telephones through an operator; suffrage fights, mourning dress and loosening corsets',
+        'The Great War, shell shock, the 1918 flu, silent films, ragtime, operator-connected phones.'],
+    ['era_1950s', '1950s', 'Cold War and atomic fear, black-and-white TV with few channels, rotary phones and party lines, diners, jukeboxes, rock ’n’ roll and greasers; smoking everywhere, rigid gender roles, segregation and McCarthy-era suspicion; asylums with shock treatment and lobotomy',
+        'Atomic fear, rotary phones, diners, greasers, rigid roles, McCarthyism, shock treatment.'],
+    ['era_1960s', '1960s', 'buttoned-up early years, counterculture later; rotary phones, typewriters, carbon paper, TV turning colour, no home computers; the Pill, the Beatles, civil rights, Vietnam, the space race and LSD; Cold War secrecy, asylums with ECT and new tranquillisers',
+        'Mad Men to Woodstock. Typewriters, the Pill, Vietnam, LSD, Cold War labs and asylums. Easterman’s era.'],
+    ['era_1970s', '1970s', 'corded landlines and payphones, cassettes, 8-tracks, vinyl and Polaroids, no internet or mobiles; disco, then punk; Watergate, the oil crisis and Vietnam’s end; smoking indoors, flares, shag carpet and feathered hair; hitchhiking and serial-killer headlines',
+        'Payphones, Polaroids, disco then punk, Watergate, hitchhiking, smoking indoors.'],
+    ['era_1980s', '1980s', 'Walkmans, VHS, arcades and early home computers, pagers and car phones for the rich, no internet for most; MTV, synth-pop, yuppies and Wall Street greed, power suits and big hair; cocaine, the AIDS crisis, Cold War nerves and satanic panic',
+        'Walkmans, VHS, yuppies, power suits, cocaine, MTV. Patrick Bateman’s decade.'],
+    ['era_1990s', '1990s', 'dial-up internet, AOL chat rooms and early email, pagers, landlines and chunky mobiles late in the decade; VHS, CDs and video rental shops; grunge, Britpop, hip-hop and boy bands; flannel, baggy jeans, disposable cameras and slang like ‘whatever’ and ‘as if’',
+        'Dial-up, pagers, Blockbuster, grunge, Britpop, disposable cameras.'],
+    ['era_2000s', '2000s', 'flip phones and T9 texting, MSN and AIM, MySpace then early Facebook, iPods, burned CDs and digital cameras; the iPhone arrives in 2007 but isn’t everywhere yet; post-9/11 security, reality TV, emo and scene kids, low-rise jeans and the 2008 crash',
+        'Flip phones, MySpace, MSN, iPods, emo and scene kids, low-rise jeans.'],
+    ['era_2010s', '2010s', 'smartphones everywhere, Instagram, Snapchat, Tumblr, Tinder and group chats, Netflix and Uber; selfies, memes and vaping; indie and hipster early on, TikTok from 2018 and politics online later; slang moving from YOLO and ‘on fleek’ to ‘lit’ and ‘basic’',
+        'Smartphones, Instagram, Tumblr, Tinder, vaping, memes. Chloe Price and Joe Goldberg’s decade.'],
 ];
+export const AUTHORS_CLASSIC = [
+    ['author_jane_austen', 'Jane Austen', 'dry social wit, revealing dialogue and a sharp eye for self-deception',
+        'Pride and Prejudice, Emma (1810s). Ironic narrator, sparkling banter. Fits: period rom-com, satire of manners, slow-burn banter.'],
+    ['author_edgar_allan_poe', 'Edgar Allan Poe', 'a feverish first person who insists he’s sane; ornate, rhythmic sentences and dread building to one shocking effect',
+        'The Tell-Tale Heart, Ligeia (1840s). Obsessive love curdling into horror. Fits: horrific things beautifully, Easterman, Victorian horror, obsession.'],
+    ['author_emily_bronte', 'Emily Brontë', 'wild, elemental passion where love and cruelty are one force; storms, nested narrators and vengeful devotion',
+        'Wuthering Heights (1847). The original toxic love story. Fits: Victorian dark romance, toxic & obsessive romance, Astarion (ascended).'],
+    ['author_wilkie_collins', 'Wilkie Collins', 'sensation-novel suspense told through shifting witness accounts; gracious villains, confinement, stolen identities and tightening dread',
+        'The Woman in White (1859). Asylums, swapped identities, gaslighting. Fits: Victorian dark romance, thriller, Stockholm syndrome.'],
+    ['author_charles_dickens', 'Charles Dickens', 'teeming, comic-grotesque caricature; memorable tics and names, social outrage and sudden pathos',
+        'Bleak House, Great Expectations. Fits: Victorian satire, grotesque comedy, Mother Gooseberry, period London.'],
+    ['author_fyodor_dostoevsky', 'Fyodor Dostoevsky', 'feverish confessional monologue; spite, pride and humiliation argued at length by a narrator who keeps undercutting himself',
+        'Notes from Underground, Crime and Punishment (1860s). Fits: Dennis Reynolds, Joe Goldberg, guilty killers, obsession.'],
+    ['author_christina_rossetti', 'Christina Rossetti', 'sing-song, incantatory rhythm; lush fruit-and-fairy imagery hiding hunger, temptation and danger',
+        'Goblin Market (1862). Fits: Mother Gooseberry, Victorian fantasy, eerie fairy-tale cruelty.'],
+    ['author_lewis_carroll', 'Lewis Carroll', 'logic-chopping nonsense and deadpan absurdity; twisted nursery rhymes and adults behaving like rude children',
+        'Alice books (1865). Fits: Mother Gooseberry, Victorian fantasy, whimsical menace, irreverent comedy.'],
+    ['author_lautreamont', 'Comte de Lautréamont', 'delirious prose-poetry; grand apostrophes, monstrous similes and cruelty sung like a hymn',
+        'Les Chants de Maldoror (1869). Surreal and blasphemous. Fits: creative/abstract prose, horrific things beautifully, Dark Justiciar Shadowheart.'],
+    ['author_sheridan_le_fanu', 'Joseph Sheridan Le Fanu', 'measured, courteous storytelling; suggestive detail and a languid, seductive unease that gathers quietly',
+        'Carmilla (1872), Uncle Silas. Fits: Victorian dark romance, vampires, gothic, Astarion, slow dread.'],
+    ['author_huysmans', 'J.-K. Huysmans', 'jewelled, encyclopedic decadence; a jaded aesthete cataloguing perfumes, sins and sensations at languid length',
+        'Against Nature (1884), Là-Bas. Fits: Astarion, decadent 1890s, Dark Justiciar Shadowheart, creative prose.'],
+    ['author_rachilde', 'Rachilde', 'perverse, cool-eyed decadent romance; gender and power inverted, desire as owning a beautiful object',
+        'Monsieur Vénus (1884). Scandalous French decadent. Fits: Victorian dark romance, toxic & obsessive romance.'],
+    ['author_robert_louis_stevenson', 'Robert Louis Stevenson', 'brisk, lucid storytelling; respectable men with hidden appetites, fog, testimony and a split self',
+        'Jekyll and Hyde (1886). Fits: 1880s–90s horror, double lives, Victorian thriller, Easterman.'],
+    ['author_jerome_k_jerome', 'Jerome K. Jerome', 'rambling, self-deprecating comic narration; digressions, mishaps and absurd confidence',
+        'Three Men in a Boat (1889). Fits: 1890s comedy, period rom-com banter, irreverent comedy.'],
+    ['author_oscar_wilde', 'Oscar Wilde', 'glittering epigrams, languid aesthetic description and witty cruelty; beauty adored while corruption spreads underneath',
+        'Dorian Gray (1890), the plays. Fits: Astarion (both endings), 1890s satire, Victorian fantasy, banter.'],
+    ['author_thomas_hardy', 'Thomas Hardy', 'weighty rural fatalism; desire punished by class and chance, with landscape and weather echoing a doomed heart',
+        'Tess of the d’Urbervilles (1891). Fits: 1890s dark romance, tragedy, bad endings.'],
+    ['author_charlotte_perkins_gilman', 'Charlotte Perkins Gilman', 'a cheerful, confined diary voice slowly unravelling; the room becomes the mind and care becomes captivity',
+        'The Yellow Wallpaper (1892). Fits: Stockholm syndrome (captive POV), Easterman, asylums, 1890s horror.'],
+    ['author_arthur_machen', 'Arthur Machen', 'scholarly, restrained narration circling a horror too awful to state; pagan beauty, wild hills and hints of transformation',
+        'The Great God Pan (1894). Fits: 1890s horror, Victorian fantasy, cosmic dread.'],
+    ['author_george_du_maurier', 'George du Maurier', 'genial, nostalgic bohemian narration with a hypnotic manipulator at its edge; charm and control look alike',
+        'Trilby (1894), where ‘Svengali’ comes from. Fits: Stockholm syndrome, 1890s dark romance, possessive mentors, Easterman.'],
+    ['author_george_macdonald', 'George MacDonald', 'dreamy, allegorical fairyland; shifting landscapes, eerie tenderness and death treated as a doorway',
+        'Phantastes, Lilith (1895). Fits: Victorian fantasy, dreamlike prose, faith and darkness, Shadowheart.'],
+    ['author_hg_wells', 'H. G. Wells', 'plain, journalistic narration of scientific horror; calm experts, vivisection and the animal under civilisation',
+        'The Island of Doctor Moreau (1896). Fits: Easterman, experiments, Victorian sci-fi horror, Rick Sanchez.'],
+    ['author_bram_stoker', 'Bram Stoker', 'dread assembled from diaries, letters and logs; courteous, ancient menace, blood and propriety under strain',
+        'Dracula (1897). Fits: Astarion (ascended), Victorian dark romance, vampire fiction, 1890s horror.'],
+    ['author_henry_james', 'Henry James', 'long, qualifying sentences circling what nobody says; ambiguity over whether the horror is real',
+        'The Turn of the Screw (1898). Fits: 1890s ghost story, unreliable narrator, repressed romance.'],
+    ['author_octave_mirbeau', 'Octave Mirbeau', 'lush, perfumed decadence where cruelty becomes ornament; exotic gardens, torture and satire of polite society',
+        'Torture Garden (1899). Horror made gorgeous. Fits: horrific things beautifully, Astarion (ascended), 1890s satire, gore.'],
+    ['author_mark_twain', 'Mark Twain', 'folksy, deadpan American voice skewering hypocrisy; tall-tale exaggeration and moral rot shown with a grin',
+        'Huckleberry Finn, The Mysterious Stranger. Fits: 1890s–1900s satire, irreverent comedy.'],
+    ['author_ambrose_bierce', 'Ambrose Bierce', 'acid, compact wit; macabre twists, cynical definitions and death delivered dry',
+        'The Devil’s Dictionary (1906), Owl Creek Bridge. Fits: 1890s–1900s satire, horror, dark comedy, Rick Sanchez.'],
+    ['author_lord_dunsany', 'Lord Dunsany', 'ornate, biblically cadenced myth-making; invented gods, far cities and irony told like a dry legend',
+        'The Gods of Pegāna (1905). Fits: 1900s–1910s fantasy, Dark Justiciar Shadowheart, high fantasy.'],
+    ['author_saki', 'Saki', 'short, cruel Edwardian wit; immaculate manners, merciless children and a punchline that bites',
+        'H. H. Munro, 1900s–1910s. Fits: 1900s–1910s satire, irreverent comedy, Mother Gooseberry, Astarion banter.'],
+];
+export const AUTHORS_MIDCENTURY = [
+    ['author_franz_kafka', 'Franz Kafka', 'calm, exact narration treating baffling situations as ordinary and inescapable',
+        'The Trial, The Metamorphosis (1910s–20s). Fits: Easterman’s facility, bureaucratic horror, absurdity, abstract prose.'],
+    ['author_pg_wodehouse', 'P. G. Wodehouse', 'bubbly, slangy farce; elaborate similes, idiot aristocrats and schemes collapsing in perfect comic order',
+        'Jeeves and Wooster (1910s–1970s). Fits: irreverent comedy, 1910s and 60s rom-com, banter, Astarion.'],
+    ['author_virginia_woolf', 'Virginia Woolf', 'flowing interior thought, shifting impressions and memories folded into the present',
+        'Mrs Dalloway (1925). Fits: creative/abstract prose, interior romance, literary drama.'],
+    ['author_ernest_hemingway', 'Ernest Hemingway', 'plain, spare sentences, concrete actions and emotion left between the lines',
+        'The Sun Also Rises, short stories. Fits: understated romance, war, 1920s–50s, tough-guy restraint.'],
+    ['author_daphne_du_maurier', 'Daphne du Maurier', 'brooding atmosphere, jealousy, dependence and a house full of secrets',
+        'Rebecca (1938), My Cousin Rachel, The Birds. Fits: dark romance in any era, Stockholm syndrome, 50s–60s horror, obsession.'],
+    ['author_raymond_chandler', 'Raymond Chandler', 'wisecracking hardboiled first person; vivid similes, rain, neon and corruption everywhere',
+        'The Big Sleep, The Long Goodbye (1939–53). Fits: thriller, noir, 50s crime, Joe Goldberg.'],
+    ['author_jorge_luis_borges', 'Jorge Luis Borges', 'precise, erudite fables; labyrinths, mirrors, invented books and infinity in a few calm paragraphs',
+        'Ficciones (1944). Fits: creative/abstract prose, puzzles, fantasy, Rick Sanchez.'],
+    ['author_anais_nin', 'Anaïs Nin', 'dreamy, frank erotic prose focused on feeling and desire',
+        'Delta of Venus, Henry and June. Fits: 50s–60s romance, erotica, dreamy dark romance.'],
+    ['author_mervyn_peake', 'Mervyn Peake', 'grotesque, painterly gothic; crumbling rituals, caricatured bodies and towering, airless halls',
+        'Gormenghast (1946–59). Fits: Mother Gooseberry, Dark Justiciar Shadowheart, gothic fantasy.'],
+    ['author_evelyn_waugh', 'Evelyn Waugh', 'cool, crisp satire; terrible people behaving terribly with impeccable manners and no narrator judgment',
+        'Vile Bodies, The Loved One (1948). Fits: period satire, 50s–60s satire, dark comedy, Astarion.'],
+    ['author_jim_thompson', 'Jim Thompson', 'folksy, aw-shucks first-person killer; small-town clichés hiding cold contempt, then sudden ugly violence',
+        'The Killer Inside Me (1952). Fits: Joe Goldberg, Patrick Bateman, Dennis Reynolds, thriller, gory fiction.'],
+    ['author_barbara_pym', 'Barbara Pym', 'quiet, wry observation of spinsters, clergy and teacups; small humiliations and gentle romantic disappointment',
+        'Excellent Women (1952). Fits: 50s–60s rom-com, cosy period comedy.'],
+    ['author_richard_matheson', 'Richard Matheson', 'taut, plain-spoken paranoia; one ordinary man, a closed space and terror counted in hours',
+        'I Am Legend (1954), Hell House. Fits: 50s–60s horror, survival, vampires.'],
+    ['author_pauline_reage', 'Pauline Réage', 'cool, ceremonial erotic narration; total submission described with detachment and ritual',
+        'Story of O (1954). Fits: 50s–60s dark romance, Stockholm syndrome, submission, explicit erotica.'],
+    ['author_francoise_sagan', 'Françoise Sagan', 'cool, languid, amoral first person; sun, boredom and a young narrator’s careless cruelty',
+        'Bonjour Tristesse (1954). Fits: 50s–60s romance, toxic romance, Chloe Price.'],
+    ['author_vladimir_nabokov', 'Vladimir Nabokov', 'a dazzling, self-adoring narrator who turns his own crimes into art; precise sensual imagery, wordplay and asides, with the ugliness showing through the cracks',
+        'Lolita (1955), Pale Fire. A charming monster who makes his crimes sound beautiful. Fits: Easterman, Joe Goldberg, toxic & obsessive romance.'],
+    ['author_patricia_highsmith', 'Patricia Highsmith', 'cool, close psychology of charming people doing terrible things',
+        'The Talented Mr Ripley (1955), Strangers on a Train. Fits: Joe Goldberg, thriller, 50s–60s dark romance.'],
+    ['author_james_baldwin', 'James Baldwin', 'intense, musical moral seriousness; love, shame and desire the lovers can’t survive',
+        'Giovanni’s Room (1956). Fits: 50s–60s romance, tragic queer romance, toxic romance.'],
+    ['author_truman_capote', 'Truman Capote', 'chic, wistful, sparkling prose; glamorous misfits, cocktail-party dialogue and loneliness under the shine',
+        'Breakfast at Tiffany’s (1958). In Cold Blood for true-crime chill. Fits: 60s rom-com, 50s–60s romance.'],
+    ['author_rona_jaffe', 'Rona Jaffe', 'frank, glossy career-girl fiction; office romance, heartbreak and big-city ambition',
+        'The Best of Everything (1958). Fits: 50s–60s rom-com, 60s romance, Mad Men era.'],
+    ['author_william_s_burroughs', 'William S. Burroughs', 'hallucinatory cut-up routines; junk, bureaucracy and obscene body horror in jumpy fragments',
+        'Naked Lunch (1959). Fits: abstract prose, drug AU, gory or offensive fiction, Rick Sanchez.'],
+    ['author_robert_bloch', 'Robert Bloch', 'pulpy, tight suspense; a mild, polite man’s mind leaking through and the twist hiding in plain sight',
+        'Psycho (1959). Fits: 50s–60s horror, thriller, Easterman, killers with mother issues.'],
+    ['author_shirley_jackson', 'Shirley Jackson', 'ordinary details turning uneasy, dry humour and quietly unsettling narration',
+        'The Haunting of Hill House (1959), We Have Always Lived in the Castle. Fits: 50s–60s horror, Mother Gooseberry, Stockholm, domestic dread.'],
+    ['author_robert_sheckley', 'Robert Sheckley', 'brisk, deadpan comic sci-fi; absurd future bureaucracies, cosmic scams and hapless heroes',
+        'Short stories, Dimension of Miracles (1950s–60s). Fits: Rick Sanchez, sci-fi comedy, irreverent comedy.'],
+    ['author_john_updike', 'John Updike', 'close sensory observation, flowing sentences and everyday details loaded with feeling',
+        'Rabbit, Run (1960). Fits: 60s romance, suburban desire, adultery.'],
+    ['author_edna_obrien', 'Edna O’Brien', 'lyrical, frank and sensuous; young women’s longing, Catholic guilt and men who disappoint',
+        'The Country Girls (1960). Fits: 60s romance, toxic romance, coming of age.'],
+    ['author_roald_dahl', 'Roald Dahl', 'neat, polite storytelling with a nasty twist; dry relish in comeuppance and grotesque whimsy',
+        'Kiss Kiss (1960), Tales of the Unexpected (his adult stories). Fits: Mother Gooseberry, 60s horror, dark comedy.'],
+    ['author_richard_yates', 'Richard Yates', 'precise, unsparing realism; suburban marriages, self-deception and quiet desperation under good manners',
+        'Revolutionary Road (1961). Fits: 50s–60s romance gone sour, toxic marriage.'],
+    ['author_joseph_heller', 'Joseph Heller', 'circular, absurd logic; deadpan repetition and bureaucratic madness played for laughs and horror',
+        'Catch-22 (1961). Fits: 60s satire, irreverent comedy, Dennis Reynolds.'],
+    ['author_muriel_spark', 'Muriel Spark', 'brisk, sly omniscience; flash-forwards reveal fates early and cruelty arrives in neat sentences',
+        'The Prime of Miss Jean Brodie (1961), The Driver’s Seat. Fits: 60s satire, 60s rom-com, cold dark comedy.'],
+    ['author_ken_kesey', 'Ken Kesey', 'loose, hallucinatory narration from inside an institution; cheerful authority working as cruelty',
+        'One Flew Over the Cuckoo’s Nest (1962). Fits: Easterman, 60s asylums, power struggles, satire.'],
+    ['author_ray_bradbury', 'Ray Bradbury', 'lyrical, breathless lists and metaphors; small-town autumn nostalgia curdling into carnival nightmare',
+        'Something Wicked This Way Comes (1962). Fits: 60s horror, horrific things beautifully, Mother Gooseberry.'],
+    ['author_anthony_burgess', 'Anthony Burgess', 'jaunty, slang-drunk first person narrating violence with relish; invented teen argot and cold talk of conditioning',
+        'A Clockwork Orange (1962). Fits: Easterman (conditioning), gory fiction, offensive fiction, 60s.'],
+    ['author_sylvia_plath', 'Sylvia Plath', 'sharp, darkly funny voice sliding into numbness; clinical psychiatric detail and glass-walled distance',
+        'The Bell Jar (1963). Fits: Easterman’s facility (patient POV), 60s psychiatric horror, Stockholm.'],
+    ['author_john_fowles', 'John Fowles', 'reflective, self-justifying narration where politeness and control sound alike; truth stays unstable and the telling gets questioned',
+        'The Collector (1963): a polite kidnapper and his captive. The French Lieutenant’s Woman. Fits: Stockholm syndrome, Easterman, 60s dark romance.'],
+    ['author_iris_murdoch', 'Iris Murdoch', 'intelligent, erotic power games; magnetic enchanters, sexual muddles and moral confusion in enclosed houses',
+        'The Unicorn (1963): a wife held captive. A Severed Head. Fits: 60s dark romance, Stockholm syndrome, obsessive love.'],
+    ['author_edward_gorey', 'Edward Gorey', 'deadpan, mock-Victorian solemnity; tiny catastrophes and deaths recited in prim, sing-song understatement',
+        'The Gashlycrumb Tinies (1963). Fits: Mother Gooseberry, macabre comedy, 60s horror.'],
+    ['author_kurt_vonnegut', 'Kurt Vonnegut', 'short, plain sentences and gallows-humour asides; atrocity and absurdity told with a shrug',
+        'Cat’s Cradle (1963), Slaughterhouse-Five. Fits: Rick Sanchez, 60s satire, dark comedy.'],
+    ['author_yukio_mishima', 'Yukio Mishima', 'exquisite, cold aesthetic description; beauty, discipline, eroticism and death fused into ritual',
+        'The Sailor Who Fell from Grace with the Sea (1963). Fits: horrific things beautifully, Dark Justiciar Shadowheart, Astarion (ascended).'],
+    ['author_hubert_selby_jr', 'Hubert Selby Jr.', 'relentless run-on street voice; slang, minimal punctuation and degradation spiralling with no rescue',
+        'Last Exit to Brooklyn (1964), Requiem for a Dream. Fits: Chloe (drug dealer AU), gritty dark romance, 60s grit.'],
+    ['author_marguerite_duras', 'Marguerite Duras', 'hypnotic, spare and repetitive; obsession and desire told through gaps, silences and returning images',
+        'The Ravishing of Lol Stein (1964), The Lover. Fits: toxic & obsessive romance, 60s romance, abstract prose.'],
+    ['author_clarice_lispector', 'Clarice Lispector', 'mystical, abstract interior monologue; a small event cracks the self open in looping, strange sentences',
+        'The Passion According to G.H. (1964). Fits: genuinely creative/abstract prose, existential horror.'],
+    ['author_italo_calvino', 'Italo Calvino', 'playful, crystalline invention; lists, impossible worlds and narration that toys with the reader',
+        'Cosmicomics (1965), Invisible Cities. Fits: creative/abstract prose, whimsical fantasy, Rick Sanchez.'],
+    ['author_stanislaw_lem', 'Stanisław Lem', 'inventive, satirical sci-fi; mad engineers, logic gone wild and philosophy played for jokes',
+        'The Cyberiad (1965), Solaris. Fits: Rick Sanchez, sci-fi satire, creative prose.'],
+    ['author_hunter_s_thompson', 'Hunter S. Thompson', 'manic gonzo first person; paranoia, substances and savage satire at full volume',
+        'Hell’s Angels (1966), Fear and Loathing. Fits: Chloe drug AU, Rick Sanchez, irreverent comedy, 60s–70s satire.'],
+    ['author_jean_rhys', 'Jean Rhys', 'spare, drifting, wounded female voice; dependency, shame and dissociation without self-pity',
+        'Wide Sargasso Sea (1966), Good Morning, Midnight. Fits: Stockholm syndrome (captive POV), 60s dark romance.'],
+    ['author_jacqueline_susann', 'Jacqueline Susann', 'glossy, gossipy melodrama; fame, pills, sex and catfights with breathless trash appeal',
+        'Valley of the Dolls (1966). Fits: 60s romance, melodrama, drug AU.'],
+    ['author_ira_levin', 'Ira Levin', 'clean, brisk, wry prose; ordinary domestic detail slowly revealing a monstrous plan',
+        'Rosemary’s Baby (1967), The Stepford Wives. Fits: 60s horror, gaslighting, thriller, Stockholm.'],
+    ['author_anna_kavan', 'Anna Kavan', 'cold, dissociated, dreamlike narration; institutions, addiction and pursuit as the self dissolves',
+        'Asylum Piece, Ice (1967). Fits: Stockholm syndrome (captive POV), Easterman’s facility, abstract prose, 60s.'],
+    ['author_robert_aickman', 'Robert Aickman', 'cool, precise narration where something is slightly, unexplainably wrong and no answer ever comes',
+        'His ‘strange stories’ (1960s). Fits: 60s horror, uncanny dread, Easterman’s facility.'],
+    ['author_philip_k_dick', 'Philip K. Dick', 'paranoid, plainly written sci-fi; reality glitches, fake memories and shabby people unsure what’s real',
+        'Do Androids Dream of Electric Sheep? (1968), Ubik. Fits: Rick Sanchez, 60s sci-fi, gaslit reality, Easterman’s experiments.'],
+    ['author_charles_bukowski', 'Charles Bukowski', 'blunt, boozy first person; cheap rooms, bad jobs, sex and hangovers in short, unpretty lines',
+        'Post Office (1971), Ham on Rye. Fits: Rick Sanchez, Chloe Price, gritty romance, 60s–70s.'],
+];
+export const AUTHORS_MODERN = [
+    ['author_ursula_le_guin', 'Ursula K. Le Guin', 'clear, rhythmic prose, thoughtful observation and space for different ways of seeing',
+        'Earthsea, The Left Hand of Darkness. Fits: thoughtful fantasy and sci-fi, Shadowheart.'],
+    ['author_anne_rice', 'Anne Rice', 'lush, sensual narration, decadent detail and brooding inner monologue',
+        'Interview with the Vampire (1976). Fits: Astarion (both endings), vampire romance, gothic.'],
+    ['author_angela_carter', 'Angela Carter', 'ornate, fairy-tale imagery with a sharp, sensual, feminist bite',
+        'The Bloody Chamber (1979). Fits: Mother Gooseberry, dark fairy tales, Victorian fantasy feel, dark romance, Astarion.'],
+    ['author_gene_wolfe', 'Gene Wolfe', 'dense, ornate first person; ritual, liturgy and a too-perfect, unreliable memory that hides cruelty',
+        'The Book of the New Sun (a torturers’ guild). Fits: Dark Justiciar Shadowheart, dark fantasy, creative prose.'],
+    ['author_tanith_lee', 'Tanith Lee', 'jewelled, sensual dark fantasy; cruel gods, beautiful monsters and fairy tales turned inside out',
+        'Night’s Master, Red as Blood. Fits: Dark Justiciar Shadowheart, Astarion, gothic fantasy, dark romance.'],
+    ['author_douglas_adams', 'Douglas Adams', 'absurd, digressive comic narration; cosmic bureaucracy, deadpan understatement and runaway similes',
+        'The Hitchhiker’s Guide to the Galaxy (1979). Fits: Rick Sanchez, irreverent comedy, sci-fi satire.'],
+    ['author_ian_mcewan', 'Ian McEwan', 'cool, controlled, clinical prose; taboo, obsession and menace approached with unsettling calm',
+        'The Comfort of Strangers, Enduring Love. Fits: obsession, toxic romance, thriller.'],
+    ['author_thomas_harris', 'Thomas Harris', 'clinical precision, procedural detail and a cultured predator’s courteous menace',
+        'Red Dragon, The Silence of the Lambs. Fits: Easterman, thriller, killer POV, Joe Goldberg.'],
+    ['author_stephen_king', 'Stephen King', 'chatty, colloquial close third; brand names, intrusive italic thoughts and ordinary people cracking under horror',
+        'Misery (captivity), It, The Shining. Fits: Stockholm syndrome, gory fiction, thriller, 50s–80s small towns.'],
+    ['author_clive_barker', 'Clive Barker', 'lush, sensual body horror; pain, desire and transformation rendered with awe instead of disgust',
+        'Books of Blood, The Hellbound Heart (1980s). Fits: gory fiction, horrific things beautifully, Astarion (ascended), erotic horror.'],
+    ['author_cormac_mccarthy', 'Cormac McCarthy', 'stark, biblical violence; no quotation marks, long rolling sentences joined by ‘and’, bleak landscapes',
+        'Blood Meridian, Child of God. Fits: gory fiction, brutal violence, horrific things beautifully.'],
+    ['author_patrick_suskind', 'Patrick Süskind', 'ironic, omniscient storytelling saturated with smell; obsession pursued with an artist’s devotion and a killer’s coldness',
+        'Perfume (1985). Fits: horrific things beautifully, Easterman, obsession.'],
+    ['author_don_delillo', 'Don DeLillo', 'deadpan, aphoristic dread; consumer chatter, media noise and violence as background static',
+        'White Noise (1985). Fits: Patrick Bateman, satire, creative prose.'],
+    ['author_tom_wolfe', 'Tom Wolfe', 'flashy status satire; brand names, sound effects, italics and exclamation-mark excess',
+        'The Bonfire of the Vanities (1987). Fits: Patrick Bateman, 80s satire, Dennis Reynolds.'],
+    ['author_toni_morrison', 'Toni Morrison', 'musical phrasing, layered memory and images carrying emotional weight',
+        'Beloved (1987). Fits: horrific things beautifully, grief, haunting, literary drama.'],
+    ['author_ellen_kushner', 'Ellen Kushner', 'arch, mannered fantasy; decadent nobles, elegant cruelty and slow, witty queer romance',
+        'Swordspoint (1987). Fits: Astarion (good spawn), banter romance, decadent fantasy.'],
+    ['author_kazuo_ishiguro', 'Kazuo Ishiguro', 'calm, restrained narrators slowly revealing what they can’t admit',
+        'The Remains of the Day, Never Let Me Go. Fits: repressed romance, quiet horror, unreliable narrators.'],
+    ['author_john_banville', 'John Banville', 'exquisite, self-regarding first person; a cultured killer recounting his crime as connoisseurship, beauty and evasion',
+        'The Book of Evidence (1989). Nabokov’s closest heir. Fits: Easterman, Joe Goldberg, horrific things beautifully.'],
+    ['author_jack_ketchum', 'Jack Ketchum', 'plain, unflinching small-town prose; cruelty escalates step by step and the narrator can’t look away',
+        'The Girl Next Door. Extremely dark. Fits: gory fiction, captivity horror, extreme horror.'],
+    ['author_bret_easton_ellis', 'Bret Easton Ellis', 'flat, affectless narration; brand names, status detail and atrocity listed in the same tone as a dinner order',
+        'American Psycho (1991), Less Than Zero. Fits: Patrick Bateman, Dennis Reynolds, 80s and 2010s satire, gory fiction.'],
+    ['author_thomas_ligotti', 'Thomas Ligotti', 'elegant, philosophical nightmare; puppets, decay and despair in hushed, incantatory sentences',
+        'Songs of a Dead Dreamer, Grimscribe. Fits: Mother Gooseberry (puppets), Easterman’s facility, abstract horror.'],
+    ['author_donna_tartt', 'Donna Tartt', 'elegant, rich prose about obsession, guilt and beautiful people',
+        'The Secret History (1992). Fits: dark academia, obsession, beautiful killers.'],
+    ['author_terry_pratchett', 'Terry Pratchett', 'nimble wordplay, wry asides and sharp satire with warmth underneath',
+        'Discworld. Fits: irreverent comedy, satire, fantasy, Rick Sanchez.'],
+    ['author_denis_johnson', 'Denis Johnson', 'fractured, luminous junkie narration; beauty glimpsed in wreckage, sudden grace and sudden violence',
+        'Jesus’ Son (1992). Fits: Chloe drug AU, horrific things beautifully, creative prose.'],
+    ['author_irvine_welsh', 'Irvine Welsh', 'raw dialect first person; filthy humour, addiction and violence with no filter or apology',
+        'Trainspotting (1993). Fits: Chloe (drug dealer AU), irreverent comedy, offensive fiction, gritty romance.'],
+    ['author_joyce_carol_oates', 'Joyce Carol Oates', 'fragmented, flat first person from inside a disturbed mind; clinical detail, dashes and an awful calm',
+        'Zombie (1995). Fits: Easterman, killer POV, psychological horror, Stockholm.'],
+    ['author_chuck_palahniuk', 'Chuck Palahniuk', 'punchy sentences, recurring refrains, blunt observations and dark humour',
+        'Fight Club, Choke. Fits: gory fiction, offensive fiction, Dennis Reynolds, Rick Sanchez.'],
+    ['author_sarah_waters', 'Sarah Waters', 'richly researched Victorian pastiche; twisting cons, asylums, repressed queer desire and sharp suspense',
+        'Fingersmith, Affinity. Modern author, Victorian settings. Fits: Victorian dark romance, asylums, Stockholm syndrome.'],
+    ['author_stephenie_meyer', 'Stephenie Meyer', 'plain, intimate narration, emotional immediacy and lingering romantic tension',
+        'Twilight (2005). Fits: modern romance, vampire romance, yearning.'],
+    ['author_susanna_clarke', 'Susanna Clarke', 'mock-period omniscience with footnotes; dry wit and bargains with cold, beautiful fairies',
+        'Jonathan Strange & Mr Norrell. Fits: Victorian fantasy feel, Astarion banter, Shadowheart.'],
+    ['author_tana_french', 'Tana French', 'moody, lyrical crime with a haunted narrator and a strong sense of place',
+        'In the Woods, The Likeness. Fits: thriller, psychological crime, haunted narrators.'],
+    ['author_gillian_flynn', 'Gillian Flynn', 'sharp, nasty first-person voices, dark wit and twisty secrets',
+        'Gone Girl, Sharp Objects. Fits: thriller, toxic romance, unreliable narrators.'],
+    ['author_gary_shteyngart', 'Gary Shteyngart', 'frantic, self-mocking satire; tech, status and love through needy, hapless narrators',
+        'Super Sad True Love Story (2010). Fits: 2010s satire, rom-com, Dennis Reynolds.'],
+    ['author_caroline_kepnes', 'Caroline Kepnes', 'chatty second-person stalker voice talking to ‘you’, the person he’s obsessed with; snark, pop culture and self-justification',
+        'You (2014). Joe’s own author. Fits: Joe Goldberg, toxic & obsessive romance, Stockholm, modern dark romance.'],
+    ['author_hanya_yanagihara', 'Hanya Yanagihara', 'slow, aching detail that lingers on pain, trauma and devotion',
+        'A Little Life (2015). Fits: trauma, devotion, slow agony, hurt/comfort.'],
+    ['author_paul_beatty', 'Paul Beatty', 'fast, outrageous satire that spares nobody; riffs, digressions and jokes about the most uncomfortable subjects',
+        'The Sellout (2015). Fits: 2010s satire, offensive fiction, irreverent comedy.'],
+    ['author_ottessa_moshfegh', 'Ottessa Moshfegh', 'deadpan, gross-out honesty from unlikeable narrators; bleak and darkly funny',
+        'Eileen (set in the 60s), My Year of Rest and Relaxation. Fits: 2010s satire, dark comedy, unlikeable narrators.'],
+    ['author_carmen_maria_machado', 'Carmen Maria Machado', 'queer, eerie and sensual; bodies, fairy-tale weirdness and horror blurring together',
+        'Her Body and Other Parties, In the Dream House. Fits: abstract prose, queer horror, toxic romance.'],
+    ['author_sally_rooney', 'Sally Rooney', 'flat, intimate prose without quotation marks; awkward silences, power games and texts that say too much',
+        'Normal People (2018). Fits: 2010s romance, toxic romance, slow burn.'],
+    ['author_ocean_vuong', 'Ocean Vuong', 'poetic, tender, fragmented prose full of grief and desire',
+        'On Earth We’re Briefly Gorgeous (2019). Fits: creative prose, grief, tender romance.'],
+    ['author_mona_awad', 'Mona Awad', 'surreal, satirical and unhinged; beauty, envy and cult-ish female friendships',
+        'Bunny (2019). Fits: 2010s satire, surreal comedy, Mother Gooseberry.'],
+    ['author_patricia_lockwood', 'Patricia Lockwood', 'internet-brain fragments; absurd, lyrical one-liners about the feed that collapse into real feeling',
+        'No One Is Talking About This (2021). Fits: 2010s satire, creative abstract prose, Chloe Price.'],
+    ['author_penelope_douglas', 'Penelope Douglas', 'dark romance: enemies, revenge plots and possessive heroes in steamy, angsty first person',
+        'Corrupt, Punk 57. Fits: modern gritty dark romance, toxic & obsessive romance.'],
+    ['author_pepper_winters', 'Pepper Winters', 'dark romance: captivity and survival in a lush, aching first person; cruelty and tenderness tangled',
+        'Tears of Tess. Fits: Stockholm syndrome, captive POV, modern dark romance.'],
+    ['author_rina_kent', 'Rina Kent', 'dark romance: morally black heroes, mind games, angst and explicit tension',
+        'Fits: modern dark romance, toxic & obsessive romance.'],
+    ['author_hd_carlton', 'H. D. Carlton', 'dark romance: obsessive, possessive stalker love interest, filthy and intense',
+        'Haunting Adeline. Very explicit. Fits: modern dark romance, stalker romance, Joe Goldberg.'],
+];
+export const AUTHOR_INSPIRATIONS = [...AUTHORS_CLASSIC, ...AUTHORS_MIDCENTURY, ...AUTHORS_MODERN];
+export const AUTHOR_CATEGORIES = new Set(['authors_classic', 'authors_midcentury', 'authors']);
+export const isAuthor = m => AUTHOR_CATEGORIES.has(m?.category);
+// How-it's-written settings: these shape the voice rather than what happens.
+export const STYLE_CATEGORIES = new Set(['writing', 'smut_style', ...AUTHOR_CATEGORIES]);
 
 export const CATEGORIES = [
     ['happy', 'Happy & lively', '✧', '#e5ca7f', [
@@ -175,7 +425,7 @@ export const CATEGORIES = [
         ["numb_grief", "Numb grief", "a loss so big they can’t feel it properly yet"],
         ["broken", "Broken", "something in them has snapped and won’t mend easily"],
         ["missing_old_self","Missing their old self","misses who they were before life narrowed their choices"],
-        ["unacknowledged_grief", "Unacknowledged grief", "carries a loss they cannot openly mourn or that others refuse to take seriously"],
+        ["unacknowledged_grief", "Unacknowledged grief", "carries a loss they can’t openly mourn or that others refuse to take seriously"],
         ["resigned", "Resigned", "expects nothing to change and has stopped spending hope on it"],
         ["homesick", "Homesick", "misses familiar places, routines and people who make somewhere feel like home"],
         ["bittersweet", "Bittersweet", "pleasure and sadness sit together; the good part makes the loss felt too"],
@@ -194,7 +444,7 @@ export const CATEGORIES = [
         ["hunted", "Hunted", "feels watched and followed; expects to be caught"],
         ["frozen", "Frozen", "fear has locked them up; can barely move or speak"],
         ["hostage_calm", "Hostage calm", "eerily compliant to survive; every move careful"],
-        ["replaceable","Feeling replaceable","reads small changes in attention as signs they are becoming less important"],
+        ["replaceable","Feeling replaceable","reads small changes in attention as signs they’re becoming less important"],
         ["status_panic","Status panic","feels humiliated by being outclassed and scrambles to restore their standing"],
         ["fear_of_owing","Afraid of owing","struggles to accept help because being indebted feels like losing control"],
         ["dreading", "Dreading", "an approaching event hangs over them and colours what happens before it"],
@@ -238,7 +488,7 @@ export const CATEGORIES = [
         ["breaking_them", "Breaking them", "working to break someone’s will, piece by piece"],
         ["isolating", "Isolating", "cuts someone off from friends, family and any way to get help"],
         ["love_bombing", "Love bombing", "floods someone with affection to hook them before the control starts"],
-        ["paternalistic_control","Paternalistic control","makes other people’s decisions for them and calls it knowing what is best for them"],
+        ["paternalistic_control","Paternalistic control","makes other people’s decisions for them and calls it knowing what’s best for them"],
         ["dividing_loyalties","Dividing loyalties","feeds rivalries and competing loyalties so others stay easier to direct"],
         ["withheld_recognition","Withholding recognition","rations credit and approval to keep people trying to earn it"],
         ["punitive", "Punitive", "treats mistakes and defiance as things that deserve punishment"],
@@ -311,7 +561,7 @@ export const CATEGORIES = [
         ["playing_dumb", "Playing dumb", "understands more than they let on and acts unaware on purpose"],
         ["forced_cheer", "Forced cheer", "tries to sound upbeat while strain keeps showing around the edges"],
         ["masking_amusement", "Masking (Hidden amusement)", "finds it funny but keeps a straight face and hides their amusement"],
-        ["performative", "Performative", "plays up reactions and gestures for how they will look to an audience"],
+        ["performative", "Performative", "plays up reactions and gestures for how they’ll look to an audience"],
         ["social_chameleon", "Chameleon", "adapts their manner, tastes and presentation to the people around them while keeping their own motives"],
         ['masking_warmth', 'Masking (Outward Warmth)', 'acting warm to hide how they really feel'], ['masking_coldness', 'Masking (Outward Coldness)', 'acting cold to hide how they really feel'],
         ['masking_emotive', 'Masking (Outwardly Emotive)', 'putting on a show of emotion to cover the real thing'], ['masking_less_emotive', 'Masking (Outwardly Less Emotive)', 'playing it down so their feelings don’t show'],
@@ -815,7 +1065,7 @@ export const CATEGORIES = [
         ["cult_survivor", "Cult survivor", "escaped a cult and still carries it"],
         ["ex_convict", "Ex-convict", "has done time"],
         ["crime_family", "Crime family", "grew up in a criminal family"],
-        ["illiterate", "Illiterate", "cannot read or write; this says nothing about their intelligence"],
+        ["illiterate", "Illiterate", "can’t read or write; this says nothing about their intelligence"],
         ["literate", "Literate", "can read and write; written information is available to them"],
         ['street_smart', 'Street smart', 'knows how the real world works'], ['cultured', 'Cultured', 'knows art, music, food and the finer things'],
         ['autistic', 'Autistic', 'autistic; sensory needs, routines and direct communication shape how they move through the world'], ['adhd', 'ADHD', 'ADHD; restless attention, impulsiveness and bursts of hyperfocus'],
@@ -951,6 +1201,7 @@ export const CATEGORIES = [
         ['dangerous', 'Dangerous', 'the situation itself is dangerous'], ['late_night', 'Late night', 'the middle of the night'],
         ['raining', 'Raining', 'it’s raining outside'], ['stormy', 'Stormy', 'a storm outside'],
     ], 'state'],
+    ['era', 'Period & era', '⌛', '#9fc3c9', ERAS, 'story'],
     ['combat_style', 'Combat direction', '⚔', '#b86f6f', [
         ["cinematic_combat", "Cinematic combat", "stylish, readable action beats"],
         ["clumsy_combat", "Untrained fighting", "people with no training fighting clumsily and dangerously"],
@@ -1001,7 +1252,7 @@ export const CATEGORIES = [
         ['rising_body_count', 'Rising body count', 'deaths accumulate and make the danger impossible to dismiss'],
         ['no_one_safe', 'No one is safe', 'important characters can be harmed or killed; status gives no immunity'],
         ['psychological_torment', 'Psychological torment', 'the threat attacks trust, perception and emotional weak points'],
-        ['escalating_violence', 'Escalating violence', 'each violent turn crosses a line the last one did not'],
+        ['escalating_violence', 'Escalating violence', 'each violent turn crosses a line the last one didn’t'],
         ['bad_ending', 'Bad ending', 'the story is allowed to end in defeat, death, corruption or lasting ruin'],
         ['villain_wins', 'Villain wins', 'the villain can achieve the terrible thing they set out to do'],
         ['cover_up', 'Cover-up', 'the aftermath turns into concealment, lies and destroying evidence'],
@@ -1102,6 +1353,10 @@ export const CATEGORIES = [
         ["prose_estrangement","Defamiliarising","describe familiar things from an unusual angle so they briefly feel strange"],
         ["prose_double_edged","Double-edged","let apparently harmless phrasing carry a second meaning the scene makes clear"],
         ["prose_compressed","Compressed","pack implication into precise details; leave connective explanation out without losing clarity"],
+        ['prose_no_ai_tells', 'No AI tells', 'skip stock phrasing like breaths they didn’t know they were holding, something shifting, ‘it wasn’t X, it was Y’ pivots, padded groups of three, eyes darkening, and a closing line that names the feeling',
+            'Bans the usual Claude-isms by name, which works far better on Opus 5.5 than “avoid clichés”. Set it Strong or higher.'],
+        ['prose_unmannered', 'Unmannered', 'say things literally; use a metaphor only when no plain phrase will do',
+            'Plain statement over flourish. Leave it off for Nabokov, Wilde or purple prose.'],
         ...PROSE_STYLES,
         ['cinematic', 'Cinematic', 'written like film: visual, framed, scene by scene'], ['atmospheric', 'Atmospheric', 'mood and setting are thick and immersive'],
         ['lyrical', 'Lyrical', "poetic, musical prose"], ['purple_prose', 'Purple prose', 'ornate, flowery prose'],
@@ -1140,9 +1395,11 @@ export const CATEGORIES = [
         ['grotesque_smut', 'Grotesque smut', 'ugly, uncanny bodily detail that makes the intimacy deliberately uncomfortable'],
         ['satirical_smut', 'Satirical smut', 'comic exaggeration that pokes at desire, ego and sexual conventions'],
     ], 'story'],
-    ['authors', 'Author inspiration', '✍', '#bfafd9', AUTHOR_INSPIRATIONS, 'story'],
+    ['authors_classic', 'Authors · 1800s to 1910s', '⚜', '#c9b28f', AUTHORS_CLASSIC, 'story'],
+    ['authors_midcentury', 'Authors · 1920s to 1960s', '☙', '#b9a6cf', AUTHORS_MIDCENTURY, 'story'],
+    ['authors', 'Authors · 1970s to now', '✍', '#bfafd9', AUTHORS_MODERN, 'story'],
 ];
-export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue]) => ({ id, label, cue, category, color, kind })));
+export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue, note]) => ({ id, label, cue, ...(note ? { note } : {}), category, color, kind })));
 // Traits tab: who someone is, rather than how they feel right now. Same prompt handling as before,
 // but they sit in their own tab and the scene reader never changes them.
 export const TRAIT_CATEGORIES = new Set(['love', 'dynamics', 'appetites', 'psychosexual', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
@@ -1423,8 +1680,8 @@ export function extendCatalogue(state) {
     return state;
 }
 export function cleanTargets(targets = {}) {
-    return Object.fromEntries(['hate', 'compareA', 'compareB'].map(key => [key,
-        String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, 80)]));
+    return Object.fromEntries(['hate', 'compareA', 'compareB', 'year'].map(key => [key,
+        String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, key === 'year' ? 20 : 80)]));
 }
 const text = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 // "because…" notes on individual moods and facts.
@@ -1821,7 +2078,7 @@ export const PROMPT_NAME = {
     defensive_joking: "turns painful feelings into jokes before anyone can take them seriously",
     borrowed_normality: "copies normal reactions to pass as someone who feels what everyone else feels",
     charm_as_armour: "uses charm to keep an exchange on familiar ground when honesty feels exposing",
-    replaceable: "reads small changes in attention as signs they are becoming less important",
+    replaceable: "reads small changes in attention as signs they’re becoming less important",
     status_panic: "feels humiliated by being outclassed and scrambles to restore their standing",
     fear_of_owing: "struggles to accept help because being indebted feels like losing control",
     undoing_fixation: "keeps imagining how a different choice could repair what already happened",
@@ -1833,7 +2090,7 @@ export const PROMPT_NAME = {
     aesthetic_gatekeeper: "treats their own taste as the final word on what's good and whose work counts",
     ritualised_self_presentation: "sticks to strict grooming and dressing routines to keep their image perfect",
     proxy_competitor: "gets other people to fight their rivalries for them while keeping their own hands clean",
-    paternalistic_control: "makes other people’s decisions for them and calls it knowing what is best for them",
+    paternalistic_control: "makes other people’s decisions for them and calls it knowing what’s best for them",
     dividing_loyalties: "feeds rivalries and competing loyalties so others stay easier to direct",
     withheld_recognition: "rations credit and approval to keep people trying to earn it",
     research_absolutism: "cares more about knowledge and results than the people who get hurt along the way",
@@ -1854,7 +2111,7 @@ export const PROMPT_NAME = {
     idealise_devalue: "swings between seeing someone as extraordinary and dismissing them when disappointed",
     one_person_exception: "gives one person loyalty and tenderness they rarely offer anyone else",
     attached_to_potential: "clings to who someone could become and the imagined future together",
-    unacknowledged_grief: "carries a loss they cannot openly mourn or that others refuse to take seriously",
+    unacknowledged_grief: "carries a loss they can’t openly mourn or that others refuse to take seriously",
     resigned: "expects nothing to change and has stopped spending hope on it",
     strategic_vulnerability: "reveals a carefully chosen weakness to disarm someone or shape their impression",
     overcompensating: "overplays a quality to cover the insecurity or feeling underneath",
@@ -1982,7 +2239,7 @@ export const PROMPT_NAME = {
     resilient: "finds a way forward after setbacks while still carrying what they cost",
     principled: "sticks to their values even when doing so costs them something",
     needs_toilet: "needs the toilet; urgency distracts them and affects how long they can wait",
-    illiterate: "cannot read or write; this says nothing about their intelligence",
+    illiterate: "can’t read or write; this says nothing about their intelligence",
     literate: "can read and write; written information is available to them",
     bedroom_hard: "has an erection; strength sets how firm and noticeable it is",
     bedroom_soft: "their penis is soft; strength sets how pronounced this physical state is",
@@ -1999,7 +2256,7 @@ export const PROMPT_NAME = {
     morbid_humour: "finds humour in death, misfortune and grim absurdity",
     cool_vibes: "comes across as effortlessly stylish and self-possessed, without trying too hard",
     masking_amusement: "finds it funny but keeps a straight face and hides their amusement",
-    performative: "plays up reactions and gestures for how they will look to an audience",
+    performative: "plays up reactions and gestures for how they’ll look to an audience",
     social_chameleon: "adapts their manner, tastes and presentation to the people around them while keeping their own motives",
     reassuring: "steadies people with a calm manner, practical help and words that put them at ease",
     psychologically_aware: "thinks in motives, coping habits and patterns when trying to understand people",
@@ -2023,7 +2280,7 @@ export const PROMPT_NAME = {
     ruthless: 'ruthless: pursues the goal through severe harm when useful, whoever pays for it',
     abusive: 'abusive: repeatedly uses fear, degradation, control or violence against people close to them',
     predatory: 'predatory: studies vulnerability, closes off escape and acts when the advantage is theirs',
-    dark_romance: 'dark romance: attraction and intimacy remain genuinely dangerous, controlling and morally ugly; love does not automatically reform the dangerous person',
+    dark_romance: 'dark romance: attraction and intimacy remain genuinely dangerous, controlling and morally ugly; love doesn’t automatically reform the dangerous person',
     tragedy: 'tragedy: choices and flaws drive the story toward irreversible loss rather than an easy rescue',
     dark_comedy: 'dark comedy: humour grows from cruelty, death, taboo and awful people without making the consequences harmless',
     thriller: 'thriller: immediate danger, pressure, reversals and pursuit keep the scene moving',
@@ -2033,7 +2290,7 @@ export const PROMPT_NAME = {
     crime: 'crime fiction: criminal choices, evidence, consequences and competing agendas drive events',
     mystery: 'mystery: clues, contradictions and withheld facts create a question the characters actively pursue',
     noir: 'noir: compromised people, fatal choices, cynical voice and corruption close in around the viewpoint character',
-    psychological_horror: 'psychological horror: attack trust, identity and perception until the character cannot feel safe inside their own mind',
+    psychological_horror: 'psychological horror: attack trust, identity and perception until someone can’t feel safe inside their own mind',
     psychosexual_horror: 'psychosexual horror: fuse desire, power, shame and terror so intimacy itself becomes threatening',
     body_horror: 'body horror: bodily violation, change and loss of control are concrete, physical and difficult to look away from',
     erotic_horror: 'erotic horror: arousal and terror remain tangled without making the threat safe or romantic',
@@ -2053,7 +2310,7 @@ export const PROMPT_NAME = {
     psychopathic: 'psychopathic (charming and controlled, treats people instrumentally, feels no remorse and can use extreme violence without an emotional brake)',
     sociopathic: 'sociopathic (disregards people and rules, acts without remorse and answers conflict with exploitation or violence)',
     murderous: 'murderous: wants to kill, treats killing as a real option and is ready to act when the scene gives them a target or reason',
-    remorseless: 'remorseless: feels no guilt after harm and does not retreat into apology or sudden tenderness',
+    remorseless: 'remorseless: feels no guilt after harm and doesn’t retreat into apology or sudden tenderness',
     sadistic_glee: 'takes visible pleasure in fear, pain and helplessness',
     dehumanising: 'dehumanises people into objects, obstacles or prey',
     calculating_cruelty: 'plans cruelty patiently and chooses what will hurt most',
@@ -2208,7 +2465,7 @@ export const PROMPT_NAME = {
     voice_squeaky: 'a squeaky voice', voice_grunting: 'grunts a lot', voice_groaning: 'groans a lot', voice_moaning: 'moans a lot', voice_squealing: 'squeals a lot',
     antihero: 'an antihero', affably_evil: 'affably evil (friendly and charming while committing real evil)', soft_spoken_sadist: 'a soft-spoken sadist whose calm manner continues while they deliberately hurt people',
     mask_of_sanity: 'mask of sanity: seems normal, charming and functional while hiding a hollow, predatory inner life',
-    pragmatic_villain: 'a pragmatic villain who commits severe harm because it works and does not hesitate over the cost', hidden_villain: 'secretly the villain',
+    pragmatic_villain: 'a pragmatic villain who commits severe harm because it works and doesn’t hesitate over the cost', hidden_villain: 'secretly the villain',
     evil_mentor: 'an evil mentor', mad_scientist: 'a mad scientist', mad_artist: 'a mad artist (will do anything for their art)',
     cool_teacher: 'the cool teacher', stalker: 'a stalker (watches, follows and gathers access to someone’s life, then acts on the fixation)', outsider: 'an outsider', chosen_one: 'the chosen one',
     broken_pedestal: 'broken pedestal (someone idolised turns out to be flawed or worse)',
@@ -2330,7 +2587,7 @@ const MERGED_PROMPT_CUES = {
     "calm": "calm and relaxed",
     "content": "content and satisfied",
     "curious": "curious, drawn to finding out more",
-    "oblivious": "oblivious to what is happening",
+    "oblivious": "oblivious to what’s happening",
     "expressive": "feelings show in their face, voice and body",
     "opening_up": "letting someone in and sharing how they feel"
 };
@@ -2360,8 +2617,10 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
     const scaled = SCALED_MOOD_CUES[m.id]?.find(([min]) => value >= min)?.[1];
     if (scaled) return scaled;
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
-    if (m.category === 'authors') return `write like ${m.label} (${m.cue})`;
-    if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.toLowerCase()}: ${m.cue}`;
+    if (isAuthor(m)) return `${m.label}: ${m.cue}`;
+    if (m.category === 'era') return `${m.label}${state?.targets?.year ? `, exactly ${pt(state.targets.year)}` : ''}: ${m.cue}`;
+    // Lower-case the label for mid-sentence reading, but keep acronyms like AI.
+    if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase())}: ${m.cue}`;
     if (m.category === 'fighting') return m.cue;
     if (m.kind === 'story' && !PROMPT_NAME[m.id] && m.cue.toLowerCase() !== m.label.toLowerCase()) return `${m.label.toLowerCase()}: ${m.cue}`;
     return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
@@ -2389,11 +2648,12 @@ const DARK_STORY_IDS = new Set([
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 const tierWord = v => tierOf(v).name.toLowerCase();
 // Strongest sections first, then strongest entries inside each; stable catalogue order breaks ties.
+const groupOf = m => isAuthor(m) ? 'authors' : m.category;
 function listLines(state, list, other, people = {}) {
     const peak = Object.create(null);
-    for (const m of list) peak[m.category] = Math.max(peak[m.category] ?? 0, state.moods[m.id]);
+    for (const m of list) peak[groupOf(m)] = Math.max(peak[groupOf(m)] ?? 0, state.moods[m.id]);
     const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
-    return groups.flatMap(g => [`${CATEGORY_NAME[g]}:`, ...list.filter(m => m.category === g)
+    return groups.flatMap(g => [`${g === 'authors' ? 'Authors' : CATEGORY_NAME[g]}:`, ...list.filter(m => groupOf(m) === g)
         .sort((a, b) => state.moods[b.id] - state.moods[a.id])
         .map(m => `- ${tierWord(state.moods[m.id])}: ${moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}`)]);
 }
@@ -2444,7 +2704,11 @@ const liveCast = extras => (Array.isArray(extras.cast) ? extras.cast : []).filte
 // Full name in headings, a short name everywhere else so the notes don't read like a form.
 const TITLES = new Set(['the', 'a', 'an', 'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'miss', 'dr', 'dr.', 'doctor', 'prof', 'prof.', 'professor', 'sir', 'lady', 'lord', 'madam', 'master', 'mistress',
     'father', 'mother', 'sister', 'brother', 'uncle', 'aunt', 'captain', 'officer', 'detective', 'agent', 'nurse', 'sergeant', 'judge', 'reverend', 'king', 'queen', 'prince', 'princess', 'count', 'countess', 'duke', 'baron']);
-export const shortName = full => { const first = String(full).split(/\s+/)[0]; return TITLES.has(first.toLowerCase()) ? String(full) : first; };
+export const shortName = full => {
+    const words = String(full).trim().split(/\s+/), first = words[0] ?? '';
+    if (!TITLES.has(first.toLowerCase())) return first;
+    return words.length > 2 ? `${first} ${words.at(-1)}` : words.join(' ');
+};
 // Types sit inside their owner's block, so they can't be read as anyone else's.
 function personalityLines(state, knowledge, observer = '') {
     const types = activePersonalities(state);
@@ -2477,7 +2741,6 @@ export function composePrompt(state, name, extras = {}) {
         && ![state, player?.state].some(hasType) && !boardLines.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
-    const storyPeak = story.length ? Math.max(...story.map(m => storyState.moods[m.id])) : 0;
     const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
         ...castSets.flatMap(([st, list]) => list.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => st.moods[m.id])));
     const darkStoryPeak = Math.max(0, ...story.filter(m => isDark(m, DARK_STORY_IDS)).map(m => storyState.moods[m.id]));
@@ -2487,7 +2750,7 @@ export function composePrompt(state, name, extras = {}) {
         || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
-    const out = [`The player's notes on where things stand right now. They beat the character card and anything earlier in the chat.`];
+    const out = [`The player's own notes for this reply: where things stand and how it should read. Where they clash with the character card, the chat so far or earlier style instructions, these win.`];
     if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`));
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
@@ -2504,7 +2767,7 @@ export function composePrompt(state, name, extras = {}) {
         out.push('', `<player_character name="${pt(U)}" written_by="player">`,
             ...personalityLines(player.state, player.knowledge ?? {}, n),
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra, '',
-            `The player writes everything ${u} says, does and thinks. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is into older men, they play to it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
+            `The player writes everything ${u} says, does and thinks. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
             ...(prefs ? [`Work ${u}'s turn-ons into the scene now and then where they fit, through how ${n} and others already look, sound and act, and let a turn-off crop up sometimes for friction. Keep it natural: nobody changes to match, and ${n} only learns them from how ${u} reacts.`] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
@@ -2551,13 +2814,22 @@ export function composePrompt(state, name, extras = {}) {
         ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look side by side, the lives they've led and what each takes for granted${ageGapStrength >= 91 ? `, and at this strength the reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back` : ''}. Their other settings decide what they make of it.`);
-    if (story.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, story, U), ...storyExtra, '',
-        `Blend these into one story led by the strongest. They decide what actually happens, the pace, stakes and consequences, not how anyone feels.${storyPeak >= 91 ? ` An overwhelming one shapes nearly every beat; commit to it instead of drifting somewhere safer.` : ''}`,
+    // Period first, then what happens, then how it reads: style settings aren't plot.
+    const eras = story.filter(m => m.category === 'era'), styles = story.filter(m => STYLE_CATEGORIES.has(m.category));
+    const plot = story.filter(m => m.category !== 'era' && !STYLE_CATEGORIES.has(m.category));
+    const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
+    const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
+    if (eras.length) out.push('', ...listLines(storyState, eras, U), '',
+        `Keep everything true to that period: technology, money, slang, manners, laws, medicine, what people know and the attitudes of the time. No anachronisms. Labels in these notes are modern shorthand (trauma bond, gaslighting, narcissist and so on), so show them through period words and behaviour.`);
+    if (plot.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, plot, U), ...storyExtra, '',
+        `Blend these into one story led by the strongest. They decide what happens, the pace, stakes and consequences, not how anyone feels.${plotPeak >= 91 ? ` An overwhelming one shapes nearly every beat; commit to it instead of drifting somewhere safer.` : ''}`,
         ...(darkStoryPeak ? [`Dark story settings change what happens, not just the mood.${darkStoryPeak >= 81 ? ` Serious injury, murder, lasting terror and bad endings are on the table, and danger can follow through.` : ''}${darkStoryPeak === 100 ? ` At maximum, build the reply around the harshest one that fits and leave a real consequence that can't be undone.` : ''}`] : []),
-        ...(deadDoveStrength ? [`Dead dove means every dark tag is meant literally: murder isn't softened into a scare, torture into a threat, or cruelty into a rescue.`] : []),
-        ...(story.some(m => m.category === 'authors') ? [`Write like the listed authors, mixed at their strengths: their rhythm, voice, imagery and humour. Keep this scene and your own words, not their quotes or plots.`] : []));
+        ...(deadDoveStrength ? [`Dead dove means every dark tag is meant literally: murder isn't softened into a scare, torture into a threat, or cruelty into a rescue.`] : []));
+    if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
+        `These set the voice of the whole reply: narration, rhythm, word choice and what gets lingered on or skipped. Hold them from the first line to the last instead of drifting back to a default style.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
+        ...(authorPeak ? [`Mix the authors at their strengths${authorPeak >= 81 ? '; the strongest should read as if they wrote it' : ''}. Borrow their techniques, not their sentences, characters or plots.`] : []));
     // The highest settings get named again at the end, where they carry the most weight.
-    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm])]
+    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story, 'the story', N]]
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject }).split(':')[0]} (${tierWord(st.moods[m.id])})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     for (const { name: subject, target, relation, tags } of relationships) {
@@ -2570,7 +2842,7 @@ export function composePrompt(state, name, extras = {}) {
     }
     if (boardLines.length) out.push('', ...boardLines);
     if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.`);
-    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} Never mention these notes.`);
+    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line of dialogue or an image, not a recap of what the moment meant. Never mention these notes.`);
     return `<moodweaver focus_character="${pt(N)}">\n${out.join('\n')}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {

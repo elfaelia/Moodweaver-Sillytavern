@@ -445,8 +445,9 @@ const fmtTokens = n => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 function targetFields(m, state) {
     if (!state.moods[m.id]) return '';
     const fields = m.id === 'hates_other' ? [['hate', 'Who?', 'Name of someone in the scene']]
-        : m.id === 'comparing_people' ? [['compareA', 'Compare', 'Someone in the scene'], ['compareB', 'With', '{{user}}']] : [];
-    return fields.length ? `<div class="mw-target-fields">${fields.map(([key, label, placeholder]) => `<label>${label}<input type="text" data-target="${key}" maxlength="80" list="${key === 'hate' ? 'mw-hate-names' : 'mw-cast-names'}" placeholder="${esc(placeholder)}" value="${esc(state.targets?.[key] ?? '')}"></label>`).join('')}</div>` : '';
+        : m.id === 'comparing_people' ? [['compareA', 'Compare', 'Someone in the scene'], ['compareB', 'With', '{{user}}']]
+        : m.category === 'era' ? [['year', 'Exact year (optional)', 'e.g. 1964']] : [];
+    return fields.length ? `<div class="mw-target-fields">${fields.map(([key, label, placeholder]) => `<label>${label}<input type="text" data-target="${key}" maxlength="${key === 'year' ? 20 : 80}" ${key === 'year' ? 'inputmode="text"' : `list="${key === 'hate' ? 'mw-hate-names' : 'mw-cast-names'}"`} placeholder="${esc(placeholder)}" value="${esc(state.targets?.[key] ?? '')}"></label>`).join('')}</div>` : '';
 }
 // Your library options get a ✎ so you can fix their wording or move them to another section.
 const editButton = (id, label) => `<button type="button" class="mw-edit" data-lib-edit="${esc(id)}" title="Edit your option" aria-label="Edit ${esc(label)}">✎</button>`;
@@ -457,7 +458,7 @@ function row(m, state) {
         <output for="mw-${m.id}" data-value="${m.id}">${value}%</output>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${m.custom ? editButton(m.id, m.label) : ''}${listButton(m.id, state)}</div>
         <input id="mw-${m.id}" type="range" min="0" max="100" step="1" value="${value}" data-slider="${m.id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
-        <small>${esc(m.cue)}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) : ''}</div>`;
+        <small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) : ''}</div>`;
 }
 const causeBox = (attr, value) => `<input type="text" class="mw-cause" ${attr} maxlength="100" value="${esc(value ?? '')}" placeholder="because… (optional)" aria-label="Because">`;
 // In the list: × takes it off this person's list. While adding: ＋ puts it on, ✓ shows it's there.
@@ -901,6 +902,12 @@ function setup() {
             e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`); return;
         }
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
+        if (e.target.dataset.target === 'year') {
+            const state = viewState(); if (!state) return;
+            state.targets ??= {};
+            state.targets.year = e.target.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+            void persist(state); void syncPrompt(); return;
+        }
         if (['hate', 'compareA', 'compareB'].includes(e.target.dataset.target)) {
             const state = viewState(); if (!state) return;
             state.targets ??= {};

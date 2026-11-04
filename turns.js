@@ -184,7 +184,7 @@ export const TURN_CATEGORIES = [
         ["researchers", "researchers", "people absorbed in investigating, questioning and finding things out"],
         ["craftspeople", "craftspeople", "people who make or restore things with practiced hands"],
         ["provocateurs", "provocateurs", "people who deliberately challenge taste, convention or comfortable assumptions", "people who deliberately provoke and challenge convention"],
-        ["outsiders", "outsiders", "people who sit outside a group’s norms or sense of belonging", "people who do not fit the surrounding crowd"],
+        ["outsiders", "outsiders", "people who sit outside a group’s norms or sense of belonging", "people who don’t fit the surrounding crowd"],
         ["musicians", "musicians", "people who sing, play instruments or make music"],
         ["artists", "visual artists", "people who draw, paint, photograph or sculpt"],
         ["nerds", "nerds", "people deeply absorbed in niche or technical interests"],

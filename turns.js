@@ -200,6 +200,27 @@ export const TURN_CATEGORIES = [
         ["danger", "dangerous people", "someone who could actually hurt them"],
     ]],
 ];
+// 1.26.0 additions, by group.
+const TURN_ADDITIONS = {
+    'Personality & vibe': [
+        ['protective_people', 'protectiveness', 'someone who steps in to protect them'],
+        ['respectful_people', 'respectfulness', 'someone who never pushes or pressures them'],
+        ['funny_people', 'a good sense of humour', 'someone who can make them laugh'],
+        ['wild_people', 'wildness', 'someone reckless, loud and up for anything'],
+        ['geniuses', 'brilliance', 'someone frighteningly clever'],
+        ['devotion_in_others', 'devotion', 'someone utterly devoted to them'],
+    ],
+    'How they’re treated': [
+        ['being_watched_over', 'being watched over', 'someone keeping a constant, protective eye on them'],
+        ['being_chosen', 'being chosen', 'someone picking them over everyone else'],
+    ],
+    'Types': [
+        ['scientists', 'scientists and doctors', 'lab coats, intellect and clinical calm'],
+        ['vampires', 'vampires', 'fangs, pallor and old-world charm'],
+        ['bad_influences', 'bad influences', 'someone who’s a mess and fun with it'],
+    ],
+};
+for (const [group, rows] of Object.entries(TURN_ADDITIONS)) TURN_CATEGORIES.find(([g]) => g === group)[3].push(...rows);
 export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt = noun]) => ({ id, noun, cue, prompt, group, color,
     label: noun[0].toUpperCase() + noun.slice(1) })));
 export const TURN_BY_ID = Object.fromEntries(TURN_TAGS.map(t => [t.id, t]));

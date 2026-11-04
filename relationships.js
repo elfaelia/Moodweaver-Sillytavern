@@ -273,6 +273,54 @@ export const RELATIONSHIP_CATEGORIES = [
 ];
 
 const tags = cats => cats.flatMap(([category, , color, rows]) => rows.map(([id, label, cue, prompt]) => ({ id, label, cue, prompt, category, color })));
+// 1.25.0: feelings for devoted monsters, grudging favourites and the people who love them anyway.
+const DIRECTED_ADDITIONS = {
+    'Friendship & trust': [
+        ['nurses', 'Nurses them', 'tends them through illness or injury with total focus', 'nurses {other} through illness or injury with total focus'],
+        ['shows_up_for', 'Always shows up for them', 'turns up whenever they need someone, no questions asked', 'always shows up for {other}, no questions asked'],
+        ['never_pressures', 'Never pressures them', 'won’t push them into anything, least of all their own bad habits', 'never pressures {other} into anything, least of all their own habits'],
+        ['big_sibling_to', 'Big sibling to them', 'looks out for them like an older sibling: teasing, protective, loyal', 'looks out for {other} like a big sibling'],
+        ['cheers_up', 'Cheers them up', 'knows exactly how to drag them out of a bad mood or a boring day', 'knows how to cheer {other} up and drag them out of boredom'],
+        ['grudgingly_tolerates', 'Grudgingly tolerates', 'puts up with them more than anyone else and won’t admit why', 'grudgingly tolerates {other}, more than anyone else, and won’t admit why'],
+    ],
+    'Attachment & power': [
+        ['watches_over', 'Watches over them', 'watches them constantly, on screens, through windows or while they sleep, and calls it care', 'watches over {other} constantly, even while they sleep, and calls it care'],
+        ['covers_for', 'Covers for them', 'hides and cleans up after their mistakes or crimes', 'covers for {other}, hiding and cleaning up after what they do'],
+        ['pleads_with', 'Pleads with them', 'openly begs and bargains for their attention, love or survival', 'pleads openly with {other}, dignity forgotten'],
+        ['sees_as_miracle', 'Their miracle', 'believes they’re a once-in-a-lifetime discovery, scientifically and romantically', 'sees {other} as a miracle: a discovery and a great love at once'],
+        ['studies', 'Studies them', 'treats them as a fascinating subject: observes, tests and takes notes', 'studies {other} like a subject, testing and recording them'],
+        ['cant_hurt', 'Can’t bring themselves to hurt', 'the one person their violence won’t touch, to their own confusion', 'can’t bring themselves to hurt {other}, and it confuses them'],
+    ],
+    'Hurt & guilt': [
+        ['hides_life_from', 'Hides their life from them', 'keeps a whole side of their life secret from them, out of love or shame', 'hides how they really live from {other}'],
+        ['worries_about_habits', 'Worries about their habits', 'scared of where someone’s drinking, using or recklessness is heading', 'worries about where {other}’s habits are heading'],
+        ['afraid_to_lose', 'Terrified of losing them', 'the thought of them dying or leaving is unbearable', 'is terrified of losing {other}'],
+        ['already_mourning', 'Already mourning them', 'grieving them before they’re even gone', 'is already mourning {other} while they’re still here'],
+        ['blames_self_for', 'Blames themselves', 'holds themselves responsible for what happened to them', 'blames themselves for what happened to {other}'],
+        ['cant_forgive', 'Can’t forgive them', 'wants to and can’t; the hurt is too deep', 'can’t forgive {other}, however much they want to'],
+        ['never_told', 'Never told them', 'something important was never said and maybe never will be', 'never told {other} what really mattered'],
+        ['lost', 'Lost them', 'they’re gone, through death, distance or a door that won’t reopen', 'has lost {other}'],
+        ['grieves', 'Grieves', 'mourns them, lost or dead', 'grieves {other}'],
+        ['haunted_by', 'Haunted by', 'can’t stop seeing them in memory, guilt or dreams', 'is haunted by {other}'],
+    ],
+};
+const SHARED_ADDITIONS = {
+    'Their story': [
+        ['tangled_timelines', 'Tangled timelines', 'bound by a hidden shared history at least one of them doesn’t know yet', 'tangled timelines: bound by a hidden shared history at least one of them doesn’t know yet'],
+        ['scientist_and_subject', 'Scientist and subject', 'one tests the other; data, care and feelings keep blurring', 'scientist and subject: tests, data, care and feelings keep blurring'],
+        ['ride_or_die', 'Ride or die', 'them against the world; loyalty first, questions later', 'ride or die: them against the world, loyalty first'],
+        ['platonic_soulmates', 'Platonic soulmates', 'the most important person in each other’s life, with no romance involved', 'platonic soulmates: the most important person in each other’s life, no romance involved'],
+        ['party_buddies', 'Party buddies', 'their friendship lives in nights out, bad decisions and morning-after debriefs', 'party buddies: nights out, bad decisions and morning-after debriefs'],
+        ['chosen_family', 'Chosen family', 'not related, but family all the same', 'chosen family: not related, but family all the same'],
+        ['doomed', 'Doomed', 'it can’t end well, and both of them feel it', 'doomed: it can’t end well and both feel it'],
+        ['what_could_have_been', 'What could have been', 'haunted by the life they might have had together', 'what could have been: haunted by the life they might have had'],
+        ['broken_promise', 'Broken promise', 'one promise between them was broken and it still sits there', 'a broken promise still sits between them'],
+        ['last_chance', 'Last chance', 'this may be their final chance to fix things', 'last chance: this may be their final chance to fix things'],
+        ['grudging_bond', 'Grudging bond', 'neither will admit how much they need each other', 'a grudging bond neither will admit to'],
+    ],
+};
+for (const [cats, additions] of [[RELATIONSHIP_CATEGORIES, DIRECTED_ADDITIONS], [SHARED_CATEGORIES, SHARED_ADDITIONS]])
+    for (const [name, rows] of Object.entries(additions)) cats.find(([n]) => n === name)[3].push(...rows);
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
 export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));

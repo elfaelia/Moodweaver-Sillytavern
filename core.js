@@ -1399,6 +1399,558 @@ export const CATEGORIES = [
     ['authors_midcentury', 'Authors · 1920s to 1960s', '☙', '#b9a6cf', AUTHORS_MIDCENTURY, 'story'],
     ['authors', 'Authors · 1970s to now', '✍', '#bfafd9', AUTHORS_MODERN, 'story'],
 ];
+// 1.25.0 additions, built around specific characters and scenarios. Rows are [id, label, cue, fits]:
+// the cue is what Claude gets (as "label: cue"); "fits" only joins the panel text, so search finds
+// options by character or scenario (Easterman, Bateman, Rick, Joe, Astarion, Shadowheart, Gooseberry).
+const ADDITIONS = {
+    happy: [
+        ['giddy_in_love', 'Giddy in love', 'silly with happiness about someone; can’t stop smiling, touching or talking about them', 'Easterman, Joe'],
+    ],
+    closeness: [
+        ['lovesick', 'Lovesick', 'so in love it physically hurts; every thought circles back to one person', 'Easterman, Joe'],
+        ['worshipful', 'Worshipful', 'treats someone like a miracle; awe, gratitude and helpless adoration', 'Easterman (“loves her like the sun”), Astarion (good)'],
+        ['keeping_vigil', 'Keeping vigil', 'won’t leave someone’s side; counts their breaths and bargains with anything that might be listening', 'Easterman at the bedside'],
+        ['grudging_fondness', 'Grudging fondness', 'fond of someone against their will and irritated about it', 'Patrick Bateman, Rick'],
+    ],
+    attachment: [
+        ['watching_over', 'Watching them', 'can’t stop watching someone, in person, on screens or while they sleep, and calls it care', 'Easterman’s cameras, Joe'],
+        ['sneaking_close', 'Sneaking in close', 'finds excuses to slip into someone’s room, bed or space just to be near them', 'Easterman in the sleep room, Astarion'],
+        ['covering_for_them', 'Covering for them', 'quietly fixes, hides and cleans up the damage someone they love leaves behind', 'Bateman’s secretary'],
+    ],
+    sad: [
+        ['guilt_sick', 'Guilt-sick', 'sick with guilt over hurting someone they love and trying to undo it with tenderness', 'Easterman after the seizure, Rick'],
+        ['old_grief', 'Old grief', 'a loss years old that still ambushes them in small moments', 'Rick and Diane'],
+    ],
+    scared: [
+        ['terrified_of_losing', 'Terrified of losing them', 'panic that someone they love will die or leave, and it makes them frantic', 'Easterman, Joe'],
+    ],
+    angry: [
+        ['petty_rage', 'Petty rage', 'murderous fury over tiny slights: a better business card, a lost reservation, the wrong word', 'Patrick Bateman'],
+    ],
+    cruel: [
+        ['testing_limits', 'Pushing too far', 'keeps escalating the pressure on someone to see what happens next, even past what’s safe', 'Easterman’s testing, Rick'],
+    ],
+    calm: [
+        ['breakthrough_high', 'Breakthrough high', 'electrified by a discovery; everything else falls away', 'Easterman, Rick'],
+        ['taking_notes', 'Taking notes', 'observes someone like a study, noting reactions, timings and tells', 'Easterman, Rick, Joe'],
+    ],
+    masks: [
+        ['manic_reassurance', 'Manic reassurance', 'loudly insists everything’s fine and invents good signs to prove it', 'Easterman (“she’s laughing to cope”)'],
+        ['confessing_to_no_one', 'Confessing to no one', 'blurts out terrible truths that nobody hears, believes or cares about', 'Patrick Bateman'],
+        ['bottling_it', 'Bottling it', 'shoves every feeling down until it leaks out as cruelty or a joke', 'Rick, Astarion'],
+    ],
+    headspace: [
+        ['drinking_to_forget', 'Drinking to forget', 'drinking on purpose to drown one specific memory', 'Rick'],
+        ['existential_dread', 'Existential dread', 'the meaninglessness of everything is pressing in right now', 'Rick, Patrick Bateman'],
+    ],
+    desire: [
+        ['reverent_desire', 'Reverent desire', 'wants someone with awe, as if touching them were a privilege', 'Easterman, Astarion (good)'],
+    ],
+    manner: [
+        ['pet_names', 'Uses pet names', 'calls people darling, pet, little lamb and the like, warmly or as a weapon', 'Astarion, Easterman'],
+        ['bedside_manner', 'Bedside manner', 'a soothing, paternal doctor voice used to calm, coax and control', 'Easterman'],
+        ['pop_critic', 'Pop critic', 'gives earnest, shallow reviews of music and films at the worst possible moments', 'Patrick Bateman (Huey Lewis, Genesis)'],
+    ],
+    temperament: [
+        ['bookish', 'Bookish', 'lives in books, quotes them and judges people by what they read', 'Joe'],
+        ['status_obsessed', 'Status-obsessed', 'measures everything (cards, tables, suits, skin) against everyone else', 'Patrick Bateman'],
+        ['workaholic', 'Workaholic', 'lives for the work; sleep, food and people come second', 'Easterman, Rick'],
+        ['secretly_sentimental', 'Secretly sentimental', 'keeps tokens and memories close while pretending not to care', 'Rick, Astarion'],
+        ['jaded_charmer', 'Jaded charmer', 'flirts by reflex, believes none of it and is startled when it lands', 'Astarion'],
+    ],
+    views: [
+        ['dark_faith', 'Dark faith', 'serves a cruel god for whom loss, secrecy and pain are holy', 'Dark Justiciar Shadowheart'],
+        ['fated_love', 'Fated love', 'believes they were meant to find this person, by science, god or fate', 'Easterman, Joe'],
+    ],
+    psychology: [
+        ['nice_guy_complex', 'Nice-guy complex', 'sees himself as the good one and the protector, which licenses stalking and worse', 'Joe'],
+        ['romantic_delusion', 'Romantic delusion', 'narrates everything as a great love story, whatever the facts', 'Easterman, Joe'],
+        ['hidden_heart', 'Hidden heart', 'acts like nothing matters while caring desperately about a few people', 'Rick, Astarion (spawn)'],
+        ['survivors_guilt', 'Survivor’s guilt', 'lived when someone they loved didn’t and can’t forgive themselves', 'Rick'],
+        ['memory_gaps', 'Missing memories', 'parts of their past were wiped or taken; the gaps itch and frighten', 'Shadowheart, Reagents'],
+        ['functional_addict', 'Functional addict', 'drinks or uses daily and insists it’s under control', 'Rick'],
+        ['survival_habits', 'Survival habits', 'still runs on the habits of long abuse: flattery, readiness to flee, hiding pain', 'Astarion (spawn), Lamb'],
+    ],
+    body: [
+        ['post_seizure', 'After a seizure', 'foggy, sore and confused, with a bitten tongue and bone-deep exhaustion', 'Lamb'],
+        ['near_death', 'Near death', 'barely holding on; breathing, colour and pulse are frightening to watch', 'Lamb'],
+        ['blood_hunger', 'Blood hunger', 'a vampire’s thirst gnawing; nearby pulses are distracting', 'Astarion'],
+    ],
+    voice: [
+        ['voice_burping', 'Burps mid-sentence', 'belches break into their speech, mid-word if need be', 'Rick'],
+        ['voice_swearing', 'Swears constantly', 'profanity is punctuation', 'Rick, Chloe'],
+        ['voice_singsong', 'Sing-song voice', 'nursery-rhyme lilts and baby talk, especially when being cruel', 'Mother Gooseberry'],
+        ['voice_cultivated', 'Cultivated accent', 'precise, educated, faintly old-fashioned diction', 'Easterman, Astarion'],
+    ],
+    background: [
+        ['widowed', 'Widowed', 'lost a spouse; the grief still shapes them', 'Rick'],
+        ['long_captivity', 'Years in captivity', 'endured long captivity or servitude; the survival habits remain', 'Astarion (spawn), Lamb'],
+        ['time_displaced', 'Out of their time', 'came from another time or timeline and keeps tripping over it', 'Rick lore'],
+    ],
+    job: [
+        ['investment_banker', 'Investment banker', 'works mergers and acquisitions on Wall Street', 'Patrick Bateman'],
+    ],
+    archetype: [
+        ['lovestruck_scientist', 'Lovestruck scientist', 'a brilliant researcher reduced to a pleading romantic over one person, still running the experiments', 'Easterman'],
+        ['programme_director', 'Programme director', 'runs a secret project; its staff, budgets, reports and lives are his to sign off', 'Easterman, Project Lathe'],
+        ['lab_subject', 'Test subject', 'kept and studied in a programme; schedules, doses and observation run their life', 'Lamb, Reagents'],
+        ['genius_jerk', 'Genius asshole', 'the smartest person anywhere and the worst to be around; insults are affection', 'Rick'],
+        ['yuppie_killer', 'Yuppie killer', 'a wealthy, groomed professional whose violence hides behind brands and reservations', 'Patrick Bateman'],
+        ['devoted_secretary', 'Devoted secretary', 'the assistant who knows everything, fixes everything and loves the boss', 'Bateman’s secretary'],
+        ['romantic_stalker', 'Romantic stalker', 'a charming, literate stalker who believes he’s the hero of a love story', 'Joe'],
+        ['vampire_spawn', 'Vampire spawn', 'a lesser vampire: no sunlight, needs an invitation, no reflection, hungry for blood', 'Astarion (spawn)'],
+        ['vampire_lord', 'Ascended vampire', 'an all-powerful vampire lord: sunlight-proof, magnetic, cruel and grandly theatrical', 'Astarion (ascended)'],
+        ['dark_cleric', 'Dark cleric', 'a priest of a cruel god; ritual, obedience and pain as devotion', 'Dark Justiciar Shadowheart'],
+        ['nursery_horror', 'Nursery horror', 'a childish, sing-song tormentor who plays with victims like toys', 'Mother Gooseberry'],
+    ],
+    standing: [
+        ['always_mistaken', 'Mistaken for others', 'people keep confusing them with someone else who dresses and looks the same', 'Patrick Bateman'],
+        ['under_observation', 'Under observation', 'watched by cameras, staff or a stalker almost constantly', 'Lamb, Joe’s targets'],
+    ],
+    setting: [
+        ['observation_room', 'Observation room', 'behind one-way glass with monitors, intercoms and someone watching', 'Easterman'],
+        ['sleep_room', 'Facility sleep room', 'a dormitory under cameras, with broadcasts, lights-out and locked doors', 'Lamb, the Sleep Room'],
+        ['padded_cell', 'Padded cell', 'a locked, padded room for the restrained or unstable', 'Easterman, asylums'],
+        ['garage_lab', 'Garage lab', 'a cluttered home lab full of half-built devices, booze and danger', 'Rick'],
+        ['alien_world', 'Another world', 'an alien planet or dimension with its own rules and dangers', 'Rick'],
+        ['bookshop', 'Bookshop', 'among shelves, dust and quiet corners', 'Joe'],
+        ['glass_cage', 'Glass cage', 'locked in a soundproof glass box, on display to whoever put them there', 'Joe'],
+        ['fancy_restaurant', 'Fancy restaurant', 'an exclusive restaurant where the table, the reservation and who sees you matter', 'Patrick Bateman'],
+        ['upscale_apartment', 'Upscale apartment', 'an expensive, immaculate apartment that says everything about its owner', 'Patrick Bateman'],
+        ['corporate_office', 'Corporate office', 'desks, phones, assistants and status games', 'Patrick Bateman'],
+        ['crypt', 'Crypt', 'a cold, dark tomb or burial vault', 'Astarion'],
+        ['gothic_palace', 'Gothic palace', 'a decadent old mansion of candlelight, art and secrets', 'Astarion (ascended)'],
+        ['campfire', 'Around a campfire', 'a travelling party camped for the night', 'Astarion, Shadowheart'],
+        ['temple', 'Temple', 'a place of worship, incense and ritual', 'Shadowheart'],
+    ],
+    // ---- Story ----
+    genre: [
+        ['romantic_horror', 'Romantic horror', 'the love story is real and so is the horror; neither cancels the other', 'Easterman, Joe, Astarion'],
+        ['cold_war_horror', 'Cold War experiment horror', 'secret programmes, mind control, test subjects and doctors who call torture therapy', 'Easterman, Outlast'],
+        ['status_satire', 'Status satire', 'brands, reservations and business cards treated as life and death while atrocity barely registers', 'American Psycho (book)'],
+        ['workplace_comedy', 'Office comedy', 'gossip, petty power games, lunches and the boss’s moods', 'Bateman’s office'],
+        ['sci_fi_comedy', 'Sci-fi comedy', 'absurd science, portals and cosmic stakes played for jokes that can turn bleak in a line', 'Rick'],
+        ['adult_cartoon', 'Adult-cartoon tone', 'cartoon logic and gross-out gags, with real consequences and sudden sincere sadness', 'Rick'],
+        ['tragicomedy', 'Tragicomedy', 'jokes and real grief share the scene; the laugh doesn’t cancel the pain', 'Rick'],
+        ['gothic_fantasy', 'Gothic fantasy', 'swords and sorcery steeped in vampires, dark gods, decay and decadence', 'Astarion, Shadowheart'],
+    ],
+    plot: [
+        ['subject_and_scientist', 'Scientist falls for subject', 'whoever runs the tests falls for the one being tested; data and devotion blur', 'Easterman, Rick'],
+        ['miraculous_result', 'Miraculous result', 'an experiment produces something nobody expected, and everyone wants it', 'Lamb and Skinner Man'],
+        ['rigged_trials', 'Rigged trials', 'staged ordeals called therapy: rewards, punishments and reprogramming', 'Outlast Trials'],
+        ['bedside_vigil', 'Bedside vigil', 'someone they hurt or failed lies gravely ill; guilt, prayer and bargaining', 'Easterman now'],
+        ['cleaning_up_murders', 'Cleaning up the murders', 'someone keeps hiding the bodies and evidence of a loved one’s killings', 'Bateman’s secretary'],
+        ['nobody_notices', 'Nobody notices', 'confessions, blood and bodies go unremarked by self-absorbed people', 'American Psycho (book)'],
+        ['mission_of_the_week', 'Mission of the week', 'a quick, absurd mission somewhere strange goes wrong and comes home with consequences', 'Rick'],
+        ['time_travel_paradox', 'Time-travel paradox', 'changing the past loops back; the fix becomes the cause', 'Rick lore'],
+        ['broke_the_rule', 'Broke the one rule', 'someone did the one thing they were told never to do, and it’s catching up with them', 'Rick lore'],
+        ['hidden_shared_past', 'Hidden shared past', 'two people are bound by history one of them doesn’t know about yet', 'Rick lore'],
+        ['breaking_free', 'Breaking free', 'escaping a long-time abuser’s hold, with the choice of what to become next', 'Astarion'],
+        ['temptation_of_power', 'Temptation of power', 'a ritual, deal or crime promises total power at a monstrous price', 'Astarion (ascended)'],
+        ['crisis_of_faith', 'Crisis of faith', 'the god or creed someone built their life on begins to crack', 'Shadowheart'],
+    ],
+    dark_plot: [
+        ['unethical_experiments', 'Unethical experiments', 'people are dosed, tested and measured against their will; the data matters more than the suffering', 'Easterman'],
+        ['reconditioning', 'Reconditioning', 'reward, punishment and code words rewrite someone’s mind and loyalties', 'Easterman (“Spider. Eye. Lamb.”)'],
+        ['medical_crisis', 'Medical crisis', 'a seizure, overdose or wound puts someone near death; the emergency is concrete and frightening', 'Lamb'],
+        ['impossible_choice', 'Impossible choice', 'someone must choose who lives, and either choice costs them forever', 'Rick lore'],
+        ['addiction_spiral', 'Addiction spiral', 'drinking or using gets worse and pulls others down with it; withdrawal is real', 'Rick played straight'],
+        ['killing_spree', 'Killing spree', 'the violence keeps escalating while the killer’s ordinary life carries on around it', 'Patrick Bateman'],
+    ],
+    tropes: [
+        ['watched_and_safe', 'Watched and safe', 'one watches the other constantly, and being watched feels like safety', 'Easterman and Lamb'],
+        ['sneaking_into_bed', 'Sneaking into bed', 'one keeps slipping into the other’s bed at night just to be near them', 'Easterman'],
+        ['tends_what_they_broke', 'Tends what they broke', 'the one who caused the harm nurses it with real tenderness', 'Easterman'],
+        ['devoted_accomplice', 'Devoted accomplice', 'love shown through complicity: hiding evidence, cleaning up, lying for them', 'Bateman’s secretary'],
+        ['chasing_the_monster', 'Chasing the monster', 'the dangerous one is the one being pursued, and he doesn’t know what to do about it', 'Patrick Bateman'],
+        ['loves_the_monster', 'Loves the monster', 'loves them as they really are, darkness included, not despite it', 'Bateman, Easterman, Astarion'],
+        ['begrudging_love', 'Begrudging love', 'one insists they don’t care while every action says otherwise', 'Rick, Bateman'],
+        ['offer_of_eternity', 'Offer of eternity', 'one offers to turn, bind or keep the other forever', 'Astarion (ascended)'],
+    ],
+    cast_tropes: [
+        ['lovesick_villain', 'Lovesick villain', 'the villain turns pathetic, pleading and theatrical over one person and stays a villain to everyone else', 'Easterman, Joe'],
+        ['grudging_favourite', 'Grudging favourite', 'the monster can’t shake a devoted admirer and starts depending on them', 'Bateman, Rick'],
+        ['the_unafraid_one', 'The one who isn’t scared', 'one person meets the monster with love or curiosity instead of fear, and it throws him', 'Bateman, Easterman, Rick'],
+        ['interchangeable_crowd', 'Interchangeable crowd', 'side characters blur together, get each other’s names wrong and talk about nothing', 'American Psycho (book)'],
+        ['dysfunctional_family', 'Dysfunctional family', 'family who bicker, disappoint each other and love each other badly', 'Rick'],
+    ],
+    writing: [
+        ['prose_love_blind', 'Love-blind narration', 'the besotted viewpoint narrates harm as a love story; keep the physical facts unsoftened so the reader sees what they won’t', 'Easterman, Joe, Nabokov-style'],
+        ['prose_clinical_log', 'Clinical notes', 'slip in observation-log fragments: times, doses, readings and the observer’s private asides', 'Easterman'],
+        ['prose_obsessive_you', 'Obsessive “you”', 'the narrator’s thoughts speak to their beloved as “you”', 'Joe'],
+        ['prose_self_justifying', 'Self-justifying', 'the narrator explains away every terrible act as love, protection or necessity', 'Joe, Easterman'],
+        ['prose_brand_inventory', 'Brand-name inventory', 'catalogue clothes, products and labels with obsessive precision', 'Patrick Bateman'],
+        ['prose_flat_atrocity', 'Atrocity in the same tone', 'horror and trivia narrated in one flat voice, side by side', 'Patrick Bateman'],
+        ['prose_banal_digressions', 'Banal digressions', 'break off into earnest, shallow essays on music, films or products', 'Patrick Bateman'],
+        ['prose_sitcom_timing', 'Sitcom timing', 'setup, escalation and a button line; scenes cut on the joke', 'Rick, Dennis'],
+        ['prose_running_gags', 'Running gags', 'recurring jokes come back and escalate across replies', 'Rick, Bateman'],
+        ['prose_tonal_whiplash', 'Tonal whiplash', 'lurch from a gag straight into real pain and back, without warning', 'Rick'],
+        ['prose_self_aware', 'Self-aware', 'characters can be knowing about tropes and the absurdity of their situation', 'Rick'],
+        ['prose_arch_ornate', 'Arch and ornate', 'witty, theatrical, old-fashioned diction full of flourishes and barbs', 'Astarion'],
+        ['prose_liturgical', 'Liturgical', 'prayers, vows and ritual cadence woven into thought and speech', 'Shadowheart'],
+        ['prose_nursery_rhyme', 'Nursery-rhyme menace', 'sing-song rhymes and childish rhythm laid over cruelty', 'Mother Gooseberry'],
+        ['prose_hallucination_bleed', 'Hallucination bleed', 'the line between hallucination and reality blurs; describe both as equally real', 'Skinner Man, psychosis'],
+    ],
+    smut_style: [
+        ['clinical_devoted_intimacy', 'Clinical and devoted', 'intimacy described with a clinician’s precision and a lover’s awe', 'Easterman'],
+        ['worshipful_intimacy', 'Worshipful', 'intimacy as reverence: slow, adoring and overwhelmed', 'Easterman, Astarion (good)'],
+    ],
+};
+// 1.26.0: a broader pass so every section has range: friendship, partying, addiction, family,
+// immortality, comedy and plain everyday life, alongside the darker material. Same row format.
+const ADDITIONS_2 = {
+    happy: [
+        ['party_mode', 'Party mode', 'loud, reckless and up for anything tonight', 'immortal dealer, Chloe, Rick'],
+        ['goofy', 'Goofy', 'being an idiot on purpose to make someone laugh', 'friendship stories, Rick, Astarion'],
+        ['proud_of_them', 'Proud of someone', 'quietly or loudly proud of someone they care about', 'friendships, siblings'],
+    ],
+    bold: [
+        ['ride_or_die_energy', 'Ride or die', 'ready to back someone up, no questions asked, whatever it costs', 'friend groups, Chloe'],
+        ['defiant', 'Defiant', 'refuses to back down or be told what to do', 'Chloe, Lamb, Shadowheart'],
+    ],
+    closeness: [
+        ['platonic_love', 'Platonic love', 'warm, close and loving with no romance needed', 'best friends, the immortal dealer'],
+        ['big_sibling_energy', 'Big-sibling energy', 'protective, teasing and fiercely loyal, like an older sibling', 'the immortal dealer, Rick'],
+        ['wants_comfort', 'Wants comfort', 'wants to be held, fussed over or just not left alone', 'anyone after a bad night'],
+    ],
+    love: [
+        ['teasing_giving', 'Teasing (giving)', 'shows love through teasing, nicknames and affectionate roasting', 'friends, Rick, Astarion'],
+        ['adventure_giving', 'Adventure (giving)', 'shows love by dragging someone into fun, plans and adventures', 'the immortal dealer, Rick'],
+        ['acceptance_receiving', 'Acceptance (receiving)', 'feels loved when accepted exactly as they are, mess included', 'Lamb, Bateman’s secretary, friends'],
+    ],
+    attachment: [
+        ['fear_of_burdening', 'Afraid of being a burden', 'hides needs and problems so nobody has to carry them', 'friendships, addiction stories'],
+    ],
+    cold: [
+        ['emotionally_unavailable', 'Emotionally unavailable', 'present in body, nowhere to be found emotionally', 'Rick, Bateman, Astarion'],
+        ['over_it', 'Over it', 'done with everything and not hiding it', 'Rick, Chloe, the immortal dealer'],
+    ],
+    sad: [
+        ['lonely_in_a_crowd', 'Lonely in a crowd', 'surrounded by people and noise and still alone', 'party scenes, Bateman'],
+    ],
+    scared: [
+        ['fear_of_being_found_out', 'Scared of being found out', 'terrified a secret will come out to the wrong person', 'hiding a lifestyle from family, Joe'],
+    ],
+    angry: [
+        ['angry_for_them', 'Angry on their behalf', 'furious because someone they love was hurt or disrespected', 'friends, siblings, protectors'],
+        ['hangry', 'Hangry', 'hunger has turned into a short temper', 'comedy, everyday life'],
+    ],
+    cruel: [
+        ['mean_jokes', 'Mean jokes', 'cutting jokes at someone’s expense to feel bigger', 'Dennis, Rick, Bateman'],
+    ],
+    calm: [
+        ['chill', 'Chill', 'unbothered and easygoing; nothing’s a big deal', 'the immortal dealer, stoner scenes'],
+        ['zoned_out', 'Zoned out', 'staring at nothing, attention somewhere else', 'comedowns, long nights'],
+    ],
+    masks: [
+        ['hiding_it_from_family', 'Hiding it from family', 'keeps a whole side of their life secret from someone they love', 'the immortal dealer and his sister'],
+        ['partying_it_off', 'Partying it off', 'uses noise, drink and fun so they don’t have to feel anything', 'the immortal dealer, Rick'],
+    ],
+    energy: [
+        ['bored_stiff', 'Bored stiff', 'desperate for something, anything, to happen', 'the immortal dealer’s friend, Rick'],
+    ],
+    headspace: [
+        ['comedown', 'Coming down', 'the high is gone and the crash is grey, anxious and ugly', 'addiction stories, Chloe, Rick'],
+        ['party_brain', 'Party brain', 'thinking only about tonight; tomorrow doesn’t exist', 'the immortal dealer'],
+    ],
+    desire: [
+        ['playfully_pervy', 'Playfully pervy', 'shameless flirting and dirty jokes, all in fun and never pushy', 'the immortal dealer, Astarion'],
+    ],
+    dynamics: [
+        ['protector_role', 'Protector', 'keeps a partner safe in and out of the bedroom and takes it seriously', 'Easterman, Astarion (good)'],
+        ['mentor_in_bed', 'Mentor in bed', 'patiently guides a less experienced partner', 'slow-burn romance'],
+        ['experimenter_role', 'Experimenter', 'treats intimacy as an experiment: asking questions, testing, taking notes', 'Easterman, Rick'],
+    ],
+    appetites: [
+        ['feeding_kink', 'Feeding', 'being bitten and fed from as intimacy', 'Astarion'],
+        ['clothed_sex', 'Half-dressed', 'likes it with clothes half on: suits, shirts and skirts pushed aside', 'Patrick Bateman'],
+        ['risky_places', 'Risky places', 'offices, bathrooms and cars, anywhere they might get caught', 'party scenes, Bateman’s office'],
+    ],
+    psychosexual: [
+        ['sex_without_closeness', 'Sex without closeness', 'easy with sex, terrified of real intimacy', 'Astarion, the immortal dealer'],
+        ['touch_as_trust', 'Touch means trust', 'gentle touch is rarer and bigger to them than sex', 'Astarion (spawn), Lamb'],
+    ],
+    manner: [
+        ['roaster', 'Roasts people', 'affectionate insults and teasing as their love language', 'friend groups, Rick'],
+        ['chaotic_energy', 'Chaotic energy', 'loud, unpredictable and a lot of fun to be around', 'the immortal dealer, Chloe'],
+        ['storyteller', 'Tells wild stories', 'always has an outrageous story, mostly true', 'the immortal dealer, Astarion'],
+    ],
+    temperament: [
+        ['respects_boundaries', 'Respects boundaries', 'never pushes anyone into anything, however wild their own life is', 'the immortal dealer'],
+        ['loyal_to_a_fault', 'Loyal to a fault', 'sticks by their people even when they really shouldn’t', 'friend groups, Bateman’s secretary'],
+        ['night_owl', 'Night owl', 'comes alive after dark and sleeps through the day', 'the immortal dealer, Astarion'],
+    ],
+    views: [
+        ['live_fast', 'Live fast', 'nothing lasts, so enjoy it now', 'the immortal dealer'],
+        ['no_snitching', 'No snitching', 'loyalty to your people beats the law every time', 'dealers, Chloe, friend groups'],
+        ['family_first', 'Family first', 'family comes before everything, including themselves', 'the immortal dealer and his sister'],
+    ],
+    alignment: [
+        ['good_with_vices', 'Good heart, bad habits', 'a decent person with a lifestyle that isn’t', 'the immortal dealer, Chloe'],
+        ['loyal_outlaw', 'Loyal outlaw', 'breaks the law freely but never breaks faith with their people', 'dealers, crews'],
+    ],
+    psychology: [
+        ['weary_immortal', 'Tired of dying', 'has died and come back so often that life feels cheap and danger boring', 'the immortal dealer'],
+        ['escapism', 'Escapism', 'runs from feelings into parties, drugs or adventures', 'the immortal dealer, Rick'],
+        ['enabler', 'Enabler', 'keeps someone’s bad habits going, out of love or fear', 'addiction stories'],
+    ],
+    body: [
+        ['just_revived', 'Just came back', 'freshly revived: disoriented, aching and covered in the mess of how they died', 'the immortal dealer'],
+        ['nosebleed', 'Nosebleed', 'a nosebleed they keep wiping away', 'party scenes'],
+    ],
+    bedroom: [
+        ['pinned', 'Pinned down', 'held down by their partner’s weight or hands', 'any intimate scene'],
+        ['lazy_morning', 'Lazy morning in bed', 'warm, slow and in no hurry to get up', 'softer romance'],
+    ],
+    substances: [
+        ['on_shrooms', 'On mushrooms', 'giggly, wide-eyed and seeing patterns', 'party scenes'],
+        ['on_benzos', 'On benzos', 'calm, sloppy and losing chunks of memory', 'addiction stories'],
+        ['crossfaded', 'Crossfaded', 'drunk and high at once', 'the immortal dealer, Chloe'],
+        ['newly_sober', 'Newly sober', 'clean for now; cravings, irritability and white knuckles', 'addiction stories, Rick'],
+    ],
+    looks: [
+        ['ageless', 'Ageless', 'looks exactly the same however long passes', 'the immortal dealer, Astarion'],
+        ['party_wrecked', 'Wrecked from last night', 'smudged makeup, last night’s clothes and a hollow stare', 'party scenes'],
+        ['signs_of_use', 'Signs of use', 'track marks, a raw nose or other tells of heavy use', 'addiction stories'],
+    ],
+    aesthetic: [
+        ['raver', 'Raver', 'neon, mesh, glitter and platforms', 'party scenes'],
+        ['skater', 'Skater', 'hoodies, beanies, worn trainers and scuffed boards', 'Chloe'],
+        ['gothic_aristocrat', 'Gothic aristocrat', 'velvet, lace, silver and old-world tailoring', 'Astarion'],
+    ],
+    voice: [
+        ['voice_laughing', 'Laughs at everything', 'laughter runs through most of what they say', 'the immortal dealer'],
+        ['voice_slang', 'Talks in slang', 'heavy slang that fits their age, place and scene', 'Chloe, dealers'],
+    ],
+    background: [
+        ['immortal', 'Can’t stay dead', 'dies and comes back every time, pain and memories included', 'the immortal dealer'],
+        ['protective_older_sibling', 'Protective older sibling', 'has a younger sibling they love and shield', 'the immortal dealer'],
+        ['party_scene_regular', 'Party-scene regular', 'knows every club, dealer and after-party in town', 'the immortal dealer, Chloe'],
+    ],
+    job: [
+        ['club_promoter', 'Club promoter', 'fills clubs and parties for a living', 'party scenes'],
+        ['mechanic', 'Mechanic', 'fixes cars and anything else with an engine', 'Chloe-style AUs'],
+        ['hospitality', 'Works in hospitality', 'bars, cafés or restaurants; long shifts and difficult customers', 'everyday life'],
+    ],
+    archetype: [
+        ['lovable_degenerate', 'Lovable degenerate', 'a reckless mess with a good heart, first to show up for their friends', 'the immortal dealer, Chloe'],
+        ['party_animal', 'Party animal', 'lives for the night: music, crowds, chemicals and chaos', 'the immortal dealer'],
+        ['protective_best_friend', 'Protective best friend', 'the friend who would burn the world down for you', 'friendship stories'],
+    ],
+    fighting: [
+        ['fights_without_fear', 'fights with no self-preservation at all, like death doesn’t matter', 'the immortal dealer'],
+        ['spellcasting', 'fights with spells, curses and arcane tricks', 'Shadowheart, Astarion'],
+        ['gadget_fighting', 'fights with gadgets, ray guns and improvised tech', 'Rick'],
+    ].map(([id, cue, fits]) => [id, { fights_without_fear: 'Fights like they can’t die', spellcasting: 'Spellcaster', gadget_fighting: 'Gadgets and ray guns' }[id], cue, fits]),
+    standing: [
+        ['secret_lifestyle', 'Secret lifestyle', 'living a life their family knows nothing about', 'the immortal dealer'],
+        ['known_dealer', 'Known dealer', 'everyone in the scene knows who to call', 'the immortal dealer, Chloe'],
+    ],
+    setting: [
+        ['club_bathroom', 'Club bathroom', 'a cramped, loud stall with bass through the walls', 'party scenes'],
+        ['dealers_flat', 'Dealer’s flat', 'scales, cash, mismatched furniture and people coming and going', 'the immortal dealer, Chloe'],
+        ['rooftop_night', 'Rooftop at night', 'city lights, cold air and nobody else around', 'friendship scenes'],
+        ['late_night_diner', 'Late-night diner', 'bad coffee, greasy food and fluorescent light at 3am', 'after parties, Joe, Rick'],
+        ['cheap_motel', 'Cheap motel', 'thin walls, stained carpet and a buzzing sign', 'grit, Chloe'],
+        ['friends_place', 'At a friend’s place', 'someone’s lived-in home, comfortable and messy', 'friendship stories'],
+    ],
+    // ---- Story ----
+    combat_style: [
+        ['bar_brawl', 'Bar brawl', 'messy, drunken fighting with bottles, chairs and bystanders', 'party scenes, Rick'],
+        ['magic_combat', 'Magical combat', 'spells, wards and curses with clear costs and visible effects', 'Shadowheart, Astarion'],
+        ['sci_fi_combat', 'Sci-fi combat', 'lasers, gadgets and portals, where the wrong button causes chaos', 'Rick'],
+        ['deathless_combat', 'Deathless fighting', 'someone fights knowing they’ll come back, and it shows', 'the immortal dealer'],
+    ],
+    dark_plot: [
+        ['drug_world_violence', 'Drug-world violence', 'suppliers, debts and turf can turn deadly fast', 'the immortal dealer, Chloe'],
+        ['deaths_that_dont_stick', 'Deaths that don’t stick', 'violent deaths happen and the body comes back, the pain and trauma included', 'the immortal dealer'],
+        ['relapse', 'Relapse', 'someone falls back into using, and everyone around them pays for it', 'addiction stories, Rick'],
+    ],
+    genre: [
+        ['addiction_drama', 'Addiction drama', 'using, lying, relapsing and the people who stay anyway', 'the immortal dealer, Chloe, Rick'],
+        ['friendship_story', 'Friendship story', 'the friendship is the heart of it; romance is optional or absent', 'the immortal dealer and his friend'],
+        ['party_comedy', 'Party comedy', 'nights out, bad decisions, hangovers and stories told the next day', 'the immortal dealer, Dennis, Chloe'],
+    ],
+    tropes: [
+        ['strictly_platonic', 'Strictly platonic', 'closeness and love that never turns romantic, and nobody needs it to', 'the immortal dealer and his friend'],
+        ['flirty_friends', 'Flirty friends', 'flirting as a running joke between friends that means nothing', 'friend groups'],
+    ],
+    plot: [
+        ['boredom_rescue', 'Rescue from boredom', 'someone turns up and drags the other off into something fun or stupid', 'the immortal dealer and his friend'],
+        ['keeping_it_from_family', 'Keeping it from family', 'a sibling or parent mustn’t find out how someone really lives', 'the immortal dealer and his sister'],
+        ['friend_group_fallout', 'Friend-group fallout', 'a fight splits the group and everyone has to pick a side or fix it', 'friend groups'],
+        ['intervention', 'Intervention', 'the people who love someone finally confront their habit', 'addiction stories, Rick'],
+        ['night_out', 'Night out', 'one long night: pre-drinks, the party, the after-party and the walk home', 'party scenes'],
+        ['cops_closing_in', 'Cops closing in', 'police attention is getting closer and someone has to deal with it', 'dealers, Bateman, Joe'],
+        ['cant_stay_dead', 'Can’t stay dead', 'someone keeps dying and coming back, and it’s changing who they are', 'the immortal dealer'],
+    ],
+    cast_tropes: [
+        ['tight_friend_group', 'Tight friend group', 'them against the world: they fight among themselves and close ranks against outsiders', 'the immortal dealer’s crew'],
+        ['precious_sibling', 'Precious sibling', 'one family member everyone protects and keeps away from the mess', 'the immortal dealer’s sister'],
+        ['the_mess', 'The mess', 'one friend is always in some kind of trouble, and everyone loves them anyway', 'the immortal dealer'],
+        ['the_mom_friend', 'The mom friend', 'one friend keeps everyone fed, hydrated and alive', 'friend groups'],
+    ],
+    writing: [
+        ['prose_banter', 'Banter-driven', 'quick, teasing back-and-forth carries the scene', 'friendship stories, Rick, Astarion'],
+        ['prose_party_montage', 'Night-out montage', 'a fast blur of places, faces and bad decisions, then a sharp return to one moment', 'party scenes'],
+        ['prose_warm_grit', 'Warm grit', 'ugly places and warm people; tenderness in squalid rooms', 'the immortal dealer and his friend'],
+        ['prose_texts', 'Texts and chats', 'include text messages and group chats written out, typos and all', 'modern stories, Joe, Chloe'],
+    ],
+    smut_style: [
+        ['banter_in_bed', 'Banter in bed', 'jokes and teasing keep going all the way through', 'Astarion, Rick, playful couples'],
+        ['feeding_intimacy', 'Blood and bites', 'feeding and biting as part of intimacy, sensual rather than gory', 'Astarion'],
+    ],
+};
+for (const [category, rows] of Object.entries(ADDITIONS_2)) (ADDITIONS[category] ??= []).push(...rows);
+ERAS.push(['era_2020s', '2020s', 'TikTok, group chats, delivery apps, contactless everything and vapes; the pandemic and lockdowns in recent memory; remote work, dating apps, streaming and ‘no cap’, ‘it’s giving’ and ‘delulu’',
+    'TikTok, delivery apps, vapes, post-pandemic. Today.']);
+AUTHORS_MIDCENTURY.push(
+    ['author_john_steinbeck', 'John Steinbeck', 'warm, plain-spoken affection for lovable drifters and drunks; small kindnesses, loyalty and comic schemes',
+        'Cannery Row (1945), Of Mice and Men. Fits: friendship stories, lovable degenerates, the immortal dealer’s crew.'],
+    ['author_jack_kerouac', 'Jack Kerouac', 'breathless, jazz-rhythm run-on sentences; road trips, all-night talk, drugs and friendship at full speed',
+        'On the Road (1957). Fits: party scenes, friendship stories, 50s–60s, the immortal dealer.'],
+    ['author_john_kennedy_toole', 'John Kennedy Toole', 'a grandiose, pompous blowhard utterly blind to his own absurdity; farce, gluttony and contempt for everyone',
+        'A Confederacy of Dunces (written early 60s). Fits: Dennis Reynolds, irreverent comedy, satire.']);
+AUTHORS_MODERN.push(
+    ['author_jay_mcinerney', 'Jay McInerney', 'second-person cocaine nights in the city; glib, funny and sliding toward grief',
+        'Bright Lights, Big City (1984). Fits: party scenes, addiction, 80s, Patrick Bateman’s world.'],
+    ['author_douglas_coupland', 'Douglas Coupland', 'wry, aimless friends telling each other stories; pop-culture asides and quiet sadness',
+        'Generation X (1991). Fits: friendship stories, 90s, Chloe.'],
+    ['author_nick_hornby', 'Nick Hornby', 'chatty, funny first person; lists, music snobbery and men slowly growing up',
+        'High Fidelity (1995). Fits: banter, friendship, rom-com, Dennis Reynolds.'],
+    ['author_matt_haig', 'Matt Haig', 'gentle, wry voice of someone who can’t die; centuries of memory and the ache of watching people go',
+        'How to Stop Time (2017). Fits: the immortal dealer, Astarion.']);
+// 1.27.0: real angst, and a Stakes & follow-through section so harm, decline and loss actually land.
+// The section sits at the top of the Story tab; Bad ending, Villain wins and No one is safe move into it.
+CATEGORIES.splice(CATEGORIES.findIndex(([id]) => id === 'era') + 1, 0, ['stakes', 'Stakes & follow-through', '⚠', '#d98b7a', [], 'story']);
+const ADDITIONS_3 = {
+    stakes: [
+        ['real_stakes', 'Real stakes', 'anyone can be hurt, lose or fail; nobody has plot armour', 'every story'],
+        ['player_not_safe', 'Your character isn’t safe', 'the player’s character can be badly hurt, fall ill, get worse or die when the story leads there; the player still writes their choices', 'Lamb, any OC'],
+        ['no_rescues', 'No convenient rescues', 'no last-second saves, sudden recoveries, lucky coincidences or time skips past the worst', 'every story'],
+        ['decline_in_stages', 'Decline in stages', 'a failing body or situation moves through real stages, never resets on its own, and each reply can push it a stage further', 'Lamb’s seizure, illness, overdoses'],
+        ['let_it_get_worse', 'Let it get worse', 'things can keep getting worse for several replies before anything gets better', 'every story'],
+        ['death_on_the_table', 'Death is on the table', 'any major character can actually die, including the main ones', 'every story'],
+        ['consequences_persist', 'Consequences persist', 'injuries, losses, betrayals and words said carry into later scenes and change people', 'every story'],
+        ['permanent_loss', 'Permanent loss', 'some things can’t be undone, healed or taken back', 'every story'],
+        ['no_unearned_hope', 'No unearned hope', 'no comforting reframes, hopeful last lines or reassurance the scene hasn’t earned', 'angst, tragedy'],
+        ['costly_wins', 'Costly wins', 'every victory costs something that matters', 'every story'],
+        ['grief_gets_room', 'Grief gets room', 'aftermath and mourning get real time instead of being rushed past', 'angst, tragedy'],
+    ],
+    sad: [
+        ['anticipatory_grief', 'Grieving early', 'mourning someone who isn’t gone yet', 'Easterman at the bedside'],
+        ['in_shock', 'In shock', 'it hasn’t landed yet; numb, functioning wrongly, saying odd things', 'after a death or disaster'],
+        ['quietly_breaking', 'Quietly breaking', 'holding together on the outside while coming apart inside', 'Rick, Easterman'],
+        ['left_behind', 'Left behind', 'everyone they love leaves or dies, and they’re still here', 'the immortal dealer, Rick, Astarion'],
+        ['never_said_it', 'Never said it', 'haunted by what they never got to say', 'Rick and Diane'],
+        ['heartsick', 'Heartsick', 'a deep, physical ache of sorrow that won’t lift', 'angst'],
+        ['crying_alone', 'Cries alone', 'saves the tears for when nobody can see', 'Rick, the immortal dealer'],
+    ],
+    scared: [
+        ['watching_helplessly', 'Watching helplessly', 'can only watch someone suffer; nothing they do helps', 'Easterman at the bedside'],
+        ['waiting_for_bad_news', 'Waiting for bad news', 'every footstep, phone call or door could be the worst news', 'hospital scenes'],
+    ],
+    closeness: [
+        ['making_it_count', 'Making it count', 'treats every moment as possibly the last one', 'tragic romance, dying characters'],
+    ],
+    attachment: [
+        ['cant_lose_another', 'Can’t lose another one', 'has lost before and would do anything not to lose again', 'Rick, Easterman'],
+    ],
+    masks: [
+        ['holding_it_together_for_them', 'Holding it together for them', 'stays calm and steady for someone else while falling apart underneath', 'bedside scenes, siblings'],
+    ],
+    angry: [
+        ['angry_at_the_dead', 'Angry at them for leaving', 'furious at someone for dying, giving up or going away', 'grief stories'],
+        ['self_directed_rage', 'Furious with themselves', 'rage turned inward over what they did or didn’t do', 'Easterman after the seizure, Rick'],
+    ],
+    cold: [
+        ['shut_down', 'Shut down', 'grief or shock has switched them off; flat, distant, unreachable', 'aftermath'],
+    ],
+    headspace: [
+        ['bargaining', 'Bargaining', 'offering anything to anyone or anything to undo it', 'Easterman, grief'],
+        ['replaying_the_moment', 'Replaying the moment', 'keeps reliving the worst moment, looking for where it could have gone differently', 'grief, guilt'],
+    ],
+    energy: [
+        ['grief_tired', 'Grief-tired', 'grief has drained everything; even standing up is work', 'aftermath'],
+    ],
+    desire: [
+        ['desperate_closeness', 'Desperate for closeness', 'needs to touch and hold someone to prove they’re still here', 'after a near-death'],
+    ],
+    psychology: [
+        ['complicated_grief', 'Grief that won’t move', 'a loss they can’t get past; it shapes every day', 'Rick'],
+        ['learned_helplessness', 'Learned helplessness', 'has stopped trying because nothing they did ever changed anything', 'Lamb, captives'],
+        ['self_sabotage', 'Self-sabotage', 'wrecks good things before they can be taken away', 'Rick, the immortal dealer, Chloe'],
+        ['abandonment_dread', 'Expects to be left', 'braces for everyone to leave and sometimes pushes them first', 'angst'],
+    ],
+    body: [
+        ['stable_not_safe', 'Stable, not safe', 'holding steady for now, but it could turn at any moment', 'condition stages'],
+        ['deteriorating', 'Deteriorating', 'getting worse: weaker, paler, harder to reach', 'condition stages'],
+        ['critical', 'Critical', 'in serious danger; every sign is bad and help may not be enough', 'condition stages'],
+        ['crashing', 'Crashing', 'failing right now: breathing, heartbeat or consciousness slipping', 'condition stages'],
+        ['unresponsive', 'Unresponsive', 'can’t be woken or reached', 'condition stages'],
+        ['clinically_dead', 'Heart stopped', 'no pulse, no breath; seconds matter and it may already be too late', 'condition stages, the immortal dealer'],
+    ],
+    background: [
+        ['bereaved', 'Bereaved', 'someone close to them died and it still sits in everything', 'Rick, grief stories'],
+        ['terminally_ill', 'Terminally ill', 'dying of something that won’t be cured', 'tragedy'],
+        ['chronically_ill', 'Chronically ill', 'lives with an illness that flares, limits and exhausts them', 'everyday angst'],
+    ],
+    standing: [
+        ['borrowed_time', 'On borrowed time', 'whatever is coming for them, it’s coming soon', 'tragedy, Lamb'],
+    ],
+    setting: [
+        ['funeral', 'At a funeral', 'black clothes, bad coffee and people saying the wrong things', 'grief'],
+        ['graveside', 'At a grave', 'a headstone, the weather and nobody to answer', 'grief'],
+        ['emptied_home', 'An emptied home', 'their things are still here and they aren’t', 'grief, Rick'],
+    ],
+    genre: [
+        ['grief_story', 'Grief story', 'the story is about losing someone and living after it', 'Rick, angst'],
+        ['melodrama', 'Melodrama', 'big emotions played at full volume: tears, confessions and slammed doors', 'angst, 60s romance'],
+    ],
+    plot: [
+        ['race_against_death', 'Race against death', 'someone is dying and the clock is running out', 'Lamb, medical crises'],
+        ['too_late', 'Too late', 'the apology, rescue or truth arrives after it could have mattered', 'tragedy'],
+        ['deathbed_confession', 'Deathbed confession', 'the truth finally comes out when someone might not live to hear it', 'Easterman, tragedy'],
+        ['the_goodbye', 'The goodbye', 'someone has to say goodbye, and both know what it means', 'tragedy'],
+        ['sacrifice', 'Sacrifice', 'someone gives up their life, freedom or love for another', 'Rick lore, tragedy'],
+        ['aftermath', 'Aftermath', 'living after the worst has happened: empty rooms, routines and blame', 'grief'],
+    ],
+    dark_plot: [
+        ['slow_death', 'Slow death', 'a decline nobody can stop, watched up close', 'Lamb, tragedy'],
+        ['loss_of_a_main', 'A main character dies', 'one of the central characters dies, and the story has to carry it', 'every story'],
+    ],
+    tropes: [
+        ['doomed_romance', 'Doomed romance', 'they love each other and it can’t end well', 'Easterman and Lamb, Astarion'],
+        ['loved_and_lost', 'Loved and lost', 'the love story is defined by losing them', 'Rick and Diane'],
+        ['love_too_late', 'Love too late', 'the feelings are admitted only when it’s too late to act on them', 'tragedy'],
+    ],
+    cast_tropes: [
+        ['doomed_character', 'Doomed character', 'one character’s death is coming, and the story leans toward it', 'tragedy'],
+    ],
+    combat_style: [
+        ['costly_victory', 'Costly victory', 'winning the fight costs a life, a limb or something irreplaceable', 'every fight'],
+    ],
+    writing: [
+        ['prose_unflinching', 'Unflinching', 'look straight at pain and fear; no cutaways, comforting reframes or softened details', 'angst, horror, Lamb'],
+        ['prose_quiet_devastation', 'Quiet devastation', 'understated grief: small physical details and silence instead of melodrama', 'angst'],
+        ['prose_slow_motion_crisis', 'Slow-motion crisis', 'stretch the worst moments beat by beat instead of rushing to the outcome', 'Lamb’s seizure, emergencies'],
+        ['prose_no_silver_lining', 'No silver lining', 'don’t end on hope or comfort the scene hasn’t earned', 'angst, tragedy'],
+    ],
+    smut_style: [
+        ['grief_intimacy', 'Grief-stricken', 'intimacy tangled with grief, fear or the knowledge of loss', 'tragic romance'],
+        ['like_the_last_time', 'Like the last time', 'intimacy as if it might never happen again', 'doomed romance'],
+    ],
+};
+for (const [category, rows] of Object.entries(ADDITIONS_3)) (ADDITIONS[category] ??= []).push(...rows);
+for (const [category, rows] of Object.entries(ADDITIONS)) {
+    const target = CATEGORIES.find(([id]) => id === category);
+    target[4].push(...rows.map(([id, label, cue, fits]) => [id, label, cue, fits ? `${cue}. Fits: ${fits}.` : undefined]));
+}
+// Existing stake-setting options join the new section; ids are unchanged, so saved levels carry over.
+for (const id of ['no_one_safe', 'bad_ending', 'villain_wins']) for (const [cat, , , , rows] of CATEGORIES) {
+    const i = rows.findIndex(([rowId]) => rowId === id);
+    if (i >= 0 && cat !== 'stakes') CATEGORIES.find(([c]) => c === 'stakes')[4].push(...rows.splice(i, 1));
+}
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue, note]) => ({ id, label, cue, ...(note ? { note } : {}), category, color, kind })));
 // Traits tab: who someone is, rather than how they feel right now. Same prompt handling as before,
 // but they sit in their own tab and the scene reader never changes them.
@@ -1415,6 +1967,55 @@ export const RECIPES = {
     'Trouble brewing': { jealous: 50, anxious: 45, resentful: 25 },
     'Bright spark': { playful: 55, curious: 45, inspired: 35 },
     'Quiet devotion': { affectionate: 55, protective: 45, warm: 35 },
+    'Easterman · lovesick': { lovesick: 75, obsessed: 60, watching_over: 60, terrified_of_losing: 50, manic_reassurance: 40, taking_notes: 40,
+        lovestruck_scientist: 80, programme_director: 50, romantic_delusion: 60, fated_love: 50, bedside_manner: 60, pet_names: 45, voice_cultivated: 50 },
+    'Easterman · director': { clinical: 65, taking_notes: 60, testing_limits: 50, breakthrough_high: 40, programme_director: 80, research_absolutism: 65,
+        bedside_manner: 55, workaholic: 60, unnervingly_polite: 50, voice_cultivated: 50 },
+    'Patrick Bateman · book': { status_obsessed: 80, petty_rage: 50, existential_dread: 30, confessing_to_no_one: 40, grudging_fondness: 30,
+        yuppie_killer: 80, investment_banker: 70, pop_critic: 50, narcissistic: 60, vain: 60, empty: 50, always_mistaken: 55 },
+    'Rick · played straight': { drinking_to_forget: 50, bottling_it: 60, existential_dread: 40, grudging_fondness: 45, genius_jerk: 80, hidden_heart: 55,
+        survivors_guilt: 55, functional_addict: 60, widowed: 70, alcoholic: 70, voice_burping: 50, voice_swearing: 65 },
+    'Joe Goldberg': { lovesick: 65, watching_over: 70, keeping_tabs: 60, possessive: 50, nice_guy_complex: 80, romantic_delusion: 60, bookish: 70, romantic_stalker: 80 },
+    'Astarion · spawn': { bottling_it: 50, charm_as_armour: 55, blood_hunger: 30, jaded_charmer: 60, pet_names: 55, secretly_sentimental: 40,
+        hidden_heart: 50, survival_habits: 60, vampire_spawn: 80, long_captivity: 70, voice_cultivated: 50 },
+    'Astarion · ascended': { power_drunk: 60, possessive: 60, blood_hunger: 40, pet_names: 60, theatrical: 60, cruel: 45, god_complexed: 50,
+        vampire_lord: 85, voice_cultivated: 50 },
+    'Dark Justiciar Shadowheart': { dark_faith: 80, fanatic: 50, memory_gaps: 50, dark_cleric: 80, icy: 40 },
+    'Immortal party friend': { party_mode: 55, chill: 45, partying_it_off: 45, big_sibling_energy: 50, platonic_love: 55, playfully_pervy: 40,
+        weary_immortal: 65, respects_boundaries: 75, escapism: 50, live_fast: 60, family_first: 60, good_with_vices: 60,
+        lovable_degenerate: 75, immortal: 85, protective_older_sibling: 70, secret_lifestyle: 60, drug_dealer: 60, voice_laughing: 40 },
+    'Chloe · dealer AU': { defiant: 60, over_it: 45, ride_or_die_energy: 55, defensive_joking: 50, rebellious: 65, no_snitching: 55, good_with_vices: 50,
+        drug_dealer: 60, known_dealer: 50, skater: 50, punk: 40, voice_swearing: 60, voice_slang: 45 },
+    'Dennis Reynolds': { mean_jokes: 55, petty_rage: 45, narcissistic: 75, vain: 70, god_complexed: 60, histrionic: 50, sociopathic: 40, theatrical: 55 },
+};
+// Story starter blends: era, genre, plot and the voice to write it in.
+export const STORY_RECIPES = {
+    'Easterman · Lamb dying': { era_1960s: 70, romantic_horror: 60, race_against_death: 70, medical_crisis: 75, doomed_romance: 45,
+        real_stakes: 80, player_not_safe: 75, no_rescues: 85, decline_in_stages: 80, death_on_the_table: 70, no_unearned_hope: 55,
+        prose_love_blind: 65, prose_slow_motion_crisis: 55, prose_unflinching: 55, author_vladimir_nabokov: 50 },
+    'Easterman romance · 1960s': { era_1960s: 70, romantic_horror: 70, cold_war_horror: 60, subject_and_scientist: 60, unethical_experiments: 50,
+        watched_and_safe: 50, prose_love_blind: 75, prose_clinical_log: 40, author_vladimir_nabokov: 60, author_john_fowles: 40, author_anna_kavan: 30 },
+    'American Psycho · book': { era_1980s: 75, status_satire: 75, satire: 60, dark_comedy: 50, nobody_notices: 55, devoted_accomplice: 50, interchangeable_crowd: 50,
+        prose_brand_inventory: 65, prose_flat_atrocity: 70, prose_banal_digressions: 40, author_bret_easton_ellis: 85 },
+    'Rick & Morty, but real': { sci_fi_comedy: 70, adult_cartoon: 60, tragicomedy: 60, mission_of_the_week: 45, addiction_spiral: 40, begrudging_love: 50,
+        prose_sitcom_timing: 55, prose_tonal_whiplash: 50, prose_running_gags: 40, author_douglas_adams: 50, author_kurt_vonnegut: 40 },
+    'Joe’s “you” · 2010s': { era_2010s: 70, psychological_thriller: 60, romantic_horror: 40, stalking_horror: 40,
+        prose_obsessive_you: 80, prose_self_justifying: 60, author_caroline_kepnes: 85 },
+    'Astarion · spawn': { gothic_fantasy: 70, vampire_fiction: 60, breaking_free: 50, prose_arch_ornate: 55, author_anne_rice: 55, author_oscar_wilde: 40, author_ellen_kushner: 40 },
+    'Astarion · ascended': { gothic_fantasy: 70, dark_romance: 60, temptation_of_power: 60, offer_of_eternity: 50, prose_arch_ornate: 55,
+        author_anne_rice: 50, author_bram_stoker: 40, author_octave_mirbeau: 40 },
+    'Dark Justiciar': { gothic_fantasy: 60, crisis_of_faith: 40, prose_liturgical: 60, author_gene_wolfe: 50, author_tanith_lee: 40 },
+    'Gritty friendship · today': { era_2020s: 60, friendship_story: 75, addiction_drama: 55, party_comedy: 35, strictly_platonic: 60, boredom_rescue: 45,
+        keeping_it_from_family: 45, tight_friend_group: 55, precious_sibling: 40, prose_warm_grit: 65, prose_banter: 55, prose_texts: 30,
+        author_john_steinbeck: 40, author_denis_johnson: 40, author_irvine_welsh: 30 },
+    'Chloe dealer AU · 2010s': { era_2010s: 70, addiction_drama: 50, drug_world_violence: 35, cops_closing_in: 35, prose_warm_grit: 50, prose_texts: 35,
+        author_denis_johnson: 50, author_irvine_welsh: 40 },
+    'Dennis · sitcom': { party_comedy: 50, dark_comedy: 60, satire: 40, prose_sitcom_timing: 65, prose_running_gags: 50, author_john_kennedy_toole: 60 },
+    'Real stakes · no mercy': { real_stakes: 80, player_not_safe: 70, no_rescues: 80, decline_in_stages: 75, let_it_get_worse: 60, death_on_the_table: 70,
+        consequences_persist: 70, no_unearned_hope: 60, prose_unflinching: 60, prose_slow_motion_crisis: 45 },
+    'Angst & grief': { angst: 70, grief_story: 50, tragedy: 45, consequences_persist: 60, grief_gets_room: 60, no_unearned_hope: 55,
+        prose_quiet_devastation: 60, prose_no_silver_lining: 50 },
+    'Mother Gooseberry': { era_1960s: 50, cold_war_horror: 50, body_horror: 40, prose_nursery_rhyme: 70, author_edward_gorey: 50, author_angela_carter: 40 },
 };
 export const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, Number.isFinite(Number(v)) ? Number(v) : min));
 export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
@@ -2541,6 +3142,11 @@ export const PROMPT_NAME = {
     offensive: 'offensive fiction (deliberately offensive, no political correctness)',
     character_driven: 'character-driven', crime: 'crime fiction', gothic: 'gothic fiction', romcom: 'romantic comedy',
 };
+const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase());
+for (const [category, rows] of Object.entries(ADDITIONS)) {
+    if ((CATEGORIES.find(([id]) => id === category)[5] ?? 'mood') === 'story') continue;
+    for (const [id, label, cue] of rows) PROMPT_NAME[id] ??= `${lowerLabel(label)}: ${cue}`;
+}
 export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 // {other} lets relationship entries name who they're about ("taller than Ellie").
 export const SCALED_MOOD_CUES = {
@@ -2635,6 +3241,7 @@ const DARK_ACTION_IDS = new Set([
     'sociopathic', 'malignant_narcissism', 'sadistic_personality', 'homicidal_fixation', 'moral_disengagement',
     'serial_killer', 'torturer', 'kidnapper', 'drugger', 'hitman', 'captor', 'vigilante_killer', 'stalker',
     'axe_crazy', 'soft_spoken_sadist', 'pragmatic_villain', 'yandere', 'killed_will_again',
+    'yuppie_killer', 'romantic_stalker', 'vampire_lord', 'testing_limits',
 ]);
 const DARK_STORY_IDS = new Set([
     'gaslit_reality', 'hunted_for_sport', 'ritual_sacrifice', 'slow_poisoning', 'body_disposal', 'trapped_with_killer', 'brutal_executions', 'killer_among_them', 'dangerous_love_interest',
@@ -2643,6 +3250,8 @@ const DARK_STORY_IDS = new Set([
     'serial_killer_hunt', 'killer_pov', 'stalking_horror', 'abduction_plot', 'captivity_horror', 'torture_horror',
     'home_invasion', 'rising_body_count', 'no_one_safe', 'psychological_torment', 'escalating_violence',
     'bad_ending', 'villain_wins', 'lethal_combat', 'gory_combat', 'gritty_combat', 'sudden_violence',
+    'unethical_experiments', 'reconditioning', 'medical_crisis', 'impossible_choice', 'addiction_spiral', 'killing_spree',
+    'drug_world_violence', 'deaths_that_dont_stick', 'relapse', 'slow_death', 'loss_of_a_main',
 ]);
 // Prompt-safe text. Only angle brackets could break the note's tags, so apostrophes stay readable ("he's", not "he&#39;s").
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
@@ -2816,7 +3425,8 @@ export function composePrompt(state, name, extras = {}) {
         `Keep their ages as written. The age gap shows at its strength in how they look side by side, the lives they've led and what each takes for granted${ageGapStrength >= 91 ? `, and at this strength the reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back` : ''}. Their other settings decide what they make of it.`);
     // Period first, then what happens, then how it reads: style settings aren't plot.
     const eras = story.filter(m => m.category === 'era'), styles = story.filter(m => STYLE_CATEGORIES.has(m.category));
-    const plot = story.filter(m => m.category !== 'era' && !STYLE_CATEGORIES.has(m.category));
+    const stakes = story.filter(m => m.category === 'stakes');
+    const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category));
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
     if (eras.length) out.push('', ...listLines(storyState, eras, U), '',
@@ -2825,6 +3435,10 @@ export function composePrompt(state, name, extras = {}) {
         `Blend these into one story led by the strongest. They decide what happens, the pace, stakes and consequences, not how anyone feels.${plotPeak >= 91 ? ` An overwhelming one shapes nearly every beat; commit to it instead of drifting somewhere safer.` : ''}`,
         ...(darkStoryPeak ? [`Dark story settings change what happens, not just the mood.${darkStoryPeak >= 81 ? ` Serious injury, murder, lasting terror and bad endings are on the table, and danger can follow through.` : ''}${darkStoryPeak === 100 ? ` At maximum, build the reply around the harshest one that fits and leave a real consequence that can't be undone.` : ''}`] : []),
         ...(deadDoveStrength ? [`Dead dove means every dark tag is meant literally: murder isn't softened into a scare, torture into a threat, or cruelty into a rescue.`] : []));
+    // Follow-through: the player asked for harm and decline to land, so say so plainly and early enough to steer planning.
+    const stakesPeak = peakOf(stakes), playerAtRisk = stakes.some(m => m.id === 'player_not_safe');
+    if (stakes.length) out.push('', ...listLines(storyState, stakes, U), '',
+        `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it. No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don't steer back to safety because the moment is hard to write. A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply: narration, rhythm, word choice and what gets lingered on or skipped. Hold them from the first line to the last instead of drifting back to a default style.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
         ...(authorPeak ? [`Mix the authors at their strengths${authorPeak >= 81 ? '; the strongest should read as if they wrote it' : ''}. Borrow their techniques, not their sentences, characters or plots.`] : []));

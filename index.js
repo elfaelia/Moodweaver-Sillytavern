@@ -14,7 +14,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.27.1';
+const VERSION = '1.28.0';
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 4, library: [], readerProfile: '', boardSend: true, boardPresent: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';

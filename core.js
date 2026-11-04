@@ -1250,11 +1250,11 @@ export const CATEGORIES = [
         ['torture_horror', 'Torture horror', 'deliberate suffering and psychological breaking are central threats'],
         ['home_invasion', 'Home invasion', 'a supposedly safe private space is breached by a determined threat'],
         ['rising_body_count', 'Rising body count', 'deaths accumulate and make the danger impossible to dismiss'],
-        ['no_one_safe', 'No one is safe', 'important characters can be harmed or killed; status gives no immunity'],
+        ['no_one_safe', 'No one is safe', 'important characters get hurt and killed; status gives no immunity'],
         ['psychological_torment', 'Psychological torment', 'the threat attacks trust, perception and emotional weak points'],
         ['escalating_violence', 'Escalating violence', 'each violent turn crosses a line the last one didn’t'],
-        ['bad_ending', 'Bad ending', 'the story is allowed to end in defeat, death, corruption or lasting ruin'],
-        ['villain_wins', 'Villain wins', 'the villain can achieve the terrible thing they set out to do'],
+        ['bad_ending', 'Bad ending', 'the story ends in defeat, death, corruption or lasting ruin, and it isn’t rescued at the last moment'],
+        ['villain_wins', 'Villain wins', 'the villain gets the terrible thing they set out to do, and it sticks'],
         ['cover_up', 'Cover-up', 'the aftermath turns into concealment, lies and destroying evidence'],
     ], 'story'],
     ['genre', 'Genre', '❖', '#b8a6e0', [
@@ -1270,7 +1270,7 @@ export const CATEGORIES = [
         ['romcom', 'Romantic comedy', 'romance played for laughs, warmth and banter'],
         ['monster_romance', 'Monster romance', 'romance with a literal monster or inhuman lover'], ['mafia_romance', 'Mafia romance', 'romance tangled up in organised crime, loyalty and violence'],
         ['chivalric_romance', 'Chivalric romance', 'knights and courtly love'], ['erotica', 'Erotica', 'sex is a central focus and written in detail'],
-        ['drama', 'Drama', 'emotional conflict and serious stakes between people'], ['angst', 'Angst', 'emotional pain, longing and hurt that’s allowed to linger'],
+        ['drama', 'Drama', 'emotional conflict and serious stakes between people'], ['angst', 'Angst', 'emotional pain, longing and hurt that linger and aren’t soothed away'],
         ['tragedy', 'Tragedy', 'heading toward loss or ruin; not everything gets saved'], ['slice_of_life', 'Slice of life', 'everyday moments and ordinary life in detail'],
         ['character_driven', 'Character-driven', 'people and their inner lives drive the story more than plot'], ['coming_of_age', 'Coming-of-age', 'growing up, finding out who you are and losing innocence'],
         ['comedy', 'Comedy', 'built to be funny'], ['dark_comedy', 'Dark comedy', 'humour found in grim, morbid or taboo things'],
@@ -2355,9 +2355,9 @@ export function activeMoods(state) {
 // one plain line saying how much a feeling at that strength actually does.
 // One strength scale for everything, worded so it works for feelings, facts, the player's character and the story alike.
 export const TIERS = [
-    { min: 100, name: 'Maximum', text: 'owns the reply. It runs through everything they do, say and think and gets played as far as they would believably take it, never toned down' },
+    { min: 100, name: 'Maximum', text: 'owns the reply. It runs through every line, choice and thought, pushed to its extreme, and nothing else in these notes tones it down' },
     { min: 91, name: 'Overwhelming', text: 'takes over. It decides the main thing that happens, their voice and focus, and leaves the scene changed' },
-    { min: 81, name: 'Intense', text: 'drives the reply. It shows in most of what they say and think and decides where the scene goes' },
+    { min: 81, name: 'Intense', text: 'drives the reply. It shows in most of what they say, do and think and decides where the scene goes' },
     { min: 61, name: 'Strong', text: 'steers. It decides at least one real choice and keeps showing in their voice' },
     { min: 41, name: 'Clear', text: 'shows plainly and shapes at least one thing they say or do' },
     { min: 21, name: 'Mild', text: 'colours their tone and shows at least once without steering anything' },
@@ -3229,6 +3229,8 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
     if (m.category === 'writing' && m.id.startsWith('prose_')) return `${m.label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase())}: ${m.cue}`;
     if (m.category === 'fighting') return m.cue;
     if (m.kind === 'story' && !PROMPT_NAME[m.id] && m.cue.toLowerCase() !== m.label.toLowerCase()) return `${m.label.toLowerCase()}: ${m.cue}`;
+    if (!PROMPT_NAME[m.id] && m.category !== 'attraction' && value >= 61 && m.cue && m.cue.toLowerCase() !== m.label.toLowerCase())
+        return (m.cue.toLowerCase().startsWith(m.label.toLowerCase()) ? m.cue : `${m.label.toLowerCase()}: ${m.cue}`).replaceAll('{other}', other);
     return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
 };
 const CATEGORY_NAME = Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name]));
@@ -3361,6 +3363,8 @@ export function composePrompt(state, name, extras = {}) {
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
     const out = [`The player's own notes for this reply: where things stand and how it should read. Where they clash with the character card, the chat so far or earlier style instructions, these win.`];
     if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`));
+    if (story.length) out.push('',
+        `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it.`);
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) out.push('',

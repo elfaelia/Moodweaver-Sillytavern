@@ -4,9 +4,13 @@
 //   <!-- weave: moods desperate -10, relieved +20 | needs hunger low | toward obsessed +5 | friendship +1 | romance +2 | trust -3 | power +2 | thinks: stubborn, his | sparked: her defiance | remember: none -->
 // Older chats wrote <!-- bond: … --> (1.33.0); both are read, and both are stripped from the prompt.
 const LINE = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/i;
+const LINES = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/gi;
 const LINE_ALL = /[ \t]*<!--\s*(?:weave|bond)\s*:[\s\S]*?-->[ \t]*\n?/gi;
 export const hasWeave = text => typeof text === 'string' && LINE.test(text);
 export const stripWeave = text => String(text ?? '').replace(LINE_ALL, '').replace(/\s+$/, '');
+// 1.36.0: every weave line in a reply, in order. A continued reply can end up with two: the first
+// reply's line and the continuation's. Both count, so nothing the first part changed is lost.
+export const weaveLines = text => [...String(text ?? '').matchAll(LINES)].map(m => m[1].trim());
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const NONE = /^(none|nothing|n\/?a|no change|no|-|—|\[.*\])\.?$/i;
@@ -41,10 +45,9 @@ function needs(v) {
 const sparks = v => list(v, 3, 60).map(s => ({ text: s.replace(/\s*\((?:off|turn-?off)\)\s*$/i, '').trim(), off: /\((?:off|turn-?off)\)\s*$/i.test(s) })).filter(s => s.text);
 const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
-export function parseWeave(mes) {
-    const m = LINE.exec(String(mes ?? '')); if (!m) return null;
+function readLine(body) {
     const f = {};
-    for (const part of m[1].split('|')) {
+    for (const part of body.split('|')) {
         const x = part.trim().match(FIELDS); if (!x) continue;
         const key = x[1].toLowerCase().replace(/^(mood|feelings)$/, 'moods').replace(/^sparks$/, 'sparked');
         f[key] ??= x[2].trim();
@@ -62,10 +65,29 @@ export function parseWeave(mes) {
         remember: !remember || NONE.test(remember) ? '' : remember.slice(0, 160),
     };
 }
+// Every line in the reply is read and merged: meters add up, lists join, the newest need and memory win.
+export function parseWeave(mes) {
+    const parts = weaveLines(mes).map(readLine); if (!parts.length) return null;
+    if (parts.length === 1) return parts[0];
+    const out = parts[0];
+    for (const x of parts.slice(1)) {
+        for (const k of ['f', 'r', 't', 'p']) out[k] = clamp(out[k] + x[k], -10, 10);
+        out.hasTrust ||= x.hasTrust; out.hasPower ||= x.hasPower; out.hasMoods ||= x.hasMoods;
+        out.pRaw = [out.pRaw, x.pRaw].filter(Boolean).join(' ; '); out.lRaw = [out.lRaw, x.lRaw].filter(Boolean).join(' ; ');
+        out.moods = [...out.moods, ...x.moods].slice(0, 10); out.toward = [...out.toward, ...x.toward].slice(0, 6);
+        out.feels = [...out.feels, ...x.feels].slice(0, 6); out.needs = { ...out.needs, ...x.needs };
+        out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6);
+        if (x.remember) out.remember = x.remember;
+    }
+    return out;
+}
 
 // 1.34.1: power names who gained it ("power Lamb +3"), so the direction can't be read backwards.
 // A bare signed number from older lines still works: + toward the character, - toward the player.
 export function powerChange(raw, charName = '', userName = '') {
+    // Two weave lines in one reply arrive joined by " ; ", and each part counts.
+    const parts = String(raw ?? '').split(';').map(s => s.trim()).filter(Boolean);
+    if (parts.length > 1) return clamp(parts.reduce((sum, part) => sum + powerChange(part, charName, userName), 0), -10, 10);
     const text = String(raw ?? '').toLowerCase(), size = Math.abs(num(text));
     const names = name => String(name).toLowerCase().split(/\s+/).filter(w => w.length > 2 && !['doctor', 'the', 'mr', 'mrs', 'miss', 'mother', 'father'].includes(w));
     const has = name => names(name).some(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));

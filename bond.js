@@ -1,7 +1,7 @@
 // Sims-style bond meters between a character and the player's character (1.33.0; 1.34.0 adds Trust,
 // Power, a named dynamic and sparked turn-ons). The numbers arrive on the reply's hidden weave line
-// (weave.js). Each reply's step is stored by message index, so swipes, edits and deletions
-// recalculate on their own. No extra request is ever made.
+// (weave.js). 1.36.0: the steps are read straight from the chat every time, one per reply that still
+// exists, so swipes, edits and deletions can't leave anything behind. No extra request is ever made.
 import { parseWeave, hasWeave, stripWeave, traitKey } from './weave.js';
 import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
@@ -89,20 +89,47 @@ export function cleanBond(raw = {}, on = true) {
         steps[i] = { f: step(s.f), r: step(s.r), t: step(s.t), p: step(s.p), l: step(s.l), thinks: (Array.isArray(s.thinks) ? s.thinks : []).map(t => text(t)).filter(Boolean).slice(0, 3),
             sparks: (Array.isArray(s.sparks) ? s.sparks : []).map(x => ({ text: text(x?.text, 60), off: x?.off === true, id: TURN_BY_ID[x?.id] ? x.id : '' })).filter(x => x.text).slice(0, 3) };
     const keep = Object.keys(steps).map(Number).sort((a, c) => c - a).slice(0, 120);
+    // 1.36.0: a dragged meter is an anchor: "it stood at v just after this reply".
+    const anchors = {};
+    for (const k of METERS) {
+        const a = b.anchors?.[k];
+        if (a && typeof a === 'object' && Number.isFinite(Number(a.v))) anchors[k] = { v: n(a.v), key: text(a.key, 120), pos: Math.max(-1, Math.round(Number(a.pos) || 0)) };
+    }
     return {
         on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: DYNAMIC_NAMES.includes(b.fixed) ? b.fixed : '',
+        v: b.v === 2 ? 2 : 1, anchors,
         base: Object.fromEntries(METERS.map(k => [k, n(b.base?.[k])])),
         pins: Object.fromEntries(METERS.map(k => [k, pin(b.pins?.[k])])),
-        steps: Object.fromEntries(keep.map(i => [i, steps[i]])),
+        steps: b.v === 2 ? {} : Object.fromEntries(keep.map(i => [i, steps[i]])),
         muted: [...new Set((b.muted ?? []).map(t => text(t).toLowerCase()).filter(Boolean))].slice(0, 30),
         own: [...new Set((b.own ?? []).map(t => text(t)).filter(Boolean))].slice(0, 6),
     };
 }
-// Totals come from the steps of replies that still exist, so swipes, edits and deletions just work.
-export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the other', axes = null) {
-    const steps = Object.entries(bond.steps).map(([i, s]) => [Number(i), s]).filter(([i]) => i < chatLength).sort((a, c) => a[0] - c[0]);
-    const total = key => bond.pins[key] ?? clamp(bond.base[key] + steps.reduce((sum, [, s]) => sum + (s[key] ?? 0), 0), -100, 100);
-    const v = Object.fromEntries(METERS.map(k => [k, total(k)]));
+// Older saves kept steps by message number; they're still readable for the one-time move to 1.36.
+export const storedSteps = (bond, chatLength = Infinity) => Object.entries(bond?.steps ?? {}).map(([i, s]) => ({ pos: Number(i), key: `i${i}`, s }))
+    .filter(x => x.pos < chatLength).sort((a, c) => a.pos - c.pos);
+// Where a meter starts: its anchor if it has one (just after the reply it was set on, or where that
+// reply used to be), otherwise its base before the first reply.
+function startOf(bond, k, steps) {
+    const a = bond.anchors?.[k];
+    if (!a) return [bond.base[k] ?? 0, 0];
+    let at = a.key ? steps.findIndex(x => x.key === a.key) : -1;
+    if (at < 0 && a.key) for (let i = steps.length - 1; i >= 0; i--) if (steps[i].pos < a.pos) { at = i; break; }
+    return [a.v, at + 1];
+}
+// A meter fills and drains like a Sims bar: each reply moves it from where it is, and it can't go
+// past the ends, so a long run of good replies doesn't bank hundreds of points against the next fight.
+export function meterValue(bond, k, steps) {
+    if (bond.pins?.[k] !== null && bond.pins?.[k] !== undefined) return bond.pins[k];
+    let [v, from] = startOf(bond, k, steps);
+    for (let i = from; i < steps.length; i++) v = clamp(v + (steps[i].s?.[k] ?? 0), -100, 100);
+    return v;
+}
+// list: [{ pos, key, s }] oldest first, read from the chat. Without one, older stored steps are used.
+export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the other', axes = null, list = null) {
+    const all = Array.isArray(list) ? list : storedSteps(bond, chatLength);
+    const steps = all.map(x => [x.pos, x.s]);
+    const v = Object.fromEntries(METERS.map(k => [k, meterValue(bond, k, all)]));
     // Opinions strengthen when repeated and fade when they stop coming up.
     const seen = new Map();
     for (const [, s] of steps) {
@@ -123,12 +150,12 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
         dynamic: dynamicOf(blend(v, axes, bond.pins), n, u, bond.fixed), auto: dynamicOf(blend(v, axes, bond.pins), n, u).name };
 }
-// Dragging a meter sets where it stands now; later replies move it from there.
-export function setMeter(bond, key, value, chatLength = Infinity) {
+// Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
+// after the newest reply, so swiping that reply keeps your value and the new swipe moves it.
+export function setMeter(bond, key, value, list = []) {
     if (!METERS.includes(key)) return;
-    const v = clamp(Math.round(Number(value) || 0), -100, 100);
-    const sum = Object.entries(bond.steps).filter(([i]) => Number(i) < chatLength).reduce((s, [, st]) => s + (st[key] ?? 0), 0);
-    bond.base[key] = clamp(v - sum, -300, 300);
+    const v = clamp(Math.round(Number(value) || 0), -100, 100), last = Array.isArray(list) ? list[list.length - 1] : null;
+    (bond.anchors ??= {})[key] = { v, key: last?.key ?? '', pos: last?.pos ?? -1 };
     if (bond.pins[key] !== null) bond.pins[key] = v;
 }
 // A sparked phrase matched to one of the character's own turn-ons, if it names one.
@@ -143,9 +170,9 @@ export function turnIdFor(text, prefs = {}) {
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 // Rows for the relationships block, under "[character] toward [player]". Words only: a number tells the
 // model less than "wary" does. The request for the hidden line is built in weave.js.
-export function bondStanding({ bond, chatLength, n, u, axes = null }) {
+export function bondStanding({ bond, chatLength, n, u, axes = null, list = null }) {
     if (!bond?.on) return [];
-    const d = computeBond(bond, chatLength, n, u, axes), low = s => s.toLowerCase(), word = w => w === 'Even' ? 'even' : pt(w);
+    const d = computeBond(bond, chatLength, n, u, axes, list), low = s => s.toLowerCase(), word = w => w === 'Even' ? 'even' : pt(w);
     return [
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),

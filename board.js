@@ -64,15 +64,23 @@ export function parseBoard(mes) {
     return Object.keys(board).length > 1 || board.outfits.length ? board : null;
 }
 // The latest board in a chat, newest first. Hidden and player messages don't count.
+// 1.36.0: the key names this board in this swipe (its send time plus what it says), so fixing a typo in
+// the prose keeps it, and a swipe or a different reply gets a new one.
 export function latestBoard(chat, lookback = 40) {
     const list = Array.isArray(chat) ? chat : [];
     for (let i = list.length - 1, seen = 0; i >= 0 && seen < lookback; i--, seen++) {
         const m = list[i];
         if (!m || m.is_user || m.is_system || !hasBoard(m.mes)) continue;
         const board = parseBoard(m.mes);
-        if (board) return { board, index: i, name: String(m.name ?? ''), key: boardKey(m.mes) };
+        if (board) return { board, index: i, name: String(m.name ?? ''), key: boardKey(`${m.send_date ?? ''}|${JSON.stringify(board)}`) };
     }
     return null;
+}
+// The same key for any one message, or '' when it has no board.
+export function boardKeyOf(m) {
+    if (!m || !hasBoard(m.mes)) return '';
+    const board = parseBoard(m.mes);
+    return board ? boardKey(`${m.send_date ?? ''}|${JSON.stringify(board)}`) : '';
 }
 function boardKey(mes) {
     let hash = 2166136261;
@@ -186,30 +194,49 @@ export function skyOf(board) {
 
 // ---- Player edits, saved per chat in metadata.board ----
 export const EDIT_FIELDS = ['date', 'time', 'location', 'activity', 'charOutfit', 'userOutfit', 'horny'];
+// 1.36.0: editing the scene card is a correction to the board it was made on:
+// { text, on: that board's key, pos: that board's place in the chat }. The next reply is told to use it
+// and carry it forward, and once a board from a later reply arrives it lets go, so an edit can't freeze
+// the time or an outfit for the rest of the chat. Swiping that next reply brings the correction back
+// (the corrected board is newest again), and so does swiping or deleting the corrected reply itself.
+// Pins from older versions (plain text, on every reply) come in as corrections waiting to be tied to
+// whatever board is newest when the chat is next opened (on: '?').
+export const NO_BOARD = 'none';
 export function cleanBoardMeta(meta) {
     const b = meta && typeof meta === 'object' ? meta : {};
     const t = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
     const list = v => [...new Set((Array.isArray(v) ? v : []).map(x => t(x, 90)).filter(Boolean))].slice(0, 12);
+    const fix = {};
+    for (const k of EDIT_FIELDS) {
+        const f = b.fix?.[k];
+        if (f && typeof f === 'object' && t(f.text, 200)) fix[k] = { text: t(f.text, 200), on: t(f.on, 60) || '?', pos: Math.max(-1, Math.round(Number(f.pos ?? -1) || 0)) };
+        else if (t(b.pins?.[k], 200)) fix[k] = { text: t(b.pins[k], 200), on: '?', pos: -1 };
+    }
     return {
         send: typeof b.send === 'boolean' ? b.send : undefined,
         includeHorny: b.includeHorny === true,
         feed: b.feed !== false, includeToward: b.includeToward === true, includeRemember: b.includeRemember !== false,
-        pins: Object.fromEntries(EDIT_FIELDS.map(k => [k, t(b.pins?.[k], 200)]).filter(([, v]) => v)),
+        fix,
         needs: Object.fromEntries(Object.entries(b.needs ?? {}).filter(([k]) => NEED_IDS.has(k) || k === 'horny')
             .map(([k, v]) => [k, Math.round(Math.max(0, Math.min(100, Number(v) || 0)))])),
         keep: { state: list(b.keep?.state), physical: list(b.keep?.physical) },
         mute: { state: list(b.mute?.state), physical: list(b.mute?.physical) },
         syncedKey: t(b.syncedKey, 40),
-        // 1.34.0: needs the weave line reported, by message index: { 12: { hunger: 30 } }.
-        needSteps: Object.fromEntries(Object.entries(b.needSteps ?? {}).filter(([i, v]) => /^\d+$/.test(i) && v && typeof v === 'object')
-            .sort((a, c) => Number(c[0]) - Number(a[0])).slice(0, 30)
-            .map(([i, v]) => [i, Object.fromEntries(Object.entries(v).filter(([k]) => NEED_IDS.has(k)).map(([k, x]) => [k, Math.round(Math.max(0, Math.min(100, Number(x) || 0)))]))])),
     };
+}
+// A correction applies until a board from at or after the corrected one's place arrives: while the
+// corrected board is still the newest, or after it was swiped away or deleted and nothing has replaced it.
+export const fixActive = (f, found) => f.on === '?' || !found || found.key === f.on || found.index < f.pos;
+export function activeFixes(b, found) {
+    return Object.fromEntries(Object.entries(b?.fix ?? {}).filter(([, f]) => fixActive(f, found)).map(([k, f]) => [k, f.text]));
 }
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 // What the panel and prompt both work from: the latest board plus the player's edits.
-export function liveBoard(found, meta, names = {}) {
-    const board = found?.board ?? null, b = cleanBoardMeta(meta);
+// needSteps: { messageIndex: { hunger: 30 } } from the weave lines still in the chat (1.36.0: read
+// from the chat each time, never stored, so a swiped-away reply's needs can't linger).
+export function liveBoard(found, meta, names = {}, needSteps = {}) {
+    const board = found?.board ?? null, b = { ...cleanBoardMeta(meta) };
+    b.pins = activeFixes(b, found);
     const outfit = who => board?.outfits.find(o => names[who] && same(o.name, names[who]))?.text ?? board?.outfits[who === 'char' ? 0 : 1]?.text ?? '';
     const field = key => b.pins[key] || (key === 'charOutfit' ? outfit('char') : key === 'userOutfit' ? outfit('user') : board?.[key] ?? '');
     const tiles = kind => {
@@ -219,7 +246,7 @@ export function liveBoard(found, meta, names = {}) {
     };
     const read = board ? needsFromBoard(board) : {};
     // Whichever is newer wins: the board's words or the need the weave line last reported.
-    const steps = Object.entries(b.needSteps).map(([i, v]) => [Number(i), v]).sort((x, y) => y[0] - x[0]);
+    const steps = Object.entries(needSteps ?? {}).map(([i, v]) => [Number(i), v]).sort((x, y) => y[0] - x[0]);
     const woven = id => { const hit = steps.find(([, v]) => id in v); return hit && hit[0] >= (found?.index ?? -1) ? hit[1][id] : null; };
     const needs = NEEDS.map(n => {
         const pinned = Object.hasOwn(b.needs, n.id), w = woven(n.id);
@@ -250,7 +277,9 @@ export function namedIn(present, name) {
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling hard at what they say and do'], [21, 'on their mind and colouring how they look at people'], [1, 'barely on their mind'], [0, 'not on their mind at all']];
 // What the newest board said, as one line, for when old boards are kept out of the prompt.
-// Pinned fields are left to the "player set these" block below, so nothing is said twice.
+// Corrected fields are left to the correction block below, so nothing is said twice.
+// 1.36.0: the notes as a whole outrank the chat, which is right for feelings but wrong for a record of
+// the last board: if the chat has moved on, Opus 5.5 should follow the chat. So this line says so.
 export function boardContinuity(live, char, user) {
     const b = live?.board; if (!b) return '';
     const pins = live.meta?.pins ?? {}, out = [];
@@ -259,7 +288,7 @@ export function boardContinuity(live, char, user) {
     const outfit = who => b.outfits.find(o => same(o.name, who))?.text ?? b.outfits[who === char ? 0 : 1]?.text;
     add('charOutfit', outfit(char), `${char} wears`); add('userOutfit', outfit(user), `${user} wears`);
     add('physical', b.physical, 'body');
-    return out.length ? `Where the last board left things; start from here and change only what the scene changes: ${pt(out.join('; '))}.` : '';
+    return out.length ? `The last reply's board, taken out of the chat above to save space: ${pt(out.join('; '))}. It's a record of where that reply left things. Start this reply's board from there and change what this reply changes. Where the chat shows something different, the chat is right.` : '';
 }
 // opts: { send, live, char, user, n, u, stripped, remember }. Returns prompt lines, or [] when there's no board in play.
 // remember: the Remember row goes on the board only when the hidden weave line isn't carrying it.
@@ -276,7 +305,8 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
         .filter(([k]) => b.pins[k] && (k !== 'horny' || includeHorny)).map(([k, label]) => `- ${label}: ${pt(b.pins[k])}`);
     const keepState = live.state.filter(t => t.kept).map(t => t.text), keepBody = live.physical.filter(t => t.kept).map(t => t.text);
-    if (pins.length || keepState.length || keepBody.length) out.push('', `The player set these. Keep them on the board and play them as true until they change:`, ...pins,
+    if (pins.length) out.push('', `The player corrected the last board. Put these on this reply's board and play them as true now; from here the story can change them like anything else:`, ...pins);
+    if (keepState.length || keepBody.length) out.push('', `The player keeps these on the board every reply:`,
         ...(keepState.length ? [`- State includes: ${pt(keepState.join(', '))}`] : []), ...(keepBody.length ? [`- Physical State includes: ${pt(keepBody.join(', '))}`] : []));
     const cut = [...b.mute.state, ...b.mute.physical].filter(p => [live.board?.state, live.board?.physical].some(line => String(line ?? '').toLowerCase().includes(p.toLowerCase())));
     if (cut.length) out.push(`The player cut these. Drop them from the board and the scene: ${pt(cut.join(', '))}.`);
@@ -299,7 +329,7 @@ const FEELING_SYNONYMS = { furious: 'angry', enraged: 'angry', livid: 'angry', i
     thrilled: 'excited', eager: 'excited', miserable: 'sad', gloomy: 'sad', sorrowful: 'sad', ashamed: 'ashamed', humiliated: 'embarrassed', mortified: 'embarrassed',
     tender: 'affectionate', loving: 'affectionate', fond: 'affectionate', relaxed: 'calm', serene: 'peaceful', amused: 'entertained', smug: 'smug', wary: 'suspicious',
     frantic: 'desperate', resigned: 'resigned', relief: 'relieved', terror: 'afraid', dread: 'anxious', rage: 'angry', fury: 'angry', grief: 'sad', shame: 'ashamed', guilt: 'guilty',
-    jealousy: 'jealous', longing: 'yearning', devotion: 'devoted', panic: 'afraid', elation: 'happy', despair: 'hopeless', lust: 'horny', hunger: 'yearning', tenderness: 'affectionate', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
+    jealousy: 'jealous', longing: 'yearning', devotion: 'devoted', panic: 'afraid', elation: 'happy', despair: 'despairing', hopeless: 'despairing', lust: 'horny', hunger: 'yearning', tenderness: 'affectionate', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
 const RELATION_SYNONYMS = { fond: 'likes', wary: 'distrusts', distrustful: 'distrusts', protective: 'protects', attracted: 'finds_attractive', curious: 'intrigued_by',
     trusting: 'trusts', resentful: 'resents', afraid: 'fears', scared: 'fears', frightened: 'fears', annoyed: 'finds_annoying', irritated: 'irritated_by', loving: 'loves',
     adoring: 'idolises', tender: 'cherishes', grateful: 'grateful_to', guilty: 'guilty_toward', hurt: 'hurt_by', betrayed: 'betrayed_by', contemptuous: 'despises',

@@ -50,6 +50,14 @@
    means the top edge of the screen. 100dvh is always the real bottom; translateY(-100%) sits the element on it. */
 #moodweaver-launcher{position:fixed;right:16px;bottom:auto;top:calc(100vh - 84px);top:calc(100dvh - 84px);transform:translateY(-100%);z-index:2999;display:flex;align-items:center;gap:8px;border:1px solid #c9b8f055;border-radius:999px;background:#1d1729e6;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ede7f7;padding:9px 15px;font:600 13px -apple-system,system-ui,sans-serif;box-shadow:0 6px 24px #0007;cursor:pointer}
 #moodweaver-launcher span{color:var(--mw-lilac,#c9b8f0);font-size:18px;text-shadow:0 0 12px #c9b8f088}
+/* 1.36.0: drag it anywhere (saved per device), or make it just the ◆. Touch-action keeps the page still while dragging. */
+#moodweaver-launcher{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#moodweaver-launcher.is-small{padding:0;width:44px;height:44px;justify-content:center}
+#moodweaver-launcher.is-placed{right:auto;bottom:auto;transform:none}
+#moodweaver-launcher.is-dragging{cursor:grabbing;box-shadow:0 10px 32px #000a,0 0 0 2px #c9b8f066;opacity:.92}
+#moodweaver-safe{position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+#moodweaver-wand[hidden]{display:none!important}
+.mw-settings-entry .mw-entry-toggle{margin:6px 0}
 
 /* Header: the one loud thing. A strip of sky that follows the board's hour. */
 .mw-panel .mw-top{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px var(--mw-pad) 12px;
@@ -373,6 +381,7 @@
   .mw-panel .mw-top{padding-top:22px}
   .mw-panel .mw-top::before{content:'';position:absolute;top:8px;left:50%;width:38px;height:5px;margin-left:-19px;border-radius:3px;background:#ffffff40}
   #moodweaver-launcher{right:10px;top:calc(100vh - 74px);top:calc(100dvh - 74px);padding:8px 13px}
+  #moodweaver-launcher.is-small{padding:0}
 }
 @media (max-width:360px){.mw-needs,.mw-bond-grid{grid-template-columns:1fr}}
 /* Touch: Safari zooms into fields under 16px, and fingers need bigger targets. */

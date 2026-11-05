@@ -62,7 +62,8 @@ function presentChips(live, people) {
 const editField = (key, label, value, max = 200) => max > 80
     ? `<label class="mw-field">${label}<textarea data-board-field="${key}" maxlength="${max}" rows="2" enterkeyhint="done">${esc(value)}</textarea></label>`
     : `<label class="mw-field">${label}<input type="text" data-board-field="${key}" maxlength="${max}" enterkeyhint="done" value="${esc(value)}"></label>`;
-const pinMark = (pins, key) => pins[key] ? `<button type="button" class="mw-pinned" data-board-unpin="${key}" title="Set by you. Tap to follow the board again" aria-label="Unpin">◆</button>` : '';
+// 1.36.0: an edit is a correction to this board (✎), not a pin. The next reply takes it on and carries it.
+const pinMark = (pins, key) => pins[key] ? `<button type="button" class="mw-pinned" data-board-unpin="${key}" title="Your correction, going to the next reply. Tap to undo it" aria-label="Undo your correction">✎</button>` : '';
 
 // opts: { live, send, sync, charName, userName, people: [{ name, match(name), attrs, away }], editing, focus }
 export function boardView({ live, send, sync, charName, userName, people, editing, focus }) {
@@ -81,7 +82,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         </div>` : `
         <div class="mw-sky-empty"><b>No board yet</b><p>${send ? 'The next reply starts with your info board, and it lands here.' : 'Turn on “Send the board prompt” below, or keep INFO BOARD in your preset. Either way the next board lands here.'}</p></div>`;
     const edit = editing ? `<section class="mw-board-edit">
-        <p class="mw-fine">Anything you change here is pinned ◆ and sent as true until you unpin it. Clear a box to follow the board again.</p>
+        <p class="mw-fine">Anything you change here corrects this board (✎). The next reply uses it and carries it on, and from then on the story can change it again. Swiping that reply keeps your correction. Clear a box to undo it.</p>
         ${editField('date', 'Date', pins.date || live.day, 80)}${editField('time', 'Time', pins.time || live.time, 40)}${editField('location', 'Location', live.location)}${editField('activity', 'Activity', live.activity)}
         ${editField('charOutfit', `${esc(charName)}’s outfit`, live.charOutfit)}${editField('userOutfit', `${esc(userName)}’s outfit`, live.userOutfit)}${live.meta.includeHorny ? editField('horny', 'Horny', live.horny) : ''}
         <div class="mw-actions"><button class="mw-primary" data-action="board-edit-done">✓ Done</button></div></section>` : '';

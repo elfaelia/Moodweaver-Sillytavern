@@ -56,7 +56,7 @@ test('old boards leave the prompt, and an empty reply keeps its board', () => {
 });
 test('weave needs beat older board words', () => {
     const found = { board: { physical: 'well fed', outfits: [] }, index: 2, name: 'E' };
-    const live = liveBoard(found, cleanBoardMeta({ needSteps: { 3: { hunger: 30 } } }));
+    const live = liveBoard(found, cleanBoardMeta({}), {}, { 3: { hunger: 30 } });
     assert.equal(live.needs.find(n => n.id === 'hunger').value, 30);
 });
 test('meters: four bars, a named dynamic, and the standing sits under the relationship', () => {

@@ -12,13 +12,13 @@ function meter(key, label, value, level, pinned, ends = ['-100', '100']) {
 }
 const slug = s => String(s).toLowerCase().replace(/[^a-z]+/g, '-');
 // Two thin bars under the player's row in the Bonds list.
-export function bondMini(bond, chatLength, axes = null) {
-    const d = computeBond(bond, chatLength, 'one', 'the other', axes);
+export function bondMini(bond, chatLength, axes = null, list = null) {
+    const d = computeBond(bond, chatLength, 'one', 'the other', axes, list);
     const bar = (cls, v) => `<i class="mw-mini ${cls}" style="--mw-at:${Math.abs(v) / 2}%;--mw-side:${v < 0 ? 'right' : 'left'}"></i>`;
     return `<span class="mw-mini-bars" aria-hidden="true">${bar('is-f', d.f)}${bar('is-r', d.r)}</span>${bond.extra ? `<span class="mw-mini-dyn">${esc(d.dynamic.name)}</span>` : ''}`;
 }
-export function bondView({ bond, charName, userName, chatLength, axes = null }) {
-    const d = computeBond(bond, chatLength, charName, userName, axes);
+export function bondView({ bond, charName, userName, chatLength, axes = null, list = null }) {
+    const d = computeBond(bond, chatLength, charName, userName, axes, list);
     const changes = d.recent.filter(s => s.f || s.r || s.t || s.p || s.l);
     const pin = k => bond.pins[k] !== null;
     if (!bond.on) return `<section class="mw-bond is-off">
@@ -42,7 +42,7 @@ export function bondView({ bond, charName, userName, chatLength, axes = null }) 
             <label class="mw-toggle"><input type="checkbox" data-bond-on checked> Hidden weave line for ${esc(charName)} in this chat</label>
             <label class="mw-toggle"><input type="checkbox" data-bond-extra ${bond.extra ? 'checked' : ''}> Trust, Control, Pull and the named dynamic</label>
             <p class="mw-fine">Control is who really holds it: doors, money, freedom. Pull is who’s hooked on whom. They can point opposite ways, like a captive who still gets what she demands.</p>
-            <p class="mw-fine">Each reply ends with one hidden line that only Moodweaver reads: only what changed in feelings, needs, relationship, these meters, opinions, turn-ons set off and turning points. SillyTavern hides it in chat and Moodweaver strips it from the prompt. About 380 prompt and 20 to 60 reply tokens, no extra request. Drag a meter to set it; pin to hold it.</p>
+            <p class="mw-fine">Each reply ends with one hidden line that only Moodweaver reads: only what changed in feelings, needs, relationship, these meters, opinions, turn-ons set off and turning points. SillyTavern hides it in chat and Moodweaver strips it from the prompt. About 380 prompt and 20 to 60 reply tokens, no extra request. Drag a meter to set it; pin to hold it. Every meter is read from the replies still in the chat, so a swipe or a deleted reply takes its change with it.</p>
         </details>
     </section>`;
 }

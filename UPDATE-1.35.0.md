@@ -46,3 +46,8 @@ Devoted captor · Can't say it out loud · Indulgent keeper · Mouthy captive ·
 - The Moodweaver box in Extensions now shows the version that's running.
 - Pressing **Open mood panel** writes what happened just under the button: whether the panel opened, where it is on the screen, and whether anything is sitting on top of it. No console needed, so it works on a phone.
 - If two copies of Moodweaver are installed (say an old folder and a new one), you get a warning naming both folders. Only one copy can run.
+
+## 1.35.3: the panel was opening above the top of the screen on iPhone
+- On phones SillyTavern fixes the page in place and puts a transform on the whole page, and in Safari that turns "the bottom of the screen" into the top edge. The bottom sheet and the ◆ Moods button were both being placed just above the screen, so they opened where nobody could see them.
+- Both are now placed from the top of the screen (100dvh, then moved up by their own height), which lands in the same spot in every browser. Desktop is unchanged.
+- The note under Open mood panel now only appears if something goes wrong.

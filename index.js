@@ -17,7 +17,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.35.2';
+const VERSION = '1.35.3';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -1070,7 +1070,13 @@ function openPanel() {
         globalThis.toastr?.error(showError, 'Moodweaver could not open');
     }
     void syncPrompt();
-    setTimeout(() => { try { const text = panelReport(showError); note(text, Boolean(lastDrawError || showError) || !/on top there: the panel/.test(text)); } catch (err) { note(`Report failed: ${err?.message ?? err}`, true); } }, 120);
+    // Quiet when it worked; a report under the button only when something's wrong.
+    setTimeout(() => {
+        try {
+            const text = panelReport(showError), d = document.querySelector('[data-mw-diag]');
+            if (lastDrawError || showError || !/on top there: the panel/.test(text)) note(text, true); else if (d) d.hidden = true;
+        } catch (err) { note(`Report failed: ${err?.message ?? err}`, true); }
+    }, 120);
 }
 // An older copy got here first. Say so where it can be seen, since only one copy can run.
 function warnDuplicate(existing) {

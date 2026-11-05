@@ -41,3 +41,8 @@ Devoted captor · Can't say it out loud · Indulgent keeper · Mouthy captive ·
 - With no character chat open, ◆ Moods did nothing. It now shows "Open a character chat" again.
 - If the panel ever hits an error while drawing, it still opens and shows the error in a red box (and a SillyTavern toast), instead of the button doing nothing. A screenshot of the box is enough to track it down. Nothing in your chat or settings is changed.
 - If Moodweaver is switched off in Manage extensions, pressing ◆ Moods now says so.
+
+## 1.35.2: telling you why it won't open
+- The Moodweaver box in Extensions now shows the version that's running.
+- Pressing **Open mood panel** writes what happened just under the button: whether the panel opened, where it is on the screen, and whether anything is sitting on top of it. No console needed, so it works on a phone.
+- If two copies of Moodweaver are installed (say an old folder and a new one), you get a warning naming both folders. Only one copy can run.

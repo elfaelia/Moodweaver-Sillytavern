@@ -17,7 +17,10 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.35.1';
+const VERSION = '1.35.2';
+// 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
+const SELF = import.meta.url;
+const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
@@ -921,9 +924,11 @@ function sectionContent(state, kind, ch, active) {
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
 // 1.35.1: a redraw that fails shows the error in the panel, so ◆ Moods always opens and the cause is visible.
+let lastDrawError = '';
 function render() {
     if (!panel) return;
-    try { drawPanel(); } catch (err) {
+    try { drawPanel(); lastDrawError = ''; } catch (err) {
+        lastDrawError = String(err?.message ?? err);
         console.error('[Moodweaver] could not draw the panel', err);
         globalThis.toastr?.error(String(err?.message ?? err), 'Moodweaver hit an error', { preventDuplicates: true });
         const where = String(err?.stack ?? '').split('\n').find(l => /\.js:\d+/.test(l))?.trim() ?? '';
@@ -1030,24 +1035,64 @@ async function changeState(mutator) {
     const s = viewState(); if (!s) return;
     mutator(s); await persist(s); await syncPrompt(); render();
 }
+// 1.35.2: every press writes what happened under the Open mood panel button in Extensions, so a phone
+// with no console can still show why the panel isn't visible.
+function note(text, bad = false) {
+    const d = document.querySelector('[data-mw-diag]'); if (!d) return;
+    d.hidden = false; d.textContent = text; d.classList.toggle('is-bad', bad);
+}
+const describe = el => { const chain = []; for (let e = el; e && e !== document.documentElement && chain.length < 3; e = e.parentElement) chain.push(e.localName + (e.id ? `#${e.id}` : '') + (e.classList.length ? `.${[...e.classList].slice(0, 2).join('.')}` : '')); return chain.join(' in ') || 'unknown'; };
+function panelReport(showError) {
+    const lines = [`v${VERSION} from “${folderOf(SELF)}”`];
+    if (!panel?.isConnected) return [...lines, 'The panel is missing from the page.'].join('\n');
+    const cs = getComputedStyle(panel), r = panel.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+    lines.push(`open: ${panel.open ? 'yes' : 'no'}`);
+    if (lastDrawError) lines.push(`drawing failed: ${lastDrawError}`);
+    if (showError) lines.push(`showing failed: ${showError}`);
+    lines.push(`box: left ${Math.round(r.left)}, top ${Math.round(r.top)}, ${Math.round(r.width)}×${Math.round(r.height)} on a ${vw}×${vh} screen`);
+    lines.push(`style: display ${cs.display}, visibility ${cs.visibility}, opacity ${cs.opacity}, z-index ${cs.zIndex}, position ${cs.position}`);
+    const x = Math.min(vw - 2, Math.max(1, r.left + r.width / 2)), y = Math.min(vh - 2, Math.max(1, r.top + Math.min(40, r.height / 2)));
+    const hit = document.elementFromPoint(x, y);
+    lines.push(`on top there: ${!hit ? 'nothing' : panel.contains(hit) ? 'the panel' : describe(hit)}`);
+    return lines.join('\n');
+}
 function openPanel() {
-    if (suspended) { globalThis.toastr?.info('Moodweaver is switched off. Turn it back on in Manage extensions.'); return; }
-    render();
-    try { if (!panel.open) { panel.show(); panel.focus({ preventScroll: true }); } }
-    catch (err) { panel.setAttribute('open', ''); console.error('[Moodweaver] could not open the panel', err); globalThis.toastr?.error(String(err?.message ?? err), 'Moodweaver could not open'); }
+    note('Pressed. Opening…');
+    if (suspended) { note('Moodweaver is switched off in Manage extensions.', true); globalThis.toastr?.info('Moodweaver is switched off. Turn it back on in Manage extensions.'); return; }
+    let showError = '';
+    try {
+        render();
+        if (!panel.open) { panel.show(); panel.focus({ preventScroll: true }); }
+    } catch (err) {
+        showError = String(err?.message ?? err);
+        try { panel.setAttribute('open', ''); } catch { /* nothing else to try */ }
+        console.error('[Moodweaver] could not open the panel', err);
+        globalThis.toastr?.error(showError, 'Moodweaver could not open');
+    }
     void syncPrompt();
+    setTimeout(() => { try { const text = panelReport(showError); note(text, Boolean(lastDrawError || showError) || !/on top there: the panel/.test(text)); } catch (err) { note(`Report failed: ${err?.message ?? err}`, true); } }, 120);
+}
+// An older copy got here first. Say so where it can be seen, since only one copy can run.
+function warnDuplicate(existing) {
+    const other = existing.dataset.source ? `v${existing.dataset.version} in “${folderOf(existing.dataset.source)}”` : 'an older copy';
+    const msg = `Two copies of Moodweaver are installed. ${other} is the one running, so v${VERSION} in “${folderOf(SELF)}” is switched off. Delete the other one in Manage extensions, then reload.`;
+    console.warn('[Moodweaver]', msg);
+    globalThis.toastr?.warning(msg, 'Moodweaver', { timeOut: 0, extendedTimeOut: 0 });
+    const show = () => { const entry = document.querySelector('.mw-settings-entry'); if (entry && !entry.querySelector('.mw-dup')) entry.insertAdjacentHTML('beforeend', `<p class="mw-diag mw-dup is-bad">${esc(msg)}</p>`); };
+    show(); setTimeout(show, 1500);
 }
 function setup() {
-    if (document.getElementById('moodweaver-panel')) return;
+    const existing = document.getElementById('moodweaver-panel');
+    if (existing) { if (existing.dataset.source !== SELF) warnDuplicate(existing); return; }
     settings();
     panel = document.createElement('dialog'); panel.id = 'moodweaver-panel'; panel.className = 'mw-panel'; panel.tabIndex = -1;
-    panel.setAttribute('aria-label', 'Moodweaver character moods'); document.body.append(panel);
+    panel.setAttribute('aria-label', 'Moodweaver character moods'); panel.dataset.version = VERSION; panel.dataset.source = SELF; document.body.append(panel);
     const launcher = document.createElement('button'); launcher.id = 'moodweaver-launcher'; launcher.innerHTML = '<span>◆</span> Moods';
     launcher.title = 'Open Moodweaver'; launcher.setAttribute('aria-controls', panel.id); launcher.onclick = openPanel; document.body.append(launcher);
     const settingsHost = document.querySelector('#extensions_settings2') ?? document.querySelector('#extensions_settings');
     if (settingsHost) {
         const entry = document.createElement('div'); entry.className = 'mw-settings-entry';
-        entry.innerHTML = '<b>◆ Moodweaver</b><p>Character moods, blended your way.</p><button class="menu_button">Open mood panel</button>';
+        entry.innerHTML = `<b>◆ Moodweaver</b> <small class="mw-ver">v${VERSION}</small><p>Character moods, blended your way.</p><button class="menu_button">Open mood panel</button><p class="mw-diag" data-mw-diag hidden></p>`;
         entry.querySelector('button').onclick = openPanel; settingsHost.append(entry);
     }
     panel.addEventListener('scroll', toggleTop, { passive: true });

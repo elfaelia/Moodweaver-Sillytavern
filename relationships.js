@@ -46,7 +46,7 @@ export const SHARED_CATEGORIES = [
         ['codependent_pair', 'Codependent', 'can’t function apart', 'codependent: they can’t function apart'],
         ['bad_blood', 'Bad blood', 'history between them that hasn’t healed', 'bad blood between them'],
         ['unfinished_business', 'Unfinished business', 'something between them was never settled', 'unfinished business between them'],
-        ['power_imbalance', 'Power imbalance', 'one of them has real power over the other', 'a power imbalance between them'],
+        ['power_imbalance', 'Power imbalance', 'one of them has real power over the other', 'a power imbalance: one holds real power over the other'],
         ['age_gap', 'Big age gap', 'a gap in age that both of them feel', 'a big age gap between them'],
     ]],
     ['Their story', '❧', '#a8bfe0', [
@@ -58,22 +58,22 @@ export const SHARED_CATEGORIES = [
         ["growing_apart", "Growing apart", "their lives and priorities are drifting apart despite what they once shared", "growing apart: their lives and priorities are drifting apart despite what they once shared"],
         ["rebuilding_trust", "Rebuilding trust", "trust was damaged; what they do now slowly earns it back or loses it again", "rebuilding trust: trust was damaged; what they do now slowly earns it back or loses it again"],
         ["bound_by_promise", "Bound by a promise", "a promise between them keeps shaping choices as keeping it becomes harder", "bound by a promise: a promise between them keeps shaping choices as keeping it becomes harder"],
-        ['slow_burn', 'Slow burn', 'the attraction builds slowly; payoff is delayed and earned', 'slow burn'],
-        ['mutual_pining', 'Mutual pining', 'both want each other and neither says it', 'mutual pining'],
-        ['unrequited_love', 'Unrequited love', 'one loves and the other doesn’t love them back', 'unrequited love'],
-        ['secret_admirer', 'Secret admirer', 'one admires the other from a distance without revealing it', 'a secret admirer'],
+        ['slow_burn', 'Slow burn', 'the attraction builds slowly; payoff is delayed and earned', 'slow burn: attraction builds gradually and the payoff keeps being earned, not rushed'],
+        ['mutual_pining', 'Mutual pining', 'both want each other and neither says it', 'mutual pining: both want each other and neither has said so'],
+        ['unrequited_love', 'Unrequited love', 'one loves and the other doesn’t love them back', 'unrequited love: one loves, the other doesn’t love them back'],
+        ['secret_admirer', 'Secret admirer', 'one admires the other from a distance without revealing it', 'secret admirer: one admires the other and hasn’t revealed it'],
         ['first_love', 'First love', 'the first time falling in love, with all its intensity', 'first love'],
-        ['confession', 'Confession', 'building toward or living through a confession of feelings', 'a love confession'],
+        ['confession', 'Confession', 'building toward or living through a confession of feelings', 'a love confession is coming or has just happened'],
         ['friends_to_lovers', 'Friends to lovers', 'friends slowly becoming something more', 'friends to lovers'],
         ['enemies_to_lovers', 'Enemies to lovers', 'hostility slowly turning into attraction', 'enemies to lovers'],
         ['rivals_to_lovers', 'Rivals to lovers', 'competition slowly turning into attraction', 'rivals to lovers'],
-        ['opposites_attract', 'Opposites attract', 'two very different people drawn together', 'opposites attract'],
-        ['grumpy_sunshine', 'Grumpy/sunshine', 'a grump paired with a ray of sunshine', 'grumpy/sunshine'],
+        ['opposites_attract', 'Opposites attract', 'two very different people drawn together', 'opposites attract: very different people drawn together'],
+        ['grumpy_sunshine', 'Grumpy/sunshine', 'a grump paired with a ray of sunshine', 'grumpy/sunshine: one is a grump, the other relentlessly warm'],
         ['forbidden_love', 'Forbidden love', 'love that breaks rules or would cost them everything', 'forbidden love'],
         ['star_crossed', 'Star-crossed lovers', 'meant for each other and doomed by circumstance', 'star-crossed lovers'],
-        ['second_chance', 'Second chance', 'another shot after it went wrong', 'second chance romance'],
-        ['fake_dating', 'Fake relationship', 'pretending to be together until it gets real', 'fake relationship'],
-        ['forced_proximity', 'Forced proximity', 'stuck together with no way to avoid each other', 'forced proximity'],
+        ['second_chance', 'Second chance', 'another shot after it went wrong', 'second chance: trying again after it went wrong the first time'],
+        ['fake_dating', 'Fake relationship', 'pretending to be together until it gets real', 'fake relationship: pretending to be together, and it’s getting harder to tell what’s pretend'],
+        ['forced_proximity', 'Forced proximity', 'stuck together with no way to avoid each other', 'forced proximity: stuck together, no way to avoid each other'],
         ['only_one_bed', 'Only one bed', 'circumstances force them to share a bed', 'only one bed'],
         ['arranged_marriage', 'Arranged marriage', 'married by someone else’s arrangement', 'arranged marriage'],
         ['marriage_of_convenience', 'Marriage of convenience', 'married for practical reasons, not love', 'marriage of convenience'],
@@ -81,7 +81,7 @@ export const SHARED_CATEGORIES = [
         ['bodyguard', 'Bodyguard', 'one protects the other for a living, and it gets personal', 'bodyguard romance'],
         ['size_difference', 'Size difference', 'a big difference in size that keeps getting noticed', 'size difference'],
         ['beauty_and_beast', 'Beauty and the beast', 'gentleness finding something lovable in a monster', 'beauty and the beast'],
-        ['hurt_comfort', 'Hurt/comfort', 'one is hurt, the other takes care of them', 'hurt/comfort'],
+        ['hurt_comfort', 'Hurt/comfort', 'one is hurt, the other takes care of them', 'hurt/comfort: one is hurt and the other takes care of them'],
         ['who_did_this', 'Who did this to you', 'furious protectiveness when one of them gets hurt', '"who did this to you" protectiveness'],
         ['touch_and_die', 'Touch them and die', 'one would destroy anyone who lays a hand on the other', '"touch them and die"'],
         ['villain_romance', 'Villain romance', 'one of them is the villain, and the other falls anyway', 'villain romance'],
@@ -304,8 +304,68 @@ const DIRECTED_ADDITIONS = {
         ['haunted_by', 'Haunted by', 'can’t stop seeing them in memory, guilt or dreams', 'is haunted by {other}'],
     ],
 };
+// 1.29.0: family and household roles, care and duty, plus a few common feelings that were missing.
+const DIRECTED_ADDITIONS_2 = {
+    'Their role': [
+        ['parent_of', 'Parent of', 'their mother or father, by blood or by raising them', '{other}’s parent'],
+        ['child_of', 'Child of', 'their son or daughter, whatever age they are now', '{other}’s child'],
+        ['older_sibling_of', 'Older sibling of', 'their older brother or sister', '{other}’s older sibling'],
+        ['younger_sibling_of', 'Younger sibling of', 'their younger brother or sister', '{other}’s younger sibling'],
+        ['guardian_of', 'Guardian of', 'legally or morally responsible for them', 'responsible for {other} as their guardian'],
+        ['ward_of', 'Ward of', 'in their care and under their authority', '{other}’s ward, under their care and authority'],
+        ['doctor_of', 'Doctor to', 'their doctor; their body and treatment are this person’s business', '{other}’s doctor, in charge of their treatment'],
+        ['patient_of', 'Patient of', 'under their medical care, for better or worse', '{other}’s patient'],
+        ['employs_in_house', 'Has them in service', 'employs them as a servant, maid, valet or housekeeper', 'has {other} in service as a servant'],
+        ['in_service_to', 'In service to', 'their servant, maid, valet or housekeeper', 'in service to {other} as a servant'],
+        ['leads', 'Leads', 'their leader, commander or head of the group', 'leads {other} and expects to be followed'],
+        ['follows', 'Follows', 'takes orders from them and follows where they lead', 'follows {other}’s lead and orders'],
+        ['creator_of', 'Creator of', 'made or remade them, by science, magic or design', 'made or remade {other} and feels that gives them a claim'],
+        ['creation_of', 'Creation of', 'was made or remade by them', 'was made or remade by {other}'],
+    ],
+    'Friendship & trust': [
+        ['loyal_to', 'Loyal to', 'sticks by them and won’t betray them', 'loyal to {other}'],
+        ['worries_about', 'Worries about', 'their safety and wellbeing sit on their mind', 'worries about {other}'],
+        ['teases', 'Teases', 'pokes fun at them with affection, not malice', 'teases {other} fondly'],
+        ['feels_responsible', 'Feels responsible for', 'feels it’s on them to keep them safe or set them right', 'feels responsible for {other}'],
+        ['owes_life', 'Owes their life to', 'they saved this person’s life, and it’s never forgotten', 'owes {other} their life'],
+        ['sees_as_family', 'Sees as family', 'thinks of them as family, related or not', 'sees {other} as family'],
+        ['sees_as_equal', 'Sees as an equal', 'treats them as a match, not above or below', 'sees {other} as an equal'],
+    ],
+    'What they think of them': [
+        ['thinks_liar', 'Thinks they’re a liar', 'doesn’t believe what they say', 'thinks {other} is lying'],
+        ['thinks_brave', 'Thinks they’re brave', 'rates their courage', 'thinks {other} is brave'],
+        ['thinks_out_of_league', 'Thinks they’re out of their league', 'feels they could never deserve or win them', 'thinks {other} is out of their league'],
+    ],
+    'Attraction & romance': [
+        ['attracted_wont_act', 'Attracted but won’t act', 'wants them and keeps it to themselves, for a reason', 'attracted to {other} and won’t act on it'],
+        ['flustered_by', 'Flustered by', 'gets tongue-tied and clumsy around them', 'gets flustered around {other}'],
+        ['courting', 'Courting', 'formally pursuing them with a view to marriage', 'courting {other} with marriage in mind'],
+    ],
+    'Hurt & guilt': [
+        ['wants_to_apologise', 'Wants to apologise', 'owes them an apology and can’t find the moment or the words', 'wants to apologise to {other} and can’t find the words'],
+        ['feels_inferior', 'Feels inferior to', 'feels smaller, lesser or not enough beside them', 'feels inferior to {other}'],
+    ],
+};
 const SHARED_ADDITIONS = {
+    'What they are': [
+        ['siblings', 'Siblings', 'brothers, sisters or a mix', 'siblings'],
+        ['step_siblings', 'Step-siblings', 'family through a parent’s marriage, not blood', 'step-siblings, family by marriage not blood'],
+        ['cousins', 'Cousins', 'related through their parents', 'cousins'],
+        ['estranged_family', 'Estranged family', 'family who stopped speaking, and it still hurts', 'estranged family: related and no longer speaking'],
+        ['lovers', 'Lovers', 'sleeping together and in love, without being married', 'lovers, not married'],
+        ['long_term_partners', 'Long-term partners', 'committed and settled, without being married', 'long-term partners, committed but not married'],
+        ['courting_pair', 'Courting', 'a formal, often chaperoned romance heading toward marriage', 'courting: a formal romance heading toward marriage'],
+        ['co_parents', 'Co-parents', 'raising a child together, whatever they are to each other now', 'co-parents raising a child together'],
+        ['business_partners', 'Business partners', 'own or run something together', 'business partners'],
+        ['teammates', 'Teammates', 'on the same team or crew', 'teammates'],
+        ['comrades', 'Comrades', 'have fought or survived something side by side', 'comrades: fought or survived something side by side'],
+        ['cellmates', 'Cellmates', 'locked up together', 'cellmates'],
+    ],
     'Their story': [
+        ['class_divide', 'Class divide', 'from different classes, and it shows in everything between them', 'a class divide: different classes, and it shows in everything between them'],
+        ['reunited', 'Reunited', 'back together after years apart, both changed', 'reunited after years apart, both changed'],
+        ['fated_mates', 'Fated mates', 'bound by fate, magic or instinct, whether they like it or not', 'fated mates: bound by fate or instinct, whether they like it or not'],
+        ['pretend_strangers', 'Pretending not to know each other', 'they have history and act like strangers in front of others', 'pretending to be strangers in front of others despite their history'],
         ['tangled_timelines', 'Tangled timelines', 'bound by a hidden shared history at least one of them doesn’t know yet', 'tangled timelines: bound by a hidden shared history at least one of them doesn’t know yet'],
         ['scientist_and_subject', 'Scientist and subject', 'one tests the other; data, care and feelings keep blurring', 'scientist and subject: tests, data, care and feelings keep blurring'],
         ['ride_or_die', 'Ride or die', 'them against the world; loyalty first, questions later', 'ride or die: them against the world, loyalty first'],
@@ -319,13 +379,17 @@ const SHARED_ADDITIONS = {
         ['grudging_bond', 'Grudging bond', 'neither will admit how much they need each other', 'a grudging bond neither will admit to'],
     ],
 };
-for (const [cats, additions] of [[RELATIONSHIP_CATEGORIES, DIRECTED_ADDITIONS], [SHARED_CATEGORIES, SHARED_ADDITIONS]])
+for (const [cats, additions] of [[RELATIONSHIP_CATEGORIES, DIRECTED_ADDITIONS], [RELATIONSHIP_CATEGORIES, DIRECTED_ADDITIONS_2], [SHARED_CATEGORIES, SHARED_ADDITIONS]])
     for (const [name, rows] of Object.entries(additions)) cats.find(([n]) => n === name)[3].push(...rows);
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
 export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_BY_ID = Object.fromEntries(SHARED_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));
+// Both-ways tags where the two people play different parts. Opus 5.5 is weaker at inferring who's who unprompted.
+export const TWO_ROLE_SHARED = new Set(['unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
+    'captor_captive', 'stockholm', 'corrupting_love', 'redeeming_love', 'power_imbalance', 'grumpy_sunshine', 'who_did_this', 'touch_and_die',
+    'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide']);
 
 // Moods and story tropes that were really about one particular person now live in relationships.
 // Old values move automatically: '{{other}}' means "whoever this sheet used to point at".

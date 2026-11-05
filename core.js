@@ -1,6 +1,7 @@
 import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalities, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS } from './turns.js';
-import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText } from './relationships.js';
+import { REGIONAL_ERAS, ERA_LOCALE, LOCALE_RULES, LOCALE_SPEAKERS, toAmerican } from './locale.js';
+import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText, TWO_ROLE_SHARED } from './relationships.js';
 
 export const PROSE_STYLES = [
     ['prose_conversational', 'Conversational', 'a natural speaking rhythm, everyday phrasing and easy transitions'],
@@ -28,7 +29,7 @@ export const ERAS = [
         'The Great War, shell shock, the 1918 flu, silent films, ragtime, operator-connected phones.'],
     ['era_1950s', '1950s', 'Cold War and atomic fear, black-and-white TV with few channels, rotary phones and party lines, diners, jukeboxes, rock ’n’ roll and greasers; smoking everywhere, rigid gender roles, segregation and McCarthy-era suspicion; asylums with shock treatment and lobotomy',
         'Atomic fear, rotary phones, diners, greasers, rigid roles, McCarthyism, shock treatment.'],
-    ['era_1960s', '1960s', 'buttoned-up early years, counterculture later; rotary phones, typewriters, carbon paper, TV turning colour, no home computers; the Pill, the Beatles, civil rights, Vietnam, the space race and LSD; Cold War secrecy, asylums with ECT and new tranquillisers',
+    ['era_1960s', '1960s', 'buttoned-up early years, counterculture later; rotary phones, typewriters, carbon paper, TV leaving black and white, no home computers; the Pill, the Beatles, civil rights, Vietnam, the space race and LSD; Cold War secrecy, asylums with ECT and new sedatives',
         'Mad Men to Woodstock. Typewriters, the Pill, Vietnam, LSD, Cold War labs and asylums. Easterman’s era.'],
     ['era_1970s', '1970s', 'corded landlines and payphones, cassettes, 8-tracks, vinyl and Polaroids, no internet or mobiles; disco, then punk; Watergate, the oil crisis and Vietnam’s end; smoking indoors, flares, shag carpet and feathered hair; hitchhiking and serial-killer headlines',
         'Payphones, Polaroids, disco then punk, Watergate, hitchhiking, smoking indoors.'],
@@ -761,7 +762,7 @@ export const CATEGORIES = [
         ['mindfuck', 'Mindfuck', 'messes with their partner’s head as part of it'], ['repressed', 'Repressed', 'pushing down desires they won’t admit to'],
         ['sexual_shame', 'Sexual shame', 'desire tangled up with shame and guilt'], ['sinful_desire', 'Sinful desire', 'sees desire as sin and wants it anyway'],
         ['madonna_whore', 'Madonna-whore complex', 'can’t desire the one they respect, or respect the one they desire'], ['transference', 'Transference', 'putting feelings about someone from their past onto them'],
-        ['mother_issues', 'Mother issues', "unresolved stuff with their mum that bleeds into how they love and want"], ['father_issues', 'Father issues', "unresolved stuff with their dad that bleeds into how they love and want"],
+        ['mother_issues', 'Mother issues', "unresolved stuff with their mother that bleeds into how they love and want"], ['father_issues', 'Father issues', "unresolved stuff with their father that bleeds into how they love and want"],
     ]],
     ['manner', 'Manner & presence', '❦', '#9fc0d8', [
         ["polite", "Polite", "good manners: please, thank you and holding doors"],
@@ -1804,6 +1805,12 @@ const ADDITIONS_2 = {
 for (const [category, rows] of Object.entries(ADDITIONS_2)) (ADDITIONS[category] ??= []).push(...rows);
 ERAS.push(['era_2020s', '2020s', 'TikTok, group chats, delivery apps, contactless everything and vapes; the pandemic and lockdowns in recent memory; remote work, dating apps, streaming and ‘no cap’, ‘it’s giving’ and ‘delulu’',
     'TikTok, delivery apps, vapes, post-pandemic. Today.']);
+// 1.29.0: place-and-time locks sit right after the decade they refine and replace it in the prompt.
+for (const [id, label, cue, note, after] of REGIONAL_ERAS) {
+    let at = ERAS.findIndex(([e]) => e === after) + 1;
+    while (ERAS[at]?.[0]?.startsWith(`${after}_`)) at++;
+    ERAS.splice(at, 0, [id, label, cue, note]);
+}
 AUTHORS_MIDCENTURY.push(
     ['author_john_steinbeck', 'John Steinbeck', 'warm, plain-spoken affection for lovable drifters and drunks; small kindnesses, loyalty and comic schemes',
         'Cannery Row (1945), Of Mice and Men. Fits: friendship stories, lovable degenerates, the immortal dealer’s crew.'],
@@ -1990,16 +1997,16 @@ export const RECIPES = {
 };
 // Story starter blends: era, genre, plot and the voice to write it in.
 export const STORY_RECIPES = {
-    'Easterman · Lamb dying': { era_1960s: 70, romantic_horror: 60, race_against_death: 70, medical_crisis: 75, doomed_romance: 45,
+    'Easterman · Lamb dying': { era_1960s_america: 70, romantic_horror: 60, race_against_death: 70, medical_crisis: 75, doomed_romance: 45,
         real_stakes: 80, player_not_safe: 75, no_rescues: 85, decline_in_stages: 80, death_on_the_table: 70, no_unearned_hope: 55,
         prose_love_blind: 65, prose_slow_motion_crisis: 55, prose_unflinching: 55, author_vladimir_nabokov: 50 },
-    'Easterman romance · 1960s': { era_1960s: 70, romantic_horror: 70, cold_war_horror: 60, subject_and_scientist: 60, unethical_experiments: 50,
+    'Easterman romance · 1960s': { era_1960s_america: 70, romantic_horror: 70, cold_war_horror: 60, subject_and_scientist: 60, unethical_experiments: 50,
         watched_and_safe: 50, prose_love_blind: 75, prose_clinical_log: 40, author_vladimir_nabokov: 60, author_john_fowles: 40, author_anna_kavan: 30 },
     'American Psycho · book': { era_1980s: 75, status_satire: 75, satire: 60, dark_comedy: 50, nobody_notices: 55, devoted_accomplice: 50, interchangeable_crowd: 50,
         prose_brand_inventory: 65, prose_flat_atrocity: 70, prose_banal_digressions: 40, author_bret_easton_ellis: 85 },
     'Rick & Morty, but real': { sci_fi_comedy: 70, adult_cartoon: 60, tragicomedy: 60, mission_of_the_week: 45, addiction_spiral: 40, begrudging_love: 50,
         prose_sitcom_timing: 55, prose_tonal_whiplash: 50, prose_running_gags: 40, author_douglas_adams: 50, author_kurt_vonnegut: 40 },
-    'Joe’s “you” · 2010s': { era_2010s: 70, psychological_thriller: 60, romantic_horror: 40, stalking_horror: 40,
+    'Joe’s “you” · 2010s': { era_2010s_america: 70, psychological_thriller: 60, romantic_horror: 40, stalking_horror: 40,
         prose_obsessive_you: 80, prose_self_justifying: 60, author_caroline_kepnes: 85 },
     'Astarion · spawn': { gothic_fantasy: 70, vampire_fiction: 60, breaking_free: 50, prose_arch_ornate: 55, author_anne_rice: 55, author_oscar_wilde: 40, author_ellen_kushner: 40 },
     'Astarion · ascended': { gothic_fantasy: 70, dark_romance: 60, temptation_of_power: 60, offer_of_eternity: 50, prose_arch_ornate: 55,
@@ -2008,14 +2015,14 @@ export const STORY_RECIPES = {
     'Gritty friendship · today': { era_2020s: 60, friendship_story: 75, addiction_drama: 55, party_comedy: 35, strictly_platonic: 60, boredom_rescue: 45,
         keeping_it_from_family: 45, tight_friend_group: 55, precious_sibling: 40, prose_warm_grit: 65, prose_banter: 55, prose_texts: 30,
         author_john_steinbeck: 40, author_denis_johnson: 40, author_irvine_welsh: 30 },
-    'Chloe dealer AU · 2010s': { era_2010s: 70, addiction_drama: 50, drug_world_violence: 35, cops_closing_in: 35, prose_warm_grit: 50, prose_texts: 35,
+    'Chloe dealer AU · 2010s': { era_2010s_america: 70, addiction_drama: 50, drug_world_violence: 35, cops_closing_in: 35, prose_warm_grit: 50, prose_texts: 35,
         author_denis_johnson: 50, author_irvine_welsh: 40 },
     'Dennis · sitcom': { party_comedy: 50, dark_comedy: 60, satire: 40, prose_sitcom_timing: 65, prose_running_gags: 50, author_john_kennedy_toole: 60 },
     'Real stakes · no mercy': { real_stakes: 80, player_not_safe: 70, no_rescues: 80, decline_in_stages: 75, let_it_get_worse: 60, death_on_the_table: 70,
         consequences_persist: 70, no_unearned_hope: 60, prose_unflinching: 60, prose_slow_motion_crisis: 45 },
     'Angst & grief': { angst: 70, grief_story: 50, tragedy: 45, consequences_persist: 60, grief_gets_room: 60, no_unearned_hope: 55,
         prose_quiet_devastation: 60, prose_no_silver_lining: 50 },
-    'Mother Gooseberry': { era_1960s: 50, cold_war_horror: 50, body_horror: 40, prose_nursery_rhyme: 70, author_edward_gorey: 50, author_angela_carter: 40 },
+    'Mother Gooseberry': { era_1960s_america: 50, cold_war_horror: 50, body_horror: 40, prose_nursery_rhyme: 70, author_edward_gorey: 50, author_angela_carter: 40 },
 };
 export const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, Number.isFinite(Number(v)) ? Number(v) : min));
 export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
@@ -2360,7 +2367,7 @@ export const TIERS = [
     { min: 81, name: 'Intense', text: 'drives the reply. It shows in most of what they say, do and think and decides where the scene goes' },
     { min: 61, name: 'Strong', text: 'steers. It decides at least one real choice and keeps showing in their voice' },
     { min: 41, name: 'Clear', text: 'shows plainly and shapes at least one thing they say or do' },
-    { min: 21, name: 'Mild', text: 'colours their tone and shows at least once without steering anything' },
+    { min: 21, name: 'Mild', text: 'colours their tone; it can surface without needing its own moment or steering anything' },
     { min: 11, name: 'Subtle', text: 'a small tell or passing thought now and then' },
     { min: 1, name: 'Faint', text: 'barely there; it can stay unseen' },
 ];
@@ -3024,7 +3031,7 @@ export const PROMPT_NAME = {
     test_subject: 'studies their partner like a test subject', mindfuck: 'mindfuck (messing with their partner’s head as part of it)',
     repressed: 'repressing desires they won’t admit to', sexual_shame: 'desire tangled up with shame and guilt',
     sinful_desire: 'sees desire as sin and wants it anyway', transference: 'transference (putting feelings about someone from their past onto them)',
-    mother_issues: "mother issues: unresolved stuff with their mum that bleeds into how they love and want", father_issues: "father issues: unresolved stuff with their dad that bleeds into how they love and want",
+    mother_issues: "mother issues: unresolved stuff with their mother that bleeds into how they love and want", father_issues: "father issues: unresolved stuff with their father that bleeds into how they love and want",
     // Body
     headache: 'a headache', sore: 'sore (aching muscles)', undressed: 'undressed (naked or half-dressed)',
     restrained: 'restrained (tied up or held down)',
@@ -3331,6 +3338,7 @@ function personalityLines(state, knowledge, observer = '') {
     })];
 }
 const isDark = (m, set) => set.has(m.id) || m.dark === true;
+const LOCALE_MARK = '\u0000dialect\u0000';
 // extras: { player: { state, name, knowledge }, story, cast, pairs }.
 export function composePrompt(state, name, extras = {}) {
     const { player = null, story: storyState = null } = extras;
@@ -3361,7 +3369,7 @@ export function composePrompt(state, name, extras = {}) {
         || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
-    const out = [`The player's own notes for this reply: where things stand and how it should read. Where they clash with the character card, the chat so far or earlier style instructions, these win.`];
+    const out = [`The player's own notes for this reply: where things stand now and how it should read. They're newer than the character card, the chat so far and earlier style instructions, so where those differ, follow these.`];
     if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`));
     if (story.length) out.push('',
         `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it.`);
@@ -3416,7 +3424,7 @@ export function composePrompt(state, name, extras = {}) {
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
             if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
         }
-        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Clear shows at least once, strong shapes a real choice, intense or above keeps coming back.${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
+        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
         out.push('</relationships>');
     }
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
@@ -3428,13 +3436,18 @@ export function composePrompt(state, name, extras = {}) {
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look side by side, the lives they've led and what each takes for granted${ageGapStrength >= 91 ? `, and at this strength the reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back` : ''}. Their other settings decide what they make of it.`);
     // Period first, then what happens, then how it reads: style settings aren't plot.
-    const eras = story.filter(m => m.category === 'era'), styles = story.filter(m => STYLE_CATEGORIES.has(m.category));
+    // A regional era replaces its plain decade, so the period isn't described twice.
+    const replaced = new Set(story.filter(m => ERA_LOCALE[m.id]).map(m => ERA_LOCALE[m.id].replaces));
+    const eras = story.filter(m => m.category === 'era' && !replaced.has(m.id)), styles = story.filter(m => STYLE_CATEGORIES.has(m.category));
+    // Dialect: the strongest regional era sets narration; a second one only covers its own speakers.
+    const locales = [...new Set(eras.filter(m => ERA_LOCALE[m.id]).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map(m => ERA_LOCALE[m.id].locale))];
     const stakes = story.filter(m => m.category === 'stakes');
     const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category));
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
     if (eras.length) out.push('', ...listLines(storyState, eras, U), '',
-        `Keep everything true to that period: technology, money, slang, manners, laws, medicine, what people know and the attitudes of the time. No anachronisms. Labels in these notes are modern shorthand (trauma bond, gaslighting, narcissist and so on), so show them through period words and behaviour.`);
+        `Keep everything true to that period and place: technology, money, slang, manners, laws, medicine, what people know and the attitudes of the time. No anachronisms. Labels in these notes are modern shorthand (trauma bond, gaslighting, narcissist and so on), so show them through period words and behaviour.`,
+        ...(locales.length ? [LOCALE_MARK] : []));
     if (plot.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, plot, U), ...storyExtra, '',
         `Blend these into one story led by the strongest. They decide what happens, the pace, stakes and consequences, not how anyone feels.${plotPeak >= 91 ? ` An overwhelming one shapes nearly every beat; commit to it instead of drifting somewhere safer.` : ''}`,
         ...(darkStoryPeak ? [`Dark story settings change what happens, not just the mood.${darkStoryPeak >= 81 ? ` Serious injury, murder, lasting terror and bad endings are on the table, and danger can follow through.` : ''}${darkStoryPeak === 100 ? ` At maximum, build the reply around the harshest one that fits and leave a real consequence that can't be undone.` : ''}`] : []),
@@ -3461,7 +3474,11 @@ export function composePrompt(state, name, extras = {}) {
     if (boardLines.length) out.push('', ...boardLines);
     if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.`);
     out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line of dialogue or an image, not a recap of what the moment meant. Never mention these notes.`);
-    return `<moodweaver focus_character="${pt(N)}">\n${out.join('\n')}\n</moodweaver>`;
+    // An American lead respells the whole note, so its own British spelling can't pull the reply that way.
+    let body = out.join('\n');
+    if (locales[0] === 'us') body = toAmerican(body);
+    const dialect = [LOCALE_RULES[locales[0]], ...locales.slice(1).map(l => LOCALE_SPEAKERS[l])].join(' ');
+    return `<moodweaver focus_character="${pt(N)}">\n${body.replace(LOCALE_MARK, dialect)}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
     const all = [...live(state), ...live(extras.player?.state), ...live(extras.story), ...liveCast(extras).flatMap(person => live(person.state).filter(m => m.kind !== 'story'))];
@@ -3480,7 +3497,7 @@ const ownKinds = scope => [...(scope.mood ? ['mood'] : []), ...(scope.trait ? ['
 export function parseAnalysis(raw, data = {}) {
     const clean = String(raw).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     let parsed;
-    try { parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn’t send back valid JSON. Nothing was changed.'); }
+    try { parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn’t send back valid JSON. Nothing was changed. If the reader model always thinks first (Claude Opus 5.5 does), raise the Reader reply cap: thinking counts toward it.'); }
     if (!parsed || typeof parsed !== 'object') throw new Error('The reader sent back nothing usable. Nothing was changed.');
     const allowed = new Set([...(data.ids ?? FEELINGS.map(m => m.id)), ...(data.own ?? []).map(r => r.id)]);
     const wantIds = new Set((data.wants ?? []).map(w => w.id));

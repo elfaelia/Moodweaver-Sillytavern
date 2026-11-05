@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.29.0:** tuned for Claude Opus 5.5. Place-and-time locks (1960s America, 1890s Scotland and more) that pin dialect as well as period, 45 new relationships, clearer relationship wording and a higher reader cap for thinking models. See [the update notes](UPDATE-1.29.0.md). Install the new `locale.js` too.
+
 **1.19.0:** personality types are now labelled with whose they are, so a persona's type no longer gets read as the character's. About 70 vague prompt descriptions were rewritten in plain words, with matching panel text. See [the update notes](UPDATE-1.19.0.md). No tests run, as requested.
 
 **1.17.0:** 90 new options at the requested category counts, with brief prompt descriptions and niche roles/preferences. Saved and searched categories now stay collapsed until you open them; search shows match counts without forcing groups open. See [the complete additions and sources](UPDATE-1.17.0.md). No tests run, as requested.

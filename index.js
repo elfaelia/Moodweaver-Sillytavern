@@ -169,7 +169,7 @@ function settings() {
         depth: Math.round(clamp(saved.depth ?? 0, 0, 10)),
         sceneMessages: Math.round(clamp(c.extensionSettings[KEY].sceneMessages ?? 6, 2, 20)),
         sceneChars: clamp(c.extensionSettings[KEY].sceneChars ?? 8000, 2000, 40000),
-        outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 4000),
+        outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 16000),
         baselines: c.extensionSettings[KEY].baselines ?? {},
         castDefaults: c.extensionSettings[KEY].castDefaults ?? {},
         boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false,
@@ -702,7 +702,7 @@ function settingsView(state) {
             <label>Depth from the end <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"></label>
             <p class="mw-fine">The target only warns; nothing is cut. Depth 0 puts the note after your latest message (best); 1 puts it before.</p>
             <label>Reader text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
-            <label>Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="4000" step="100" value="${settings().outputTokens}"></label>
+            <label title="Thinking models (Claude Opus 5.5 always thinks) spend part of this before writing the JSON. Around 4000 suits them.">Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="16000" step="100" value="${settings().outputTokens}"></label>
             <p class="mw-fine">Text cap is in characters. Raise the reply cap if a thinking model runs out before it answers.</p></details>
     </section>`;
 }

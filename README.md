@@ -4,6 +4,10 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.38.0:** the info board reads far more of what Claude writes. It understands phrases ("barely holding it together", "putty in her hands"), about 130 everyday words, American spellings and curly apostrophes, and the board's words now fill in feelings the hidden line didn't mention. Memories and board pins are switched off by default, each with its own switch. See [the update notes](UPDATE-1.38.0.md).
+
+**1.37.0:** 38 new options for dark romance, horror and grunge. They include Lamb's side of the leash (Has them on a string, Holds the emotional upper hand, Sweet-talks them) and Easterman's (Undone by their tears, Comes running when called), plus Makes demands of, Goth (masculine), Found footage and Asylum horror. Your persona's own side now counts toward Control and Pull. See [the update notes](UPDATE-1.37.0.md).
+
 **1.36.1:** ⚙ Settings → Pins in this chat → **Unpin everything** (or `/moods unpin`) clears every pin in the chat at once, for everyone in it. Values stay where they are.
 
 **1.36.0:** swipes, regenerations and deletes now take back exactly what those replies changed (feelings, relationship, memories, needs, meters, the board summary), however many you remove, and the reply being written never sees the one it replaces. Board edits are one-time corrections instead of permanent pins. The ◆ Moods button can be hidden, made small or dragged anywhere, per device, and Moodweaver is in the ✨ wand menu and `/moods`. Old chats are updated automatically the first time you open them. See [the update notes](UPDATE-1.36.0.md). Install the new `ledger.js` too.

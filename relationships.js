@@ -419,13 +419,38 @@ SHARED_CATEGORIES.find(([n]) => n === 'Their story')[3].push(
     ['power_swings', 'Power swings', 'the upper hand tips back and forth scene to scene; neither keeps it for long', 'power swings: the upper hand tips back and forth scene to scene, and neither keeps it for long'],
     ['love_without_trust', 'Love without trust', 'real love, and still no trust; affection and suspicion share the room', 'love without trust: real love, and still no trust; affection and suspicion share the room'],
 );
+// 1.37.0: the other side of the leash. Tags for the one holding the emotional power (Lamb toward
+// Easterman), for the one it's held over, and for being demanding toward someone.
+RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Attachment & power')[3].push(
+    ['makes_demands', 'Makes demands of', 'asks like it’s owed and expects it done; a no feels like a betrayal', 'makes demands of {other} as if owed, and takes a no as a betrayal'],
+    ['expects_there', 'Expects them to be there', 'counts on them showing up, fetching and fixing without being asked', 'expects {other} to be there, come when wanted and fix things without being asked'],
+    ['on_a_string', 'Has them on a string', 'knows which look, pout or touch makes them give in, and uses it', 'has {other} on a string: knows which look, pout or touch makes them give in, and uses it'],
+    ['sweet_talks', 'Sweet-talks them', 'gets what they want with sweetness, flattery and little touches', 'sweet-talks {other} into things with sweetness, flattery and little touches'],
+    ['rations_affection', 'Rations affection', 'gives warmth as a reward and takes it away as punishment', 'rations affection with {other}: warmth as a reward, coldness as punishment'],
+    ['upper_hand', 'Holds the emotional upper hand', 'knows their moods follow theirs and sets the terms: when to sulk, when to forgive', 'holds the emotional upper hand with {other} and knows it: decides when to sulk and when to forgive'],
+    ['plays_helpless', 'Plays helpless with', 'turns on tears, a small voice or helplessness when it gets them running', 'plays helpless with {other}: tears, a small voice or helplessness when it gets them running'],
+    ['talks_down', 'Can talk them down', 'the one person who can talk them out of a rage or a cruelty', 'can talk {other} out of a rage or a cruelty when nobody else can'],
+    ['gets_soft_side', 'Gets their soft side', 'the only one they’re gentle with; knows it and draws it out', 'is the only one {other} is gentle with, and draws it out'],
+    ['undone_by_tears', 'Undone by their tears', 'their crying or hurt look breaks every resolve', 'undone by {other}’s tears: crying or a hurt look breaks every resolve'],
+    ['comes_running', 'Comes running when called', 'drops whatever they’re doing whenever they’re wanted', 'comes running whenever {other} calls, dropping whatever else'],
+    ['cant_stay_angry', 'Can’t stay angry at', 'means to stay cross and softens within minutes', 'can’t stay angry at {other}: means to stay cross and softens within minutes'],
+    ['wants_ruined_by', 'Wants to be ruined by', 'wants them to wreck them, body and life, and knows it’s bad', 'wants {other} to wreck them, body and life, and knows it’s bad'],
+    ['stalks', 'Stalks them', 'follows and watches them unseen, learning their routines', 'stalks {other}: follows and watches unseen, learning their routines'],
+);
+RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Their role')[3].push(
+    ['deals_to', 'Deals to them', 'supplies their drugs; they owe money, favours or loyalty', 'deals drugs to {other}, who owes money, favours or loyalty'],
+    ['buys_from', 'Buys from them', 'gets their drugs from them and needs them for it', 'buys drugs from {other} and needs them for it'],
+);
+SHARED_CATEGORIES.find(([n]) => n === 'Their story')[3].push(
+    ['monster_on_leash', 'Monster on a leash', 'one is dangerous to everyone; only the other can calm or steer them', 'monster on a leash: one is dangerous to everyone, and only the other can calm or steer them'],
+);
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
 export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_BY_ID = Object.fromEntries(SHARED_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));
 // Both-ways tags where the two people play different parts. Opus 5.5 is weaker at inferring who's who unprompted.
-export const TWO_ROLE_SHARED = new Set(['gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
+export const TWO_ROLE_SHARED = new Set(['monster_on_leash', 'gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
     'captor_captive', 'stockholm', 'corrupting_love', 'redeeming_love', 'power_imbalance', 'grumpy_sunshine', 'who_did_this', 'touch_and_die',
     'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide']);
 

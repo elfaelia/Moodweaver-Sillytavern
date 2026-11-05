@@ -106,19 +106,20 @@ export const NEED_IDS = new Set(NEEDS.map(n => n.id));
 // p: read from Physical State only. s: from State only. ps: either.
 const RULES = [
     ['hunger', 8, 'p', /starv|famished|ravenous|hasn'?t eaten in days/],
-    ['hunger', 30, 'p', /hungry|hunger|stomach (growl|rumbl|empty|cramp)|peckish|empty stomach|hasn'?t eaten|skipped (a )?meal/],
+    ['hunger', 30, 'p', /hungry|hunger|stomach (growl|rumbl|empty|cramp)|peckish|empty stomach|hasn'?t eaten|skipped (a )?meal|munchies/],
     ['hunger', 95, 'p', /\b(full|well[- ]fed|sated|stuffed|just ate)\b/],
     ['energy', 10, 'ps', /exhaust|dead on (his|her|their) feet|can'?t keep (his|her|their) eyes open|nodding off|running on fumes|collaps/],
-    ['energy', 30, 'ps', /tired|sleepy|drowsy|weary|fatigue|yawn|heavy[- ]lidded|worn out|sluggish|no sleep|sleep[- ]deprived|drained/],
+    ['energy', 30, 'ps', /tired|sleepy|drowsy|weary|fatigue|yawn|heavy[- ]lidded|worn out|sluggish|no sleep|sleep[- ]deprived|drained|hungover|coming down|hasn'?t slept/],
     ['energy', 92, 'ps', /well[- ]rested|wide awake|wired|buzzing|alert/],
     ['bladder', 8, 'p', /bursting|about to wet|desperate (to pee|for the (toilet|bathroom|loo))/],
     ['bladder', 30, 'p', /needs? (the|a) (toilet|bathroom|loo|piss|pee|wee)|full bladder|bladder/],
     ['hygiene', 12, 'p', /filthy|caked|covered in (blood|filth|mud|grime|shit|vomit|sick)|reeks|stinks|soaked in (blood|sweat)|blood[- ]spattered|drenched in blood|gore/],
     ['hygiene', 35, 'p', /sweat|grimy|dirty|greasy|unwashed|sticky|muddy|grime|smells? of|blood on|tacky with/],
-    ['hygiene', 95, 'p', /fresh(ly)? (showered|washed|bathed)|scrubbed clean|squeaky clean/],
+    ['hygiene', 95, 'p', /fresh(ly)? (showered|washed|bathed|shaved)|clean[- ]shaven|just (bathed|showered)|fresh (from|out of) the (bath|shower)|scrubbed clean|squeaky clean/],
     ['comfort', 8, 'p', /agony|excruciat|unbearable|screaming pain|white[- ]hot pain/],
     ['comfort', 35, 'p', /pain|ache|aching|sore|stiff|cramp|headache|migraine|throb|\braw\b|tender|freezing|shiver|chilled|\bcold\b|numb|itch|nause|queasy|hungover|overheat|sweltering|dizzy/],
     ['comfort', 35, 'p', /soaked|drenched|soaking|wet through|dripping wet|rain[- ]soaked|wet (clothes|hair)|damp clothes/],
+    ['comfort', 35, 'p', /(needs?|craving|dying for) (a |another )?(smoke|cigarette|drink|fix|hit|line)|jonesing|itching for (a )?(smoke|fix|hit|drink)/],
     ['comfort', 92, 'p', /comfortable|cos[yi]|cozy|relaxed|warm and/],
     ['social', 22, 's', /lonely|isolated|starved for (company|touch|attention)|desperate for company|abandoned/],
     ['social', 40, 's', /craving (company|attention|touch)|wants company|touch[- ]starved/],
@@ -126,7 +127,7 @@ const RULES = [
     ['fun', 25, 's', /bored|stir[- ]crazy|tedium|listless|restless/],
     ['fun', 90, 's', /thrilled|amused|entertained|delighted|giddy|playful|having fun/],
     ['health', 10, 'p', /dying|bleeding out|gut[- ]shot|stab wound|stabbed|mortal|unconscious|overdos|convuls|shattered/],
-    ['health', 38, 'p', /bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|burnt|scald|blister|singed|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked/],
+    ['health', 38, 'p', /bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|burnt|scald|blister|singed|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked|withdrawal|dope ?sick/],
     ['health', 95, 'p', /unhurt|unharmed|uninjured|healthy|in perfect health/],
 ];
 const HORNY = [
@@ -135,13 +136,14 @@ const HORNY = [
     [42, /interested|simmering|warm|curious|stirring|flicker|tempted|teasing|low hum|idle|smoulder|smolder|hint/],
     [8, /\bspent\b|sated|satisfied|drained|nothing|none|not in the mood|dead below|numb|repulsed|zero|\bcold\b/],
 ];
-const negated = (text, index) => /\b(not|no longer|isn'?t|wasn'?t|without|no)\s+(\w+\s+){0,2}$/.test(text.slice(Math.max(0, index - 24), index));
+const negated = (text, index) => /\b(not|no longer|isn'?t|wasn'?t|without|no)\s+(\w+\s+){0,2}$/.test(String(text).replace(/[’‘]/g, "'").slice(Math.max(0, index - 24), index));
 // Reads needs from the State and Physical State lines. Returns { id: { value, source } } for needs the words touch.
 // The worst reading wins, so "wired but exhausted" still counts as exhausted.
 export function needsFromBoard(board) {
     const out = {};
     for (const [line, where] of [[board?.physical, 'p'], [board?.state, 's']]) for (const phrase of phrases(line)) {
-        const text = phrase.toLowerCase();
+        // Boards are written with curly apostrophes (hasn’t), the patterns with straight ones.
+        const text = phrase.toLowerCase().replace(/[’‘]/g, "'");
         for (const [id, value, scope, re] of RULES) {
             if (!scope.includes(where)) continue;
             const m = re.exec(text); if (!m || negated(text, m.index)) continue;
@@ -151,7 +153,7 @@ export function needsFromBoard(board) {
     return out;
 }
 export function hornyFromBoard(board) {
-    const text = String(board?.horny ?? '').toLowerCase();
+    const text = String(board?.horny ?? '').toLowerCase().replace(/[’‘]/g, "'");
     if (!text) return null;
     let best = null;
     for (const [value, re] of HORNY) { const m = re.exec(text); if (m && !negated(text, m.index) && (best === null || value > best)) best = value; }
@@ -234,8 +236,11 @@ const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 // What the panel and prompt both work from: the latest board plus the player's edits.
 // needSteps: { messageIndex: { hunger: 30 } } from the weave lines still in the chat (1.36.0: read
 // from the chat each time, never stored, so a swiped-away reply's needs can't linger).
-export function liveBoard(found, meta, names = {}, needSteps = {}) {
+// opts.pins: false (the default since 1.38) leaves out everything you pinned on the board: corrections,
+// kept and cut tiles, and needs you set. They stay saved, so switching pins back on brings them back.
+export function liveBoard(found, meta, names = {}, needSteps = {}, opts = {}) {
     const board = found?.board ?? null, b = { ...cleanBoardMeta(meta) };
+    if (opts.pins === false) Object.assign(b, { fix: {}, needs: {}, keep: { state: [], physical: [] }, mute: { state: [], physical: [] } });
     b.pins = activeFixes(b, found);
     const outfit = who => board?.outfits.find(o => names[who] && same(o.name, names[who]))?.text ?? board?.outfits[who === 'char' ? 0 : 1]?.text ?? '';
     const field = key => b.pins[key] || (key === 'charOutfit' ? outfit('char') : key === 'userOutfit' ? outfit('user') : board?.[key] ?? '');
@@ -329,50 +334,131 @@ const FEELING_SYNONYMS = { furious: 'angry', enraged: 'angry', livid: 'angry', i
     thrilled: 'excited', eager: 'excited', miserable: 'sad', gloomy: 'sad', sorrowful: 'sad', ashamed: 'ashamed', humiliated: 'embarrassed', mortified: 'embarrassed',
     tender: 'affectionate', loving: 'affectionate', fond: 'affectionate', relaxed: 'calm', serene: 'peaceful', amused: 'entertained', smug: 'smug', wary: 'suspicious',
     frantic: 'desperate', resigned: 'resigned', relief: 'relieved', terror: 'afraid', dread: 'anxious', rage: 'angry', fury: 'angry', grief: 'sad', shame: 'ashamed', guilt: 'guilty',
-    jealousy: 'jealous', longing: 'yearning', devotion: 'devoted', panic: 'afraid', elation: 'happy', despair: 'despairing', hopeless: 'despairing', lust: 'horny', hunger: 'yearning', tenderness: 'affectionate', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
+    jealousy: 'jealous', longing: 'yearning', devotion: 'devoted', panic: 'afraid', elation: 'happy', despair: 'despairing', hopeless: 'despairing', lust: 'horny', hunger: 'yearning', tenderness: 'affectionate', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired',
+    coaxing: 'wheedling', cajoling: 'wheedling', remorseful: 'contrite', apologetic: 'contrite', ecstatic: 'euphoric', combative: 'spoiling_for_fight', twitchy: 'strung_out' };
 const RELATION_SYNONYMS = { fond: 'likes', wary: 'distrusts', distrustful: 'distrusts', protective: 'protects', attracted: 'finds_attractive', curious: 'intrigued_by',
     trusting: 'trusts', resentful: 'resents', afraid: 'fears', scared: 'fears', frightened: 'fears', annoyed: 'finds_annoying', irritated: 'irritated_by', loving: 'loves',
     adoring: 'idolises', tender: 'cherishes', grateful: 'grateful_to', guilty: 'guilty_toward', hurt: 'hurt_by', betrayed: 'betrayed_by', contemptuous: 'despises',
     disgusted: 'disgusted_by', lustful: 'lusts_after', hungry: 'lusts_after', intrigued: 'intrigued_by', respectful: 'respects', admiring: 'admires', pitying: 'pities',
     worried: 'worries_about', controlling: 'controls', dominant: 'dominates', hostile: 'cant_stand', hateful: 'hates', murderous: 'wants_kill', yearning: 'longs_for',
     obsessive: 'obsessed', smitten: 'smitten', infatuated: 'smitten', devoted: 'devoted', jealous: 'jealous', possessive: 'possessive', suspicious: 'suspicious_of' };
+// 1.38.0: everyday board words that aren't option names. [feeling, strength]; strength is where a plain
+// mention lands before "very", "slightly" and being listed first adjust it.
+const FEELING_WORDS = {
+    numb: ['shut_down', 60], hollow: ['shut_down', 60], empty: ['shut_down', 45], unsettled: ['anxious', 45], edgy: ['jumpy', 45], jittery: ['jumpy', 45],
+    twitchy: ['jumpy', 45], skittish: ['jumpy', 45], maudlin: ['self_pitying', 60], 'self-loathing': ['ashamed', 85], exasperated: ['frustrated', 45],
+    besotted: ['giddy_in_love', 60], smitten: ['giddy_in_love', 60], infatuated: ['limerent', 60], cocky: ['smug', 60], irritable: ['grumpy', 60], cranky: ['grumpy', 60],
+    pissed: ['angry', 60], sadistic: ['sadistic_glee', 60], calculating: ['planning', 60], scheming: ['planning', 60], delighted: ['happy', 60], doting: ['indulgent', 60],
+    panicked: ['afraid', 85], panicking: ['afraid', 85], shaken: ['shocked', 45], stunned: ['shocked', 60], dazed: ['in_shock', 45], sheepish: ['embarrassed', 35],
+    flustered: ['embarrassed', 45], bashful: ['shy', 60], distrustful: ['suspicious', 60], paranoid: ['suspicious', 85], aloof: ['distant', 60], territorial: ['possessive', 60],
+    homicidal: ['murderous', 85], unhinged: ['manic', 85], deranged: ['manic', 85], feral: ['feral_energy', 60], repulsed: ['disgusted', 60], scornful: ['contemptuous', 60],
+    disdainful: ['contemptuous', 60], patronising: ['condescending', 60], dismissive: ['distant', 45], indifferent: ['unbothered', 60], nonchalant: ['unbothered', 45],
+    smouldering: ['heated', 60], giggly: ['giddy', 60], sassy: ['cheeky', 60], mouthy: ['cheeky', 60], bratty: ['cheeky', 60], sarcastic: ['snarky', 60], snide: ['snarky', 60],
+    gleeful: ['wicked_delight', 60], vindictive: ['vengeful', 60], 'self-conscious': ['insecure', 60], gentle: ['soft', 60], nurturing: ['caring', 60], watchful: ['vigilant', 60],
+    alert: ['vigilant', 45], resolute: ['determined', 60], composed: ['calm', 60], simmering: ['seething', 45], brooding: ['ruminating', 60], haunted: ['ruminating', 60],
+    pensive: ['thinking', 45], thoughtful: ['thinking', 45], dreamy: ['head_in_clouds', 60], nostalgic: ['bittersweet', 60], melancholy: ['heavy_hearted', 60],
+    melancholic: ['heavy_hearted', 60], depressed: ['despairing', 60], wounded: ['hurt', 60], stung: ['hurt', 35], rejected: ['hurt', 60], abandoned: ['left_behind', 60],
+    reckless: ['daring', 60], triumphant: ['vindicated', 60], victorious: ['vindicated', 60], rebellious: ['defiant', 60], stubborn: ['defiant', 45], pouty: ['sulking', 60],
+    pouting: ['sulking', 60], sulky: ['sulking', 60], petulant: ['sulking', 60], entitled: ['demanding', 60], begging: ['pleading', 60], dissociated: ['dissociating', 60],
+    fragile: ['vulnerable', 60], exposed: ['vulnerable', 45], raw: ['vulnerable', 60], frazzled: ['overwhelmed', 45], stressed: ['anxious', 60], spiraling: ['spiralling', 60],
+};
+// Phrases first, so "strung out" isn't read as just "out" and "cold fury" isn't read as "cold".
+const FEELING_PHRASES = {
+    'on edge': ['jumpy', 45], 'cold fury': ['tranquil_fury', 85], 'quiet rage': ['tranquil_fury', 60], 'losing it': ['losing_control', 60], 'out of control': ['losing_control', 60],
+    'falling apart': ['losing_control', 85], 'barely holding it together': ['losing_control', 85], 'in love': ['romantic', 60], 'turned on': ['horny', 60], 'pissed off': ['angry', 60],
+    'spaced out': ['zoned_out', 60], 'on top of the world': ['euphoric', 85], 'fed up': ['over_it', 60], 'at peace': ['peaceful', 60], 'head over heels': ['giddy_in_love', 85],
+    'out for blood': ['bloodthirsty', 85], 'seeing red': ['angry', 85], 'scared stiff': ['afraid', 85], 'self loathing': ['ashamed', 85], 'hates himself': ['ashamed', 85],
+    'hates herself': ['ashamed', 85], 'hates themselves': ['ashamed', 85], 'wants revenge': ['vengeful', 60], 'shaken up': ['shocked', 45], 'freaked out': ['afraid', 60],
+    'stressed out': ['anxious', 60], 'fondly exasperated': ['fond_exasperation', 60], 'exasperated but fond': ['fond_exasperation', 60], 'hard done by': ['self_pitying', 60],
+};
+const RELATION_WORDS = {
+    amused: ['finds_funny', 60], besotted: ['smitten', 60], indulgent: ['indulges', 60], aroused: ['turned_on_by', 60], horny: ['lusts_after', 60], exasperated: ['irritated_by', 45],
+    doting: ['dotes', 60], affectionate: ['cherishes', 60], envious: ['envies', 60], competitive: ['rival', 60], dependent: ['depends', 60], needy: ['depends', 60],
+    clingy: ['cant_let_go', 60], submissive: ['submits_to', 60], manipulative: ['manipulates', 60], humiliated: ['humiliated_by', 60], intimidated: ['intimidated_by', 60],
+    threatened: ['threatened_by', 60], judgemental: ['judges', 60], judgmental: ['judges', 60], mocking: ['mocks', 60], teasing: ['teases', 60], condescending: ['looks_down', 60],
+    patronising: ['looks_down', 60], fascinated: ['fascinated', 60], impressed: ['impressed_by', 60], charmed: ['charmed_by', 60], flustered: ['flustered_by', 60],
+    heartbroken: ['heartbroken_over', 60], missing: ['misses', 60], forgiving: ['forgives', 60], apologetic: ['wants_to_apologise', 60], loyal: ['loyal_to', 60],
+    safe: ['safe_with', 60], comfortable: ['comfortable_with', 60], vengeful: ['revenge', 60], whipped: ['wrapped', 60], wary: ['suspicious_of', 45], proud: ['proud', 60],
+};
+const RELATION_PHRASES = {
+    'putty in her hands': ['wrapped', 85], 'putty in his hands': ['wrapped', 85], 'putty in their hands': ['wrapped', 85], "can't say no": ['wrapped', 60],
+    "can't stay mad": ['cant_stay_angry', 60], 'wants her dead': ['wants_kill', 60], 'wants him dead': ['wants_kill', 60], 'creeped out': ['finds_creepy', 60],
+    'soft on': ['cherishes', 60], 'hung up on': ['cant_let_go', 60], 'terrified of losing': ['afraid_to_lose', 85],
+};
 const SKIP = new Set(['with', 'over', 'them', 'their', 'they’re', 'they\'re', 'thinks', 'finds', 'wants', 'feels', 'about', 'around', 'despite', 'themselves', 'like', 'into', 'from', 'what', 'after', 'other', 'person', 'someone', 'something', 'love', 'more', 'than', 'keep']);
-let feelIndex = null, relIndex = null, feelSize = 0;
+// Board text as the matchers see it: lower case, straight apostrophes, letters only.
+const norm = s => ` ${String(s ?? '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim()} `;
+const PRONOUNS = /\b(her|his|him|hers|their|them|theirs|she|he|they|himself|herself|themselves)\b/g;
+const bareOf = s => norm(String(s).replace(/[’‘]/g, "'").toLowerCase().replace(PRONOUNS, ' '));
+// "spiraling" finds Spiralling, "patronizing" finds Patronising: the catalogue is spelt the British way.
+const british = w => [w.replace(/iz(e|es|ed|ing|ation)$/, 'is$1'), w.replace(/yz(e|es|ed|ing)$/, 'ys$1'), w.replace(/([aeiou])l(ing|ed|er)$/, '$1ll$2'), w.replace(/or$/, 'our')].filter(x => x !== w);
+let feelIndex = null, feelPhrases = null, relIndex = null, relPhrases = null, feelSize = 0;
 function buildFeelIndex() {
     if (feelIndex && feelSize === MOODS.length) return feelIndex;
-    const map = new Map(), byId = Object.fromEntries(MOODS.map(m => [m.id, m]));
-    const add = (word, id, value) => { word = word.toLowerCase(); if (word.length > 3 && !SKIP.has(word) && byId[id] && analysed(byId[id]) && !map.has(word)) map.set(word, { id, value }); };
-    // Scaled wording first: its first word carries the strength (terrified → afraid at 81).
-    for (const [id, steps] of Object.entries(SCALED_MOOD_CUES)) for (const [min, text] of steps) add(text.split(/[\s:,;]/)[0], id, min >= 81 ? 85 : min >= 41 ? 60 : 35);
+    const map = new Map(), phrases = new Map(), byId = Object.fromEntries(MOODS.map(m => [m.id, m]));
+    const ok = id => byId[id] && analysed(byId[id]);
+    const add = (word, id, value) => { word = word.toLowerCase().replace(/[’‘]/g, "'"); if (word.length > 3 && !SKIP.has(word) && ok(id) && !map.has(word)) map.set(word, { id, value }); };
+    const phrase = (text, id, value) => { const k = norm(text).trim(); if (k.includes(' ') && ok(id) && !phrases.has(k)) phrases.set(k, { id, value }); };
+    // An option's own name comes first, so "giddy" is Giddy rather than a strong Excited.
+    for (const m of MOODS) if (ok(m.id)) for (const part of [m.label, ...m.label.split(/\s*\/\s*/)]) {
+        const p = part.toLowerCase().replace(/\s*\(.*\)\s*/, '').trim();
+        if (p.includes(' ')) phrase(p, m.id, 60); else add(p.replace(/[^a-z’'-]/g, ''), m.id, 60);
+    }
+    for (const [id, names] of Object.entries(MERGED_SEARCH_NAMES)) for (const n of names) { if (n.includes(' ')) phrase(n, id, 60); else add(n, id, 60); }
+    for (const [text, [id, value]] of Object.entries(FEELING_PHRASES)) phrase(text, id, value);
+    // Scaled wording next: its first word carries the strength (terrified → afraid at 85).
+    // Where that word is already this option's own name ("heartbroken" for Hurt), it keeps the strength.
+    for (const [id, steps] of Object.entries(SCALED_MOOD_CUES)) for (const [min, text] of steps) {
+        const word = text.split(/[\s:,;]/)[0].toLowerCase(), value = min >= 81 ? 85 : min >= 41 ? 60 : 35, had = map.get(word);
+        if (had?.id === id) had.value = Math.max(had.value, value); else add(word, id, value);
+    }
     for (const [word, id] of Object.entries(FEELING_SYNONYMS)) add(word, id, 60);
-    for (const m of MOODS) if (analysed(m)) for (const part of m.label.toLowerCase().split(/\s*\/\s*/)) if (!part.includes(' ')) add(part.replace(/[^a-z’'-]/g, ''), m.id, 60);
-    feelSize = MOODS.length; feelIndex = map; return map;
+    for (const [word, [id, value]] of Object.entries(FEELING_WORDS)) add(word, id, value);
+    feelSize = MOODS.length; feelIndex = map;
+    feelPhrases = [...phrases.entries()].sort((a, b) => b[0].length - a[0].length);
+    return map;
 }
 function buildRelIndex() {
     if (relIndex) return relIndex;
-    const map = new Map(), ids = new Set(RELATIONSHIP_TAGS.map(t => t.id));
-    for (const [word, id] of Object.entries(RELATION_SYNONYMS)) if (ids.has(id)) map.set(word, id);
+    const map = new Map(), ids = new Set(RELATIONSHIP_TAGS.map(t => t.id)), phrases = new Map();
+    for (const [word, id] of Object.entries(RELATION_SYNONYMS)) if (ids.has(id)) map.set(word, { id, value: 60 });
+    for (const [word, [id, value]] of Object.entries(RELATION_WORDS)) if (ids.has(id)) map.set(word, { id, value });
     for (const t of RELATIONSHIP_TAGS) {
         const words = t.label.toLowerCase().replace(/[^a-z’' -]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !SKIP.has(w));
-        if (words.length === 1 && !map.has(words[0])) map.set(words[0], t.id);
+        if (words.length === 1 && !map.has(words[0])) map.set(words[0], { id: t.id, value: 60 });
+        // Whole names, with "them"/"their" and a trailing "with", "of", "by"… taken off: "wrapped around her finger".
+        const bare = bareOf(t.label).trim(), short = bare.replace(/\s+(with|of|by|to|for|toward|about|on|at)$/, '');
+        for (const k of [bare, short]) if (k.includes(' ') && !phrases.has(k)) phrases.set(k, { id: t.id, value: 60 });
     }
-    relIndex = map; return map;
+    for (const [text, [id, value]] of Object.entries(RELATION_PHRASES)) if (ids.has(id)) phrases.set(bareOf(text).trim(), { id, value });
+    relIndex = map; relPhrases = [...phrases.entries()].sort((a, b) => b[0].length - a[0].length);
+    return map;
 }
 function strengthOf(phrase, base, first) {
     const v = STRONG.test(phrase) ? Math.max(base, 85) : WEAK.test(phrase) ? Math.min(base, 30) : base;
     return Math.min(95, v + (first ? 10 : 0));
 }
-// "giddy, quietly furious, a little scared" → [{ id, value, phrase }].
-function read(line, lookup) {
+// "giddy, quietly furious, a little scared" → [{ id, value, phrase }]. Each comma-separated piece can
+// name up to three things ("tender but terrified"); phrases are matched before single words.
+function read(line, lookup, phraseList, bare = false) {
     const out = new Map();
     phrases(line).forEach((phrase, i) => {
-        const text = phrase.toLowerCase(), words = text.replace(/[^a-z’' -]/g, ' ').split(/\s+/);
-        for (const word of words) {
-            const hit = lookup(word); if (!hit) continue;
-            if (negated(text, text.indexOf(word))) continue;
-            const value = strengthOf(text, hit.value, i === 0);
+        const raw = phrase.toLowerCase().replace(/[’‘]/g, "'");
+        let text = bare ? bareOf(phrase) : norm(phrase), hits = 0;
+        const take = (hit, at) => {
+            // at is the space before the match; the words just before it decide whether it's negated.
+            if (!hit || hits >= 3 || negated(text, at + 1)) return;
+            const value = strengthOf(raw, hit.value, i === 0 && hits === 0);
+            hits++;
             if ((out.get(hit.id)?.value ?? 0) < value) out.set(hit.id, { id: hit.id, value, phrase });
-            break;
+        };
+        for (const [key, hit] of phraseList()) {
+            const at = text.indexOf(` ${key} `); if (at < 0) continue;
+            take(hit, at); text = `${text.slice(0, at)} ${' '.repeat(key.length)} ${text.slice(at + key.length + 2)}`;
+        }
+        for (const word of text.split(/\s+/).filter(Boolean)) {
+            const hit = lookup(word) ?? british(word).map(lookup).find(Boolean);
+            if (hit) take(hit, text.indexOf(` ${word} `));
         }
     });
     return [...out.values()];
@@ -399,11 +485,20 @@ export function relationId(name, other = '') {
     if (!text) return null;
     const exact = RELATIONSHIP_TAGS.find(t => t.label.toLowerCase() === text || t.label.toLowerCase().replace(/\s+(with|of|by|to|for|toward|about|on)$/, '') === text || t.id.replace(/_/g, ' ') === text);
     if (exact) return exact.id;
-    for (const word of text.split(' ')) { const id = buildRelIndex().get(word); if (id) return id; }
+    // 1.37.0: "undone by her tears" is "Undone by their tears": pronouns don't decide the match.
+    const bare = s => s.toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\b(her|his|him|hers|their|them|theirs|she|he|they)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const plain = bare(text), loose = plain && RELATIONSHIP_TAGS.find(t => bare(t.label) === plain || bare(t.label).replace(/\s+(with|of|by|to|for|toward|about|on)$/, '') === plain);
+    if (loose) return loose.id;
+    for (const word of text.split(' ')) { const hit = buildRelIndex().get(word); if (hit) return hit.id; }
     return null;
 }
-export const feelingsFromBoard = board => read(board?.state, w => buildFeelIndex().get(w));
-export const relationsFromBoard = board => read(board?.toward, w => { const id = buildRelIndex().get(w); return id ? { id, value: 60 } : null; });
+export const feelingsFromBoard = board => read(board?.state, w => buildFeelIndex().get(w), () => (buildFeelIndex(), feelPhrases));
+// other: the player's name, taken out first so "obsessed with Lamb" reads as Obsessed with.
+export function relationsFromBoard(board, other = '') {
+    let text = String(board?.toward ?? '');
+    for (const word of String(other).toLowerCase().split(/\s+/).filter(w => w.length > 1)) text = text.replace(new RegExp(`\\b${word.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&')}\\b`, 'gi'), ' ');
+    return read(text, w => buildRelIndex().get(w), () => (buildRelIndex(), relPhrases), true);
+}
 // Moves values toward the board's reading. fed remembers what the board itself last set:
 // a value still equal to that is the board's to lower or let fade; anything the player set is never lowered.
 export function feedValues(moods, pins, fed, readings, fade = 15) {

@@ -28,9 +28,16 @@ const ROMANCE_OFF = new Set(['not_attracted', 'finds_plain', 'finds_ugly', 'turn
 const FRIEND_SHARED = ['friends', 'best_friends', 'childhood_friends', 'platonic_soulmates', 'chosen_family', 'ride_or_die'];
 const OWN_AXIS = new Set(['trusts', 'distrusts', 'suspicious_of', 'fears']);
 const ROMANCE_SHARED = ['dating', 'engaged', 'married', 'soulmates', 'lovers', 'mutual_pining', 'slow_burn'];
-export function sliderAxes(moods = {}, shared = {}) {
+// 1.37.0: theirs is the player's own side toward the character (Lamb → Easterman), so a player who has
+// the character on a string counts toward Pull, and one who holds the keys counts toward Control.
+const CONTROL = [['controls'], ['dominates'], ['captor_of'], ['keeps_them'], ['guardian_of', 0.6], ['doctor_of', 0.5], ['employs_in_house', 0.6], ['lets_them_win', 0.5], ['snaps_back', 0.6], ['deals_to', 0.4]];
+const UNDER = [['submits_to'], ['captive_of'], ['in_service_to', 0.6], ['ward_of', 0.6], ['patient_of', 0.5], ['fears', 0.5], ['buys_from', 0.4]];
+// Holding someone emotionally, and being held.
+const HOLDS = [['on_a_string'], ['upper_hand'], ['rations_affection', 0.8], ['sweet_talks', 0.6], ['plays_helpless', 0.6], ['talks_down', 0.5], ['gets_soft_side', 0.5]];
+const HELD = [['idolises'], ['at_their_mercy'], ['indulges', 0.8], ['walks_on_eggshells', 0.8], ['above_spouse', 0.7], ['lets_them_win', 0.5], ['undone_by_tears', 0.8], ['comes_running', 0.8], ['cant_stay_angry', 0.6]];
+export function sliderAxes(moods = {}, shared = {}, theirs = {}) {
     const peak = test => Math.max(0, ...Object.entries(moods).filter(([id, v]) => v > 0 && test(RELATIONSHIP_BY_ID[id], id)).map(([, v]) => v));
-    const ids = list => Math.max(0, ...list.map(([id, w = 1]) => Math.round((moods[id] ?? 0) * w)));
+    const ids = (list, from = moods) => Math.max(0, ...list.map(([id, w = 1]) => Math.round((from?.[id] ?? 0) * w)));
     const both = list => Math.max(0, ...list.map(id => shared[id] ?? 0));
     return {
         // Trust and fear have their own axes, so they don't count as liking or disliking too.
@@ -38,11 +45,10 @@ export function sliderAxes(moods = {}, shared = {}) {
         // In dark romance obsession and possession are the romance, so they count toward it.
         r: Math.max(peak((t, id) => t?.category === 'Attraction & romance' && !ROMANCE_OFF.has(id)), both(ROMANCE_SHARED), ids([['obsessed', 0.85], ['possessive', 0.85], ['devoted', 0.85], ['above_spouse', 0.8]])) - peak((t, id) => ROMANCE_OFF.has(id)),
         t: ids([['trusts']]) - ids([['distrusts'], ['suspicious_of']]),
-        // Real control: who holds the keys, the money, the freedom.
-        p: ids([['controls'], ['dominates'], ['captor_of'], ['keeps_them'], ['guardian_of', 0.6], ['doctor_of', 0.5], ['employs_in_house', 0.6], ['lets_them_win', 0.5], ['snaps_back', 0.6]])
-            - ids([['submits_to'], ['captive_of'], ['in_service_to', 0.6], ['ward_of', 0.6], ['patient_of', 0.5], ['fears', 0.5]]),
-        // Pull: who is hooked on whom. These are the character's own side, so they only show the player's hold.
-        l: -ids([['idolises'], ['at_their_mercy'], ['indulges', 0.8], ['walks_on_eggshells', 0.8], ['above_spouse', 0.7], ['lets_them_win', 0.5]]),
+        // Real control: who holds the keys, the money, the freedom. Either side can say so.
+        p: Math.max(ids(CONTROL), ids(UNDER, theirs)) - Math.max(ids(UNDER), ids(CONTROL, theirs)),
+        // Pull: who is hooked on whom. + means the player is hooked on the character.
+        l: Math.max(ids(HOLDS), ids(HELD, theirs)) - Math.max(ids(HELD), ids(HOLDS, theirs)),
     };
 }
 // Where a slider says more than the meter, it pulls the dynamic toward it.

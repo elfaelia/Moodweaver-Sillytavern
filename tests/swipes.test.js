@@ -35,9 +35,10 @@ function reset(chat = []) {
     injected = ''; writes = 0; mw.stopGenerating();
     context = {
         characterId: 0, characters: [{ avatar: 'easterman.png', name: 'Doctor Easterman' }], name1: 'Lamb',
-        chatId: `chat-${Math.random()}`, chatMetadata: {}, extensionSettings: {}, chat,
+        // These tests cover memories and board corrections, which are opt-in since 1.38.
+        chatId: `chat-${Math.random()}`, chatMetadata: {}, extensionSettings: { moodweaver: { boardMemories: true, boardPins: true } }, chat,
         setExtensionPrompt: (_key, value) => { injected = value; writes++; },
-        getTokenCountAsync: async t => Math.ceil(t.length / 4), saveMetadata: async () => {},
+        getTokenCountAsync: async t => Math.ceil(t.length / 4), saveMetadata: async () => {}, saveSettingsDebounced: () => {},
     };
 }
 const st = () => mw.getState();

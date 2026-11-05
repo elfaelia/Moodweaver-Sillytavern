@@ -30,23 +30,25 @@ function tile(kind, t, focus) {
     return `<button type="button" class="mw-tile ${t.kept ? 'is-kept' : ''} ${t.added ? 'is-added' : ''}" data-board-tile="${esc(id)}" aria-pressed="${focus === id}" style="--mw-accent:${colour ?? (kind === 'state' ? '#b7acd7' : '#d7a39b')}" title="${m ? esc(m.label) : 'Tap for options'}">
         <span class="mw-tile-icon">${glyph ? esc(glyph) : kind === 'state' ? '✦' : '✚'}</span><span class="mw-tile-text">${esc(t.text)}</span>${t.kept ? '<em>◆</em>' : ''}</button>`;
 }
-function tileGroup(kind, tiles, focus, ownerName) {
+// pinsOn: false hides keeping, cutting and adding; a State tile can still become a moodlet.
+function tileGroup(kind, tiles, focus, ownerName, pinsOn = true) {
     const focused = tiles.find(t => focus === `${kind}:${t.text}`);
+    const actions = focused && (pinsOn || kind === 'state');
     return `<div class="mw-tiles">${tiles.map(t => tile(kind, t, focus)).join('')}
-        <span class="mw-tile-add"><input type="text" data-board-add="${kind}" maxlength="60" enterkeyhint="done" placeholder="＋ add" aria-label="Add to ${kind === 'state' ? 'State' : 'Physical State'}"></span></div>
-    ${focused ? `<div class="mw-tile-actions" role="group" aria-label="${esc(focused.text)}">
+        ${pinsOn ? `<span class="mw-tile-add"><input type="text" data-board-add="${kind}" maxlength="60" enterkeyhint="done" placeholder="＋ add" aria-label="Add to ${kind === 'state' ? 'State' : 'Physical State'}"></span>` : ''}</div>
+    ${actions ? `<div class="mw-tile-actions" role="group" aria-label="${esc(focused.text)}">
         <b>${esc(focused.text)}</b>
-        <button type="button" data-board-keep="${esc(kind)}" aria-pressed="${focused.kept}">${focused.kept ? '◆ Kept' : '◇ Keep'}</button>
-        <button type="button" data-board-cut="${esc(kind)}">✕ ${focused.added ? 'Remove' : 'Cut'}</button>
+        ${pinsOn ? `<button type="button" data-board-keep="${esc(kind)}" aria-pressed="${focused.kept}">${focused.kept ? '◆ Kept' : '◇ Keep'}</button>
+        <button type="button" data-board-cut="${esc(kind)}">✕ ${focused.added ? 'Remove' : 'Cut'}</button>` : ''}
         ${kind === 'state' ? `<button type="button" data-board-promote>⇪ Moodlet for ${esc(ownerName)}</button>` : ''}
-        <p class="mw-fine">${focused.kept ? 'Kept: sent every reply as part of the board until you let go.' : 'Keep sends it every reply. Cut tells the bot to drop it.'}${kind === 'state' ? ' A moodlet gets a slider in Moods.' : ''}</p></div>` : ''}`;
+        <p class="mw-fine">${pinsOn ? (focused.kept ? 'Kept: sent every reply as part of the board until you let go.' : 'Keep sends it every reply. Cut tells the bot to drop it.') : ''}${kind === 'state' ? ' A moodlet gets a slider in Moods.' : ''}</p></div>` : ''}`;
 }
-function needCell(nd) {
+function needCell(nd, pinsOn = true) {
     const colour = needColour(nd.value), word = needWord(nd.value);
     return `<div class="mw-need ${nd.value <= 15 ? 'is-critical' : ''} ${nd.known ? '' : 'is-quiet'}" style="--mw-need:${colour}" data-need-row="${nd.id}">
         <div class="mw-need-head"><span class="mw-need-icon">${icon(nd.id)}</span><label for="mw-need-${nd.id}">${nd.label}</label>
             ${nd.pinned ? `<button type="button" class="mw-need-pin" data-need-unpin="${nd.id}" title="Set by you. Tap to follow the board again" aria-label="Unpin ${nd.label}">◆</button>` : ''}<span class="mw-need-word" data-need-word="${nd.id}">${word}</span></div>
-        <input id="mw-need-${nd.id}" type="range" min="0" max="100" step="5" value="${nd.value}" data-need="${nd.id}" style="--mw-fill:${nd.value}%" aria-valuetext="${word}">
+        <input id="mw-need-${nd.id}" type="range" min="0" max="100" step="5" value="${nd.value}" data-need="${nd.id}" style="--mw-fill:${nd.value}%" aria-valuetext="${word}"${pinsOn ? '' : ' disabled'}>
         ${nd.source ? `<small title="${esc(nd.source)}">“${esc(nd.source)}”</small>` : ''}</div>`;
 }
 function presentChips(live, people) {
@@ -65,8 +67,9 @@ const editField = (key, label, value, max = 200) => max > 80
 // 1.36.0: an edit is a correction to this board (✎), not a pin. The next reply takes it on and carries it.
 const pinMark = (pins, key) => pins[key] ? `<button type="button" class="mw-pinned" data-board-unpin="${key}" title="Your correction, going to the next reply. Tap to undo it" aria-label="Undo your correction">✎</button>` : '';
 
-// opts: { live, send, sync, charName, userName, people: [{ name, match(name), attrs, away }], editing, focus }
-export function boardView({ live, send, sync, charName, userName, people, editing, focus }) {
+// opts: { live, send, sync, charName, userName, people: [{ name, match(name), attrs, away }], editing, focus,
+//   pinsOn, memoriesOn, withWeave, weaveOn, savedMemories } (1.38.0: the board switches, all chats)
+export function boardView({ live, send, sync, charName, userName, people, editing, focus, pinsOn = false, memoriesOn = false, withWeave = true, weaveOn = true, savedMemories = 0 }) {
     const pins = live.meta.pins, sky = live.sky;
     const [clock, ampm] = (() => { const m = String(live.time).match(/^(\d{1,2}:\d{2})\s*([AP]\.?M\.?)?(.*)$/i); return m ? [m[1], `${m[2] ?? ''}${m[3] ?? ''}`.trim()] : [live.time, '']; })();
     const owner = live.name || charName;
@@ -91,15 +94,15 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         <div class="mw-sky" data-sky="${sky.time}" data-weather="${sky.weather}"><i class="mw-sky-fx" aria-hidden="true"></i>${scene}</div>
         ${edit}
         <div class="mw-board-block"><h4>${icon('mind')} State <small>${esc(owner)}</small></h4>
-            ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName) : '<p class="mw-fine">The board’s State line shows up here as moodlets.</p>'}</div>
+            ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : '<p class="mw-fine">The board’s State line shows up here as moodlets.</p>'}</div>
         <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · drag to set</small></h4>
-            <div class="mw-needs">${live.needs.map(needCell).join('')}</div>
-            <p class="mw-fine">Read from the board’s words. Faded bars haven’t come up yet. Low and critical needs, and any you set, go to the bot as things that change what ${esc(charName)} does.</p></div>
+            <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
+            <p class="mw-fine">Read from the board’s words${weaveOn ? ' and the hidden line' : ''}. Faded bars haven’t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does.</p></div>
         ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
-            <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny">
+            <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny"${pinsOn ? '' : ' disabled'}>
             ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}
-        <div class="mw-board-block"><h4>${icon('body')} Physical State</h4>${tileGroup('physical', live.physical, focus, charName)}</div>
-        ${editing ? '' : `<button type="button" class="mw-board-editbtn" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
+        <div class="mw-board-block"><h4>${icon('body')} Physical State</h4>${tileGroup('physical', live.physical, focus, charName, pinsOn)}</div>
+        ${editing || !pinsOn ? '' : `<button type="button" class="mw-board-editbtn" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
         <div class="mw-board-block mw-outfits"><h4>${icon('hanger')} Outfits</h4>
             ${[['charOutfit', charName], ['userOutfit', userName]].map(([key, who]) => `<div class="mw-outfit"><b>${esc(who)}</b><p>${esc(live[key]) || '<i>Not on the board yet</i>'}${pinMark(pins, key)}</p></div>`).join('')}</div>
         <details class="mw-board-foot" data-board-settings><summary>Board settings</summary>
@@ -108,9 +111,13 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <p class="mw-fine">Off by default. Hidden Horny pins aren't sent. Moodlets and attraction settings still work separately.</p>
             <label class="mw-toggle"><input type="checkbox" data-board-sync ${sync ? 'checked' : ''}> Present line moves the cast in and out</label>
             <label class="mw-toggle"><input type="checkbox" data-board-feed ${live.meta.feed !== false ? 'checked' : ''}> Replies update ${esc(charName)}’s feelings, needs and relationship</label>
-            <p class="mw-fine">With the weave line on (Bonds tab), each reply reports what it changed and the sliders follow, up or down. Pinned ◆ values never move. Without it, the board’s State words nudge feelings instead.</p>
-            <label class="mw-toggle"><input type="checkbox" data-board-remember ${live.meta.includeRemember !== false ? 'checked' : ''}> Save turning points as shared memories</label>
+            <p class="mw-fine">${weaveOn ? `The hidden line reports what each reply changed and the sliders follow, up or down.${withWeave ? ' The board’s State words fill in anything it didn’t mention.' : ''}` : 'The board’s State words move feelings, and the Toward row moves how they feel about you.'} Words like “terrified” land higher than “afraid”; “very” and “slightly” shift them; the first one listed counts most. Pinned ◆ sliders never move, and what you set by hand is never lowered by the board.</p>
             <label class="mw-toggle"><input type="checkbox" data-board-toward ${live.meta.includeToward ? 'checked' : ''}> Visible Toward ${esc(userName)} row on the board</label>
+            <p class="mw-fine"><b>All chats:</b></p>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardWithWeave" ${withWeave ? 'checked' : ''}> Board words move feelings too, alongside the hidden line</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPins" ${pinsOn ? 'checked' : ''}> Let me pin and correct things on the board</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardMemories" ${memoriesOn ? 'checked' : ''}> Save turning points as memories</label>
+            ${!memoriesOn && savedMemories ? `<p class="mw-fine">${savedMemories} memor${savedMemories === 1 ? 'y' : 'ies'} saved earlier ${savedMemories === 1 ? 'isn’t' : 'aren’t'} being sent. <button type="button" class="mw-clear" data-action="board-memories-delete">Delete ${savedMemories === 1 ? 'it' : 'them'}</button></p>` : ''}
 
             <p class="mw-fine">${send ? 'Moodweaver sends your INFO BOARD format, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
         </details></section>`;

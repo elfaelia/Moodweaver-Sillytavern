@@ -2038,6 +2038,37 @@ for (const [category, rows] of Object.entries(ADDITIONS_5)) {
     if (!CATEGORIES.some(([id]) => id === category)) throw new Error(`Moodweaver: unknown category ${category}`);
     (ADDITIONS[category] ??= []).push(...rows);
 }
+// 1.37.0: dark romance, horror and edgy fiction. The one who holds the emotional power, the grunge and
+// junkie end of the cast, and the horror the trials live in. Short descriptions: only active options are
+// sent, and each costs a line. Petulant, Grunge, Goth, Punk and Demanding were already here. Femme fatale
+// and Cosmic horror stay retired (removed on request in 1.9.14); self-loathing lives in Ashamed.
+const ADDITIONS_6 = {
+    bold: [['wheedling', 'Wheedling', 'coaxing a yes with pouts, sweetness and little touches', 'Lamb, any brat'],
+        ['gloating', 'Gloating', 'rubbing a win in: grinning, needling, making them admit it', 'Lamb after winning one, Bateman, Rick']],
+    closeness: [['fond_exasperation', 'Fond exasperation', 'rolls their eyes at them and gives in anyway, half smiling', 'Easterman with Lamb, Rick']],
+    sad: [['contrite', 'Contrite', 'sorry and showing it: quiet, careful, trying to make it right', 'Easterman after snapping']],
+    happy: [['euphoric', 'Euphoric', 'a huge rush of happiness or a high: everything shining, too much, too fast', 'a good hit, a win, a first kiss']],
+    headspace: [['strung_out', 'Strung out', 'frayed from drugs and no sleep: twitchy, paranoid and short-fused', 'the dealer, Chloe, Rick']],
+    angry: [['spoiling_for_fight', 'Spoiling for a fight', 'wants a fight, any fight: needling, provoking, squaring up', 'Chloe, Rick']],
+    temperament: [['mooch', 'Mooch', 'borrows, cadges and freeloads, never pays it back, no shame', 'the dealer']],
+    archetype: [['burnout', 'Burnout', 'drifts through life high and broke, ducking work, plans and responsibility', 'the dealer, Chloe'],
+        ['washed_up_rocker', 'Washed-up rock star', 'still living off the band that nearly made it; broke, bitter, a legend in his own head', 'the dealer'],
+        ['morally_black', 'Morally black', 'no redemption arc: cruel and selfish, and still the one they want', 'Easterman, Bateman']],
+    aesthetic: [['goth_masc', 'Goth (masculine)', 'all black and rough-edged: long coat, band tee, boots, rings, maybe eyeliner', 'a gothy guy; pairs with Grunge or Punk']],
+    voice: [['slurred_drawl', 'Slurred drawl', 'slow, mumbled and slurred, trailing off mid-thought', 'the dealer, Rick drunk'],
+        ['hums', 'Hums to themselves', 'hums old tunes under their breath, more when anxious', 'Easterman']],
+    looks: [['unkempt', 'Unkempt', 'lank greasy hair, stubble and slept-in clothes', 'the dealer']],
+    background: [['junkie', 'Junkie', 'a long habit runs their life: money, friends, lies and days', 'the dealer']],
+    genre: [['found_footage', 'Found footage', 'told through cameras and recordings: night vision, what the lens catches and misses', 'Outlast'],
+        ['asylum_horror', 'Asylum horror', 'locked wards, restraints and staff who are the real danger', 'Outlast, Easterman']],
+    tropes: [['he_falls_first', 'He falls first', 'he’s gone for her before she notices, and it shows in everything he does', 'Easterman and Lamb'],
+        ['bully_romance', 'Bully romance', 'he torments her and wants her; cruelty is how he courts', 'Rick, Bateman']],
+    writing: [['gross_out', 'Gross-out humour', 'bodily, disgusting comedy played straight for the laugh', 'Rick and Morty']],
+};
+for (const [category, rows] of Object.entries(ADDITIONS_6)) {
+    if (!CATEGORIES.some(([id]) => id === category)) throw new Error(`Moodweaver: unknown category ${category}`);
+    (ADDITIONS[category] ??= []).push(...rows);
+}
 for (const [category, rows] of Object.entries(ADDITIONS)) {
     const target = CATEGORIES.find(([id]) => id === category);
     target[4].push(...rows.map(([id, label, cue, fits]) => [id, label, cue, fits ? `${cue}. Fits: ${fits}.` : undefined]));

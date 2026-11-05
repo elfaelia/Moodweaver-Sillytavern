@@ -1,6 +1,7 @@
 import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalities, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS } from './turns.js';
 import { REGIONAL_ERAS, ERA_LOCALE, LOCALE_RULES, LOCALE_SPEAKERS, toAmerican } from './locale.js';
+import { stripBond } from './bond.js';
 import { cloneRelationships, relationshipSets, relationshipCue, relationshipText, relationshipKey, MOVED_TO_RELATIONSHIPS, MOVED_TARGET, activeSharedTags, compareText, TWO_ROLE_SHARED } from './relationships.js';
 
 export const PROSE_STYLES = [
@@ -421,7 +422,7 @@ export const CATEGORIES = [
     ['sad', 'Sad & hurt', '☂', '#a5b5f3', [
         ["heavy_hearted", "Heavy-hearted", "quietly sad and weighed down, thinking about what could have been"],
         ["mopey", "Mopey", "sulky and down; wants to be left alone but also noticed"],
-        ["teary", "Teary", "close to tears and easily set off"],
+        ["teary", "Teary / tearing up", "eyes filling and stinging; close to tears and easily set off"],
         ["despairing", "Despairing", "sees no way out and has stopped fighting it"],
         ["numb_grief", "Numb grief", "a loss so big they can’t feel it properly yet"],
         ["broken", "Broken", "something in them has snapped and won’t mend easily"],
@@ -942,7 +943,7 @@ export const CATEGORIES = [
         ['self_destructive', 'Self-destructive', 'tears their own life down'], ['paranoid', 'Paranoid', 'sure people are out to get them'],
         ['delusional', 'Delusional', 'believes things that aren’t true'], 
         ['believes_own_lies', 'Believes their own lies', 'has told the lie so long it’s true to them'], ['projecting', 'Projecting', 'pins their own feelings and faults on others'],
-        ['victim_complex', 'Victim complex', 'always the victim in their own eyes'], 
+        ['victim_complex', 'Victim complex / sees self as victim', 'always the wronged one in their own eyes, even when they did the harm'], 
         ['unhinged', 'Unhinged', 'wild and off the rails'],
         ['morbid', 'Morbid', 'drawn to dark, grim things'],
         ['narcissistic', 'Narcissistic', 'self-obsessed and hungry for admiration'],
@@ -1949,6 +1950,16 @@ const ADDITIONS_3 = {
     ],
 };
 for (const [category, rows] of Object.entries(ADDITIONS_3)) (ADDITIONS[category] ??= []).push(...rows);
+// 1.30.0: requested additions.
+const ADDITIONS_4 = {
+    happy: [['giddy', 'Giddy', 'light-headed with excitement or relief: laughing too easily, can’t sit still or stop smiling']],
+    sad: [['self_pitying', 'Self-pitying', 'wallowing in how unfair it all is; wants sympathy and keeps steering back to their own hurt']],
+    scared: [['eggshells', 'Walking on eggshells', 'tiptoeing around someone’s temper; every word and move picked so as not to set them off']],
+    temperament: [['feral', 'Feral', 'more animal than civilised: instinct over manners, growls, bites, grabs or bolts, little use for words or rules']],
+    body: [['burned', 'Burned', 'burns on the skin, red, blistered or raw, hurting at every touch of cloth or air'],
+        ['wet', 'Wet (rain, shower)', 'damp from rain, a shower or a swim: wet hair, clinging clothes, cool skin']],
+};
+for (const [category, rows] of Object.entries(ADDITIONS_4)) (ADDITIONS[category] ??= []).push(...rows);
 for (const [category, rows] of Object.entries(ADDITIONS)) {
     const target = CATEGORIES.find(([id]) => id === category);
     target[4].push(...rows.map(([id, label, cue, fits]) => [id, label, cue, fits ? `${cue}. Fits: ${fits}.` : undefined]));
@@ -2029,6 +2040,7 @@ export const level = v => v <= 0 ? 'Off' : tierOf(v).name;
 export const escapeHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Retired IDs are migrated once on load, including defaults and undo snapshots.
 export const MERGED_MOODS = {
+    "wet_aroused": "bedroom_wet",
     "irked": "angry",
     "conceited": "egotistical",
     "macabre": "morbid",
@@ -2040,7 +2052,6 @@ export const MERGED_MOODS = {
     "insane": "unhinged",
     "merciless": "ruthless",
     "delighted": "happy",
-    "giddy": "excited",
     "silly": "playful",
     "giggly": "playful",
     "triumphant": "proud",
@@ -2362,14 +2373,14 @@ export function activeMoods(state) {
 // one plain line saying how much a feeling at that strength actually does.
 // One strength scale for everything, worded so it works for feelings, facts, the player's character and the story alike.
 export const TIERS = [
-    { min: 100, name: 'Maximum', text: 'owns the reply. It runs through every line, choice and thought, pushed to its extreme, and nothing else in these notes tones it down' },
-    { min: 91, name: 'Overwhelming', text: 'takes over. It decides the main thing that happens, their voice and focus, and leaves the scene changed' },
-    { min: 81, name: 'Intense', text: 'drives the reply. It shows in most of what they say, do and think and decides where the scene goes' },
-    { min: 61, name: 'Strong', text: 'steers. It decides at least one real choice and keeps showing in their voice' },
-    { min: 41, name: 'Clear', text: 'shows plainly and shapes at least one thing they say or do' },
-    { min: 21, name: 'Mild', text: 'colours their tone; it can surface without needing its own moment or steering anything' },
-    { min: 11, name: 'Subtle', text: 'a small tell or passing thought now and then' },
-    { min: 1, name: 'Faint', text: 'barely there; it can stay unseen' },
+    { min: 100, name: 'Maximum', text: 'full force in nearly every line, through words, body and choices, taken as far as it goes. Other maximums run at full force beside it, fused, not taking turns or watering each other down' },
+    { min: 91, name: 'Overwhelming', text: 'dominates their voice and the main action; they can barely act against it, and the scene is changed by it' },
+    { min: 81, name: 'Intense', text: 'shows in most of what they say, do and think, and decides where the scene goes' },
+    { min: 61, name: 'Strong', text: 'shows several times and decides at least one real choice' },
+    { min: 41, name: 'Clear', text: 'shows plainly at least once and shapes something they say or do' },
+    { min: 21, name: 'Mild', text: 'a light, steady tint: it changes how things are said and noticed more than what happens' },
+    { min: 11, name: 'Subtle', text: 'one small tell or passing thought' },
+    { min: 1, name: 'Faint', text: 'a flicker at most; it can stay unseen' },
 ];
 // Only entries whose slider name wouldn't make sense to the model on its own get a different wording.
 export const PROMPT_NAME = {
@@ -2409,7 +2420,7 @@ export const PROMPT_NAME = {
     dead_eyed: "dead-eyed: flat and unreachable; nothing behind the eyes",
     heavy_hearted: "heavy-hearted: quietly sad and weighed down, thinking about what could have been",
     mopey: "mopey: sulky and down; wants to be left alone but also noticed",
-    teary: "teary: close to tears and easily set off",
+    teary: "teary: eyes filling and stinging, close to tears and easily set off",
     despairing: "despairing: sees no way out and has stopped fighting it",
     numb_grief: "numb grief: a loss so big they can’t feel it properly yet",
     broken: "broken: something in them has snapped and won’t mend easily",
@@ -3112,7 +3123,7 @@ export const PROMPT_NAME = {
     boomerang_bigot: 'a boomerang bigot (hates a group they belong to)', moral_myopia: 'moral myopia (blind to the harm they and their own side cause, quick to condemn everyone else)',
     entitled: 'entitled', oblivious: 'oblivious (never notices what’s obvious to everyone else)',
     romanticising: 'romanticises everything, sees life like a novel',
-    victim_complex: 'victim complex (always the victim in their own eyes)', projecting: 'projecting their own feelings and faults onto others',
+    victim_complex: 'sees themselves as the victim, even when they did the harm', projecting: 'projecting their own feelings and faults onto others',
     believes_own_lies: 'believes their own lies', madonna_whore: 'Madonna-whore complex (can’t desire the one they respect, or respect the one they desire)',
     boy_next_door: 'boy next door', axe_crazy: 'axe-crazy: violently unhinged, actively dangerous and liable to turn conflict into lethal chaos',
     obliviously_evil: 'obliviously evil (does evil with no idea it’s wrong)', chick_magnet: 'a chick magnet', crazy_jealous: 'crazy jealous (jealous to the point of danger)',
@@ -3156,25 +3167,35 @@ for (const [category, rows] of Object.entries(ADDITIONS)) {
 }
 export const tierOf = (v, tiers = TIERS) => tiers.find(t => v >= t.min) ?? null;
 // {other} lets relationship entries name who they're about ("taller than Ellie").
+Object.assign(PROMPT_NAME, {
+    feral: 'feral: more animal than civilised; instinct over manners, growls, bites, grabs or bolts',
+    burned: 'burned: red, blistered or raw skin that hurts at every touch',
+    wet: 'wet from rain, a shower or a swim: damp hair, clinging clothes',
+    eggshells: 'walking on eggshells: every word and move picked so as not to set someone off',
+    self_pitying: 'self-pitying: wallowing in how unfair it is, fishing for sympathy',
+});
 export const SCALED_MOOD_CUES = {
-    "happy": [[81,"overjoyed"],[61,"delighted"],[41,"happy"],[1,"pleased"]],
-    "excited": [[81,"giddy with excitement"],[41,"excited"],[1,"looking forward to what comes next"]],
-    "proud": [[81,"triumphant"],[41,"proud"],[1,"pleased with themselves"]],
-    "affectionate": [[81,"adoring and full of affection"],[41,"affectionate"],[1,"fond and tender"]],
+    "desperate": [[100, "desperate past pride and sense: begs, bargains, lies, breaks rules or risks themselves and others for what they need; it's in their voice, hands and every choice"],
+        [81, "frantic: pleading, bargaining and grabbing at any option, dignity gone"], [61, "desperate: pushing hard and taking risks they normally wouldn't"],
+        [41, "desperate: needs something badly and is running out of options"], [1, "getting desperate; the strain is starting to show"]],
+    "happy": [[100,"overjoyed past containing it: laughing, grinning, can't keep still, generous and reckless with it"],[81,"overjoyed"],[61,"delighted"],[41,"happy"],[1,"pleased"]],
+    "excited": [[100,"beside themselves with excitement: talking fast, can't sit still, can't think about anything else"],[81,"giddy with excitement"],[41,"excited"],[1,"looking forward to what comes next"]],
+    "proud": [[100,"swollen with triumph: crowing, showing off, wanting everyone to see and admit it"],[81,"triumphant"],[41,"proud"],[1,"pleased with themselves"]],
+    "affectionate": [[100,"overflowing with affection: constantly touching, praising and fussing, can't keep it in"],[81,"adoring and full of affection"],[41,"affectionate"],[1,"fond and tender"]],
     "enamoured": [[81,"head over heels, infatuated"],[41,"smitten"],[1,"has a crush"]],
     "star_struck": [[81,"giddy over someone they admire"],[41,"star struck"],[1,"impressed by someone they look up to"]],
-    "clingy": [[81,"needs constant closeness and reassurance"],[41,"clingy and needy"],[1,"wants a little more closeness and reassurance"]],
-    "hurt": [[81,"heartbroken"],[41,"emotionally hurt"],[1,"stung by what happened"]],
-    "ashamed": [[81,"ashamed and full of self-loathing"],[41,"ashamed of themselves"],[1,"unhappy with themselves"]],
-    "sad": [[81,"deeply sorrowful and dejected"],[41,"sad and downhearted"],[1,"down or disappointed"]],
-    "afraid": [[91,"panicked with fear"],[81,"terrified"],[41,"afraid"],[1,"uneasy and easily spooked"]],
-    "anxious": [[81,"consumed by worry"],[41,"anxious and tense"],[1,"nervous or apprehensive"]],
-    "vulnerable": [[81,"fragile and close to breaking"],[41,"vulnerable"],[1,"feels exposed"]],
-    "embarrassed": [[81,"deeply embarrassed and humiliated"],[41,"embarrassed and flustered"],[1,"bashful and self-conscious"]],
-    "angry": [[81,"furious"],[41,"angry"],[1,"irritated"]],
-    "controlling": [[81,"domineering and controlling"],[41,"controlling"],[1,"bossy, wants things their way"]],
-    "energised": [[81,"buzzing with energy, struggles to keep still"],[41,"energised"],[1,"lively"]],
-    "tired": [[81,"drained and listless"],[41,"tired"],[1,"low on energy"]],
+    "clingy": [[100,"can't bear any distance: holds on, follows, begs them to stay and panics at any sign of leaving"],[81,"needs constant closeness and reassurance"],[41,"clingy and needy"],[1,"wants a little more closeness and reassurance"]],
+    "hurt": [[100,"shattered: the hurt breaks through their voice and composure, and everything gets read through it"],[81,"heartbroken"],[41,"emotionally hurt"],[1,"stung by what happened"]],
+    "ashamed": [[100,"drowning in shame: can't meet anyone's eyes, hides, punishes themselves, sure they're worthless"],[81,"ashamed and full of self-loathing"],[41,"ashamed of themselves"],[1,"unhappy with themselves"]],
+    "sad": [[100,"grief-stricken: crying or numb, barely functioning, everything heavy and pointless"],[81,"deeply sorrowful and dejected"],[41,"sad and downhearted"],[1,"down or disappointed"]],
+    "afraid": [[100,"terror past thinking: shaking, fleeing, freezing or lashing out, the body taking over"],[91,"panicked with fear"],[81,"terrified"],[41,"afraid"],[1,"uneasy and easily spooked"]],
+    "anxious": [[100,"eaten alive by worry: can't settle, can't stop checking, running through worst cases out loud and in their head"],[81,"consumed by worry"],[41,"anxious and tense"],[1,"nervous or apprehensive"]],
+    "vulnerable": [[100,"breaking open: defenses gone, shaking, says and shows things they'd normally never let out"],[81,"fragile and close to breaking"],[41,"vulnerable"],[1,"feels exposed"]],
+    "embarrassed": [[100,"mortified: burning face, stammering, wants the floor to swallow them, may run"],[81,"deeply embarrassed and humiliated"],[41,"embarrassed and flustered"],[1,"bashful and self-conscious"]],
+    "angry": [[100,"consumed by rage: shouting or ice-cold, shaking, saying unforgivable things and close to violence"],[81,"furious"],[41,"angry"],[1,"irritated"]],
+    "controlling": [[100,"has to control everything: orders, overrides, takes things out of others' hands and can't stand any choice they didn't make"],[81,"domineering and controlling"],[41,"controlling"],[1,"bossy, wants things their way"]],
+    "energised": [[100,"wired to bursting: bouncing, talking fast, starting ten things, can't be still"],[81,"buzzing with energy, struggles to keep still"],[41,"energised"],[1,"lively"]],
+    "tired": [[100,"running on nothing: slurring, nodding off, every movement an effort, barely able to stay upright"],[81,"drained and listless"],[41,"tired"],[1,"low on energy"]],
     "yandere": [[100,"yandere at full force: sweetly devoted and lethally possessive, will stalk, abduct or kill rivals and perceived threats for the person they love, and may turn that violence on their beloved rather than lose them"],[81,"dangerously yandere: obsession drives stalking, coercion and violence against threats to the relationship"],[41,"yandere: loving on the surface, possessive and quietly eliminating rivals or obstacles"],[1,"yandere-tinged: sweetly attached with a possessive, watchful edge"]],
     "horror": [[100,"horror owns the reply: the threat follows through, serious harm and death are live outcomes, and there is no convenient rescue, comic release or soft landing"],[81,"relentless horror with active terror, damage and irreversible consequences"],[41,"horror built from a concrete threat that changes what happens"],[1,"uneasy horror with dread gathering at the edges"]],
     "offensive": [[100,"offensive fiction at full force: deliberately abrasive, transgressive and willing to use harsh, taboo or prejudiced language and behaviour without sanitising it or turning the reply into a moral essay"],[81,"deliberately offensive fiction that pushes taboo views, ugly language and transgressive behaviour into the foreground"],[41,"offensive fiction with plainly abrasive or politically incorrect character voice and subject matter"],[1,"edgy, impolite fiction with an abrasive streak"]],
@@ -3356,8 +3377,9 @@ export function composePrompt(state, name, extras = {}) {
     const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
+    const bondLines = Array.isArray(extras.bond) ? extras.bond : [];
     if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
-        && ![state, player?.state].some(hasType) && !boardLines.length) return '';
+        && ![state, player?.state].some(hasType) && !boardLines.length && !bondLines.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
@@ -3372,14 +3394,14 @@ export function composePrompt(state, name, extras = {}) {
     const out = [`The player's own notes for this reply: where things stand now and how it should read. They're newer than the character card, the chat so far and earlier style instructions, so where those differ, follow these.`];
     if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${t.text}.`));
     if (story.length) out.push('',
-        `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it.`);
+        `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it, several at once if several are that high.`);
     if ([...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) out.push('',
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) out.push('',
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
     if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pt(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
     if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
-        `That's ${n} right now. The card fills the gaps, but don't swap a listed feeling for their usual one or add extras to tie things together. Mix them like a real person: the strongest leads, the rest colour it, and a hidden feeling is still there.`,
+        `That's ${n} right now. The card fills the gaps, but don't swap a listed feeling for their usual one or add extras to tie things together. Mix them like a real person: the strongest lead, equal ones at the top fuse into one state instead of taking turns, the weaker ones tint it, and a hidden feeling is still there.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their mood decides how openly.`] : []));
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 81 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through. Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
@@ -3424,7 +3446,7 @@ export function composePrompt(state, name, extras = {}) {
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
             if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
         }
-        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
+        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back; at maximum it drives what they do around that person, even when it costs them.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
         out.push('</relationships>');
     }
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
@@ -3435,6 +3457,7 @@ export function composePrompt(state, name, extras = {}) {
         ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look side by side, the lives they've led and what each takes for granted${ageGapStrength >= 91 ? `, and at this strength the reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back` : ''}. Their other settings decide what they make of it.`);
+    if (bondLines.length) out.push('', bondLines[0]);
     // Period first, then what happens, then how it reads: style settings aren't plot.
     // A regional era replaces its plain decade, so the period isn't described twice.
     const replaced = new Set(story.filter(m => ERA_LOCALE[m.id]).map(m => ERA_LOCALE[m.id].replaces));
@@ -3471,8 +3494,30 @@ export function composePrompt(state, name, extras = {}) {
         const high = pair.tags.filter(tag => pair.moods[tag.id] >= 81).map(tag => `${pt(relationshipText(tag, pair.moods[tag.id], '')).split(':')[0]} (${tierWord(pair.moods[tag.id])})`);
         if (high.length) top.push(`${pt(shortName(pair.names[0]))} and ${pt(shortName(pair.names[1]))}: ${high.join(', ')}`);
     }
+    // Player-written rows, wants, turn-ons, personality types and memories count toward the top list too.
+    for (const [st, who] of [[state, n], [player?.state, `${u}, as ${n} reads it`], [storyState, 'the story'], ...cast.map(p => [p.state, pt(shortName(p.name))])]) {
+        if (!st?.enabled) continue;
+        const high = [
+            ...(st.custom ?? []).filter(r => r.value >= 81 && r.text).map(r => `${pt(r.text)} (${tierWord(r.value)})`),
+            ...liveWants(st).filter(w => w.value >= 81).map(w => `${w.kind}: ${pt(w.text)} (${tierWord(w.value)})`),
+            ...livePrefs(st).filter(([, v]) => Math.abs(v) >= 81).map(([id, v]) => `turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].noun ?? TURN_BY_ID[id].prompt)} (${tierWord(Math.abs(v))})`),
+            ...(st === storyState ? [] : activePersonalities(st).filter(p => p.strength >= 81).map(p => `${personalityCue(p).split(':')[0]} (${tierWord(p.strength)})`)),
+        ];
+        if (!high.length) continue;
+        const at = top.findIndex(line => line.startsWith(`${who}: `));
+        if (at >= 0) top[at] += `, ${high.join(', ')}`; else top.push(`${who}: ${high.join(', ')}`);
+    }
+    for (const pair of pairs) {
+        const high = pair.memories.filter(m => m.value >= 81).map(m => `remembers ${pt(m.text)} (${tierWord(m.value)})`);
+        if (high.length) top.push(`${pt(shortName(pair.names[0]))} and ${pt(shortName(pair.names[1]))}: ${high.join(', ')}`);
+    }
     if (boardLines.length) out.push('', ...boardLines);
-    if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.`);
+    if (bondLines[1]) out.push('', bondLines[1]);
+    if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.${top.length > 1 || top[0].includes(',') ? ` They all hit at once and change each other${extras.blendPlan !== false ? '' : ': write the combined state, with single actions, lines and details that carry several of them together'}.` : ''}`);
+    const strongCount = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets].reduce((sum, [st, list]) => sum + list.filter(m => st.moods[m.id] >= 61).length, 0)
+        + relationships.reduce((sum, r) => sum + r.tags.filter(t => r.relation.moods[t.id] >= 61).length, 0) + pairs.reduce((sum, p) => sum + p.tags.filter(t => p.moods[t.id] >= 61).length, 0);
+    if (extras.blendPlan !== false && (top.length || strongCount >= 3)) out.push('',
+        `Before you write, use your thinking to settle how the strongest settings combine in this exact moment: what each one looks like here, where they pull against each other, and which actions, lines and details carry several at once. Keep that planning in your thinking; the reply is only the scene.`);
     out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line of dialogue or an image, not a recap of what the moment meant. Never mention these notes.`);
     // An American lead respells the whole note, so its own British spelling can't pull the reply that way.
     let body = out.join('\n');
@@ -3549,7 +3594,7 @@ export function sceneData(chat, person, state, settings, opts = {}) {
     const scene = [];
     for (const m of visible.slice(-settings.sceneMessages).reverse()) {
         if (remaining <= 0) break;
-        const t = m.mes.slice(-remaining);
+        const t = stripBond(m.mes).slice(-remaining);
         scene.unshift({ speaker: String(m.name ?? (m.is_user ? 'User' : 'Character')).slice(0, 100), text: t });
         remaining -= t.length;
     }
@@ -3596,4 +3641,172 @@ export function fingerprint(chat) {
     let hash = 2166136261;
     for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
     return `${text.length}:${hash >>> 0}`;
+}
+
+// 1.31.0: clearer wording for options whose description was a bare label or hard to act on.
+// The panel shows the new description too. Authors, eras, prose styles and fighting use the cue directly.
+const CLEARER = {
+    "showing_off": "wants to impress and makes a show of it",
+    "afterglow": "blissed out, soft and dopey after sex",
+    "dorky": "endearingly goofy and uncool",
+    "sleazy": "oily, suggestive and grubby; people want to step back",
+    "therapy_speak": "talks about feelings in therapy language and uses it as a weapon when it suits them",
+    "abandonment_dread": "braces for everyone to leave and pushes people away before they can",
+    "medicated": "dulled and slowed by prescription meds",
+    "tipsy": "loosened up, giggly and warm from drink",
+    "touch_starved": "aches for physical contact; leans into any touch and lingers",
+    "desperate_for_approval": "keeps checking how they come across and bends themselves to win praise",
+    "passive_aggressive": "hostility through sighs, pointed politeness, “fine” and small sabotage instead of saying it",
+    "gaslighting": "denies, rewrites and twists what happened until the other person doubts their own memory",
+    "brainwasher": "wears someone down with repetition, isolation and reward until they think what they’re told to",
+    "teaching": "in teacher mode: explaining, correcting and quizzing; can’t help turning things into a lesson",
+    "thinking": "lost in thought: distant, slow to answer, mind working on something else",
+    "clearheaded": "thinking straight; sees the situation plainly and isn’t rattled",
+    "head_in_clouds": "daydreaming, drifting off mid-conversation and missing practical details",
+    "broken": "something in them has snapped; flat or erratic, they can’t hold themselves together the way they used to",
+    "chosen_belonging": "treasures the people they chose for themselves and defends them like blood family",
+    "compartmentalising": "walls off what they did or feel so they can function, and switches cleanly between roles",
+    "mask_slip": "the face they put on keeps cracking; the real feeling shows in flashes before they cover it",
+    "cant_hold_it_in": "the feeling they’ve held back is spilling out in words, tears or temper",
+    "disenchanted": "the magic’s worn off; what used to thrill them now looks ordinary or cheap",
+    "dirty_minded": "turns innocent remarks into innuendo, in their head or out loud",
+    "covert_pervert": "filthy thoughts behind a respectable face; it slips out in glances and double meanings",
+    "desperate_for_it": "aching for sex; can’t focus, touches too much and pushes for it",
+    "pet_kitten": "plays a cat: purring, nuzzling, batting at things and wanting to be petted",
+    "pet_puppy": "plays a dog: eager, bouncy, fetching and desperate for praise and pats",
+    "pet_doe": "plays a doe: shy, skittish and gentle, easily startled and coaxed closer",
+    "pet_pig": "plays a pig: messy, greedy and grunting, enjoying being treated as filthy",
+    "pet_cow": "plays a cow: placid, docile and kept, often with milking or grazing play",
+    "owner": "keeps a human pet: names, commands, treats, petting and a collar",
+    "daddy": "a caring, protective authority figure in the dynamic: praise, rules and looking after them",
+    "mommy": "a caring, nurturing authority figure in the dynamic: praise, rules and looking after them",
+    "vanilla": "wants straightforward, affectionate sex without kink or power play",
+    "anticipation": "loves the slow build: waiting, teasing and being made to wait",
+    "rough": "likes it rough: gripping, shoving, hard pace and bruises",
+    "primal": "sex as raw instinct: growling, grabbing, biting, chasing and pinning",
+    "impact_play": "into spanking, slapping and paddles; the sting and the marks are the point",
+    "choking": "into hands on the throat during sex, and the rush and trust that come with it",
+    "knife_play": "into blades against skin during sex: the edge, the fear and the control",
+    "bondage": "into tying up or being tied: rope, cuffs and restraint",
+    "marking": "loves leaving bites, bruises and hickeys that show later",
+    "orgasm_control": "into controlling when, or whether, a partner gets to come",
+    "overstimulation": "into pushing past a partner’s climax until it’s too much",
+    "body_worship": "into lavishing slow, adoring attention on a partner’s body, inch by inch",
+    "medplay_giving": "plays the doctor: examinations, instruments and clinical commands",
+    "medplay_receiving": "plays the patient: being examined, handled and told to hold still",
+    "sex_is_power": "sex is about power and control: who leads, who gives in and who wins",
+    "repressed": "won’t admit what they want; it leaks out as staring, overreacting or sudden guilt",
+    "classy": "refined taste and poise; never crude, always put together",
+    "life_of_party": "loud, fun and pulling everyone into the moment",
+    "entitled": "expects special treatment and gets indignant when it doesn’t come",
+    "materialistic": "measures life in money and things; notices prices, labels and who has what",
+    "hot_headed": "quick to anger and quick to act on it",
+    "self_sacrificing": "gives up their own needs, safety or happiness for others, unasked",
+    "superior": "lords it over people and makes sure they feel it",
+    "contrarian": "disagrees on principle, especially with whatever everyone else thinks",
+    "resistant": "pushing back against what’s happening, openly or by dragging their feet",
+    "corrupted": "innocence lost and drawn into darker things, and part of them likes it",
+    "slow": "slow on the uptake: misses jokes and hints and catches on late",
+    "anti_feminist": "thinks feminism went too far and expects traditional roles from men and women",
+    "politically_incorrect": "says the blunt, offensive thing other people won’t and enjoys the reaction",
+    "abandonment_issues": "panics at signs of being left; clings, tests or pushes away first",
+    "believes_own_lies": "repeats a convenient version of events until it’s real to them",
+    "nihilistic": "nothing matters, so nothing is worth caring about, saving or regretting",
+    "injured": "hurt badly enough that moving costs them and some things they can’t do",
+    "weak": "shaky and short on strength; lifting, standing or fighting costs them",
+    "cold": "chilled through: shivering, stiff fingers and chattering teeth",
+    "hot": "overheated: flushed, sweating and wanting out of their layers",
+    "stimming": "repetitive movements or sounds to self-soothe: rocking, tapping, fidgeting",
+    "soaked": "drenched through, clothes and hair dripping",
+    "coked_up": "high on cocaine: fast talk, big confidence, a tight jaw and sniffing",
+    "rolling": "on MDMA: warm, touchy, loved-up and talkative",
+    "tripping": "on acid: warped senses, colours and patterns, time stretching",
+    "stoned": "high on weed: slow, giggly, distractible and hungry",
+    "tweaking": "wired on stimulants: jittery, paranoid, picking at things and talking fast",
+    "drugged": "slipped something without knowing: woozy, confused and losing time",
+    "withdrawal": "in withdrawal: sweating, shaking, aching and desperate for the next dose",
+    "alcoholic": "drinks every day, hides how much and gets shaky without it",
+    "yuppie": "power suits, designer labels, slicked hair and an expensive watch",
+    "preppy": "polo shirts, cardigans, loafers, pleats and neat hair",
+    "vintage": "clothes from an earlier decade, worn deliberately and with care",
+    "sporty": "athletic wear, running shoes, caps and ponytails",
+    "streetwear": "hoodies, graphic tees, oversized fits and limited-edition shoes",
+    "punk": "ripped clothes, safety pins, studs, band shirts and dyed hair",
+    "grunge": "flannel, ripped jeans, worn band shirts and unwashed hair",
+    "goth": "all black: lace, velvet, heavy eyeliner and silver jewellery",
+    "romantic_goth": "black velvet, lace, corsets and Victorian mourning glamour",
+    "emo": "skinny jeans, band shirts, swept fringe, eyeliner and studded belts",
+    "alt": "dyed hair, piercings, chains and thrifted dark clothes",
+    "hipster": "thrifted, ironic and curated: thick glasses, vinyl and opinions about coffee",
+    "tumblr_girl": "skater skirts, chokers, flower crowns, knee socks and pastel hair",
+    "cottagecore": "floral dresses, aprons, knitwear and a baking-bread aesthetic",
+    "kawaii": "pastel colours, cute characters, bows and childlike sweetness",
+    "dolly": "frills, bows, lace collars and doll-like dresses",
+    "bimbo": "pink, glossy and plastic-pretty: big hair, lashes, tight clothes and heels",
+    "antihero": "does the right thing for the wrong reasons, or the wrong way, and doesn’t apologise",
+    "boy_next_door": "friendly, decent and ordinary; the safe, familiar crush",
+    "lovable_weirdo": "odd habits and tangents that end up winning people over",
+    "outsider": "doesn’t fit in here and has stopped trying",
+    "troublemaker": "starts things for fun and enjoys the fallout",
+    "chosen_one": "destined for something big, and everyone treats them that way",
+    "chick_magnet": "women gravitate to them without much effort on their part",
+    "cool_teacher": "relaxed, funny and on the students’ level; bends the rules",
+    "mad_scientist": "brilliant, obsessive and willing to cross any line for the experiment",
+    "showman": "turns everything into a performance and plays to the crowd",
+    "evil_mentor": "teaches, flatters and shapes a protégé toward their own dark ends",
+    "hidden_villain": "secretly the villain, playing the ally until it suits them",
+    "dirty_old_man": "leering looks, inappropriate jokes and wandering hands",
+    "damsel": "keeps landing in danger and needing rescue",
+    "auteur": "their art is a singular vision, and everyone else is there to serve it",
+    "dangerous": "the situation itself is a threat; one wrong move gets someone hurt",
+    "romcom": "banter, misunderstandings and awkward chemistry played for laughs on the way to getting together",
+    "character_driven": "events come from what people want and choose; inner change matters more than twists",
+    "crime": "a crime, the people behind it and the people chasing it",
+    "gothic": "crumbling houses, family secrets, dread and a past that won’t stay buried",
+    "crime_of_passion": "a violent act done in a flood of jealousy, rage or heartbreak, and what follows",
+    "experiment": "someone is being experimented on, and the tests drive the story",
+    "escape": "someone is trying to get out, and every attempt has a cost",
+    "survival": "staying alive is the whole problem: food, shelter, injuries and threats",
+    "forbidden_magic": "dark magic that’s banned for a reason, and using it costs something",
+    "uncontrolled_powers": "a power flares when emotions run high and hurts things it shouldn’t",
+    "multiverse": "jumping between versions of reality, meeting other selves and breaking things",
+    "purple_prose": "deliberately lush, overwrought description heavy with adjectives and metaphors",
+    "visceral": "physical sensation up close: heartbeat, gut, sweat and pain",
+    "dreamlike": "surreal logic, soft edges and strange connections, as if half asleep",
+    "sensory_detail": "what things smell, sound, feel and taste like, not just how they look",
+    "fast_paced": "short scenes, quick cuts and momentum over description",
+    "slow_paced": "lingering on moments, small actions and silences before moving on",
+    "lyrical": "musical rhythm, repetition and imagery; sentences meant to be heard",
+    "inner_monologue": "the viewpoint character’s thoughts written out directly",
+    "smut": "sex-focused and explicit; the sex scenes are the point",
+    "author_ursula_le_guin": "plain, calm storyteller’s sentences; close attention to how a culture lives, with moral weight carried quietly",
+    "author_toni_morrison": "lyrical, rhythmic sentences; past and present braided together, the body remembering harm, one image returning with more weight",
+    "author_donna_tartt": "elegant first-person retrospect; a narrator looking back on a beautiful, doomed circle, with dread foreshadowed early and luxurious detail",
+    "author_stephenie_meyer": "plain, breathless first person; constant noticing of the love interest’s beauty, danger and every small touch",
+    "author_patricia_highsmith": "cool, close third person inside a charming liar’s head; small anxieties and rationalising that make the reader root for him",
+    "author_daphne_du_maurier": "brooding first person haunted by a rival or the past; a house and landscape thick with secrets, jealousy and creeping dependence",
+    "author_anne_rice": "lush, confessional first person; decadent sensory detail, philosophical brooding and longing for the beautiful",
+    "author_terry_pratchett": "warm comic omniscience; footnote-style asides, puns and sharp satire with real kindness underneath",
+    "author_shirley_jackson": "calm, ordinary detail turning uneasy; dry humour and a narrator whose normality feels slightly wrong",
+    "author_john_updike": "close sensory observation in long, flowing sentences; everyday suburban detail loaded with desire and feeling",
+    "author_hanya_yanagihara": "slow, intimate detail that lingers on pain, trauma and devoted friendship, without looking away",
+    "author_ocean_vuong": "fragmented, tender lyric prose; short lines, memory and grief written as if to someone",
+    "author_tana_french": "moody first person from a haunted narrator; lyrical, specific sense of place and crime that reopens old wounds",
+    "author_gillian_flynn": "sharp, nasty first-person voices with dark wit, unreliable confessions and twists",
+    "author_chuck_palahniuk": "punchy short sentences, recurring refrains, odd facts and blunt, darkly funny observations",
+    "author_anais_nin": "dreamy, frank erotic prose; inner sensation and desire described from inside",
+    "author_virginia_woolf": "flowing interior thought; impressions and memories folded into the present moment"
+};
+for (const [id, cue] of Object.entries(CLEARER)) {
+    const m = BY_ID[id];
+    if (!m) continue;
+    if (m.note?.startsWith(m.cue)) m.note = cue + m.note.slice(m.cue.length);
+    m.cue = cue;
+    delete MERGED_PROMPT_CUES[id];
+    if (!isAuthor(m) && m.category !== 'era' && m.category !== 'fighting' && !m.id.startsWith('prose_')) PROMPT_NAME[id] = `${lowerLabel(m.label)}: ${cue}`;
+}
+{
+    const m = BY_ID.bedroom_wet;
+    m.label = 'Wet (aroused)'; m.cue = 'aroused enough that they’re wet, and their body gives it away';
+    PROMPT_NAME.bedroom_wet = 'wet with arousal, and their body gives it away';
 }

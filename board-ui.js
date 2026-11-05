@@ -105,6 +105,10 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <label class="mw-toggle"><input type="checkbox" data-board-horny ${live.meta.includeHorny ? 'checked' : ''}> Include Horny on this chat’s board</label>
             <p class="mw-fine">Off by default. Hidden Horny pins aren't sent. Moodlets and attraction settings still work separately.</p>
             <label class="mw-toggle"><input type="checkbox" data-board-sync ${sync ? 'checked' : ''}> Present line moves the cast in and out</label>
+            <label class="mw-toggle"><input type="checkbox" data-board-feed ${live.meta.feed !== false ? 'checked' : ''}> Board updates ${esc(charName)}’s feelings</label>
+            <p class="mw-fine">Words on the State and Toward rows nudge unpinned sliders. Pins are never touched, values you set are never lowered, and what the board added fades when it stops saying it.</p>
+            <label class="mw-toggle"><input type="checkbox" data-board-toward ${live.meta.includeToward ? 'checked' : ''}> Visible Toward ${esc(userName)} row (the Meters tab’s hidden line already does this)</label>
+            <label class="mw-toggle"><input type="checkbox" data-board-remember ${live.meta.includeRemember !== false ? 'checked' : ''}> Remember row (saves turning points as shared memories)</label>
             ${editing ? '' : `<button type="button" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
             <p class="mw-fine">${send ? 'Moodweaver sends your INFO BOARD format, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
         </div></section>`;

@@ -4,6 +4,14 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.33.0:** a Meters tab with Sims-style Friendship and Romance meters plus what the character thinks of your persona, driven by a hidden line in each reply: no extra request, nothing visible in chat, stripped from the prompt afterwards. See [the update notes](UPDATE-1.33.0.md).
+
+**1.32.0:** the info board now moves feelings and the relationship toward your persona (pins and your own values are respected), and a Remember row saves turning points as shared memories. See [the update notes](UPDATE-1.32.0.md).
+
+**1.31.0:** every built-in description read as the model sees it; about 175 vague ones rewritten (styles, pet play, archetypes, substances, genres, authors, relationships), the duplicate Wet merged. See [the update notes](UPDATE-1.31.0.md).
+
+**1.30.0:** maximums now stack and fuse instead of competing, Mild always tints, optional blend planning in Opus 5.5's thinking, a tighter info board, and new options: Giddy, Self-pitying, Walking on eggshells, Feral, Burned, Wet (two kinds), Takes advantage of. Desperate scales properly. See [the update notes](UPDATE-1.30.0.md).
+
 **1.29.0:** tuned for Claude Opus 5.5. Place-and-time locks (1960s America, 1890s Scotland and more) that pin dialect as well as period, 45 new relationships, clearer relationship wording and a higher reader cap for thinking models. See [the update notes](UPDATE-1.29.0.md). Install the new `locale.js` too.
 
 **1.19.0:** personality types are now labelled with whose they are, so a persona's type no longer gets read as the character's. About 70 vague prompt descriptions were rewritten in plain words, with matching panel text. See [the update notes](UPDATE-1.19.0.md). No tests run, as requested.

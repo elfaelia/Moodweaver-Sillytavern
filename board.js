@@ -2,21 +2,22 @@
 // Moodweaver never changes its HTML (a chat regex styles it). It only reads the latest one back out of
 // the chat, shows it as a Sims-style needs panel, and sends the player's edits and the needs that
 // matter on to the next reply. No extra model calls: the board is already in the reply.
-import { MOODS } from './core.js';
+import { MOODS, SCALED_MOOD_CUES, analysed } from './core.js';
+import { RELATIONSHIP_TAGS } from './relationships.js';
 
 // The board layout. The optional desire row is off unless selected for this chat.
-export const boardTemplate = (char, user, includeHorny = false) => `<div class="ihyll-style">
+export const boardTemplate = (char, user, includeHorny = false, rows = {}) => `<div class="ihyll-style">
 📅 <b>Date:</b> [In-world date: Weekday, Month Day, Year] | [Season] | [Weather Emoji] | [Forecast: Temp (°C/°F)]<br>
 🕒 <b>Time:</b> [Scene time (12h AM/PM)]<br>
 🗺️ <b>Location:</b> [Location] | <b>Present:</b> [NPCs currently visible] | <b>Activity:</b> [NPC posture/activity]<br>
 👔 <b> ${char}’s Outfit:</b> [Current appearance & outfit, short]<br>
 👗 <b>${user}’s Outfit:</b> [Current appearance & outfit, short]<br>
-🧠 <b>State:</b> [2–5 words for ${char}'s current mood; their own state, not a description of what ${user} said or did]<br>
-💎 <b>Physical State:</b> [One short line on their current bodily condition, injuries or needs]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}
+🧠 <b>State:</b> [2–5 words for ${char}'s current mood, led by their strongest feelings; their own state, not a description of what ${user} said or did]<br>
+💎 <b>Physical State:</b> [One short line: injuries, wet, drunk, tired, hungry or other bodily needs right now]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}${rows.toward ? `<br>\n💞 <b>Toward ${user}:</b> [2–4 words for how ${char} feels about ${user} right now, strongest first]` : ''}${rows.remember ? `<br>\n📌 <b>Remember:</b> [none, unless something just happened between ${char} and ${user} that a later scene needs: one short line of plain fact]` : ''}
 </div>`;
 
 // ---- Reading a board back ----
-const LABELS = { date: /^date$/, time: /^time$/, location: /^location$/, present: /^present$/, activity: /^activity$/, state: /^state$/, physical: /^physical( state)?$/, horny: /^horny$/ };
+const LABELS = { date: /^date$/, time: /^time$/, location: /^location$/, present: /^present$/, activity: /^activity$/, state: /^state$/, physical: /^physical( state)?$/, horny: /^horny$/, toward: /^toward\b/, remember: /^remember$/ };
 const clean = v => String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').replace(/^[\s|:–-]+|[\s|]+$/g, '').trim();
 export const hasBoard = mes => typeof mes === 'string' && /<b>\s*(Date|Location|State):\s*<\/b>/i.test(mes);
 // Every "<b>Label:</b> value" runs until the next label, line break or closing div.
@@ -90,6 +91,7 @@ const RULES = [
     ['hygiene', 95, 'p', /fresh(ly)? (showered|washed|bathed)|scrubbed clean|squeaky clean/],
     ['comfort', 8, 'p', /agony|excruciat|unbearable|screaming pain|white[- ]hot pain/],
     ['comfort', 35, 'p', /pain|ache|aching|sore|stiff|cramp|headache|migraine|throb|\braw\b|tender|freezing|shiver|chilled|\bcold\b|numb|itch|nause|queasy|hungover|overheat|sweltering|dizzy/],
+    ['comfort', 35, 'p', /soaked|drenched|soaking|wet through|dripping wet|rain[- ]soaked|wet (clothes|hair)|damp clothes/],
     ['comfort', 92, 'p', /comfortable|cos[yi]|cozy|relaxed|warm and/],
     ['social', 22, 's', /lonely|isolated|starved for (company|touch|attention)|desperate for company|abandoned/],
     ['social', 40, 's', /craving (company|attention|touch)|wants company|touch[- ]starved/],
@@ -97,7 +99,7 @@ const RULES = [
     ['fun', 25, 's', /bored|stir[- ]crazy|tedium|listless|restless/],
     ['fun', 90, 's', /thrilled|amused|entertained|delighted|giddy|playful|having fun/],
     ['health', 10, 'p', /dying|bleeding out|gut[- ]shot|stab wound|stabbed|mortal|unconscious|overdos|convuls|shattered/],
-    ['health', 38, 'p', /bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked/],
+    ['health', 38, 'p', /bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|burnt|scald|blister|singed|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked/],
     ['health', 95, 'p', /unhurt|unharmed|uninjured|healthy|in perfect health/],
 ];
 const HORNY = [
@@ -172,6 +174,7 @@ export function cleanBoardMeta(meta) {
     return {
         send: typeof b.send === 'boolean' ? b.send : undefined,
         includeHorny: b.includeHorny === true,
+        feed: b.feed !== false, includeToward: b.includeToward === true, includeRemember: b.includeRemember !== false,
         pins: Object.fromEntries(EDIT_FIELDS.map(k => [k, t(b.pins?.[k], 200)]).filter(([, v]) => v)),
         needs: Object.fromEntries(Object.entries(b.needs ?? {}).filter(([k]) => NEED_IDS.has(k) || k === 'horny')
             .map(([k, v]) => [k, Math.round(Math.max(0, Math.min(100, Number(v) || 0)))])),
@@ -225,8 +228,8 @@ export function boardPromptLines({ send, live, char, user, n, u }) {
     const out = [];
     const includeHorny = live?.meta?.includeHorny === true;
     if (send) out.push(`Info board: start every reply with this board, filled in for this moment from the previous beat. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user, includeHorny), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
-    out.push(`The board reflects ${n}'s current settings and the scene; it doesn't create new feelings or needs. State sums up their mood, and Physical State records what their body is dealing with. An older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
+        boardTemplate(char, user, includeHorny, { toward: live?.meta?.includeToward === true, remember: live?.meta?.includeRemember !== false }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
+    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest current feelings from these notes and the scene, in a few words. Physical State lists their active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to them since.${send && live?.meta?.includeToward === true ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && live?.meta?.includeRemember !== false ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
@@ -242,3 +245,86 @@ export function boardPromptLines({ send, live, char, user, n, u }) {
         ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
     return out;
 }
+
+// ---- The board feeding the sliders: free scene reading, no extra request ----
+// Words on the board map to catalogue feelings or relationship tags, with a strength.
+// "terrified" lands higher than "afraid"; "slightly" and "very" shift it; the first word listed leads.
+const WEAK = /\b(slightly|a little|a bit|faintly|mildly|somewhat|vaguely|a touch|hint of)\b/;
+const STRONG = /\b(very|deeply|utterly|completely|totally|extremely|wildly|desperately|overwhelm\w*|consumed|incandescent|absolutely|beyond|frantically|violently|so)\b/;
+const FEELING_SYNONYMS = { furious: 'angry', enraged: 'angry', livid: 'angry', irate: 'angry', annoyed: 'angry', scared: 'afraid', frightened: 'afraid', fearful: 'afraid',
+    nervous: 'anxious', worried: 'anxious', uneasy: 'anxious', tense: 'anxious', panicky: 'afraid', joyful: 'happy', elated: 'happy', cheerful: 'happy', glad: 'happy',
+    thrilled: 'excited', eager: 'excited', miserable: 'sad', gloomy: 'sad', sorrowful: 'sad', ashamed: 'ashamed', humiliated: 'embarrassed', mortified: 'embarrassed',
+    tender: 'affectionate', loving: 'affectionate', fond: 'affectionate', relaxed: 'calm', serene: 'peaceful', amused: 'entertained', smug: 'smug', wary: 'suspicious',
+    frantic: 'desperate', resigned: 'resigned', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
+const RELATION_SYNONYMS = { fond: 'likes', wary: 'distrusts', distrustful: 'distrusts', protective: 'protects', attracted: 'finds_attractive', curious: 'intrigued_by',
+    trusting: 'trusts', resentful: 'resents', afraid: 'fears', scared: 'fears', frightened: 'fears', annoyed: 'finds_annoying', irritated: 'irritated_by', loving: 'loves',
+    adoring: 'idolises', tender: 'cherishes', grateful: 'grateful_to', guilty: 'guilty_toward', hurt: 'hurt_by', betrayed: 'betrayed_by', contemptuous: 'despises',
+    disgusted: 'disgusted_by', lustful: 'lusts_after', hungry: 'lusts_after', intrigued: 'intrigued_by', respectful: 'respects', admiring: 'admires', pitying: 'pities',
+    worried: 'worries_about', controlling: 'controls', dominant: 'dominates', hostile: 'cant_stand', hateful: 'hates', murderous: 'wants_kill', yearning: 'longs_for',
+    obsessive: 'obsessed', smitten: 'smitten', infatuated: 'smitten', devoted: 'devoted', jealous: 'jealous', possessive: 'possessive', suspicious: 'suspicious_of' };
+const SKIP = new Set(['with', 'over', 'them', 'their', 'they’re', 'they\'re', 'thinks', 'finds', 'wants', 'feels', 'about', 'around', 'despite', 'themselves', 'like', 'into', 'from', 'what', 'after', 'other', 'person', 'someone', 'something', 'love', 'more', 'than', 'keep']);
+let feelIndex = null, relIndex = null, feelSize = 0;
+function buildFeelIndex() {
+    if (feelIndex && feelSize === MOODS.length) return feelIndex;
+    const map = new Map(), byId = Object.fromEntries(MOODS.map(m => [m.id, m]));
+    const add = (word, id, value) => { word = word.toLowerCase(); if (word.length > 3 && !SKIP.has(word) && byId[id] && analysed(byId[id]) && !map.has(word)) map.set(word, { id, value }); };
+    // Scaled wording first: its first word carries the strength (terrified → afraid at 81).
+    for (const [id, steps] of Object.entries(SCALED_MOOD_CUES)) for (const [min, text] of steps) add(text.split(/[\s:,;]/)[0], id, min >= 81 ? 85 : min >= 41 ? 60 : 35);
+    for (const [word, id] of Object.entries(FEELING_SYNONYMS)) add(word, id, 60);
+    for (const m of MOODS) if (analysed(m)) for (const part of m.label.toLowerCase().split(/\s*\/\s*/)) if (!part.includes(' ')) add(part.replace(/[^a-z’'-]/g, ''), m.id, 60);
+    feelSize = MOODS.length; feelIndex = map; return map;
+}
+function buildRelIndex() {
+    if (relIndex) return relIndex;
+    const map = new Map(), ids = new Set(RELATIONSHIP_TAGS.map(t => t.id));
+    for (const [word, id] of Object.entries(RELATION_SYNONYMS)) if (ids.has(id)) map.set(word, id);
+    for (const t of RELATIONSHIP_TAGS) {
+        const words = t.label.toLowerCase().replace(/[^a-z’' -]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !SKIP.has(w));
+        if (words.length === 1 && !map.has(words[0])) map.set(words[0], t.id);
+    }
+    relIndex = map; return map;
+}
+function strengthOf(phrase, base, first) {
+    const v = STRONG.test(phrase) ? Math.max(base, 85) : WEAK.test(phrase) ? Math.min(base, 30) : base;
+    return Math.min(95, v + (first ? 10 : 0));
+}
+// "giddy, quietly furious, a little scared" → [{ id, value, phrase }].
+function read(line, lookup) {
+    const out = new Map();
+    phrases(line).forEach((phrase, i) => {
+        const text = phrase.toLowerCase(), words = text.replace(/[^a-z’' -]/g, ' ').split(/\s+/);
+        for (const word of words) {
+            const hit = lookup(word); if (!hit) continue;
+            if (negated(text, text.indexOf(word))) continue;
+            const value = strengthOf(text, hit.value, i === 0);
+            if ((out.get(hit.id)?.value ?? 0) < value) out.set(hit.id, { id: hit.id, value, phrase });
+            break;
+        }
+    });
+    return [...out.values()];
+}
+export const feelingsFromBoard = board => read(board?.state, w => buildFeelIndex().get(w));
+export const relationsFromBoard = board => read(board?.toward, w => { const id = buildRelIndex().get(w); return id ? { id, value: 60 } : null; });
+// Moves values toward the board's reading. fed remembers what the board itself last set:
+// a value still equal to that is the board's to lower or let fade; anything the player set is never lowered.
+export function feedValues(moods, pins, fed, readings, fade = 15) {
+    const changed = [], seen = new Set();
+    for (const { id, value } of readings) {
+        seen.add(id);
+        if (pins?.[id]) continue;
+        const old = moods[id] ?? 0, boardOwned = fed[id] === old;
+        let next = old;
+        if (value > old) next = Math.round(old + (value - old) * 0.7);
+        else if (boardOwned && value < old) next = Math.round(old - (old - value) * 0.5);
+        if (next !== old) { moods[id] = next; changed.push(id); }
+        if (next === moods[id] && (boardOwned || next !== old)) fed[id] = moods[id];
+    }
+    for (const id of Object.keys(fed)) {
+        if (seen.has(id)) continue;
+        if (pins?.[id] || moods[id] !== fed[id]) { delete fed[id]; continue; }
+        moods[id] = Math.max(0, moods[id] - fade); changed.push(id);
+        if (moods[id] === 0) delete fed[id]; else fed[id] = moods[id];
+    }
+    return changed;
+}
+export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?a|no|—|-|\[.*\])\.?$/i.test(String(text).trim());

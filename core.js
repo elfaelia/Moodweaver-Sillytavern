@@ -2015,6 +2015,29 @@ const ADDITIONS_4 = {
         ['wet', 'Wet (rain, shower)', 'damp from rain, a shower or a swim: wet hair, clinging clothes, cool skin']],
 };
 for (const [category, rows] of Object.entries(ADDITIONS_4)) (ADDITIONS[category] ??= []).push(...rows);
+// 1.35.0: power that swings, love that doesn't look like love. Feelings the weave line can move, and traits for who they are.
+const ADDITIONS_5 = {
+    closeness: [['indulgent', 'Indulgent', 'in the mood to give someone anything they ask for, even what they shouldn’t have', 'Easterman spoiling Lamb']],
+    attachment: [['hooked', 'Hooked', 'can’t stop going back to someone even knowing better; one look and the resolve goes', 'Easterman, Joe, Chloe']],
+    cold: [['deflecting', 'Deflecting', 'turns every real feeling into a joke, an insult or a change of subject', 'Rick'],
+        ['caught_out', 'Caught out', 'just showed more feeling than they meant to and is scrambling to cover it', 'Rick, Easterman, Bateman'],
+        ['wounded_pride', 'Wounded pride', 'stung where it shows; covers it with coldness or a cutting remark and wants the upper hand back', 'Rick, Easterman after Lamb wins one']],
+    bold: [['demanding', 'Demanding', 'wants it now and asks like it’s owed', 'Lamb, a mouthy captive'],
+        ['emboldened', 'Emboldened', 'just got away with something and is pushing for more', 'Lamb, any brat'],
+        ['reasserting', 'Reasserting control', 'the indulgence is over; reminding them, quietly or not, who decides', 'Easterman snapping back']],
+    sad: [['sulking', 'Sulking', 'punishing someone with pouts, silence and a turned back until they make it right', 'Lamb, Chloe']],
+    archetype: [['devoted_captor', 'Devoted captor', 'keeps someone captive and dotes on them; tenderness and imprisonment from the same hands', 'Easterman and Lamb, Joe']],
+    manner: [['cant_say_it', 'Can’t say it out loud', 'real feelings come out as jokes, insults, gifts or action, never plain words', 'Rick, Easterman']],
+    dynamics: [['indulgent_keeper', 'Indulgent keeper', 'lets them push, sass and demand, and enjoys it, while the real control never leaves their hands', 'Easterman'],
+        ['mouthy_captive', 'Mouthy captive', 'trapped and still talks back: demands, sulks, bargains and tests how far the leash goes', 'Lamb']],
+    views: [['provider_pride', 'Provider pride', 'measures himself by what he can give: money, food, things, a roof; being needed is being a man', 'Easterman, 1960s'],
+        ['keeps_up_appearances', 'Keeps up appearances', 'a respectable public face, marriage and manners kept intact whatever happens behind closed doors', 'Easterman, Bateman, 1960s']],
+    psychology: [['love_isnt_trust', 'Love isn’t trust', 'can love someone completely and still never trust them; affection changes nothing about how closely they’re watched', 'Rick, Joe']],
+};
+for (const [category, rows] of Object.entries(ADDITIONS_5)) {
+    if (!CATEGORIES.some(([id]) => id === category)) throw new Error(`Moodweaver: unknown category ${category}`);
+    (ADDITIONS[category] ??= []).push(...rows);
+}
 for (const [category, rows] of Object.entries(ADDITIONS)) {
     const target = CATEGORIES.find(([id]) => id === category);
     target[4].push(...rows.map(([id, label, cue, fits]) => [id, label, cue, fits ? `${cue}. Fits: ${fits}.` : undefined]));
@@ -3433,9 +3456,9 @@ export function composePrompt(state, name, extras = {}) {
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
     // 1.34.0: the meters sit with the rest of what the character feels about the player; the weave line request goes last.
-    const standing = String(extras.standing ?? ''), weaveLines = Array.isArray(extras.weave) ? extras.weave : [];
+    const standing = (Array.isArray(extras.standing) ? extras.standing : [extras.standing]).filter(Boolean), weaveLines = Array.isArray(extras.weave) ? extras.weave : [];
     if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
-        && ![state, player?.state].some(hasType) && !boardLines.length && !standing && !weaveLines.length) return '';
+        && ![state, player?.state].some(hasType) && !boardLines.length && !standing.length && !weaveLines.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
@@ -3477,7 +3500,7 @@ export function composePrompt(state, name, extras = {}) {
         `These side characters are in the scene. Each keeps their own blend and only knows what they could have seen or heard. Not everyone needs to talk every turn, and the player still writes ${u}.`);
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && liveWants(st).length)) out.push('',
         `Wants, goals and fears sit under the surface. They steer choices and reactions when the moment touches them, at their strength, but don't recap or announce them, and they don't all need to show every reply. Fears come out as dodging, tension or overreacting.`);
-    if (relationships.length || pairs.length || standing) {
+    if (relationships.length || pairs.length || standing.length) {
         out.push('', '<relationships>');
         let placed = false;
         for (const pair of pairs) {
@@ -3490,7 +3513,7 @@ export function composePrompt(state, name, extras = {}) {
         for (const { name: subject, target, relation, tags, isPlayer, compare, note } of relationships) {
             const from = pt(shortName(subject)), to = pt(shortName(target));
             out.push(`${from} toward ${to}:`);
-            if (standing && !placed && !isPlayer && subject === N && target.toLowerCase() === U.toLowerCase()) { out.push(`- ${pt(standing)}`); placed = true; }
+            if (standing.length && !placed && !isPlayer && subject === N && target.toLowerCase() === U.toLowerCase()) { out.push(...standing.map(r => `- ${pt(r)}`)); placed = true; }
             for (const mode of isPlayer ? KNOWLEDGE_ORDER : ['']) {
                 const rows = tags.filter(tag => !isPlayer || knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).mode === mode);
                 if (!rows.length) continue;
@@ -3504,8 +3527,8 @@ export function composePrompt(state, name, extras = {}) {
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
             if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
         }
-        if (standing && !placed) out.push(`${n} toward ${u}:`, `- ${pt(standing)}`);
-        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back; at maximum it drives what they do around that person, even when it costs them.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
+        if (standing.length && !placed) out.push(`${n} toward ${u}:`, ...standing.map(r => `- ${pt(r)}`));
+        out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back; at maximum it drives what they do around that person, even when it costs them.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}${standing.length ? ` Where it stands and the dynamic are how things between ${n} and ${u} have built up over the chat; the other lines are what ${n} feels now. Where they pull apart, both are true, so let the tension show in what ${n} does. Friendship, romance and trust move separately: loving someone doesn't make ${n} like or trust them. Control and pull are separate too: whoever holds the keys can still be the one who gives way.` : ''}${relationships.some(r => r.tags.some(t => t.category === 'How it shows')) ? ` Lines on how someone shows it decide what a feeling looks like on the page: it can be strong and still come out as an insult, a gift or a locked door.` : ''}`);
         out.push('</relationships>');
     }
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',

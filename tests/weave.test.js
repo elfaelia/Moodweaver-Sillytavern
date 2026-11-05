@@ -26,6 +26,21 @@ test('a swipe replaces its own change, a deletion undoes it, pins hold', () => {
     r = applyChanges(t, r.ledger, 7, [{ name: 'a', delta: 5 }], n => n); assert.equal(v.a, 35);
     applyChanges(t, r.ledger, 5, [], n => n); assert.equal(v.a, 30);
 });
+test('power names who gained it, and off ends a feeling', async () => {
+    const { powerChange } = await import('../weave.js');
+    assert.equal(powerChange('Lamb +3', 'Doctor Easterman', 'Lamb'), -3);
+    assert.equal(powerChange('Easterman +2', 'Doctor Easterman', 'Lamb'), 2);
+    const both = parseWeave('<!-- weave: control Easterman +1 | pull Lamb +2 -->');
+    assert.equal(powerChange(both.pRaw, 'Doctor Easterman', 'Lamb'), 1);
+    assert.equal(powerChange(both.lRaw, 'Doctor Easterman', 'Lamb'), -2);
+    assert.deepEqual(parseWeave('<!-- weave: moods afraid off -->').moods, [{ name: 'afraid', delta: -100 }]);
+    assert.deepEqual(parseWeave('<!-- weave: none -->').moods, []);
+});
+test('sliders shape the dynamic: obsessed plus distrust reads as toxic obsession', async () => {
+    const { sliderAxes } = await import('../bond.js');
+    const d = computeBond(cleanBond({}), 9, 'Easterman', 'Lamb', sliderAxes({ obsessed: 88, distrusts: 40 }));
+    assert.equal(d.dynamic.name, 'Toxic obsession');
+});
 test('names resolve to catalogue feelings and relationship types', () => {
     assert.equal(feelingId('Clingy / needy'), 'clingy');
     assert.equal(feelingId('terror'), 'afraid');
@@ -50,7 +65,26 @@ test('meters: four bars, a named dynamic, and the standing sits under the relati
     assert.equal(d.dynamic.name, 'Toxic obsession');
     const standing = bondStanding({ bond, chatLength: 9, n: 'Easterman', u: 'Lamb' });
     const prompt = composePrompt(freshState({ moods: { anxious: 50 } }), 'Easterman', { player: { name: 'Lamb', state: freshState() }, standing, weave: weavePrompt({ n: 'Easterman', u: 'Lamb' }) });
-    assert.match(prompt, /<relationships>\nEasterman toward Lamb:\n- built up over the whole chat/);
+    assert.match(prompt, /<relationships>\nEasterman toward Lamb:\n- where it stands now: friendship: acquaintances; romance: soulmates; trust: wary/);
+    assert.match(prompt, /- their dynamic, toxic obsession: Easterman keeps Lamb close/);
+    assert.match(prompt, /both are true/);
     assert.match(prompt, /<!-- weave: moods/);
     assert.match(prompt, /no closing paragraph of reflection/);
+});
+
+test('Easterman and Lamb: he holds the keys, she has the pull, and the dynamic is a gilded cage', async () => {
+    const { sliderAxes } = await import('../bond.js');
+    const axes = sliderAxes({ obsessed: 88, captor_of: 90, indulges: 75, lets_them_win: 60 });
+    assert.ok(axes.p > 50 && axes.l < -40);
+    assert.equal(computeBond(cleanBond({}), 9, 'Easterman', 'Lamb', axes).dynamic.name, 'Gilded cage');
+});
+test('Rick: love without trust reads as guarded love; a chosen dynamic and pinned meters win', async () => {
+    const { sliderAxes } = await import('../bond.js');
+    assert.equal(computeBond(cleanBond({ base: { r: 65, t: -30, f: 5, l: 20 } }), 9, 'Rick', 'Beth').dynamic.name, 'Guarded love');
+    assert.equal(computeBond(cleanBond({ fixed: 'Worship' }), 9).dynamic.name, 'Worship');
+    assert.equal(computeBond(cleanBond({ base: { r: 60 }, pins: { p: 70 } }), 9, 'E', 'L', sliderAxes({ submits_to: 90 })).dynamic.name, 'Possession');
+});
+test('the upper hand changing hands is noticed', () => {
+    const d = computeBond(cleanBond({ base: { r: 60 }, steps: { 1: { p: 3 }, 2: { p: -3 }, 3: { p: 2 } } }), 9);
+    assert.equal(d.swing, true);
 });

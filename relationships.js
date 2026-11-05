@@ -387,13 +387,45 @@ for (const [cats, additions] of [[RELATIONSHIP_CATEGORIES, DIRECTED_ADDITIONS], 
     for (const [name, rows] of Object.entries(additions)) cats.find(([n]) => n === name)[3].push(...rows);
 // 1.31.0: shared story tropes that were sent as a bare name now carry the meaning written for the panel.
 for (const [name, , , rows] of SHARED_CATEGORIES) if (name === 'Their story') for (const row of rows) if (!row[3].includes(':') && !row[3].includes('“') && !row[3].includes('"')) row[3] = `${row[3]}: ${row[2]}`;
+// 1.35.0: power that shifts, and how a feeling shows. Opus 5.5 plays a relationship best when it's told
+// what the feeling looks like on the page, so love that comes out as insults or a locked door is its own row.
+RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Attachment & power')[3].push(
+    ['indulges', 'Indulges', 'gives in to their demands, whims and sulks, even unreasonable ones', 'indulges {other}: gives in to their demands, whims and sulks, even unreasonable ones'],
+    ['lets_them_win', 'Lets them win', 'lets them push, sass and demand, and enjoys it, while the real control stays put', 'lets {other} win the small fights: enjoys being pushed and demanded of while the real control stays in their own hands'],
+    ['at_their_mercy', 'At their mercy', 'their moods decide this person’s day; one cold look undoes them', 'at {other}’s mercy emotionally: their moods decide the day, and one cold look undoes them'],
+    ['keeps_them', 'Keeps them', 'holds them somewhere they can’t leave and calls it care', 'keeps {other} where they can’t leave and calls it care'],
+    ['snaps_back', 'Snaps back into control', 'indulgent until pushed too far, then cold and absolute about who’s in charge', 'indulgent with {other} until pushed too far, then cold and absolute about who’s in charge'],
+    ['bargains_with', 'Bargains with', 'everything between them is a trade: favours, freedoms, information', 'bargains with {other}: everything between them is a trade of favours, freedoms or information'],
+    ['above_spouse', 'Puts them above their spouse', 'treats them better than the husband or wife at home, and knows it', 'treats {other} better than the husband or wife at home, and knows it'],
+    ['tests_them', 'Keeps testing them', 'sets small traps and tests to see what they’ll do', 'keeps testing {other}: small traps and tests to see what they’ll do'],
+);
+RELATIONSHIP_CATEGORIES.push(['How it shows', '❦', '#e3a8c0', [
+    ['shows_spoiling', 'Spoils them', 'love comes out as gifts, good food and comforts nobody else gets', 'shows it by spoiling {other}: gifts, good food and comforts nobody else gets'],
+    ['shows_insults', 'Shows it through insults', 'affection comes out as mockery, put-downs and nicknames, meaner the closer it gets', 'shows it through insults: affection for {other} comes out as mockery and put-downs, meaner the closer it gets'],
+    ['shows_turning_up', 'Turns up when it counts', 'never says it; turns up, fixes it and leaves before anyone can thank them', 'never says it to {other}; turns up when it counts, fixes it and leaves before any thanks'],
+    ['shows_fixing', 'Fixes things for them', 'builds, mends or solves things for them instead of saying anything', 'shows it by fixing things for {other}: builds, mends or solves instead of saying anything'],
+    ['shows_control', 'Shows it by controlling', 'care comes out as rules, monitoring and decisions made for them', 'shows care for {other} as rules, monitoring and decisions made for them'],
+    ['shows_watching', 'Shows it by watching', 'love shows as attention: noticing, remembering and keeping track of every detail', 'shows it by watching {other}: noticing, remembering and keeping track of every detail'],
+    ['shows_jealousy', 'Shows it through jealousy', 'the only open sign is resenting anyone else who gets their attention', 'the only open sign is jealousy: resents anyone else who gets {other}’s attention'],
+    ['shows_protecting', 'Protects them violently', 'love shows as violence toward anyone who threatens them', 'shows it as violence toward anyone who threatens {other}'],
+    ['hides_indifference', 'Hides it behind indifference', 'acts bored or dismissive exactly when it matters most', 'hides it behind indifference: bored or dismissive with {other} exactly when it matters most'],
+    ['shows_when_wrecked', 'Only shows it drunk or wrecked', 'the truth comes out drunk, high, hurt or exhausted, and gets denied after', 'only shows it drunk, high, hurt or exhausted, and denies it after'],
+    ['pushes_away', 'Pushes them away to keep them safe', 'cold or cruel on purpose because closeness feels dangerous for them', 'pushes {other} away on purpose, cold or cruel, because closeness feels dangerous for them'],
+    ['says_it_plainly', 'Says it plainly', 'tells them how they feel in words, often and without embarrassment', 'tells {other} plainly how they feel, often and without embarrassment'],
+]]);
+SHARED_CATEGORIES.find(([n]) => n === 'Their story')[3].push(
+    ['gilded_cage', 'Gilded cage', 'one is kept in comfort they can’t leave: luxuries inside locked doors', 'gilded cage: one is kept in comfort they can’t leave, luxuries inside locked doors'],
+    ['spoiled_captive', 'Spoiled captive', 'the one held captive acts like royalty: demands, sulks and often gets away with it', 'spoiled captive: the one held captive acts like royalty, demands and sulks, and often gets away with it'],
+    ['power_swings', 'Power swings', 'the upper hand tips back and forth scene to scene; neither keeps it for long', 'power swings: the upper hand tips back and forth scene to scene, and neither keeps it for long'],
+    ['love_without_trust', 'Love without trust', 'real love, and still no trust; affection and suspicion share the room', 'love without trust: real love, and still no trust; affection and suspicion share the room'],
+);
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
 export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_BY_ID = Object.fromEntries(SHARED_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));
 // Both-ways tags where the two people play different parts. Opus 5.5 is weaker at inferring who's who unprompted.
-export const TWO_ROLE_SHARED = new Set(['unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
+export const TWO_ROLE_SHARED = new Set(['gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
     'captor_captive', 'stockholm', 'corrupting_love', 'redeeming_love', 'power_imbalance', 'grumpy_sunshine', 'who_did_this', 'touch_and_die',
     'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide']);
 

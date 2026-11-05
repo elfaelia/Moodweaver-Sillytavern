@@ -16,10 +16,11 @@ const chat = [
     { name: 'Lamb', is_user: true, mes: 'She stirs, fingers twitching against the sheet.' },
     reply('1:40 AM', 'desperate, quietly elated', 'Voice worn to a croak from five hours of humming; spine locked from the stoop', 'He does not stop humming. He does not dare.', '<!-- weave: moods desperate +5, excited +10 | friendship 0 | romance +3 | feels: devoted, terrified | thinks: his, waking -->'),
     { name: 'Lamb', is_user: true, mes: 'Her eyes open, unfocused.' },
-    reply('1:54 AM', 'desperate, overwhelming relief, clingy', 'Voice worn to a croak from five hours of humming; spine locked from the stoop; finger swollen to a sausage; stomach empty and sour', 'The tune catches in his throat and comes out as her name.', '<!-- weave: moods relieved +25, clingy +10 | friendship +2 | romance +3 | feels: devoted, possessive | thinks: stubborn, his | remember: Lamb woke to his humming after the seizure -->'),
+    reply('1:54 AM', 'desperate, overwhelming relief, clingy', 'Voice worn to a croak from five hours of humming; spine locked from the stoop; finger swollen to a sausage; stomach empty and sour', 'The tune catches in his throat and comes out as her name.', '<!-- weave: moods relieved +25, clingy +10 | toward protective +10 | romance +3 | trust -2 | control Easterman +2 | pull Lamb +3 | thinks: stubborn, his | sparked: Lamb\'s defiance | remember: Lamb woke to his humming after the seizure -->'),
 ];
 const meta = { moodweaver: { version: 1,
-    characters: { 'char:easterman.png': freshState({ moods: { desperate: 95, excited: 85, clingy: 79, possessive: 60, yearning: 37, codependent: 22, obsessed: 0 }, pins: { desperate: true } }) },
+    characters: { 'char:easterman.png': freshState({ moods: { desperate: 95, excited: 85, clingy: 79, possessive: 60, yearning: 37, codependent: 22, obsessed: 0 }, pins: { desperate: true },
+        relationships: [{ id: 'r1', target: '{{user}}', enabled: true, moods: { obsessed: 88, captor_of: 90, indulges: 75, lets_them_win: 60, shows_spoiling: 70, above_spouse: 65 } }] }) },
     cast: { 'char:easterman.png': [{ id: 'c1', name: 'Irene', inScene: true, state: freshState({ moods: { anxious: 55 } }) }, { id: 'c2', name: 'Skinner Man', inScene: false, state: freshState({}) }] },
 } };
 const context = {

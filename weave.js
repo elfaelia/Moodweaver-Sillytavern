@@ -21,8 +21,9 @@ const list = (v, max, len) => NONE.test(String(v ?? '').trim()) ? [] : String(v 
 function changes(v, max = 5) {
     if (NONE.test(String(v ?? '').trim())) return [];
     return String(v ?? '').split(/[,;]/).map(part => {
-        const m = part.trim().replace(/[−–]/g, '-').match(/^(.+?)\s*([+-]\s*\d+)\s*$/);
-        return m ? { name: unquote(m[1]).toLowerCase(), delta: clamp(num(m[2]), -30, 30) } : null;
+        const m = part.trim().replace(/[−–]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*$/i);
+        // "afraid off" ends a feeling outright: the model only sees strength words, not numbers.
+        return m ? { name: unquote(m[1]).toLowerCase(), delta: /off|gone/i.test(m[2]) ? -100 : clamp(num(m[2]), -30, 30) } : null;
     }).filter(x => x && x.name && x.delta).slice(0, max);
 }
 export const NEED_WORDS = { critical: 10, low: 30, okay: 55, ok: 55, fine: 85, full: 95, met: 90 };
@@ -38,7 +39,7 @@ function needs(v) {
 }
 // "her defiance, her crying (off)" → [{ text, off }]
 const sparks = v => list(v, 3, 60).map(s => ({ text: s.replace(/\s*\((?:off|turn-?off)\)\s*$/i, '').trim(), off: /\((?:off|turn-?off)\)\s*$/i.test(s) })).filter(s => s.text);
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|power|feels|thinks|sparked|sparks|remember)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 export function parseWeave(mes) {
     const m = LINE.exec(String(mes ?? '')); if (!m) return null;
@@ -54,7 +55,7 @@ export function parseWeave(mes) {
     if (!toward.length && f.toward && !feels.length) feels.push(...list(f.toward, 3, 40));
     return {
         f: clamp(num(f.friendship), -10, 10), r: clamp(num(f.romance), -10, 10), t: clamp(num(f.trust), -10, 10), p: clamp(num(f.power), -10, 10),
-        hasTrust: 'trust' in f, hasPower: 'power' in f,
+        hasTrust: 'trust' in f, hasPower: 'control' in f || 'power' in f, pRaw: f.control ?? f.power ?? '', lRaw: f.pull ?? '',
         moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs), toward, feels,
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked),
@@ -62,23 +63,42 @@ export function parseWeave(mes) {
     };
 }
 
-// What the line asks for. Only switched-on parts are requested, so nothing is paid for twice.
+// 1.34.1: power names who gained it ("power Lamb +3"), so the direction can't be read backwards.
+// A bare signed number from older lines still works: + toward the character, - toward the player.
+export function powerChange(raw, charName = '', userName = '') {
+    const text = String(raw ?? '').toLowerCase(), size = Math.abs(num(text));
+    const names = name => String(name).toLowerCase().split(/\s+/).filter(w => w.length > 2 && !['doctor', 'the', 'mr', 'mrs', 'miss', 'mother', 'father'].includes(w));
+    const has = name => names(name).some(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
+    if (!size || /\b(even|none|steady|no change)\b/.test(text) && !/\d/.test(text)) return 0;
+    if (has(userName) && !has(charName)) return -clamp(size, 0, 10);
+    if (has(charName)) return clamp(size, 0, 10);
+    return clamp(num(text), -10, 10);
+}
+
+// What the line asks for. Opus 5.5 follows a filled-in example more reliably than a template of
+// brackets, and it follows instructions literally, so unchanged fields are left out instead of being
+// asked for every reply (which invites small invented changes). Values only, never reasons: asking a
+// thinking model to write its reasoning into the reply can be refused.
 // opts: { n, u, bond, extra (trust & power), moods (feelings, needs, relationship), remember }
 export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true }) {
     if (!bond && !moods && !remember) return [];
-    const meters = bond ? ['friendship ±n', 'romance ±n', ...(extra ? ['trust ±n', 'power ±n'] : [])] : [];
-    const shape = [...(moods ? ['moods [feeling ±change, …]', 'needs [need level, …]', 'toward [relationship ±change, …]'] : []), ...meters,
-        ...(bond ? ['thinks: [1–3 traits]', 'sparked: [none or what set it off]'] : []), ...(remember ? ['remember: [none or one line]'] : [])];
+    const example = [
+        ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low', 'toward protective +5'] : []),
+        ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', `sparked: ${u}'s defiance`] : []),
+        ...(remember ? [`remember: ${u} promised to stay`] : []),
+    ];
     return [
-        `End the reply with one hidden line after its last line, in exactly this form. The player never sees it; it keeps these notes in step with the story, so report what this reply actually changed.`,
-        `<!-- weave: ${shape.join(' | ')} -->`,
-        ...(moods ? [`- moods: up to 4 of ${n}'s own feelings this reply moved, each -30 to +30. Use the names in these notes where they fit, or a plain feeling word for a new one; lower one by its full strength when it's over. none if nothing moved.`,
-            `- needs: only needs that changed (hunger, energy, bladder, hygiene, comfort, social, fun, health), each critical, low, okay or fine.`,
-            `- toward: up to 3 of ${n}'s relationship feelings toward ${u} that moved (obsessed, protective, distrusts…), each -30 to +30.`] : []),
-        ...(bond ? [`- ${extra ? 'friendship, romance, trust and power' : 'friendship and romance'}: how this reply moved things between ${n} and ${u}, -10 to +10. 0 when nothing shifted, 1 to 3 for ordinary moments, more only for turning points. Friendship is liking and loyalty; romance is desire and love${extra ? `; trust is whether ${n} believes and relies on ${u}; power is who holds control, + toward ${n}, - toward ${u}` : ''}. They move separately.`,
-            `- thinks: what ${n} believes ${u} is, as one- or two-word traits (reckless, his, lying), not sentences.`,
-            `- sparked: if ${u} just did or showed something that hits one of ${n}'s turn-ons or turn-offs, from these notes or the card, name it in a few words; add (off) for a turn-off. Usually none.`] : []),
-        ...(remember ? [`- remember: none in most replies. One plain line of fact only for a turning point between them: a confession, promise, betrayal, first time or secret learned.`] : []),
+        `End every reply with one hidden line that only Moodweaver reads, listing what this reply changed for ${n}. Leave out anything that didn't change; if nothing did, write <!-- weave: none -->. This example shows the shape only, so report this reply's own changes:`,
+        `<!-- weave: ${example.join(' | ')} -->`,
+        ...(moods ? [`- moods: ${n}'s own feelings that rose or fell, by the names in these notes or a plain feeling word, -30 to +30, or off when one is over (afraid off).`,
+            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health, each critical, low, okay or fine.`,
+            `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
+        ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -10 to +10; 1 to 3 for ordinary moments, more only for turning points. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
+            ...(extra ? [`- control: who gained real control this reply (doors, money, freedom, who decides what happens), 1 to 10, as ${n} +3 or ${u} +3.`,
+                `- pull: who gained emotional hold (who needs whom more, who gives way), the same way. Control and pull can move opposite ways in one reply: ${u} can win a demand while ${n} still holds every key.`] : []),
+            `- thinks: words that finish "${n} thinks ${u} is…" (stubborn, his, a liar).`,
+            `- sparked: something ${u} did that hit one of ${n}'s turn-ons or turn-offs, from these notes or the card; add (off) for a turn-off.`] : []),
+        ...(remember ? [`- remember: a turning point between them, in one plain line: a confession, promise, betrayal, first time or secret learned.`] : []),
     ];
 }
 

@@ -1,9 +1,9 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, STORY_RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, isExtended, shortName, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
 import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone, hasBoard, stripBoard, feelingId, relationId } from './board.js';
 import { boardView } from './board-ui.js';
-import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor } from './bond.js';
+import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor, sliderAxes } from './bond.js';
 import { bondView, bondMini } from './bond-ui.js';
-import { parseWeave, hasWeave, stripWeave, weavePrompt, applyChanges } from './weave.js';
+import { parseWeave, hasWeave, stripWeave, weavePrompt, applyChanges, powerChange } from './weave.js';
 import { applyLibrary, cleanLibrary, libraryPrompt, librarySections, newLibraryId, isTurnGroup, turnGroupKey } from './library.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
@@ -17,7 +17,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.34.0';
+const VERSION = '1.35.0';
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
@@ -330,22 +330,13 @@ function bondData(ch) {
 }
 // A new meter starts from the relationship sliders already set toward the player, so an existing
 // romance doesn't open at "no spark". Later replies move it from there.
-const ROMANCE_OFF = new Set(['not_attracted', 'finds_plain', 'finds_ugly', 'turned_off_by', 'finds_creepy', 'grossed_out']);
-function seedBond(ch) {
-    const st = getState(ch), you = playerName().toLowerCase();
-    const relation = (st?.relationships ?? []).find(r => r.target === '{{user}}' || resolveRelationName(r.target).toLowerCase() === you);
+// 1.34.1: the same reading of the sliders seeds new meters and shapes the named dynamic (bond.js).
+function bondAxes(ch) {
+    const st = getState(ch), rel = st ? userRelation(st) : null;
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
-    const moods = { ...(relation?.moods ?? {}) };
-    const peak = test => Math.max(0, ...Object.entries(moods).filter(([id, v]) => v > 0 && test(RELATIONSHIP_BY_ID[id], id)).map(([, v]) => v));
-    const shared = ids => Math.max(0, ...ids.map(id => pair?.moods?.[id] ?? 0));
-    const friendUp = Math.max(peak(t => t?.category === 'Friendship & trust'), shared(['friends', 'best_friends', 'childhood_friends', 'platonic_soulmates', 'chosen_family', 'ride_or_die']));
-    const friendDown = peak(t => t?.category === 'Dislike & hostility');
-    const romUp = Math.max(peak((t, id) => t?.category === 'Attraction & romance' && !ROMANCE_OFF.has(id)), shared(['dating', 'engaged', 'married', 'soulmates', 'lovers', 'mutual_pining', 'slow_burn']));
-    const romDown = peak((t, id) => ROMANCE_OFF.has(id));
-    const ids = list => Math.max(0, ...list.map(id => moods[id] ?? 0));
-    return { f: Math.round((friendUp - friendDown) * 0.8), r: Math.round((romUp - romDown) * 0.8),
-        t: Math.round((ids(['trusts']) - ids(['distrusts', 'suspicious_of'])) * 0.8), p: Math.round((ids(['controls', 'dominates']) - ids(['submits_to', 'fears'])) * 0.8) };
+    return sliderAxes(rel && rel.enabled !== false ? rel.moods ?? {} : {}, pair?.enabled !== false ? pair?.moods ?? {} : {});
 }
+const seedBond = ch => Object.fromEntries(Object.entries(bondAxes(ch)).map(([k, v]) => [k, Math.round(v * 0.8)]));
 const userRelation = (st, create = false) => {
     const you = playerName().toLowerCase();
     let relation = (st.relationships ??= []).find(r => r.target === '{{user}}' || resolveRelationName(r.target).toLowerCase() === you);
@@ -373,7 +364,7 @@ function weaveChanged(ch) {
         const parsed = parseWeave(m.mes), had = Object.hasOwn(bond.steps, i);
         if (parsed) {
             const prefs = getState(writer)?.prefs ?? {};
-            const step = { f: parsed.f, r: parsed.r, t: parsed.t, p: parsed.p, thinks: parsed.thinks, sparks: parsed.sparked.map(x => ({ ...x, id: turnIdFor(x.text, prefs) })) };
+            const step = { f: parsed.f, r: parsed.r, t: parsed.t, p: parsed.pRaw ? powerChange(parsed.pRaw, writer.name, playerName()) : parsed.p, l: parsed.lRaw ? powerChange(parsed.lRaw, writer.name, playerName()) : 0, thinks: parsed.thinks, sparks: parsed.sparked.map(x => ({ ...x, id: turnIdFor(x.text, prefs) })) };
             if (JSON.stringify(bond.steps[i]) !== JSON.stringify(cleanBond({ steps: { [i]: step } }).steps[i])) { bond.steps[i] = step; changed = true; }
         } else if (had) { delete bond.steps[i]; changed = true; }
         if (latest) { const out = applyWeave(meta, writer, i, parsed); if (out.length) { changed = true; notes.push(...out); } }
@@ -503,7 +494,7 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const board = boardPromptLines({ send: boardSend(), live: liveFor(ch, history), char: name, user: player, n, u, stripped: settings().boardStrip, remember: bm.includeRemember && !bond.on });
         const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, moods: bm.feed, remember: bm.includeRemember }) : [];
         const result = await budgetPrompt(state, name, settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: player, knowledge: getKnowledge(ch) }, story, cast: getCast(ch), pairs: pairExtras(ch), board, blendPlan: settings().blendPlan,
-            standing: bondStanding({ bond, chatLength: history.length, n, u }), weave });
+            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch) }), weave });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -961,8 +952,8 @@ function render() {
         ${who !== 'story' && tab === 'inv' ? inventoryView(state, ch)
         : who !== 'story' && tab === 'needs' ? boardView({ live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: boardEditing, focus: boardFocus })
         : who !== 'story' && tab === 'wants' ? wantsView(state, ch)
-        : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: ctx().chat.length }) : '') + relationshipView({
-            peerExtra: who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), ctx().chat.length) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
+        : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: ctx().chat.length, axes: bondAxes(ch) }) : '') + relationshipView({
+            peerExtra: who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), ctx().chat.length, bondAxes(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
         : sectionContent(state, kind, ch, active)}`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
@@ -1136,6 +1127,7 @@ function setup() {
         if (input.dataset.bondMeter) { const key = input.dataset.bondMeter, v = Number(input.value); await editBond(b => setMeter(b, key, v, ctx().chat.length)); return; }
         if (input.hasAttribute('data-bond-on')) { await editBond(b => { b.on = input.checked; }); return; }
         if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
+        if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
         if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
         if (input.hasAttribute('data-board-toward')) { await editBoard(b => { b.includeToward = input.checked; }); return; }
         if (input.hasAttribute('data-board-remember')) { await editBoard(b => { b.includeRemember = input.checked; }); return; }

@@ -1,8 +1,9 @@
 import { KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, STORY_RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, isExtended, shortName, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
-import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone } from './board.js';
+import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone, hasBoard, stripBoard, feelingId, relationId } from './board.js';
 import { boardView } from './board-ui.js';
-import { cleanBond, parseBond, hasBond, stripBond, setMeter, bondPromptLines } from './bond.js';
-import { bondView } from './bond-ui.js';
+import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor } from './bond.js';
+import { bondView, bondMini } from './bond-ui.js';
+import { parseWeave, hasWeave, stripWeave, weavePrompt, applyChanges } from './weave.js';
 import { applyLibrary, cleanLibrary, libraryPrompt, librarySections, newLibraryId, isTurnGroup, turnGroupKey } from './library.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
@@ -16,8 +17,8 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.28.0';
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 4, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: true, bondTrack: true };
+const VERSION = '1.34.0';
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 // UI-only: the settings sheet, and the "make your own" editor ({ kind, id? editing a library entry, fromOwn? promoting a one-off row }).
@@ -157,6 +158,9 @@ function settings() {
         if ((saved.sceneChars ?? 12000) === 12000) saved.sceneChars = 8000;
         saved.promptVersion = 4; c.saveSettingsDebounced();
     }
+    // 1.34.0: Anthropic's Opus 5.5 guide says "think before answering" lines in chat apps add latency and
+    // billed thinking without a clear quality gain, so blend planning starts off (it can be turned back on).
+    if (saved.promptVersion < 5) { saved.blendPlan = false; saved.boardStrip ??= true; saved.promptVersion = 5; c.saveSettingsDebounced(); }
     // Your library has to be in the catalogue before any saved state is cleaned, or its values would be dropped.
     saved.library = Array.isArray(saved.library) ? saved.library : [];
     if (appliedLibrary !== saved.library) { saved.library = applyLibrary(saved.library); appliedLibrary = saved.library; }
@@ -174,7 +178,7 @@ function settings() {
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 16000),
         baselines: c.extensionSettings[KEY].baselines ?? {},
         castDefaults: c.extensionSettings[KEY].castDefaults ?? {},
-        boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false, blendPlan: saved.blendPlan !== false, bondTrack: saved.bondTrack !== false,
+        boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false, blendPlan: saved.blendPlan === true, bondTrack: saved.bondTrack !== false, boardStrip: saved.boardStrip !== false,
     });
 }
 function members() {
@@ -305,11 +309,14 @@ async function boardChanged() {
             if (here !== person.inScene) { person.inScene = here; moved.push(`${person.name} ${here ? 'in' : 'out'}`); }
         }
         const writer = members().find(m => m.name === found.name) ?? ch;
-        const notes = [...moved.map(m => m), ...feedFromBoard(meta, b, found, writer), ...rememberFromBoard(b, found, writer)];
+        // A reply with its own weave line reports feelings and memories precisely, so its board's words don't count twice.
+        const woven = bondData(writer).on && hasWeave(c.chat[found.index]?.mes);
+        const notes = [...moved.map(m => m), ...(woven ? [] : [...feedFromBoard(meta, b, found, writer), ...rememberFromBoard(b, found, writer)])];
         if (notes.length) status = `Board: ${notes.join(', ')}.`;
         await persist();
     }
-    if (bondChanged(ch)) await persist();
+    const woven = weaveChanged(ch);
+    if (woven.changed) { if (woven.notes.length) status = `Weave: ${woven.notes.slice(0, 5).join(', ')}.`; await persist(); }
     if (panel?.open) render();
     await syncPrompt();
 }
@@ -335,38 +342,91 @@ function seedBond(ch) {
     const friendDown = peak(t => t?.category === 'Dislike & hostility');
     const romUp = Math.max(peak((t, id) => t?.category === 'Attraction & romance' && !ROMANCE_OFF.has(id)), shared(['dating', 'engaged', 'married', 'soulmates', 'lovers', 'mutual_pining', 'slow_burn']));
     const romDown = peak((t, id) => ROMANCE_OFF.has(id));
-    return { f: Math.round((friendUp - friendDown) * 0.8), r: Math.round((romUp - romDown) * 0.8) };
+    const ids = list => Math.max(0, ...list.map(id => moods[id] ?? 0));
+    return { f: Math.round((friendUp - friendDown) * 0.8), r: Math.round((romUp - romDown) * 0.8),
+        t: Math.round((ids(['trusts']) - ids(['distrusts', 'suspicious_of'])) * 0.8), p: Math.round((ids(['controls', 'dominates']) - ids(['submits_to', 'fears'])) * 0.8) };
 }
-// Reads the hidden bond line from the newest replies. A swipe or edit replaces that reply's step;
-// a step whose message is gone or no longer has the line is dropped.
-function bondChanged(ch) {
-    const c = ctx(), meta = c.chatMetadata?.[KEY]; if (!meta || !ch) return false;
-    let changed = false;
+const userRelation = (st, create = false) => {
+    const you = playerName().toLowerCase();
+    let relation = (st.relationships ??= []).find(r => r.target === '{{user}}' || resolveRelationName(r.target).toLowerCase() === you);
+    if (!relation && create) { relation = cloneRelationships([{ id: newId(), target: '{{user}}', enabled: true, moods: {} }])[0]; st.relationships.push(relation); }
+    return relation;
+};
+// 1.34.0: reads the hidden weave line from the newest replies. Meter steps are kept for the last few
+// replies; feelings, needs, relationship and memories come from the newest one only. A swipe or edit
+// replaces that reply's own effect, a deleted reply's effect is undone, and pins always hold.
+function weaveChanged(ch) {
+    const c = ctx(), meta = c.chatMetadata?.[KEY]; if (!meta || !ch) return { changed: false, notes: [] };
+    let changed = false; const notes = [];
     for (const key of Object.keys(meta.bond ?? {})) {
         const bond = cleanBond(meta.bond[key], settings().bondTrack), before = JSON.stringify(bond.steps);
         for (const i of Object.keys(bond.steps)) if (Number(i) >= c.chat.length) delete bond.steps[i];
         meta.bond[key] = bond;
         if (JSON.stringify(bond.steps) !== before) changed = true;
     }
+    if (meta.board?.needSteps) for (const i of Object.keys(meta.board.needSteps)) if (Number(i) >= c.chat.length) { delete meta.board.needSteps[i]; changed = true; }
     let latest = true;
     for (let i = c.chat.length - 1, seen = 0; i >= 0 && seen < 4; i--) {
         const m = c.chat[i]; if (!m || m.is_user || m.is_system) continue; seen++;
         const writer = members().find(w => w.name === m.name) ?? ch, bond = bondData(writer);
-        if (!bond.on) continue;
-        const parsed = parseBond(m.mes), had = Object.hasOwn(bond.steps, i);
-        if (!parsed) { if (had) { delete bond.steps[i]; changed = true; } continue; }
-        const step = { f: parsed.f, r: parsed.r, thinks: parsed.thinks };
-        if (JSON.stringify(bond.steps[i]) !== JSON.stringify(step)) { bond.steps[i] = step; changed = true; }
-        if (latest && parsed.feels.length && settings().boardFeedBond !== false) {
-            const st = getState(writer), fed = ((meta.boardFed ??= {})[`char:${writer.avatar}`] ??= { moods: {}, rel: {} });
-            const readings = relationsFromBoard({ toward: parsed.feels.join(', ') }), you = playerName().toLowerCase();
-            let relation = (st.relationships ??= []).find(r => r.target === '{{user}}' || resolveRelationName(r.target).toLowerCase() === you);
-            if (!relation && readings.length) { relation = cloneRelationships([{ id: newId(), target: '{{user}}', enabled: true, moods: {} }])[0]; st.relationships.push(relation); }
-            if (relation && feedValues(relation.moods, {}, fed.rel, readings).length) { st.revision = (st.revision || 0) + 1; changed = true; }
-        }
+        if (!bond.on) { latest = false; continue; }
+        const parsed = parseWeave(m.mes), had = Object.hasOwn(bond.steps, i);
+        if (parsed) {
+            const prefs = getState(writer)?.prefs ?? {};
+            const step = { f: parsed.f, r: parsed.r, t: parsed.t, p: parsed.p, thinks: parsed.thinks, sparks: parsed.sparked.map(x => ({ ...x, id: turnIdFor(x.text, prefs) })) };
+            if (JSON.stringify(bond.steps[i]) !== JSON.stringify(cleanBond({ steps: { [i]: step } }).steps[i])) { bond.steps[i] = step; changed = true; }
+        } else if (had) { delete bond.steps[i]; changed = true; }
+        if (latest) { const out = applyWeave(meta, writer, i, parsed); if (out.length) { changed = true; notes.push(...out); } }
         latest = false;
     }
-    return changed;
+    return { changed, notes };
+}
+// What one reply's weave line changes for its writer. Returns short notes for the status line.
+function applyWeave(meta, writer, index, parsed) {
+    const st = getState(writer); if (!st?.enabled) return [];
+    const b = cleanBoardMeta(meta.board), led = ((meta.weave ??= {})[`char:${writer.avatar}`] ??= {}), notes = [];
+    const label = id => id.startsWith('custom:') ? (st.custom ?? []).find(r => r.id === id.slice(7))?.text ?? 'their own feeling' : BY_ID[id]?.label ?? RELATIONSHIP_BY_ID[id]?.label ?? id;
+    if (b.feed) {
+        const custom = () => (st.custom ??= []);
+        led.auto ??= {};
+        const mood = {
+            get: id => id.startsWith('custom:') ? custom().find(r => r.id === id.slice(7))?.value ?? 0 : st.moods[id] ?? 0,
+            set: (id, v) => { if (!id.startsWith('custom:')) st.moods[id] = v; else { const r = custom().find(x => x.id === id.slice(7)); if (r) r.value = v; } },
+            pinned: id => !id.startsWith('custom:') && Boolean(st.pins?.[id]),
+        };
+        // Catalogue names first, then their own rows; a feeling the catalogue doesn't have becomes one of
+        // their own (three at most), and it goes away again when it fades to nothing, unless you rename it.
+        const resolve = (name, delta) => {
+            const own = custom().find(r => r.kind === 'mood' && r.text.toLowerCase() === name); if (own) return `custom:${own.id}`;
+            const id = feelingId(name); if (id) return id;
+            if (delta <= 0 || name.length > 40 || name.split(' ').length > 4) return null;
+            if (Object.entries(led.auto).filter(([rid, text]) => custom().some(r => r.id === rid && r.text === text)).length >= 3) return null;
+            const row = { id: newId(), kind: 'mood', text: name, value: 0, cause: '' };
+            custom().push(row); led.auto[row.id] = row.text; return `custom:${row.id}`;
+        };
+        const moods = applyChanges(mood, led.moods, index, parsed?.moods ?? [], resolve);
+        led.moods = moods.ledger;
+        for (const id of moods.changed) if (!id.startsWith('custom:') && st.moods[id] > 0 && Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id);
+        notes.push(...moods.changed.map(label));
+        st.custom = custom().filter(r => !(led.auto[r.id] === r.text && r.value === 0));
+        for (const rid of Object.keys(led.auto)) if (!st.custom.some(r => r.id === rid)) delete led.auto[rid];
+        // Relationship types toward the player, by name ("obsessed +5").
+        const relation = userRelation(st, Boolean(parsed?.toward?.length));
+        if (relation) {
+            const rel = applyChanges({ get: id => relation.moods[id] ?? 0, set: (id, v) => { relation.moods[id] = v; }, pinned: () => false }, led.rel, index, parsed?.toward ?? [], name => relationId(name, playerName()));
+            led.rel = rel.ledger; notes.push(...rel.changed.map(label));
+            // Older lines named feelings without numbers ("feels: wary, drawn").
+            if (parsed?.feels?.length) { const fed = ((meta.boardFed ??= {})[`char:${writer.avatar}`] ??= { moods: {}, rel: {} }); feedValues(relation.moods, {}, fed.rel, relationsFromBoard({ toward: parsed.feels.join(', ') })); }
+        }
+        // Needs, as words; the newest report of each need wins over older ones and older boards.
+        const needs = parsed?.needs ?? {}, steps = (b.needSteps ??= {});
+        if (Object.keys(needs).length) { if (JSON.stringify(steps[index]) !== JSON.stringify(needs)) { steps[index] = needs; notes.push(...Object.entries(needs).map(([k, v]) => `${k} ${needWord(v).toLowerCase()}`)); } }
+        else delete steps[index];
+        meta.board = b;
+    }
+    if (b.includeRemember !== false && parsed) notes.push(...rememberMoment(writer, index, parsed.remember));
+    if (notes.length) st.revision = (st.revision || 0) + 1;
+    return [...new Set(notes)];
 }
 async function editBond(mutate) {
     const ch = target(), bond = bondData(ch); if (!ch) return;
@@ -392,20 +452,25 @@ function feedFromBoard(meta, b, found, writer) {
     const name = id => BY_ID[id]?.label ?? RELATIONSHIP_BY_ID[id]?.label ?? id;
     return [...changed, ...relChanged].filter(id => (st.moods[id] ?? 0) > 0 || relChanged.includes(id)).slice(0, 4).map(name);
 }
-// A Remember line becomes a shared memory. A swipe or edit of the same reply replaces its own memory,
-// and only the newest 8 untouched board memories are kept; edit or re-rate one and it's yours to keep.
-function rememberFromBoard(b, found, writer) {
-    if (b.includeRemember === false || found.board.remember === undefined || !writer) return [];
+// A Remember line (on the board or the weave line) becomes a shared memory. A swipe or edit of the same reply
+// replaces its own memory, and only the newest 8 untouched ones are kept; edit or re-rate one and it's yours.
+function rememberMoment(writer, index, raw) {
+    if (!writer) return [];
     const pair = getPair(`char:${writer.avatar}`, 'user', true);
     const untouched = m => m.boardText && m.text === m.boardText && m.value === 55;
-    pair.memories = (pair.memories ?? []).filter(m => !(untouched(m) && m.boardIndex === found.index));
-    if (isNone(found.board.remember)) return [];
-    const text = found.board.remember.replace(/^[\[(“"]+|[\])”"]+$/g, '').trim().slice(0, 160);
+    const before = (pair.memories ?? []).find(m => untouched(m) && m.boardIndex === index)?.text ?? '';
+    pair.memories = (pair.memories ?? []).filter(m => !(untouched(m) && m.boardIndex === index));
+    if (isNone(raw)) return [];
+    const text = String(raw).replace(/^[\[(“"]+|[\])”"]+$/g, '').trim().slice(0, 160);
     if (!text || pair.memories.some(m => m.text.toLowerCase() === text.toLowerCase())) return [];
-    pair.memories.push({ id: newId(), text, value: 55, who: 'both', boardIndex: found.index, boardText: text });
+    pair.memories.push({ id: newId(), text, value: 55, who: 'both', boardIndex: index, boardText: text });
     const auto = pair.memories.filter(untouched);
     if (auto.length > 8) { const drop = new Set(auto.slice(0, auto.length - 8).map(m => m.id)); pair.memories = pair.memories.filter(m => !drop.has(m.id)); }
-    return ['remembered a moment'];
+    return before === text ? [] : ['remembered a moment'];
+}
+function rememberFromBoard(b, found, writer) {
+    if (b.includeRemember === false || found.board.remember === undefined) return [];
+    return rememberMoment(writer, found.index, found.board.remember);
 }
 // People the Present line can point at: tap to open their panel.
 function boardPeople(ch) {
@@ -421,7 +486,7 @@ async function persist(state) {
     if (state) state.revision = (state.revision || 0) + 1;
     try { await ctx().saveMetadata(); } catch { status = 'Could not save chat metadata. Try again before switching chats.'; renderStatus(); }
 }
-async function syncPrompt(forGeneration = false, chat = null) {
+async function syncPrompt(forGeneration = false, chat = null, type = '') {
     const version = ++promptVersion;
     const c = ctx(), ch = target(forGeneration), state = getState(ch), id = identity(ch), mine = getUserState(), story = getStoryState(ch);
     if (suspended || !state) {
@@ -431,9 +496,14 @@ async function syncPrompt(forGeneration = false, chat = null) {
     try {
         migratePairs(ch);
         const name = String(ch.name).slice(0, 100), player = playerName().slice(0, 100);
-        const board = boardPromptLines({ send: boardSend(), live: liveFor(ch, chat ?? c.chat), char: name, user: player, n: shortName(name), u: shortName(player) });
+        // Always the real chat: the generation copy has its boards stripped and skips hidden messages, which
+        // used to drop recent meter steps for anyone who /hides old messages. A swipe leaves out the reply it replaces.
+        const real = c.chat ?? [], history = type === 'swipe' ? real.slice(0, -1) : real;
+        const n = shortName(name), u = shortName(player), bond = bondData(ch), bm = cleanBoardMeta(boardMeta());
+        const board = boardPromptLines({ send: boardSend(), live: liveFor(ch, history), char: name, user: player, n, u, stripped: settings().boardStrip, remember: bm.includeRemember && !bond.on });
+        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, moods: bm.feed, remember: bm.includeRemember }) : [];
         const result = await budgetPrompt(state, name, settings().tokenBudget, text => c.getTokenCountAsync(text), { player: { state: mine, name: player, knowledge: getKnowledge(ch) }, story, cast: getCast(ch), pairs: pairExtras(ch), board, blendPlan: settings().blendPlan,
-            bond: bondPromptLines({ bond: bondData(ch), n: shortName(name), u: shortName(player), chatLength: (chat ?? c.chat).length }) });
+            standing: bondStanding({ bond, chatLength: history.length, n, u }), weave });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -529,13 +599,21 @@ async function analyse(force = false, whom = who, ch = target()) {
 }
 
 globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type) => {
-    if (Array.isArray(chat)) for (let i = 0; i < chat.length; i++) if (hasBond(chat[i]?.mes)) chat[i] = { ...structuredClone(chat[i]), mes: stripBond(chat[i].mes) };
+    // Weave lines never reach the model, and neither do old boards (the newest is summarised in the note).
+    // Every message is cleaned the same way every time, so history stays identical between turns and the cache keeps matching.
+    const stripBoards = !suspended && settings().boardStrip && Boolean(getState(target(true)));
+    if (Array.isArray(chat)) for (let i = 0; i < chat.length; i++) {
+        const m = chat[i], mes = m?.mes; if (typeof mes !== 'string') continue;
+        let next = hasWeave(mes) ? stripWeave(mes) : mes;
+        if (stripBoards && !m.is_user && hasBoard(next)) { const cut = stripBoard(next); if (cut.trim()) next = cut; }
+        if (next !== mes) chat[i] = { ...structuredClone(m), mes: next };
+    }
     if (suspended || ['quiet', 'impersonate'].includes(type)) {
         ++promptVersion; ctx().setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); return;
     }
     const ch = target(true), state = getState(ch);
     if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
-    await syncPrompt(true, chat);
+    await syncPrompt(true, chat, type);
     generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: promptInfo.prompt });
     if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
     renderPreview();
@@ -678,13 +756,13 @@ function readerBlock(state) {
     const anyScope = SCOPES.some(([k]) => scope[k]);
     const est = subject && anyScope ? roughTokens(readerRequest(subject, scope).messages) : 0;
     const start = sceneStart(), chatLen = ctx().chat?.length ?? 0;
-    return `<section class="mw-reader">
-        <div class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>Reads the latest messages and moves ${esc(subjectName())}’s sliders to match. Pinned ◆ ones stay put.</small></div></div>
+    return `<details class="mw-reader" data-reader ${profile ? 'open' : ''}>
+        <summary class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>${profile ? `Reads the latest messages and moves ${esc(subjectName())}’s sliders. Pinned ◆ ones stay put.` : 'Optional, and an extra paid request per read. The hidden weave line already does this for free with every reply.'}</small></div></summary>
         <div class="mw-scope" role="group" aria-label="What to read">${SCOPES.map(([k, icon, label]) => `<button type="button" class="mw-scope-chip" data-scope="${k}" aria-pressed="${scope[k]}">${icon} ${label}</button>`).join('')}</div>
         <div class="mw-reader-go"><button class="mw-primary mw-read" data-action="analyse" ${pending || !profile || !state.enabled || !anyScope ? 'disabled' : ''}>${pending ? 'Reading…' : '✧ Read the scene'}</button>${pending ? '<button data-action="cancel">Stop</button>' : `<button data-action="undo" ${!state.history?.length ? 'disabled' : ''} title="Undo the last read">↶ Undo</button>`}</div>
         <p class="mw-reader-meta">Last ${settings().sceneMessages} messages${start ? ' since your scene marker' : ''} · about ${fmtTokens(est)} tokens a read${scope.trait ? ' · traits roughly double it' : ''}</p>
         ${!profile ? '<p class="mw-fine mw-warn">Pick a connection for the reader below. A small, cheap model does the job.</p>' : ''}
-        <details class="mw-tuning" data-reader-tuning ${!profile ? 'open' : ''}><summary>Reader settings</summary>
+        <details class="mw-tuning" data-reader-tuning><summary>Reader settings</summary>
             <label>Connection<select data-reader="profile"><option value="">Choose a connection profile…</option>${profile && !allProfiles.some(p => p.id === profile) ? `<option selected value="${esc(profile)}">Unavailable profile, choose another</option>` : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === profile ? 'selected' : ''}>${esc(p.name)} · ${esc(p.model)}</option>`).join('')}</select></label>
             <div class="mw-seg-label">Recent messages it reads</div>
             <div class="mw-seg" role="group" aria-label="Recent messages">${[4, 6, 10, 16].map(n => `<button type="button" data-reader-msgs="${n}" aria-pressed="${settings().sceneMessages === n}">${n}</button>`).join('')}</div>
@@ -698,7 +776,7 @@ function readerBlock(state) {
             ${state.mode === 'dynamic' ? `<label class="mw-inline">Every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> of your messages</label>` : ''}` : ''}
             <p class="mw-fine">Sends recent chat text${who === 'char' ? ' and a short card excerpt' : ''} to that connection. One extra request per read.</p>
         </details>
-    </section>`;
+    </details>`;
 }
 // ---- Wants, goals & fears ----
 const WANT_META = {
@@ -754,7 +832,6 @@ function personCard(ch, state, live) {
         : boardState ? `<span class="mw-feeling">Board says <b>${esc(boardState)}</b></span>` : '<span class="mw-feeling">No moodlets yet</span>';
     const canRead = who !== 'story' && readerProfile() && state.enabled;
     return `<div class="mw-person-card" style="--mw-accent:${top?.color ?? '#a8cdb1'}">
-        <span class="mw-avatar mw-avatar-lg">${who === 'story' ? '❖' : esc(String(name).trim()[0]?.toUpperCase() ?? '?')}</span>
         <div class="mw-person-info"><b>${esc(name)}</b><small>${esc(role)}</small>${feeling}</div>
         <div class="mw-person-toggles"><label class="mw-toggle"><input type="checkbox" data-field="enabled" ${state.enabled ? 'checked' : ''}> ${who === 'char' ? 'On' : 'Send'}</label>
         ${person ? `<label class="mw-toggle"><input type="checkbox" data-field="castInScene" ${person.inScene ? 'checked' : ''}> In scene</label>` : ''}
@@ -768,8 +845,8 @@ function personCard(ch, state, live) {
 }
 // One sticky row of icon tabs: fits a phone screen and stays reachable while scrolling long lists.
 // Needs is the live board; Facts is the old needs-and-facts list; personality types sit at the top of Traits.
-const TABS = [['mood', '✦', 'Moods', '#b5d9a6'], ['needs', '◔', 'Needs', '#8fd18a'], ['bond', '♥', 'Meters', '#f09ab0'], ['trait', '❂', 'Traits', '#d6b58f'], ['turn', '⇋', 'Turn-ons', '#e0a3bb'],
-    ['rel', '♡', 'Bonds', '#e8a7bb'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
+// 1.34.0: Meters live at the top of Bonds, beside the relationship they measure.
+const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
 const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${TABS.map(([k, icon, label, color]) =>
     `<button type="button" role="tab" data-tab="${k}" aria-selected="${tab === k}" aria-pressed="${tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;
 // ---- Settings sheet (⚙): what's sent, your library, defaults and limits ----
@@ -786,7 +863,8 @@ function settingsView(state) {
         <details class="mw-advanced" data-settings="sent" open><summary>What is sent to the model</summary>
             <p class="mw-fine">Moodweaver’s own note only. Your card, preset, lore and chat history get sent too.</p>
             <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Tell it to keep scenes moving</label>
-            <label class="mw-toggle" title="For models that always think, like Claude Opus 5.5. Sent only when three or more settings are strong or any is intense. Better blends; a little more thinking, which is billed as output."><input type="checkbox" data-setting-bool="blendPlan" ${settings().blendPlan ? 'checked' : ''}> Have it plan the blend while thinking</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendPlan" ${settings().blendPlan ? 'checked' : ''}> Ask it to plan the blend while thinking</label>
+            <p class="mw-fine">Off by default. Opus 5.5 already decides how much to think; Anthropic found lines like this mostly add billed thinking and slower starts.</p>
             <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><pre data-audit></pre>
             <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
             <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
@@ -794,6 +872,8 @@ function settingsView(state) {
             <p class="mw-fine">Every chat follows these until you flip its own switch on the Needs tab.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardSend" ${settings().boardSend ? 'checked' : ''}> Send the board prompt</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPresent" ${settings().boardPresent ? 'checked' : ''}> Present line moves the cast in and out</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardStrip" ${settings().boardStrip ? 'checked' : ''}> Keep old boards out of the prompt</label>
+            <p class="mw-fine">Each board is about 200 tokens. The newest one is summarised in one line instead, so a long chat gets thousands of tokens back for story. You still see every board in the chat.</p>
             <p class="mw-fine">With the prompt on, delete INFO BOARD from your preset so it isn’t sent twice. The HTML is identical, so your regex keeps working.</p></details>
         <details class="mw-advanced" data-settings="library"><summary>Your library <small>${settings().library.length} options</small></summary>${libraryList()}</details>
         <details class="mw-advanced" data-settings="defaults"><summary>Defaults for new chats</summary>
@@ -831,7 +911,9 @@ function sectionContent(state, kind, ch, active) {
     const heading = { mood: 'Active moodlets', trait: 'Who they are', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'The story so far' }[kind];
     const empty = { mood: 'Nothing set. Start with a starter blend, move a slider or read the scene.', trait: 'Nothing set yet. Kinks, roles, temperament and morals go here.', turn: 'Nothing set yet. What they like or can’t stand in other people goes here.', state: 'Nothing set. Looks, background, job and the scene go here.', story: 'No genre or style set for this chat yet.' }[kind];
     const onHere = sectionCount(state, kind), what = { mood: 'moodlets', trait: 'traits', turn: 'turn-ons', state: 'facts', story: 'story settings' }[kind];
-    const chips = turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="Adjust ${esc(TURN_BY_ID[id].label)}"><span>${v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('')
+    const sparks = kind === 'turn' && who === 'char' && bondData(ch).on ? computeBond(bondData(ch), ctx().chat.length).sparks : [];
+    const lit = new Set(sparks.filter(x => x.fresh && x.id).map(x => x.id));
+    const chips = turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '✧' : v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('')
         + shown.map(m => `<button data-jump="${m.id}" class="mw-chip" style="--mw-accent:${m.color}" title="Adjust ${esc(m.label)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('');
     const explainer = who === 'user' && kind === 'turn' ? `What ${esc(playerName())} likes or can’t stand in other people. The story works these in now and then; ${esc(ch.name)} only learns them from how you react.`
         : kind === 'turn' ? `What ${esc(whose)} likes or can’t stand in <em>other people</em>. Slide right for a turn-on, left for a turn-off.`
@@ -839,6 +921,7 @@ function sectionContent(state, kind, ch, active) {
         : kind === 'trait' ? `Who ${esc(whose)} is underneath. Traits stay put unless you switch on ❂ Traits in the scene reader.` : '';
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
         <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
+        ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
         ${kind === 'mood' && state.reason ? `<div class="mw-observation">✧ ${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
@@ -855,6 +938,7 @@ function render() {
     const state = charState ? viewState() : null;
     if (who === 'story') tab = 'mood';
     if (tab === 'personality') tab = 'trait';
+    if (tab === 'bond') tab = 'rel';
     const kind = who === 'story' ? 'story' : ['state', 'trait', 'turn'].includes(tab) ? tab : 'mood';
     const active = state ? activeMoods(state) : [];
     const live = charState ? liveFor(ch) : null;
@@ -876,9 +960,9 @@ function render() {
         : `${personCard(ch, state, live)}${who === 'story' ? '' : tabBar(counts)}
         ${who !== 'story' && tab === 'inv' ? inventoryView(state, ch)
         : who !== 'story' && tab === 'needs' ? boardView({ live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: boardEditing, focus: boardFocus })
-        : who !== 'story' && tab === 'bond' ? (who === 'char' ? bondView({ bond: bondData(ch), charName: ch.name, userName: playerName(), chatLength: ctx().chat.length }) : `<p class="mw-empty">Meters track how a main character feels about ${esc(playerName())}. Open ${esc(ch.name)} to see them.</p>`)
         : who !== 'story' && tab === 'wants' ? wantsView(state, ch)
-        : who !== 'story' && tab === 'rel' ? relationshipView({ subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
+        : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: ctx().chat.length }) : '') + relationshipView({
+            peerExtra: who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), ctx().chat.length) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
         : sectionContent(state, kind, ch, active)}`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
@@ -1051,6 +1135,7 @@ function setup() {
         if (input.hasAttribute('data-board-horny')) { await editBoard(b => { b.includeHorny = input.checked; }); return; }
         if (input.dataset.bondMeter) { const key = input.dataset.bondMeter, v = Number(input.value); await editBond(b => setMeter(b, key, v, ctx().chat.length)); return; }
         if (input.hasAttribute('data-bond-on')) { await editBond(b => { b.on = input.checked; }); return; }
+        if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
         if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
         if (input.hasAttribute('data-board-toward')) { await editBoard(b => { b.includeToward = input.checked; }); return; }
         if (input.hasAttribute('data-board-remember')) { await editBoard(b => { b.includeRemember = input.checked; }); return; }

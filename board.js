@@ -2,7 +2,7 @@
 // Moodweaver never changes its HTML (a chat regex styles it). It only reads the latest one back out of
 // the chat, shows it as a Sims-style needs panel, and sends the player's edits and the needs that
 // matter on to the next reply. No extra model calls: the board is already in the reply.
-import { MOODS, SCALED_MOOD_CUES, analysed } from './core.js';
+import { MOODS, SCALED_MOOD_CUES, MERGED_SEARCH_NAMES, analysed } from './core.js';
 import { RELATIONSHIP_TAGS } from './relationships.js';
 
 // The board layout. The optional desire row is off unless selected for this chat.
@@ -20,6 +20,25 @@ export const boardTemplate = (char, user, includeHorny = false, rows = {}) => `<
 const LABELS = { date: /^date$/, time: /^time$/, location: /^location$/, present: /^present$/, activity: /^activity$/, state: /^state$/, physical: /^physical( state)?$/, horny: /^horny$/, toward: /^toward\b/, remember: /^remember$/ };
 const clean = v => String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').replace(/^[\s|:–-]+|[\s|]+$/g, '').trim();
 export const hasBoard = mes => typeof mes === 'string' && /<b>\s*(Date|Location|State):\s*<\/b>/i.test(mes);
+// 1.34.0: old boards leave the prompt. Each one is ~200 tokens of HTML and emoji, and the newest one is
+// summarised in Moodweaver's note instead, so a 20-reply context saves thousands of tokens. Every
+// board is removed the same way every time, so the chat history the model sees never changes after
+// the fact and Claude's prompt cache keeps matching. The saved chat and what you see are untouched.
+const BOARD_DIV = /<div[^>]*class=["'][^"']*ihyll-style[^"']*["'][^>]*>[\s\S]*?<\/div>[ \t]*\n?/gi;
+const BOARD_LINE = /^[^\n<]{0,6}<b>\s*[^<:]{1,60}:\s*<\/b>.*$/;
+export function stripBoard(mes) {
+    if (!hasBoard(mes)) return mes;
+    let out = mes.replace(BOARD_DIV, '');
+    if (hasBoard(out)) {
+        // No wrapper div (a preset's own board): drop the run of "<b>Label:</b>" lines.
+        const lines = out.split('\n'), start = lines.findIndex(l => /<b>\s*(Date|Time|Location|State):\s*<\/b>/i.test(l));
+        let end = start;
+        while (end < lines.length && (BOARD_LINE.test(lines[end].trim()) || (end > start && !lines[end].trim() && BOARD_LINE.test(lines[end + 1]?.trim() ?? '')))) end++;
+        if (start >= 0) lines.splice(start, end - start);
+        out = lines.join('\n');
+    }
+    return out.replace(/^\s+/, '');
+}
 // Every "<b>Label:</b> value" runs until the next label, line break or closing div.
 export function parseBoard(mes) {
     if (!hasBoard(mes)) return null;
@@ -181,6 +200,10 @@ export function cleanBoardMeta(meta) {
         keep: { state: list(b.keep?.state), physical: list(b.keep?.physical) },
         mute: { state: list(b.mute?.state), physical: list(b.mute?.physical) },
         syncedKey: t(b.syncedKey, 40),
+        // 1.34.0: needs the weave line reported, by message index: { 12: { hunger: 30 } }.
+        needSteps: Object.fromEntries(Object.entries(b.needSteps ?? {}).filter(([i, v]) => /^\d+$/.test(i) && v && typeof v === 'object')
+            .sort((a, c) => Number(c[0]) - Number(a[0])).slice(0, 30)
+            .map(([i, v]) => [i, Object.fromEntries(Object.entries(v).filter(([k]) => NEED_IDS.has(k)).map(([k, x]) => [k, Math.round(Math.max(0, Math.min(100, Number(x) || 0)))]))])),
     };
 }
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
@@ -195,9 +218,13 @@ export function liveBoard(found, meta, names = {}) {
             ...b.keep[kind].filter(x => !from.some(p => same(p, x))).map(text => ({ text, kept: true, added: true }))];
     };
     const read = board ? needsFromBoard(board) : {};
+    // Whichever is newer wins: the board's words or the need the weave line last reported.
+    const steps = Object.entries(b.needSteps).map(([i, v]) => [Number(i), v]).sort((x, y) => y[0] - x[0]);
+    const woven = id => { const hit = steps.find(([, v]) => id in v); return hit && hit[0] >= (found?.index ?? -1) ? hit[1][id] : null; };
     const needs = NEEDS.map(n => {
-        const pinned = Object.hasOwn(b.needs, n.id), value = pinned ? b.needs[n.id] : read[n.id]?.value ?? NEED_DEFAULT;
-        return { ...n, value, pinned, source: pinned ? '' : read[n.id]?.source ?? '', known: pinned || Boolean(read[n.id]) };
+        const pinned = Object.hasOwn(b.needs, n.id), w = woven(n.id);
+        const value = pinned ? b.needs[n.id] : w ?? read[n.id]?.value ?? NEED_DEFAULT;
+        return { ...n, value, pinned, source: pinned || w !== null ? '' : read[n.id]?.source ?? '', known: pinned || w !== null || Boolean(read[n.id]) };
     });
     const hornyRead = board ? hornyFromBoard(board) : null;
     return {
@@ -222,14 +249,28 @@ export function namedIn(present, name) {
 // ---- Prompt ----
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling hard at what they say and do'], [21, 'on their mind and colouring how they look at people'], [1, 'barely on their mind'], [0, 'not on their mind at all']];
-// opts: { send, live, char, user, n, u }. Returns prompt lines, or [] when there's no board in play.
-export function boardPromptLines({ send, live, char, user, n, u }) {
+// What the newest board said, as one line, for when old boards are kept out of the prompt.
+// Pinned fields are left to the "player set these" block below, so nothing is said twice.
+export function boardContinuity(live, char, user) {
+    const b = live?.board; if (!b) return '';
+    const pins = live.meta?.pins ?? {}, out = [];
+    const add = (key, value, label = '') => { const v = clean(value); if (v && !pins[key]) out.push(label ? `${label}: ${v}` : v); };
+    add('date', b.date); add('time', b.time); add('location', b.location); add('present', b.present, 'present'); add('activity', b.activity, 'doing');
+    const outfit = who => b.outfits.find(o => same(o.name, who))?.text ?? b.outfits[who === char ? 0 : 1]?.text;
+    add('charOutfit', outfit(char), `${char} wears`); add('userOutfit', outfit(user), `${user} wears`);
+    add('physical', b.physical, 'body');
+    return out.length ? `Where the last board left things; start from here and change only what the scene changes: ${pt(out.join('; '))}.` : '';
+}
+// opts: { send, live, char, user, n, u, stripped, remember }. Returns prompt lines, or [] when there's no board in play.
+// remember: the Remember row goes on the board only when the hidden weave line isn't carrying it.
+export function boardPromptLines({ send, live, char, user, n, u, stripped = false, remember = false }) {
     if (!send && !live?.found) return [];
     const out = [];
-    const includeHorny = live?.meta?.includeHorny === true;
-    if (send) out.push(`Info board: start every reply with this board, filled in for this moment from the previous beat. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user, includeHorny, { toward: live?.meta?.includeToward === true, remember: live?.meta?.includeRemember !== false }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
-    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest current feelings from these notes and the scene, in a few words. Physical State lists their active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to them since.${send && live?.meta?.includeToward === true ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && live?.meta?.includeRemember !== false ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
+    const includeHorny = live?.meta?.includeHorny === true, toward = live?.meta?.includeToward === true;
+    if (send) out.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
+        boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
+    if (stripped && live?.found) out.push(boardContinuity(live, char, user));
+    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest current feelings from these notes and the scene, in a few words. Physical State lists their active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to them since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
@@ -243,6 +284,8 @@ export function boardPromptLines({ send, live, char, user, n, u }) {
     if (needs.length || (includeHorny && live.hornyPinned)) out.push('', `${n}'s needs right now. Low ones nag and leak into mood and choices; a critical one takes over until it's dealt with or something worse wins:`,
         ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn’t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
         ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
+    const rest = live.needs.filter(nd => nd.known && !nd.pinned && nd.value > 35);
+    if (rest.length) out.push(`Other needs: ${rest.map(nd => `${nd.label.toLowerCase()} ${needWord(nd.value).toLowerCase()}`).join(', ')}.`);
     return out;
 }
 
@@ -255,7 +298,8 @@ const FEELING_SYNONYMS = { furious: 'angry', enraged: 'angry', livid: 'angry', i
     nervous: 'anxious', worried: 'anxious', uneasy: 'anxious', tense: 'anxious', panicky: 'afraid', joyful: 'happy', elated: 'happy', cheerful: 'happy', glad: 'happy',
     thrilled: 'excited', eager: 'excited', miserable: 'sad', gloomy: 'sad', sorrowful: 'sad', ashamed: 'ashamed', humiliated: 'embarrassed', mortified: 'embarrassed',
     tender: 'affectionate', loving: 'affectionate', fond: 'affectionate', relaxed: 'calm', serene: 'peaceful', amused: 'entertained', smug: 'smug', wary: 'suspicious',
-    frantic: 'desperate', resigned: 'resigned', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
+    frantic: 'desperate', resigned: 'resigned', relief: 'relieved', terror: 'afraid', dread: 'anxious', rage: 'angry', fury: 'angry', grief: 'sad', shame: 'ashamed', guilt: 'guilty',
+    jealousy: 'jealous', longing: 'yearning', devotion: 'devoted', panic: 'afraid', elation: 'happy', despair: 'hopeless', lust: 'horny', hunger: 'yearning', tenderness: 'affectionate', jealous: 'jealous', possessive: 'possessive', obsessive: 'obsessed', lustful: 'horny', aroused: 'horny', exhausted: 'tired' };
 const RELATION_SYNONYMS = { fond: 'likes', wary: 'distrusts', distrustful: 'distrusts', protective: 'protects', attracted: 'finds_attractive', curious: 'intrigued_by',
     trusting: 'trusts', resentful: 'resents', afraid: 'fears', scared: 'fears', frightened: 'fears', annoyed: 'finds_annoying', irritated: 'irritated_by', loving: 'loves',
     adoring: 'idolises', tender: 'cherishes', grateful: 'grateful_to', guilty: 'guilty_toward', hurt: 'hurt_by', betrayed: 'betrayed_by', contemptuous: 'despises',
@@ -302,6 +346,31 @@ function read(line, lookup) {
         }
     });
     return [...out.values()];
+}
+// A feeling named on the weave line: its slider label first ("Clingy / needy", "clingy"), then the
+// same words and synonyms the State row uses. Only feelings resolve; traits and story settings never do.
+let labelIndex = null, labelSize = 0;
+export function feelingId(name) {
+    const text = String(name ?? '').toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!text) return null;
+    if (!labelIndex || labelSize !== MOODS.length) {
+        labelIndex = new Map(); labelSize = MOODS.length;
+        for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), ...m.label.toLowerCase().split(/\s*\/\s*/), m.id.replace(/_/g, ' '), ...(MERGED_SEARCH_NAMES[m.id] ?? []).map(x => x.toLowerCase())])
+            if (key && !labelIndex.has(key.trim())) labelIndex.set(key.trim(), m.id);
+    }
+    if (labelIndex.has(text)) return labelIndex.get(text);
+    for (const word of text.split(' ')) { const hit = buildFeelIndex().get(word) ?? (labelIndex.has(word) ? { id: labelIndex.get(word) } : null); if (hit) return hit.id; }
+    return null;
+}
+// A relationship type named on the weave line's "toward" field: "obsessed with Lamb +5" → obsessed.
+export function relationId(name, other = '') {
+    const drop = new Set(String(other).toLowerCase().split(/\s+/).filter(Boolean));
+    const text = String(name ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').split(/\s+/).filter(w => w && !drop.has(w)).join(' ').trim();
+    if (!text) return null;
+    const exact = RELATIONSHIP_TAGS.find(t => t.label.toLowerCase() === text || t.label.toLowerCase().replace(/\s+(with|of|by|to|for|toward|about|on)$/, '') === text || t.id.replace(/_/g, ' ') === text);
+    if (exact) return exact.id;
+    for (const word of text.split(' ')) { const id = buildRelIndex().get(word); if (id) return id; }
+    return null;
 }
 export const feelingsFromBoard = board => read(board?.state, w => buildFeelIndex().get(w));
 export const relationsFromBoard = board => read(board?.toward, w => { const id = buildRelIndex().get(w); return id ? { id, value: 60 } : null; });

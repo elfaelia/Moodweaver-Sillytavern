@@ -1828,6 +1828,61 @@ AUTHORS_MODERN.push(
         'High Fidelity (1995). Fits: banter, friendship, rom-com, Dennis Reynolds.'],
     ['author_matt_haig', 'Matt Haig', 'gentle, wry voice of someone who can’t die; centuries of memory and the ache of watching people go',
         'How to Stop Time (2017). Fits: the immortal dealer, Astarion.']);
+// 1.34.0 authors: fantasy, Victorian erotica and fantasy, 60s brainwashing, edgy, romance and dark romance, 2010s dark romance.
+AUTHORS_MIDCENTURY.push(
+    ['author_dh_lawrence', 'D. H. Lawrence', 'frank, earthy erotic prose; bodies, class and tenderness in rolling, repetitive rhythm, with dialect for the rough-handed lover',
+        'Lady Chatterley’s Lover (1928; its 1960 obscenity trial made it a sensation). Fits: Victorian and Edwardian erotica feel, class divide, forbidden affair, gritty romance.'],
+    ['author_anya_seton', 'Anya Seton', 'richly researched gothic historical romance; a dangerous, magnetic master of the house, old sins and a heroine’s slow disillusion',
+        'Dragonwyck (1944), Green Darkness (1972). Fits: 60s–70s dark romance, gothic, Victorian dark romance, Easterman’s devotion turning possessive.'],
+    ['author_georgette_heyer', 'Georgette Heyer', 'sparkling Regency comedy of manners; period slang, quick banter and a sardonic hero undone by a sensible heroine',
+        'Venetia (1958), Frederica (1965). Fits: 60s romance, period rom-com, slow-burn banter, Victorian romance feel.'],
+    ['author_mary_stewart', 'Mary Stewart', 'romantic suspense in a capable heroine’s first person; vivid landscape, mounting danger and a man she isn’t sure she should trust',
+        'Nine Coaches Waiting (1958), The Moon-Spinners (1962). Fits: 60s romance, romantic suspense, Lamb’s POV, gothic.'],
+    ['author_richard_condon', 'Richard Condon', 'baroque, sardonic Cold War satire; a brainwashed man, a trigger and a conspiracy told with grotesque wit',
+        'The Manchurian Candidate (1959). Fits: 60s brainwashing, reconditioning, Easterman and Murkoff, Cold War paranoia.'],
+    ['author_victoria_holt', 'Victoria Holt', 'gothic romance in a governess’s first person; a brooding widower, a great house, a dead first wife and suspicion that might be love',
+        'Mistress of Mellyn (1960). Fits: 60s romance, gothic, Victorian dark romance, Easterman as the brooding master of the house.'],
+    ['author_len_deighton', 'Len Deighton', 'dry, wisecracking spy first person; bureaucratic detail, a chip on the shoulder and brainwashing treated as paperwork',
+        'The IPCRESS File (1962). Fits: 60s brainwashing, Murkoff’s Cold War programme, Easterman’s era, 1960s Britain.'],
+    ['author_charles_webb', 'Charles Webb', 'deadpan, dialogue-driven alienation; flat exchanges, awkward silences and an affair nobody can talk about',
+        'The Graduate (1963). Fits: 60s dark romance, forbidden affair, deadpan comedy, toxic romance.'],
+    ['author_john_rechy', 'John Rechy', 'lyrical, rhythmic night-world first person; neon, hustling, loneliness and desire in long, incantatory sentences',
+        'City of Night (1963). Fits: 60s edgy fiction, queer underground, Chloe’s nights out, gritty romance.'],
+    ['author_thomas_pynchon', 'Thomas Pynchon', 'paranoid, punning, sprawling comedy; absurd names, secret systems and a heroine who can’t tell conspiracy from coincidence',
+        'The Crying of Lot 49 (1966). Fits: 60s edgy fiction, Rick Sanchez, conspiracy, Murkoff paranoia.'],
+    ['author_leonard_cohen', 'Leonard Cohen', 'frenzied, erotic, fragmentary confession; obsession, sainthood and grief tangled in a love triangle',
+        'Beautiful Losers (1966). Fits: 60s dark romance, 60s edgy fiction, obsessive love, abstract prose.']);
+AUTHORS_MODERN.push(
+    ['author_tim_powers', 'Tim Powers', 'secret-history fantasy; real nineteenth-century people and places with sorcery, body-swaps and vampiric muses hidden in the gaps',
+        'The Anubis Gates (1983), The Stress of Her Regard (1989). Fits: Victorian fantasy, Regency gothic, vampire romance, Mother Gooseberry’s uncanny.'],
+    ['author_glen_cook', 'Glen Cook', 'terse, cynical soldier’s chronicle; gallows humour, ugly work and a mercenary company that’s the only family anyone has',
+        'The Black Company (1984). Fits: gritty found family, friendship, dark fantasy, the Trials’ survivors.'],
+    ['author_kim_newman', 'Kim Newman', 'witty, densely referential alternate history; Victorian London crowded with real and fictional cameos, vampires in society and fog-bound murder',
+        'Anno Dracula (1992). Fits: Victorian fantasy, vampire romance, Victorian horror, pastiche.'],
+    ['author_robin_hobb', 'Robin Hobb', 'slow, intimate first person; loyalty, loneliness and a friendship that costs everything, felt in small domestic detail',
+        'Assassin’s Apprentice (1995), the Fitz and the Fool books. Fits: found family, friendship, hurt/comfort, slow burn, Chloe-style devoted friendship.'],
+    ['author_china_mieville', 'China Miéville', 'dense, baroque weird fiction; a filthy Victorian-industrial city, punitive body modification and monsters described with scientific relish',
+        'Perdido Street Station (2000). Fits: Victorian fantasy, body horror, Murkoff experiments, Easterman’s facility.'],
+    ['author_jacqueline_carey', 'Jacqueline Carey', 'ornate courtly first person; erotic pain, devotion and intrigue, with pleasure and suffering written as one sensation',
+        'Kushiel’s Dart (2001). Fits: fantasy dark romance, masochism, decadent courts, Victorian erotica feel.'],
+    ['author_michel_faber', 'Michel Faber', 'a sly narrator who leads the reader by the hand through Victorian squalor; frank sex, smells, money and ambition',
+        'The Crimson Petal and the White (2002). Fits: Victorian erotica, Victorian dark romance, class divide, gritty period detail.'],
+    ['author_joe_abercrombie', 'Joe Abercrombie', 'grimdark in sardonic close third; each viewpoint’s voice bleeds into the narration, violence is clumsy and costly, and nobody is a hero',
+        'The Blade Itself (2006), with Glokta the crippled torturer. Fits: dark fantasy, torturer POV, Easterman’s cruelty, Rick Sanchez cynicism, gritty friendship.'],
+    ['author_lisa_kleypas', 'Lisa Kleypas', 'warm, witty Victorian romance with explicit heat; a scandalous rake undone by a determined wallflower',
+        'Devil in Winter (2006), the Wallflowers series. Fits: Victorian erotica, Victorian romance, banter, reformed-rake slow burn.'],
+    ['author_gail_carriger', 'Gail Carriger', 'arch, frothy Victorian comedy of manners; vampires and werewolves in society, parasols, tea and outrageous propriety',
+        'Soulless (2009). Fits: Victorian fantasy, banter romance, light paranormal.'],
+    ['author_tarryn_fisher', 'Tarryn Fisher', 'sharp, unlikeable first-person women; obsession, revenge and self-justification in short, punchy chapters',
+        'The Opportunist (2011), Bad Mommy (2016). Fits: 2010s dark romance, toxic and obsessive romance, Joe Goldberg’s mirror image.'],
+    ['author_cj_roberts', 'CJ Roberts', 'captor-and-captive dark romance in alternating first person; cruelty, conditioning and a bond neither of them wanted',
+        'Captive in the Dark (2012). Very dark. Fits: 2010s dark romance, Stockholm syndrome, captivity, Easterman and Lamb.'],
+    ['author_sylvia_day', 'Sylvia Day', 'intense, explicit contemporary romance; two damaged people, possessive need and trauma surfacing mid-passion',
+        'Bared to You (2012). Fits: 2010s dark romance, obsessive romance, trauma bond, steamy.'],
+    ['author_anna_zaires', 'Anna Zaires', 'abducted-heroine dark romance; a captive’s first person, an obsessed captor, explicit and tightly paced',
+        'Twist Me (2014). Fits: 2010s dark romance, Stockholm syndrome, captivity, possessive hero.'],
+    ['author_colleen_hoover', 'Colleen Hoover', 'fast, readable first person with a twist; a dark confession read in secret, desire and dread on the same pages',
+        'Verity (2018). Fits: 2010s dark romance, psychological thriller, Joe Goldberg, unreliable confession.']);
 // 1.27.0: real angst, and a Stakes & follow-through section so harm, decline and loss actually land.
 // The section sits at the top of the Story tab; Bad ending, Villain wins and No one is safe move into it.
 CATEGORIES.splice(CATEGORIES.findIndex(([id]) => id === 'era') + 1, 0, ['stakes', 'Stakes & follow-through', '⚠', '#d98b7a', [], 'story']);
@@ -3377,9 +3432,10 @@ export function composePrompt(state, name, extras = {}) {
     const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
-    const bondLines = Array.isArray(extras.bond) ? extras.bond : [];
+    // 1.34.0: the meters sit with the rest of what the character feels about the player; the weave line request goes last.
+    const standing = String(extras.standing ?? ''), weaveLines = Array.isArray(extras.weave) ? extras.weave : [];
     if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
-        && ![state, player?.state].some(hasType) && !boardLines.length && !bondLines.length) return '';
+        && ![state, player?.state].some(hasType) && !boardLines.length && !standing && !weaveLines.length) return '';
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(m => m.kind === 'mood');
     const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
@@ -3421,8 +3477,9 @@ export function composePrompt(state, name, extras = {}) {
         `These side characters are in the scene. Each keeps their own blend and only knows what they could have seen or heard. Not everyone needs to talk every turn, and the player still writes ${u}.`);
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && liveWants(st).length)) out.push('',
         `Wants, goals and fears sit under the surface. They steer choices and reactions when the moment touches them, at their strength, but don't recap or announce them, and they don't all need to show every reply. Fears come out as dodging, tension or overreacting.`);
-    if (relationships.length || pairs.length) {
+    if (relationships.length || pairs.length || standing) {
         out.push('', '<relationships>');
+        let placed = false;
         for (const pair of pairs) {
             out.push(`${pt(shortName(pair.names[0]))} and ${pt(shortName(pair.names[1]))}, both ways:`);
             for (const tag of pair.tags) out.push(`- ${tierWord(pair.moods[tag.id])}: ${pt(relationshipText(tag, pair.moods[tag.id], ''))}`);
@@ -3433,6 +3490,7 @@ export function composePrompt(state, name, extras = {}) {
         for (const { name: subject, target, relation, tags, isPlayer, compare, note } of relationships) {
             const from = pt(shortName(subject)), to = pt(shortName(target));
             out.push(`${from} toward ${to}:`);
+            if (standing && !placed && !isPlayer && subject === N && target.toLowerCase() === U.toLowerCase()) { out.push(`- ${pt(standing)}`); placed = true; }
             for (const mode of isPlayer ? KNOWLEDGE_ORDER : ['']) {
                 const rows = tags.filter(tag => !isPlayer || knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).mode === mode);
                 if (!rows.length) continue;
@@ -3446,6 +3504,7 @@ export function composePrompt(state, name, extras = {}) {
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
             if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
         }
+        if (standing && !placed) out.push(`${n} toward ${u}:`, `- ${pt(standing)}`);
         out.push('', `"Both ways" lines are true for both; the rest is one person's side, and an opinion is a view, not a fact. Relationships count even when the other person isn't there: in the room, they show in how that person gets treated and watched; out of it, in thoughts, talk and memories. Intense or above keeps coming back; at maximum it drives what they do around that person, even when it costs them.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}`);
         out.push('</relationships>');
     }
@@ -3457,7 +3516,6 @@ export function composePrompt(state, name, extras = {}) {
         ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
     if (ageGapStrength) out.push('',
         `Keep their ages as written. The age gap shows at its strength in how they look side by side, the lives they've led and what each takes for granted${ageGapStrength >= 91 ? `, and at this strength the reply is built around that contrast` : ageGapStrength >= 61 ? `, and it keeps coming back` : ''}. Their other settings decide what they make of it.`);
-    if (bondLines.length) out.push('', bondLines[0]);
     // Period first, then what happens, then how it reads: style settings aren't plot.
     // A regional era replaces its plain decade, so the period isn't described twice.
     const replaced = new Set(story.filter(m => ERA_LOCALE[m.id]).map(m => ERA_LOCALE[m.id].replaces));
@@ -3512,13 +3570,13 @@ export function composePrompt(state, name, extras = {}) {
         if (high.length) top.push(`${pt(shortName(pair.names[0]))} and ${pt(shortName(pair.names[1]))}: ${high.join(', ')}`);
     }
     if (boardLines.length) out.push('', ...boardLines);
-    if (bondLines[1]) out.push('', bondLines[1]);
+    if (weaveLines.length) out.push('', ...weaveLines);
     if (top.length) out.push('', `Turned up highest, so these need to land hard: ${top.join('; ')}.${top.length > 1 || top[0].includes(',') ? ` They all hit at once and change each other${extras.blendPlan !== false ? '' : ': write the combined state, with single actions, lines and details that carry several of them together'}.` : ''}`);
     const strongCount = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets].reduce((sum, [st, list]) => sum + list.filter(m => st.moods[m.id] >= 61).length, 0)
         + relationships.reduce((sum, r) => sum + r.tags.filter(t => r.relation.moods[t.id] >= 61).length, 0) + pairs.reduce((sum, p) => sum + p.tags.filter(t => p.moods[t.id] >= 61).length, 0);
     if (extras.blendPlan !== false && (top.length || strongCount >= 3)) out.push('',
         `Before you write, use your thinking to settle how the strongest settings combine in this exact moment: what each one looks like here, where they pull against each other, and which actions, lines and details carry several at once. Keep that planning in your thinking; the reply is only the scene.`);
-    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line of dialogue or an image, not a recap of what the moment meant. Never mention these notes.`);
+    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long. When two strong ones pull different ways, write both and let the tension sit there. ${boardLines.length ? 'Outside the board, show' : 'Show'} everything through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line of dialogue or an image: no closing paragraph of reflection, and no last line that names a feeling the scene already showed. Never mention these notes.`);
     // An American lead respells the whole note, so its own British spelling can't pull the reply that way.
     let body = out.join('\n');
     if (locales[0] === 'us') body = toAmerican(body);

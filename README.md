@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.34.0:** every reply now edits the panel. A hidden weave line moves feelings (catalogue or new), needs, relationship types, four meters (Friendship, Romance, Trust, Power) with a named dynamic, sparked turn-ons and memories. Pins hold. Old boards leave the prompt. New starry phone design, 26 new authors. See [the update notes](UPDATE-1.34.0.md). Install the new `weave.js` too.
+
 **1.33.0:** a Meters tab with Sims-style Friendship and Romance meters plus what the character thinks of your persona, driven by a hidden line in each reply: no extra request, nothing visible in chat, stripped from the prompt afterwards. See [the update notes](UPDATE-1.33.0.md).
 
 **1.32.0:** the info board now moves feelings and the relationship toward your persona (pins and your own values are respected), and a Remember row saves turning points as shared memories. See [the update notes](UPDATE-1.32.0.md).

@@ -98,18 +98,19 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny">
             ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}
         <div class="mw-board-block"><h4>${icon('body')} Physical State</h4>${tileGroup('physical', live.physical, focus, charName)}</div>
+        ${editing ? '' : `<button type="button" class="mw-board-editbtn" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
         <div class="mw-board-block mw-outfits"><h4>${icon('hanger')} Outfits</h4>
             ${[['charOutfit', charName], ['userOutfit', userName]].map(([key, who]) => `<div class="mw-outfit"><b>${esc(who)}</b><p>${esc(live[key]) || '<i>Not on the board yet</i>'}${pinMark(pins, key)}</p></div>`).join('')}</div>
-        <div class="mw-board-foot">
+        <details class="mw-board-foot" data-board-settings><summary>Board settings</summary>
             <label class="mw-toggle"><input type="checkbox" data-board-send ${send ? 'checked' : ''}> Send the board prompt in this chat</label>
             <label class="mw-toggle"><input type="checkbox" data-board-horny ${live.meta.includeHorny ? 'checked' : ''}> Include Horny on this chat’s board</label>
             <p class="mw-fine">Off by default. Hidden Horny pins aren't sent. Moodlets and attraction settings still work separately.</p>
             <label class="mw-toggle"><input type="checkbox" data-board-sync ${sync ? 'checked' : ''}> Present line moves the cast in and out</label>
-            <label class="mw-toggle"><input type="checkbox" data-board-feed ${live.meta.feed !== false ? 'checked' : ''}> Board updates ${esc(charName)}’s feelings</label>
-            <p class="mw-fine">Words on the State and Toward rows nudge unpinned sliders. Pins are never touched, values you set are never lowered, and what the board added fades when it stops saying it.</p>
-            <label class="mw-toggle"><input type="checkbox" data-board-toward ${live.meta.includeToward ? 'checked' : ''}> Visible Toward ${esc(userName)} row (the Meters tab’s hidden line already does this)</label>
-            <label class="mw-toggle"><input type="checkbox" data-board-remember ${live.meta.includeRemember !== false ? 'checked' : ''}> Remember row (saves turning points as shared memories)</label>
-            ${editing ? '' : `<button type="button" data-action="board-edit">${icon('edit')} Edit the scene</button>`}
+            <label class="mw-toggle"><input type="checkbox" data-board-feed ${live.meta.feed !== false ? 'checked' : ''}> Replies update ${esc(charName)}’s feelings, needs and relationship</label>
+            <p class="mw-fine">With the weave line on (Bonds tab), each reply reports what it changed and the sliders follow, up or down. Pinned ◆ values never move. Without it, the board’s State words nudge feelings instead.</p>
+            <label class="mw-toggle"><input type="checkbox" data-board-remember ${live.meta.includeRemember !== false ? 'checked' : ''}> Save turning points as shared memories</label>
+            <label class="mw-toggle"><input type="checkbox" data-board-toward ${live.meta.includeToward ? 'checked' : ''}> Visible Toward ${esc(userName)} row on the board</label>
+
             <p class="mw-fine">${send ? 'Moodweaver sends your INFO BOARD format, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
-        </div></section>`;
+        </details></section>`;
 }

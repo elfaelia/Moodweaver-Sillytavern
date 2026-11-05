@@ -12,7 +12,7 @@ const groupsHtml = (cats, values, openGroups, row) => cats.map(([category, icon,
 }).join('');
 
 // Sims-style list of everyone else, then the selected pairing underneath: their side, or both of them.
-export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing }) {
+export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing, peerExtra = {} }) {
     const selected = peers.find(p => p.key === selectedKey) ?? peers[0];
     const list = peers.map(p => {
         const shared = p.pair ? activeSharedTags(p.pair) : [], mine = p.relation ? activeRelationshipTags(p.relation) : [];
@@ -20,7 +20,7 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
         const more = shared.length + mine.length - Math.min(2, shared.length) - Math.min(3, mine.length);
         return `<button class="mw-peer ${p.key === selected?.key ? 'is-selected' : ''} ${p.offScene ? 'is-away' : ''}" data-peer="${esc(p.key)}" data-filter-item="peers" aria-pressed="${p.key === selected?.key}">
             <span class="mw-avatar">${initial(p.name)}</span><span class="mw-peer-text"><b>${esc(p.name)}</b><small>${esc(p.role)}</small>
-            <span class="mw-peer-tags">${summary || '<i>Nothing set yet</i>'}${more > 0 ? ` · +${more}` : ''}</span></span></button>`;
+            <span class="mw-peer-tags">${summary || '<i>Nothing set yet</i>'}${more > 0 ? ` · +${more}` : ''}</span>${peerExtra[p.key] ?? ''}</span></button>`;
     }).join('');
     const add = `<div class="mw-cast-add mw-peer-add"><input type="text" data-relation-new maxlength="80" aria-label="Someone not listed" placeholder="Someone not listed…"><button data-action="relation-add">＋ Add</button></div>`;
     if (!selected) return `<div class="mw-rel"><p class="mw-explainer">Nobody else is here yet. Add a cast member above, or type a name.</p>${add}</div>`;
@@ -59,7 +59,7 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
         <input type="search" data-filter-list="peers" placeholder="Find a person or relationship…" aria-label="Search people and relationships">
         <div class="mw-peers" role="list">${list}</div><p class="mw-fine" data-filter-empty="peers" hidden>No matching people. The selected pairing stays open below.</p>${add}
         <div class="mw-pair">
-            <div class="mw-pair-head"><div><span class="mw-eyebrow">${esc(subject.toUpperCase())} &amp; ${esc(selected.name.toUpperCase())}</span><h3>${esc(selected.name)}</h3></div>
+            <div class="mw-pair-head"><div><span class="mw-eyebrow">${esc(subject)} &amp; ${esc(selected.name)}</span><h3>${esc(selected.name)}</h3></div>
                 ${swapLabel ? `<button data-action="rel-swap" title="Switch to their side of this relationship">⇄ ${esc(swapLabel)}</button>` : ''}</div>
             <div class="mw-mode mw-small mw-pair-tabs" role="group" aria-label="Which side"><button data-pair-tab="mine" aria-pressed="${view === 'mine' || !['both', 'mem'].includes(view)}">→ ${esc(subject)}${mineCount ? ` <small>${mineCount}</small>` : ''}</button><button data-pair-tab="both" aria-pressed="${view === 'both'}">⚭ Both${bothCount ? ` <small>${bothCount}</small>` : ''}</button><button data-pair-tab="mem" aria-pressed="${view === 'mem'}">✎ Memories${memories.length ? ` <small>${memories.length}</small>` : ''}</button></div>
             ${removing ? `<div class="mw-cast-confirm"><p class="mw-fine">${removing === 'pair' ? `Clear everything set for both ${esc(subject)} and ${esc(selected.name)}?` : `Clear everything ${esc(subject)} feels about ${esc(selected.name)}?`}</p><div class="mw-actions"><button data-action="${removing === 'pair' ? 'pair-clear-confirm' : 'relation-remove-confirm'}">Clear it</button><button data-action="relation-cancel">Keep it</button></div></div>` : ''}

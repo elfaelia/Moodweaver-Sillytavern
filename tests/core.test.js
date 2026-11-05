@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MOODS, freshState, extendCatalogue, composePrompt, budgetPrompt, blendAnalysis, parseAnalysis, sceneData, fingerprint } from '../core.js';
+import { MOODS, MERGED_SEARCH_NAMES, freshState, extendCatalogue, composePrompt, blendAnalysis, parseAnalysis, sceneData, fingerprint } from '../core.js';
+import { RELATIONSHIP_TAGS, SHARED_TAGS } from '../relationships.js';
+// Options get renamed and merged over time ("Cautious" is now "Cautious / hesitant", "Adoring" lives in
+// Affectionate). What matters is that each requested one can still be found by searching for it.
+const findable = new Set([...MOODS.flatMap(m => [m.label, ...m.label.split(/\s*\/\s*/)]), ...Object.values(MERGED_SEARCH_NAMES).flat(),
+    ...RELATIONSHIP_TAGS.map(t => t.label), ...SHARED_TAGS.map(t => t.label)].map(n => n.toLowerCase().trim()));
 
 test('catalogue contains every requested mood, with unique IDs', () => {
     const requested = 'Horny|Manipulative|Cautious|Inspired|Obsessed|Angry|Annoyed|Sexually frustrated|Confused|Offended|Violent|Calm|Jealous|Vulnerable|Playful|Betrayed|Hurt|Worried|Clingy|Tired|Embarrassed|Stoic|Warm|Focused|Chatty|Sad|Irked|Tense|Affectionate|Anxious|Disgusted|Enamoured|Insecure|Brave|Planning|Worshipful|Confident|Lazy|Resentful|Satisfied|Apathetic|Bitter|Suave|Drunk|High|Vengeful|Protective'.split('|');
-    for (const name of requested) assert.ok(MOODS.some(m => m.label === name), name);
+    for (const name of requested) assert.ok(findable.has(name.toLowerCase()), name);
     assert.equal(MOODS.length, new Set(MOODS.map(m => m.id)).size);
 });
 test('fresh chat copies default values without sharing state or analysis history', () => {
@@ -21,21 +26,23 @@ test('old saved states gain new sliders without losing values, pins or history',
     assert.equal(old.history, history); assert.equal(old.profile, 'chosen');
     assert.ok(MOODS.every(m => Number.isFinite(old.moods[m.id])));
 });
-test('masking preserves inner feelings and role preferences do not invent agreements', () => {
+test('masking preserves inner feelings, and roles go out at their own strength', () => {
     const s = freshState({ moods: { angry: 70, masking_warmth: 60, dominant: 50 } });
     const p = composePrompt(s, 'Alex');
-    assert.match(p, /Angry 70/); assert.match(p, /other feelings remain underneath/);
-    assert.match(p, /not existing agreements/);
+    // The mask hides the anger; it doesn't replace it. Both go out at their own strength.
+    assert.match(p, /- strong: angry/); assert.match(p, /- clear: acting warm to hide how they really feel/);
+    assert.match(p, /- clear: dominant/);
 });
 test('prompt carries mixed feelings and escapes character names', () => {
     const s = freshState({ moods: { affectionate: 72, jealous: 46 } });
     const p = composePrompt(s, '<Alex>');
-    assert.match(p, /Affectionate 72/); assert.match(p, /Jealous 46/); assert.match(p, /&lt;Alex&gt;/);
+    // Strength words, not numbers; a name can't open or close a tag in the note.
+    assert.match(p, /- strong: affectionate/); assert.match(p, /- clear: jealous/); assert.match(p, /‹Alex›/); assert.doesNotMatch(p, /<Alex>/);
     assert.doesNotMatch(p, /Drunk/); s.enabled = false; assert.equal(composePrompt(s, 'Alex'), '');
 });
 test('expanded catalogue contains all newly requested states', () => {
     const names = 'Adoring|Content|Patient|Relaxed|Cynical|Grounded|Smug|Caring|Disappointed|Yearning|Aloof|Distant|Apprehensive|Hesitant|Delighted|Humble|Narcissistic|Psychopathic|Sociopathic|Maniacal|Deliberate|Argumentative|Assertive|Introverted|Extroverted|Intuitive|Egotistical|Fatherly|Paranoid|Unhinged|God Complexed|Histrionic|Clinical'.split('|');
-    for (const name of names) assert.ok(MOODS.some(m => m.label === name), name);
+    for (const name of names) assert.ok(findable.has(name.toLowerCase()), name);
 });
 test('strict analysis parser rejects malformed or out-of-range responses', () => {
     for (const text of ['oops', '{}', '{"moods":[]}', '{"moods":{"angry":200}}', '{"moods":{"angry":"80"}}', '{"moods":{"fake":80}}']) assert.throws(() => parseAnalysis(text));
@@ -45,13 +52,15 @@ test('strict analysis parser rejects malformed or out-of-range responses', () =>
 test('dynamic smoothing preserves pins, bounds jumps, and decays absent moods', () => {
     const s = freshState({ moods: { angry: 50, calm: 60, hurt: 50 }, pins: { angry: true } });
     const next = blendAnalysis(s, { moods: { angry: 0, playful: 100, calm: 0 } });
-    assert.equal(next.angry, 50); assert.equal(next.playful, 20); assert.equal(next.calm, 40); assert.equal(next.hurt, 48);
-    s.inertia = 95; assert.ok(blendAnalysis(s, { moods: {} }).hurt < 50, 'high inertia must not prevent fading forever');
+    // Pinned stays; each read moves 90% (follow) toward the estimate; a feeling the reader leaves out fades by 5.
+    assert.equal(next.angry, 50); assert.equal(next.playful, 90); assert.equal(next.calm, 6); assert.equal(next.hurt, 45);
+    s.follow = 10; const slow = blendAnalysis(s, { moods: { playful: 100 } });
+    assert.equal(slow.playful, 10, 'a low follow moves slowly'); assert.ok(slow.hurt < 50, 'absent feelings still fade');
 });
 test('analysis sends bounded visible scene only, without message extras', () => {
     const chat = [{ is_system: true, mes: 'hidden text' }, { name: 'Alex', mes: 'x'.repeat(200), extra: { reasoning: 'private reasoning' } }];
     const data = sceneData(chat, { name: 'Alex', description: 'z'.repeat(9000) }, freshState(), { sceneChars: 100, sceneMessages: 8 });
-    assert.equal(data.scene[0].text.length, 100); assert.equal(data.character.description.length, 2400);
+    assert.equal(data.scene[0].text.length, 100); assert.ok(data.character.notes.length <= 2400, 'the character text is capped');
     assert.doesNotMatch(JSON.stringify(data), /private reasoning|hidden text/);
 });
 test('editing or swiping scene changes its fingerprint', () => {

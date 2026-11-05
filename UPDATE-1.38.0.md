@@ -58,3 +58,31 @@ Before, a reply with a hidden line ignored its board's State words entirely. Now
 - Switch: **Let me pin and correct things on the board**.
 
 The three switches apply to every chat. New test file: `tests/board-1.38.test.js`. The older suite shows the same failures as 1.28.0 and no new ones.
+
+## 1.38.1: a sweep
+**Fixed:**
+- **A broken scene-reader reply could drain feelings.** If the reader sent back no feelings list, or one in the wrong shape, Moodweaver treated it as "no feelings", so every unpinned feeling faded. A broken reply now changes nothing, a value outside 0–100 is ignored rather than squeezed into range, and a reply that only updates wants leaves feelings alone.
+- **Continue hid the board of the reply being continued.** A reply cut off partway through its board was continued without it. That reply now keeps its board; older ones still leave the prompt.
+- **A name with a straight quote mark broke the note.** The quote ended `name="…"` early. It's now swapped for a curly one.
+- **Duplicate catalogue entries.** Gothic fiction, Crime fiction and Tranquil fury each had a second, bare copy. They didn't change what Claude got, but they were a trap for later edits, so they're gone.
+- **Panel lookups that could fail mid-redraw.** A few live slider readouts and text boxes now skip quietly if a redraw has already replaced them, instead of showing an error.
+
+**Precautions:**
+- **A chat redraw waits until you lift your finger** (and 350 ms after you leave a text box), so a button can't be rebuilt under a tap or a slider under a drag. This couldn't be made to fail in testing; it closes a timing gap found by reading the code.
+- **`/moods` now shows its options** in SillyTavern's autocomplete.
+
+**Checked and fine:**
+- **Code check:** a static analyser over every file found no undefined names.
+- **Click-through:** with a hostile board in the chat, 760 buttons were pressed and every control changed for five people across eight tabs. No errors, and nothing the model writes can run as code in the panel.
+- **The mood note:** character, persona and memory text can't break it.
+- **Scene reader:** a late reply after switching chats is thrown away. It stays within its limits and never sees hidden messages or reasoning.
+- **Old saves and cast:** retired options carry over into relationship tags and turn-ons at the same strength, and saved cast defaults never leak between chats.
+- **Settings never crowd each other out:** 4,000 random pairs were tried, weak beside strong in both orders, with nothing lost.
+
+**Tests:**
+- The 38 that failed since 1.28 were checking old wording and options that later moved, such as "Calm 60" and the hate sliders that became relationships.
+- Each was rewritten to check what it was meant to protect, against how Moodweaver works now.
+- All 90 tests pass.
+
+**README:**
+- The README no longer says the note tells Claude a role (Dominant and so on) "isn't an agreement". That line hadn't been sent for several versions, and it's been left out on purpose, since for captor dynamics it would only soften things.

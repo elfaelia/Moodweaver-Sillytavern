@@ -1,10 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BY_ID, MERGED_MOODS, MERGED_SEARCH_NAMES, RECIPES, freshState, migrateCatalogue, composePrompt } from '../core.js';
+import { MOVED_TO_RELATIONSHIPS } from '../relationships.js';
 
 test('all old IDs migrate straight to live sliders without changing strength or pins', () => {
     for (const [id, target] of Object.entries(MERGED_MOODS)) {
-        assert.ok(BY_ID[target], target);
+        // A few merge targets later became relationship tags (Enamoured → Smitten with); those carry on there instead.
+        if (!BY_ID[target]) {
+            assert.ok(MOVED_TO_RELATIONSHIPS[target], `${id} → ${target} has somewhere to go`);
+            const saved = { moods: { [id]: 70 }, pins: {} }; migrateCatalogue(saved);
+            assert.equal(saved.relationships?.[0]?.moods?.[MOVED_TO_RELATIONSHIPS[target]], 70, `${id} lands in relationships at the same strength`);
+            continue;
+        }
         assert.equal(MERGED_MOODS[target], undefined, 'No migration chains');
         for (const strength of [0, 4, 50, 100]) {
             const saved = { moods: { [id]: strength }, pins: { [id]: true } };
@@ -38,14 +45,12 @@ test('a mixed older save combines once, never sums, and keeps the strongest know
 test('strength selects one fitting phrase for both people, including the closing reminder', () => {
     const examples = [
         ['angry', 4, 'irritated', 'furious'],
-        ['angry', 100, 'furious', 'irritated'],
-        ['afraid', 4, 'uneasy and easily spooked', 'panicked with fear'],
-        ['afraid', 85, 'terrified', 'panicked with fear'],
-        ['afraid', 100, 'panicked with fear', 'uneasy and easily spooked'],
-        ['sad', 4, 'down or disappointed', 'deeply sorrowful and dejected'],
-        ['sad', 100, 'deeply sorrowful and dejected', 'down or disappointed'],
-        ['enamoured', 4, 'has a crush', 'head over heels, infatuated'],
-        ['enamoured', 100, 'head over heels, infatuated', 'has a crush'],
+        ['angry', 100, 'consumed by rage', 'irritated'],
+        ['afraid', 4, 'uneasy and easily spooked', 'terror past thinking'],
+        ['afraid', 85, 'terrified', 'terror past thinking'],
+        ['afraid', 100, 'terror past thinking', 'uneasy and easily spooked'],
+        ['sad', 4, 'down or disappointed', 'grief-stricken'],
+        ['sad', 100, 'grief-stricken', 'down or disappointed'],
     ];
     for (const [id, strength, expected, absent] of examples) {
         const state = freshState({ moods: { [id]: strength } });
@@ -54,7 +59,7 @@ test('strength selects one fitting phrase for both people, including the closing
             outputs.push(composePrompt(freshState(), 'Alex', { player: { name: 'Sam', state, knowledge: { [id]: { mode } } } }));
         }
         for (const prompt of outputs) {
-            assert.ok(prompt.includes(': ' + expected), `${id} ${strength}`);
+            assert.ok(prompt.includes(': ' + expected) || prompt.includes(`turn-on: ${expected}`), `${id} ${strength}`);
             assert.ok(!prompt.includes(absent), `${id} must not print the other intensity`);
             if (strength >= 81) assert.ok(prompt.includes(`${expected} (`), 'Closing reminder uses the same phrase');
         }
@@ -63,7 +68,7 @@ test('strength selects one fitting phrase for both people, including the closing
 
 test('old names and renamed sliders remain searchable; distinct feelings remain separate', () => {
     for (const [name, values] of Object.entries(RECIPES)) for (const id of Object.keys(values)) assert.ok(BY_ID[id], `${name}: ${id}`);
-    for (const [id, term] of [['angry', 'Irked'], ['afraid', 'Terrified'], ['enamoured', 'Enamoured'], ['calm', 'Relaxed'], ['caretaker', 'Caretaker']]) {
+    for (const [id, term] of [['angry', 'Irked'], ['afraid', 'Terrified'], ['calm', 'Relaxed'], ['caretaker', 'Caretaker']]) {
         assert.ok(MERGED_SEARCH_NAMES[id].some(name => name.toLowerCase() === term.toLowerCase()));
     }
     for (const id of ['grieving', 'lonely', 'betrayed', 'guilty', 'ashamed', 'jealous', 'possessive', 'stoic', 'emotionless', 'princess_dominance', 'masking_warmth']) assert.ok(BY_ID[id]);

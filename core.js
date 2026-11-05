@@ -3003,7 +3003,6 @@ export const PROMPT_NAME = {
     one_step_ahead: 'one step ahead: anticipates others’ next move and prepares before they catch on, using what they could actually know',
     one_step_behind: 'one step behind: catches on late, misjudges the timing and keeps reacting to what has already happened',
     violent: 'violent: physical harm is a real response, not just an intrusive thought or empty threat',
-    tranquil_fury: 'tranquil fury: rage has gone cold, controlled and ready to act',
     cruel: 'cruel: deliberately chooses suffering rather than merely speaking harshly',
     ruthless: 'ruthless: pursues the goal through severe harm when useful, whoever pays for it',
     abusive: 'abusive: repeatedly uses fear, degradation, control or violence against people close to them',
@@ -3267,7 +3266,7 @@ export const PROMPT_NAME = {
     multiverse: 'multiverse hopping',
     // Story
     offensive: 'offensive fiction (deliberately offensive, no political correctness)',
-    character_driven: 'character-driven', crime: 'crime fiction', gothic: 'gothic fiction', romcom: 'romantic comedy',
+    character_driven: 'character-driven', romcom: 'romantic comedy',
 };
 const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase());
 for (const [category, rows] of Object.entries(ADDITIONS)) {
@@ -3394,6 +3393,8 @@ const DARK_STORY_IDS = new Set([
 ]);
 // Prompt-safe text. Only angle brackets could break the note's tags, so apostrophes stay readable ("he's", not "he&#39;s").
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+// 1.38.1: inside name="…" a straight quote would end the name early, so it's swapped for a curly one.
+const pa = v => pt(v).replace(/"/g, '”');
 const tierWord = v => tierOf(v).name.toLowerCase();
 // Strongest sections first, then strongest entries inside each; stable catalogue order breaks ties.
 const groupOf = m => isAuthor(m) ? 'authors' : m.category;
@@ -3509,7 +3510,7 @@ export function composePrompt(state, name, extras = {}) {
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) out.push('',
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
-    if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pt(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
+    if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pa(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people), ...mineExtra, `</character_state>`);
     if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
         `That's ${n} right now. The card fills the gaps, but don't swap a listed feeling for their usual one or add extras to tie things together. Mix them like a real person: the strongest lead, equal ones at the top fuse into one state instead of taking turns, the weaker ones tint it, and a hidden feeling is still there.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their mood decides how openly.`] : []));
@@ -3517,7 +3518,7 @@ export function composePrompt(state, name, extras = {}) {
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 81 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through. Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     if (theirs.length || theirsExtra.length || hasType(player?.state)) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;
-        out.push('', `<player_character name="${pt(U)}" written_by="player">`,
+        out.push('', `<player_character name="${pa(U)}" written_by="player">`,
             ...personalityLines(player.state, player.knowledge ?? {}, n),
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra, '',
             `The player writes what ${u} says, chooses and thinks; what happens to ${u}'s body and circumstances follows the story. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
@@ -3525,7 +3526,7 @@ export function composePrompt(state, name, extras = {}) {
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
-    for (const [castState, list, castName] of castSets) out.push('', `<supporting_character name="${pt(castName)}">`,
+    for (const [castState, list, castName] of castSets) out.push('', `<supporting_character name="${pa(castName)}">`,
         ...personalityLines(castState), ...listLines(castState, list, U, { ...people, subject: castName }), ...extraLines(castState), '</supporting_character>');
     if (castSets.length) out.push('',
         `These side characters are in the scene. Each keeps their own blend and only knows what they could have seen or heard. Not everyone needs to talk every turn, and the player still writes ${u}.`);
@@ -3635,7 +3636,7 @@ export function composePrompt(state, name, extras = {}) {
     let body = out.join('\n');
     if (locales[0] === 'us') body = toAmerican(body);
     const dialect = [LOCALE_RULES[locales[0]], ...locales.slice(1).map(l => LOCALE_SPEAKERS[l])].join(' ');
-    return `<moodweaver focus_character="${pt(N)}">\n${body.replace(LOCALE_MARK, dialect)}\n</moodweaver>`;
+    return `<moodweaver focus_character="${pa(N)}">\n${body.replace(LOCALE_MARK, dialect)}\n</moodweaver>`;
 }
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
     const all = [...live(state), ...live(extras.player?.state), ...live(extras.story), ...liveCast(extras).flatMap(person => live(person.state).filter(m => m.kind !== 'story'))];
@@ -3656,9 +3657,14 @@ export function parseAnalysis(raw, data = {}) {
     let parsed;
     try { parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn’t send back valid JSON. Nothing was changed. If the reader model always thinks first (Claude Opus 5.5 does), raise the Reader reply cap: thinking counts toward it.'); }
     if (!parsed || typeof parsed !== 'object') throw new Error('The reader sent back nothing usable. Nothing was changed.');
+    // 1.38.1: no feelings list, or one in the wrong shape, is a broken reply, not "no feelings": treating it as
+    // empty would let every unpinned feeling fade. An empty list ({"moods":{}}) is still a real answer.
+    const noMoods = !parsed.moods || typeof parsed.moods !== 'object' || Array.isArray(parsed.moods);
+    if (noMoods && !Array.isArray(parsed.wants) && !Array.isArray(parsed.new)) throw new Error('The reader’s reply had no feelings list. Nothing was changed.');
     const allowed = new Set([...(data.ids ?? FEELINGS.map(m => m.id)), ...(data.own ?? []).map(r => r.id)]);
     const wantIds = new Set((data.wants ?? []).map(w => w.id));
-    const num = v => typeof v === 'number' && Number.isFinite(v) ? Math.round(clamp(v)) : null;
+    // Only 0–100 counts; anything else is ignored rather than squeezed into range.
+    const num = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100 ? Math.round(v) : null;
     const moods = {};
     for (const [id, value] of Object.entries(parsed.moods && typeof parsed.moods === 'object' ? parsed.moods : {})) {
         if (allowed.has(id) && num(value) !== null) moods[id] = num(value);
@@ -3667,8 +3673,9 @@ export function parseAnalysis(raw, data = {}) {
         .map(w => ({ id: w.id, value: num(w.value), done: w.done === true }));
     const added = (Array.isArray(parsed.new) ? parsed.new : []).slice(0, 2).map(w => ({ kind: WANT_KINDS.includes(w?.kind) ? w.kind : 'want',
         text: text(w?.text, 120), value: num(w?.value) ?? 50 })).filter(w => w.text);
-    if (!Object.keys(moods).length && !wants.length && !added.length && Object.keys(parsed.moods ?? {}).length) throw new Error('The reader only sent back unknown options. Nothing was changed.');
-    return { moods, wants, added, reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 240) : '' };
+    if (!Object.keys(moods).length && !wants.length && !added.length && Object.keys(parsed.moods ?? {}).length) throw new Error('The reader only sent back unknown options or values outside 0–100. Nothing was changed.');
+    // A reply with wants but no feelings list updates the wants and leaves every feeling as it was.
+    return { moods, wants, added, reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 240) : '', ...(noMoods ? { skipMoods: true } : {}) };
 }
 // Old name kept for anything that still calls it: returns the new mood values only.
 export function blendAnalysis(state, result) { const copy = structuredClone(state); applyAnalysis(copy, result); return copy.moods; }
@@ -3677,7 +3684,7 @@ export function applyAnalysis(state, result, scope = state.readScope) {
     scope = cleanScope(scope);
     const follow = clamp(state.follow ?? 90, 10, 100) / 100;
     const step = (old, target) => Math.round(clamp(old + (target - old) * follow));
-    for (const m of readable(scope)) {
+    for (const m of result.skipMoods ? [] : readable(scope)) {
         if (state.pins[m.id]) continue;
         const old = state.moods[m.id] || 0;
         if (Object.hasOwn(result.moods, m.id)) state.moods[m.id] = step(old, result.moods[m.id]);

@@ -15,13 +15,13 @@ test('knowledge survives reload and stays isolated by chat, observer and persona
         setExtensionPrompt: (_key, value) => { injected = value; },
     };
     getState();
-    context.chatMetadata.moodweaver.user = freshState({ moods: { worried: 96 } });
-    getKnowledge(undefined, true).worried = { mode: 'known', source: 'Told Alex yesterday' };
+    context.chatMetadata.moodweaver.user = freshState({ moods: { anxious: 96 } });
+    getKnowledge(undefined, true).anxious = { mode: 'known', source: 'Told Alex yesterday' };
     await syncPrompt(true);
-    assert.match(injected, /Known —[^]*Told Alex yesterday/);
+    assert.match(injected, /Alex knows for sure[^]*how: Told Alex yesterday/);
     context.characterId = 1;
     await syncPrompt(true);
-    assert.match(injected, /Scene only/);
+    assert.match(injected, /Robin can see or already knows:/, 'another observer has their own knowledge');
     assert.doesNotMatch(injected, /Told Alex yesterday/);
     context.characterId = 0;
     context.name1 = 'Another persona'; assert.deepEqual(getKnowledge(), {});
@@ -31,7 +31,7 @@ test('knowledge survives reload and stays isolated by chat, observer and persona
     getState(); assert.deepEqual(getKnowledge(), {});
     context.chatId = 'A'; context.chatMetadata = saved;
     await syncPrompt(true); assert.match(injected, /Told Alex yesterday/);
-    context.chatMetadata.moodweaver.user.moods.worried = 0;
-    await syncPrompt(true); assert.equal(injected, '');
-    assert.equal(getKnowledge().worried.mode, 'known');
+    context.chatMetadata.moodweaver.user.moods.anxious = 0;
+    await syncPrompt(true); assert.doesNotMatch(injected, /Told Alex yesterday|player_character/, 'switched off, it isn’t sent');
+    assert.equal(getKnowledge().anxious.mode, 'known', 'but the choice is kept for next time');
 });

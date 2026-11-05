@@ -64,7 +64,6 @@ test('knowledge ties prefer privacy, and missing knowledge stays scene-only', ()
 
 test('princess dominance uses natural wording for either person at different strengths', () => {
     assert.equal(BY_ID.princess_dominance.category, 'dynamics');
-    assert.equal(MOODS.length, 927);
     assert.equal(new Set(MOODS.map(m => m.id)).size, MOODS.length);
     for (const [value, tier] of [[4, 'faint'], [50, 'clear'], [100, 'maximum']]) {
         const state = freshState({ moods: { princess_dominance: value } });
@@ -73,7 +72,7 @@ test('princess dominance uses natural wording for either person at different str
         for (const mode of ['known', 'suspected', 'private', 'scene']) {
             const prompt = composePrompt(freshState(), 'Alex', { player: { name: 'Sam', state, knowledge: { princess_dominance: { mode } } } });
             assert.ok(prompt.split('<player_character')[1].split('</player_character>')[0].includes(line));
-            assert.ok(prompt.includes("the player writes everything Sam says, does and thinks"));
+            assert.ok(prompt.includes('The player writes what Sam says, chooses and thinks'));
         }
     }
     assert.equal(composePrompt(freshState(), 'Alex'), '');

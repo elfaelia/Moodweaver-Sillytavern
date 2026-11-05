@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.38.1:** a bug sweep. The scene reader can no longer drain feelings with a broken reply, Continue keeps the board of the reply it's finishing, a name with a quote mark can't break the note, and redraws wait for your finger to lift. All 90 tests pass again. See [the update notes](UPDATE-1.38.0.md#1381-a-sweep).
+
 **1.38.0:** the info board reads far more of what Claude writes. It understands phrases ("barely holding it together", "putty in her hands"), about 130 everyday words, American spellings and curly apostrophes, and the board's words now fill in feelings the hidden line didn't mention. Memories and board pins are switched off by default, each with its own switch. See [the update notes](UPDATE-1.38.0.md).
 
 **1.37.0:** 38 new options for dark romance, horror and grunge. They include Lamb's side of the leash (Has them on a string, Holds the emotional upper hand, Sweet-talks them) and Easterman's (Undone by their tears, Comes running when called), plus Makes demands of, Goth (masculine), Found footage and Asylum horror. Your persona's own side now counts toward Control and Pull. See [the update notes](UPDATE-1.37.0.md).
@@ -91,7 +93,7 @@ New catalogue entries: Adoring, Content, Patient, Relaxed, Cynical, Grounded, Sm
 
 New appetite options: Bratty, Brat tamer, Ritual oriented, Protocol oriented, Sensation seeking, Anticipation and Aftercare oriented.
 
-**Appetites & dynamics:** Master, Daddy, Dominant, Submissive, Service top, Masochist, Sadist, Owner, Switch, Service submissive, Praise seeking, Praise giving, Teasing, and Gentle dominant. These use the same intensity, pinning, blending and per-chat persistence as moods. Intensity describes the strength of a current preference, not experience or an established relationship agreement.
+**Appetites & dynamics:** Master, Daddy, Dominant, Submissive, Service top, Masochist, Sadist, Owner, Switch, Service submissive, Praise seeking, Praise giving, Teasing, and Gentle dominant. These use the same intensity, pinning, blending and per-chat persistence as moods. Intensity describes how strongly the preference shows.
 
 New moods are grouped as follows:
 
@@ -163,7 +165,7 @@ To remove it, disable it in Manage Extensions and reload, or move its folder out
 
 ## Development and verification
 
-Run `node --test tests/*.test.js`. Tests cover the catalogue, complete blend preservation and token-target reporting, strict parsing, smoothing, pins, chat isolation, group speakers, late results, deduplication and generation exclusions.
+Run `node --test tests/*.test.js` (all 90 pass as of 1.38.1). Tests cover the catalogue, complete blend preservation and token-target reporting, strict parsing, smoothing, pins, chat isolation, group speakers, late results, deduplication and generation exclusions.
 
 Run `node preview-server.mjs` and open `http://127.0.0.1:8768` for a simulated interactive preview using the actual UI module. It makes no paid calls and does not use real chats. Desktop and 390px-wide layouts were inspected, including search, pins, mode changes, analysis and chat switching. The real SillyTavern load check is recorded in `VERIFICATION.md`.
 

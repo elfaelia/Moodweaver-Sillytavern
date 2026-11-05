@@ -26,10 +26,11 @@ const stateWith = (entries) => {
 };
 
 test('the 75 dark additions remain unique and their three sections are correctly typed', () => {
-    assert.equal(MOODS.length, 927);
-    assert.equal(CATEGORIES.length, 44);
-    assert.equal(newIds.length, 75);
-    assert.equal(new Set(newIds).size, 75);
+    // The catalogue has grown a lot since these were added; what matters is that all 75 are still there, once.
+    // Those three sections have grown since (fighting, combat and dark plot options were added later), so it's at least 75.
+    assert.ok(newIds.length >= 75);
+    assert.equal(new Set(newIds).size, newIds.length);
+    for (const id of addedToExistingCategories) assert.ok(MOODS.some(m => m.id === id), id);
     assert.equal(new Set(MOODS.map(m => m.id)).size, MOODS.length);
     assert.equal(MOODS.find(m => m.id === 'gutter_fighting').kind, 'state');
     assert.equal(MOODS.find(m => m.id === 'realistic_combat').kind, 'story');
@@ -52,19 +53,20 @@ test('maximum violent character settings become action, not labels', () => {
     assert.match(prompt, /murderous: wants to kill/);
     assert.match(prompt, /a serial killer: a practiced repeat murderer/);
     assert.match(prompt, /has killed before, accepts it and will kill again/);
-    assert.match(prompt, /Dark character settings are behavioural, not private labels/);
-    assert.match(prompt, /let Mark choose it and follow through/);
-    assert.match(prompt, /central action and leave irreversible harm or death behind/);
+    assert.match(prompt, /Dark settings are things Mark actually does, not just labels/);
+    assert.match(prompt, /let them choose it and follow through/);
+    assert.match(prompt, /Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption/);
+    assert.match(prompt, /the darkest one can drive the reply's main action and leave harm or death that can't be undone/);
 });
 
 test('yandere scales from a watchful edge to lethal possession', () => {
     const faint = composePrompt(stateWith({ yandere: 4 }), 'Alex');
     const maximum = composePrompt(stateWith({ yandere: 100 }), 'Alex');
     assert.match(faint, /sweetly attached with a possessive, watchful edge/);
-    assert.doesNotMatch(faint, /central action and leave irreversible harm/);
+    assert.doesNotMatch(faint, /main action and leave harm or death/);
     assert.match(maximum, /will stalk, abduct or kill rivals and perceived threats/);
     assert.match(maximum, /may turn that violence on their beloved rather than lose them/);
-    assert.match(maximum, /let Alex choose it and follow through/);
+    assert.match(maximum, /let them choose it and follow through/);
 });
 
 test('maximum horror, offensive fiction and Dead Dove alter events and consequences', () => {
@@ -75,9 +77,9 @@ test('maximum horror, offensive fiction and Dead Dove alter events and consequen
     assert.match(prompt, /hold nothing back inside what those warnings promise/);
     assert.match(prompt, /murder is an active part of the plot rather than a distant backstory/);
     assert.match(prompt, /graphic wounds, blood and bodily damage stay visible/);
-    assert.match(prompt, /Serious injury, murder, lasting terror and bad outcomes remain live possibilities/);
-    assert.match(prompt, /leave a concrete, irreversible consequence/);
-    assert.match(prompt, /Dead Dove is an emphasis tag/);
+    assert.match(prompt, /Serious injury, murder, lasting terror and bad endings are on the table/);
+    assert.match(prompt, /real consequence that can't be undone/);
+    assert.match(prompt, /Dead dove means every dark tag is meant literally/);
 });
 
 test('character fighting skill and story combat direction mix without replacing each other', () => {
@@ -90,7 +92,7 @@ test('character fighting skill and story combat direction mix without replacing 
     assert.match(prompt, /physical limits, fear, mistakes and consequences keep the fight believable/);
     assert.match(prompt, /damage changes movement, choices and later scenes instead of vanishing/);
     assert.match(prompt, /show the shock, mess, evidence and consequences left after violence/);
-    assert.match(prompt, /Each keeps its full strength however many are on/);
+    assert.match(prompt, /Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long/);
 });
 
 test('each new non-story control has concrete prompt wording', () => {

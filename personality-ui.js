@@ -40,6 +40,6 @@ export function filterPersonality(panel) {
         const choices = types.filter(t => t.id === selected || matches.includes(t));
         select.innerHTML = '<option value="">No type selected</option>' + choices.map(t => `<option value="${t.id}">${t.id} · ${esc(t.label)}</option>`).join('');
         select.value = selected;
-        input.closest('.mw-personality').querySelector('[data-type-empty]').hidden = matches.length > 0;
+        const empty = input.closest('.mw-personality')?.querySelector('[data-type-empty]'); if (empty) empty.hidden = matches.length > 0;
     }
 }

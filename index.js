@@ -18,7 +18,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.38.0';
+const VERSION = '1.38.1';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -35,6 +35,8 @@ let generating = false, genTimer = 0, resyncAfter = false, renderLater = false;
 const generationSnapshots = new Map();
 let selectedPeer = '', removingRelation = '', pairView = 'mine', browsing = false;
 const newId = () => Math.random().toString(36).slice(2, 10);
+// Live slider readouts: if a redraw has replaced the row, there's simply nothing to update.
+const put = (scope, selector, text) => { const el = scope?.querySelector(selector); if (el) el.textContent = text; };
 const openRelationGroups = new Set(), autoOpened = new Set();
 const relationshipList = () => { const state = viewState(); return state ? (state.relationships ??= []) : []; };
 // Everyone this person could feel something about: the main character, you, the rest of a group chat,
@@ -791,7 +793,10 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
     if (Array.isArray(chat)) for (let i = 0; i < chat.length; i++) {
         const m = chat[i], mes = m?.mes; if (typeof mes !== 'string') continue;
         let next = hasWeave(mes) ? stripWeave(mes) : mes;
-        if (stripBoards && !m.is_user && hasBoard(next)) { const cut = stripBoard(next); if (cut.trim()) next = cut; }
+        // 1.38.1: on Continue, the reply being continued keeps its board, so a reply cut off inside its
+        // board is finished from where it stopped.
+        const continuing = type === 'continue' && i === chat.length - 1;
+        if (stripBoards && !continuing && !m.is_user && hasBoard(next)) { const cut = stripBoard(next); if (cut.trim()) next = cut; }
         if (next !== mes) chat[i] = { ...structuredClone(m), mes: next };
     }
     if (suspended || ['quiet', 'impersonate'].includes(type)) {
@@ -1166,7 +1171,9 @@ function sectionContent(state, kind, ch, active) {
 let lastDrawError = '';
 // 1.36.0: a redraw that comes from the chat (a reply arriving, a swipe) waits while you're typing in
 // the panel, so it can't wipe a half-written board correction or note. It runs when you leave the field.
-const typingInPanel = () => { const a = document.activeElement; return Boolean(panel && a && panel.contains(a) && a.matches('textarea, input[type=text], input[type=search], input:not([type])')); };
+// 1.38.1: a finger down in the panel (dragging a slider, mid-tap) holds it too, so the button under it isn't rebuilt.
+let pointerInPanel = false;
+const typingInPanel = () => { const a = document.activeElement; return pointerInPanel || Boolean(panel && a && panel.contains(a) && a.matches('textarea, input[type=text], input[type=search], input:not([type])')); };
 function render(background = false) {
     if (!panel) return;
     if (background && panel.open && typingInPanel()) { renderLater = true; return; }
@@ -1424,10 +1431,11 @@ function addWandItem() {
 // /moods opens the panel. /moods button on|off|small|big|reset changes the ◆ button on this device.
 function addSlashCommand() {
     try {
-        const { SlashCommandParser, SlashCommand } = ctx();
+        const { SlashCommandParser, SlashCommand, SlashCommandArgument, ARGUMENT_TYPE } = ctx();
         if (!SlashCommandParser?.addCommandObject || !SlashCommand?.fromProps) return;
+        const words = SlashCommandArgument?.fromProps && ARGUMENT_TYPE ? [SlashCommandArgument.fromProps({ description: 'unpin, or button on / off / small / big / reset', typeList: [ARGUMENT_TYPE.STRING], isRequired: false })] : [];
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-            name: 'moods', returns: 'nothing',
+            name: 'moods', returns: 'nothing', unnamedArgumentList: words,
             helpString: 'Opens the Moodweaver panel. <code>/moods unpin</code> unpins everything in this chat. <code>/moods button on</code>, <code>off</code>, <code>small</code>, <code>big</code> or <code>reset</code> changes the ◆ Moods button on this device.',
             callback: (_args, value) => {
                 const words = String(value ?? '').toLowerCase().trim().split(/\s+/).filter(Boolean);
@@ -1474,8 +1482,12 @@ function setup() {
     }
     if (!addWandItem()) { let tries = 0; const again = setInterval(() => { if (addWandItem() || ++tries > 20) clearInterval(again); }, 500); }
     addSlashCommand();
-    // A chat redraw that waited for you to finish typing runs once you leave the field.
-    panel.addEventListener('focusout', () => setTimeout(() => { if (renderLater && !typingInPanel()) render(); }, 0));
+    // A chat redraw that waited for you runs a moment after you leave the field or lift your finger: long
+    // enough for the tap that moved focus (on "＋ Remember", say) to land on the button it was aimed at.
+    const later = () => setTimeout(() => { if (renderLater && !typingInPanel()) render(); }, 350);
+    panel.addEventListener('focusout', later);
+    panel.addEventListener('pointerdown', () => { pointerInPanel = true; }, { passive: true });
+    for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, () => { if (pointerInPanel) { pointerInPanel = false; later(); } }, { passive: true });
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
@@ -1486,8 +1498,8 @@ function setup() {
         }
         if (e.target.dataset.wantValue !== undefined || e.target.dataset.field === 'follow') {
             const v = Number(e.target.value), row = e.target.closest('.mw-mood');
-            if (row) { row.querySelector('output').textContent = `${v}%`; row.querySelector('[data-lvl]').textContent = level(v); e.target.style.setProperty('--mw-fill', `${v}%`); }
-            else { panel.querySelector('[data-follow-out]').textContent = `${v}%`; e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
+            if (row) { put(row, 'output', `${v}%`); put(row, '[data-lvl]', level(v)); e.target.style.setProperty('--mw-fill', `${v}%`); }
+            else { put(panel, '[data-follow-out]', `${v}%`); e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
             return;
         }
         if (e.target.dataset.bondMeter) {
@@ -1506,7 +1518,7 @@ function setup() {
         if (['mw-type-search', 'mw-enneagram-search'].includes(e.target.id)) { filterPersonality(panel); return; }
         if (e.target.dataset.personality === 'strength') {
             const v = Number(e.target.value), row = e.target.closest('.mw-mood');
-            row.querySelector('output').textContent = `${v}%`; row.querySelector('[data-lvl]').textContent = level(v);
+            put(row, 'output', `${v}%`); put(row, '[data-lvl]', level(v));
             e.target.style.setProperty('--mw-fill', `${v}%`); e.target.setAttribute('aria-valuetext', `${v} percent, ${level(v)}`); return;
         }
         if (e.target.hasAttribute('data-relation-search')) {
@@ -1514,17 +1526,17 @@ function setup() {
         }
         if (e.target.dataset.turn !== undefined) {
             const v = Number(e.target.value), row = e.target.closest('.mw-mood');
-            row.querySelector('[data-lvl]').textContent = turnLevel(v); e.target.setAttribute('style', turnFill(v)); return;
+            put(row, '[data-lvl]', turnLevel(v)); e.target.setAttribute('style', turnFill(v)); return;
         }
         if (e.target.dataset.pairSlider || e.target.dataset.compareSlider || e.target.dataset.custom !== undefined || e.target.dataset.mem !== undefined) {
             const value = Number(e.target.value), row = e.target.closest('.mw-mood');
-            row.querySelector('output').textContent = `${value}%`; row.querySelector('[data-lvl]').textContent = level(value);
+            put(row, 'output', `${value}%`); put(row, '[data-lvl]', level(value));
             e.target.style.setProperty('--mw-fill', `${value}%`); return;
         }
         if (e.target.dataset.relSlider) {
             const id = e.target.dataset.relSlider, value = Number(e.target.value);
             const row = e.target.closest('.mw-mood');
-            row.querySelector('output').textContent = `${value}%`; row.querySelector('[data-lvl]').textContent = level(value);
+            put(row, 'output', `${value}%`); put(row, '[data-lvl]', level(value));
             e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`); return;
         }
         if (e.target.matches('.mw-search')) { search = e.target.value; filterRows(); return; }
@@ -1549,8 +1561,8 @@ function setup() {
         }
         if (e.target.dataset.slider) {
             const id = e.target.dataset.slider, value = Number(e.target.value);
-            panel.querySelector(`[data-value="${id}"]`).textContent = `${value}%`;
-            panel.querySelector(`[data-level="${id}"]`).textContent = level(value);
+            put(panel, `[data-value="${id}"]`, `${value}%`);
+            put(panel, `[data-level="${id}"]`, level(value));
             e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`);
         }
     });
@@ -1811,7 +1823,7 @@ function setup() {
         switch (button.dataset.action) {
             case 'relation-add': {
                 try {
-                    const typed = castName(panel.querySelector('[data-relation-new]').value);
+                    const typed = castName(panel.querySelector('[data-relation-new]')?.value ?? '');
                     const existing = peers().find(p => p.name.toLowerCase() === resolveRelationName(typed).toLowerCase());
                     if (existing) { selectedPeer = existing.key; removingRelation = ''; status = ''; render(); break; }
                     const name = validRelationName(typed);
@@ -1864,7 +1876,7 @@ function setup() {
                 status = editing ? `“${d.label}” updated everywhere.` : `“${d.label}” saved to your library and switched on here.`;
                 await syncPrompt(); render();
                 const saved = panel.querySelector(`[data-mood="${isTurnGroup(d.group) ? `turn:${id}` : id}"]`);
-                if (saved) { saved.closest('details').open = true; saved.scrollIntoView({ block: 'center' }); }
+                if (saved) { const fold = saved.closest('details'); if (fold) fold.open = true; saved.scrollIntoView({ block: 'center' }); }
                 break;
             }
             case 'maker-once': {
@@ -1911,7 +1923,7 @@ function setup() {
             case 'relation-rename': {
                 try {
                     const relation = selectedRelation(); if (!relation) break;
-                    relation.target = validRelationName(panel.querySelector('[data-relation-target]').value, relation.id);
+                    relation.target = validRelationName(panel.querySelector('[data-relation-target]')?.value ?? '', relation.id);
                     await persist(viewState()); await syncPrompt(); render();
                 } catch (error) { status = error.message; renderStatus(); }
                 break;
@@ -1932,7 +1944,7 @@ function setup() {
             }
             case 'cast-add': {
                 try {
-                    const person = addCastMember(getCast(), panel.querySelector('[data-cast-new]').value, newCastId(), [playerName(), ...members().map(ch => ch.name)]);
+                    const person = addCastMember(getCast(), panel.querySelector('[data-cast-new]')?.value ?? '', newCastId(), [playerName(), ...members().map(ch => ch.name)]);
                     selectedCastId = person.id; who = 'cast'; selectedPeer = ''; castAction = ''; status = `${person.name} added to this chat’s cast.`;
                     await persist(); await syncPrompt(); render();
                 } catch (error) { status = error.message; renderStatus(); }

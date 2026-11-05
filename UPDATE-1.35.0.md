@@ -36,3 +36,8 @@ Devoted captor · Can't say it out loud · Indulgent keeper · Mouthy captive ·
 ## Suggested setups
 - **Easterman → Lamb:** Captor of, Obsessed with, Indulges, Lets them win, Spoils them, Snaps back into control, Puts them above their spouse. Traits: Devoted captor, Indulgent keeper, Provider pride, Keeps up appearances. Lamb's persona: Mouthy captive, plus your existing Sassy and Bratty.
 - **Rick → your OC:** In love (Attraction & romance), Shows it through insults, Fixes things for them, Only shows it drunk or wrecked, Keeps testing them. Traits: Can't say it out loud, Love isn't trust. Leave Trust low and the dynamic reads as Guarded love.
+
+## 1.35.1: ◆ Moods always opens
+- With no character chat open, ◆ Moods did nothing. It now shows "Open a character chat" again.
+- If the panel ever hits an error while drawing, it still opens and shows the error in a red box (and a SillyTavern toast), instead of the button doing nothing. A screenshot of the box is enough to track it down. Nothing in your chat or settings is changed.
+- If Moodweaver is switched off in Manage extensions, pressing ◆ Moods now says so.

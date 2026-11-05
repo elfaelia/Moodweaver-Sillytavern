@@ -17,7 +17,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.35.0';
+const VERSION = '1.35.1';
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
@@ -920,8 +920,20 @@ function sectionContent(state, kind, ch, active) {
     ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
+// 1.35.1: a redraw that fails shows the error in the panel, so ◆ Moods always opens and the cause is visible.
 function render() {
     if (!panel) return;
+    try { drawPanel(); } catch (err) {
+        console.error('[Moodweaver] could not draw the panel', err);
+        globalThis.toastr?.error(String(err?.message ?? err), 'Moodweaver hit an error', { preventDuplicates: true });
+        const where = String(err?.stack ?? '').split('\n').find(l => /\.js:\d+/.test(l))?.trim() ?? '';
+        panel.dataset.view = '';
+        panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><div class="mw-brand-text"><h2>Moodweaver</h2></div></div><div class="mw-top-actions"><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
+            <div class="mw-empty mw-error"><p>The panel hit an error while drawing. Nothing was changed or lost.</p><pre>${esc(err?.message ?? err)}${where ? `\n${esc(where)}` : ''}</pre><p class="mw-fine">A screenshot of this box is enough to track it down.</p></div>
+            <div class="mw-footer">v${VERSION}</div>`;
+    }
+}
+function drawPanel() {
     capturePanel(panel);
     const ch = target(), charState = getState(ch);
     if (charState) migratePairs(ch);
@@ -947,7 +959,8 @@ function render() {
     const lead = active.find(m => sectionOf(m) === 'mood');
     const boardMood = live?.state.map(t => matchMood(t.text)).find(m => m && m.kind === 'mood');
     const plumbob = lead?.color ?? boardMood?.color ?? '#b5d9a6';
-    const body = settingsOpen ? settingsView(state)
+    // No chat open means no state: build nothing, or the person card throws and the panel never opens.
+    const body = !state ? '' : settingsOpen ? settingsView(state)
         : `${personCard(ch, state, live)}${who === 'story' ? '' : tabBar(counts)}
         ${who !== 'story' && tab === 'inv' ? inventoryView(state, ch)
         : who !== 'story' && tab === 'needs' ? boardView({ live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: boardEditing, focus: boardFocus })
@@ -1018,8 +1031,11 @@ async function changeState(mutator) {
     mutator(s); await persist(s); await syncPrompt(); render();
 }
 function openPanel() {
-    if (suspended) return;
-    render(); if (!panel.open) { panel.show(); panel.focus({ preventScroll: true }); } void syncPrompt();
+    if (suspended) { globalThis.toastr?.info('Moodweaver is switched off. Turn it back on in Manage extensions.'); return; }
+    render();
+    try { if (!panel.open) { panel.show(); panel.focus({ preventScroll: true }); } }
+    catch (err) { panel.setAttribute('open', ''); console.error('[Moodweaver] could not open the panel', err); globalThis.toastr?.error(String(err?.message ?? err), 'Moodweaver could not open'); }
+    void syncPrompt();
 }
 function setup() {
     if (document.getElementById('moodweaver-panel')) return;

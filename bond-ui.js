@@ -1,4 +1,4 @@
-import { computeBond, DYNAMIC_NAMES } from './bond.js';
+import { computeBond, DYNAMIC_NAMES, computeDesire, DESIRE_CAPS, restraintWord, frustrationWord } from './bond.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const sign = v => v > 0 ? `+${v}` : `${v}`;
@@ -17,7 +17,7 @@ export function bondMini(bond, chatLength, axes = null, list = null) {
     const bar = (cls, v) => `<i class="mw-mini ${cls}" style="--mw-at:${Math.abs(v) / 2}%;--mw-side:${v < 0 ? 'right' : 'left'}"></i>`;
     return `<span class="mw-mini-bars" aria-hidden="true">${bar('is-f', d.f)}${bar('is-r', d.r)}</span>${bond.extra ? `<span class="mw-mini-dyn">${esc(d.dynamic.name)}</span>` : ''}`;
 }
-export function bondView({ bond, charName, userName, chatLength, axes = null, list = null }) {
+export function bondView({ bond, charName, userName, chatLength, axes = null, list = null, tally = null }) {
     const d = computeBond(bond, chatLength, charName, userName, axes, list);
     const changes = d.recent.filter(s => s.f || s.r || s.t || s.p || s.l);
     const pin = k => bond.pins[k] !== null;
@@ -28,12 +28,15 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
         ${bond.extra ? `<div class="mw-dyn-card" data-dynamic="${slug(d.dynamic.name)}"><small>${esc(charName)} &amp; ${esc(userName)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(d.dynamic.cue)}</p>
             <label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic"><option value="">Read it from the story (${esc(d.auto)})</option>${DYNAMIC_NAMES.map(name => `<option value="${esc(name)}" ${bond.fixed === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
             <small class="mw-dyn-why">${bond.fixed ? 'Chosen by you; it stays until you switch back.' : `Read from these meters and ${esc(charName)}’s feelings toward ${esc(userName)} below. Pinned meters win.`}</small></div>` : ''}
+        ${desireCard(bond, list ?? [], charName, userName, d.sparks)}
         <div class="mw-bond-grid">
             ${meter('f', 'Friendship', d.f, d.friend, pin('f'))}
             ${meter('r', 'Romance', d.r, d.romance, pin('r'))}
             ${bond.extra ? `${meter('p', 'Control', d.p, d.control, pin('p'), [userName, charName])}${meter('l', 'Pull', d.l, d.pull, pin('l'), [userName, charName])}${meter('t', 'Trust', d.t, d.trust, pin('t'))}` : ''}
         </div>
-        ${d.sparks.length ? `<div class="mw-bond-block"><h4>Lit lately <small>turn-ons ${esc(userName)} set off</small></h4><div class="mw-sparks">${d.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}" title="Message ${x.index + 1}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div></div>` : ''}
+        ${d.sparks.length ? `<div class="mw-bond-block"><h4>Lit lately <small>turn-ons and bedroom traits the last replies set off</small></h4><div class="mw-sparks">${d.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}" title="Message ${x.index + 1}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div></div>` : ''}
+        ${tally?.sparks?.length ? `<div class="mw-bond-block"><h4>What gets to ${esc(charName)} <small>over this chat</small></h4><div class="mw-sparks">${tally.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
+        ${tally?.pressed?.length ? `<div class="mw-bond-block"><h4>Hot buttons pressed</h4><div class="mw-sparks">${tally.pressed.map(x => `<span class="mw-spark is-off">⚡ ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
         <div class="mw-bond-block"><h4>${esc(charName)} thinks ${esc(userName)} is…</h4>
             <div class="mw-bond-thinks">${d.thinks.length ? d.thinks.map(t => `<span class="mw-bond-chip${t.own ? ' is-own' : ''}" title="${t.own ? 'Added by you' : `Strength ${Math.min(100, t.value)}`}">${esc(t.text)}<button type="button" data-bond-mute="${esc(t.text)}" aria-label="Remove ${esc(t.text)}">×</button></span>`).join('') : `<i class="mw-fine">Nothing yet. Opinions show up as the story gives ${esc(charName)} reasons.</i>`}</div>
             <div class="mw-bond-add"><input type="text" maxlength="40" data-bond-new placeholder="Add one (e.g. reckless)" aria-label="Add an opinion"><button type="button" data-action="bond-add">Add</button></div></div>
@@ -45,4 +48,26 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
             <p class="mw-fine">Each reply ends with one hidden line that only Moodweaver reads: only what changed in feelings, needs, relationship, these meters, opinions, turn-ons set off and turning points. SillyTavern hides it in chat and Moodweaver strips it from the prompt. About 380 prompt and 20 to 60 reply tokens, no extra request. Drag a meter to set it; pin to hold it. Every meter is read from the replies still in the chat, so a swipe or a deleted reply takes its change with it.</p>
         </details>
     </section>`;
+}
+
+// 1.39.1: the desire card. Closed, it's one line: the stage and three thin bars. Open, the bars can be dragged
+// and pinned like the other meters, with pace and a cap for slow burns.
+function desireCard(bond, list, charName, userName, sparks = []) {
+    const d = bond.desire ?? {};
+    if (!d.on) return `<details class="mw-desire-card is-off"><summary><span>♨ Desire</span><small>off in this chat</small></summary>
+        <label class="mw-toggle"><input type="checkbox" data-desire-on> Track ${esc(charName)}’s desire for ${esc(userName)} in this chat</label>
+        <p class="mw-fine">Arousal, how hard they hold back, and frustration, moved by each reply’s hidden line. Slow by default, so it builds over many replies.</p></details>`;
+    const x = computeDesire(d, list);
+    const bar = (key, label, value, word, tone) => `<div class="mw-desire-row" data-tone="${tone}"><div class="mw-bond-head"><b>${label}</b><span data-desire-word="${key}">${esc(word)}</span>
+        <button type="button" class="mw-need-pin" data-desire-pin="${key}" aria-pressed="${x.pins[key] !== null}" title="${x.pins[key] !== null ? 'Unpin: let replies move it again' : 'Pin: hold it here'}">${x.pins[key] !== null ? '◆' : '◇'}</button></div>
+        <input type="range" min="0" max="100" step="1" value="${value}" data-desire-bar="${key}" class="mw-desire-bar" style="--mw-fill:${value}%" aria-label="${label}"></div>`;
+    const mini = (v, tone) => `<i class="mw-desire-mini" data-tone="${tone}" style="--mw-fill:${v}%"></i>`;
+    const lit = sparks.filter(s => !s.off).slice(0, 4);
+    return `<details class="mw-desire-card"><summary><span>♨ ${esc(x.stage)}</span><span class="mw-desire-minis">${mini(x.a, 'a')}${mini(x.s, 's')}${mini(x.f, 'f')}</span></summary>
+        ${bar('a', 'Arousal', x.a, x.stage, 'a')}${bar('s', 'Holding back', x.s, restraintWord(x.s), 's')}${bar('f', 'Frustration', x.f, frustrationWord(x.f), 'f')}
+        ${lit.length ? `<div class="mw-sparks"><small>Lit lately</small>${lit.map(s => `<span class="mw-spark ${s.fresh ? 'is-fresh' : ''}">✧ ${esc(s.text)}</span>`).join('')}</div>` : ''}
+        <div class="mw-desire-opts"><label>Pace<select data-desire-pace>${[['slow', 'Slow burn'], ['normal', 'Normal'], ['fast', 'Fast']].map(([v, l]) => `<option value="${v}" ${x.pace === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+            <label>Tops out at<select data-desire-cap>${DESIRE_CAPS.map(([v, l]) => `<option value="${v}" ${x.cap === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+        <p class="mw-fine">Each reply moves it a little; slow burn allows only a small step up per reply. Release resets arousal and frustration, then a short afterglow. Drag a bar to set it, pin ◆ to hold it. Turned off, nothing is asked for or sent.</p>
+        <label class="mw-toggle"><input type="checkbox" data-desire-on checked> Track desire in this chat</label></details>`;
 }

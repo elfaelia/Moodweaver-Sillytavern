@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { ON_PAGE } from '../onpage.js';
 import { CATEGORIES, MOODS, PROMPT_NAME, composePrompt, freshState } from '../core.js';
 
 const addedToExistingCategories = [
@@ -50,7 +51,7 @@ test('old saves receive every new setting turned off and unpinned', () => {
 
 test('maximum violent character settings become action, not labels', () => {
     const prompt = composePrompt(stateWith({ murderous: 100, serial_killer: 100, killed_will_again: 100 }), 'Mark');
-    assert.match(prompt, /murderous: wants to kill/);
+    assert.match(prompt, /murderous: thinks about killing, measures it, moves toward it/);
     assert.match(prompt, /a serial killer: a practiced repeat murderer/);
     assert.match(prompt, /has killed before, accepts it and will kill again/);
     assert.match(prompt, /Dark settings are things Mark actually does, not just labels/);
@@ -74,9 +75,10 @@ test('maximum horror, offensive fiction and Dead Dove alter events and consequen
     const prompt = composePrompt(freshState(), 'Mark', { story });
     assert.match(prompt, /horror owns the reply: the threat follows through/);
     assert.match(prompt, /willing to use harsh, taboo or prejudiced language and behaviour/);
-    assert.match(prompt, /hold nothing back inside what those warnings promise/);
-    assert.match(prompt, /murder is an active part of the plot rather than a distant backstory/);
-    assert.match(prompt, /graphic wounds, blood and bodily damage stay visible/);
+    assert.match(prompt, /every dark tag is a promise kept literally and in full/);
+    assert.match(prompt, /Don't dodge it with any of these: someone knocking, calling or walking in/);
+    assert.match(prompt, /a murder is being planned or carried out now/);
+    assert.match(prompt, /wounds, blood and broken bodies stay visible/);
     assert.match(prompt, /Serious injury, murder, lasting terror and bad endings are on the table/);
     assert.match(prompt, /real consequence that can't be undone/);
     assert.match(prompt, /Dead dove means every dark tag is meant literally/);
@@ -88,7 +90,7 @@ test('character fighting skill and story combat direction mix without replacing 
     const prompt = composePrompt(character, 'Mark', { story });
     assert.match(prompt, /direct close-quarters self-defence built around fast survival/);
     assert.match(prompt, /uses surprise and immediate aggression before the enemy can settle/);
-    assert.match(prompt, /feels no guilt after harm/);
+    assert.match(prompt, /no guilt after harm/);
     assert.match(prompt, /physical limits, fear, mistakes and consequences keep the fight believable/);
     assert.match(prompt, /damage changes movement, choices and later scenes instead of vanishing/);
     assert.match(prompt, /show the shock, mess, evidence and consequences left after violence/);
@@ -99,6 +101,7 @@ test('each new non-story control has concrete prompt wording', () => {
     for (const id of addedToExistingCategories.filter(id => !['extreme_horror', 'splatter_horror'].includes(id))) {
         assert.ok(PROMPT_NAME[id], id);
         const prompt = composePrompt(stateWith({ [id]: 50 }), 'Alex');
-        assert.ok(prompt.includes(PROMPT_NAME[id]), id);
+        // 1.39.0: feelings go out as "name: how it shows", so check for the how-it-shows part instead.
+        assert.ok(prompt.includes(ON_PAGE[id] ?? PROMPT_NAME[id]), id);
     }
 });

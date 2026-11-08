@@ -69,7 +69,7 @@ const pinMark = (pins, key) => pins[key] ? `<button type="button" class="mw-pinn
 
 // opts: { live, send, sync, charName, userName, people: [{ name, match(name), attrs, away }], editing, focus,
 //   pinsOn, memoriesOn, withWeave, weaveOn, savedMemories } (1.38.0: the board switches, all chats)
-export function boardView({ live, send, sync, charName, userName, people, editing, focus, pinsOn = false, memoriesOn = false, withWeave = true, weaveOn = true, savedMemories = 0 }) {
+export function boardView({ live, send, sync, charName, userName, people, editing, focus, pinsOn = false, memoriesOn = false, withWeave = true, weaveOn = true, savedMemories = 0, needOpts = null }) {
     const pins = live.meta.pins, sky = live.sky;
     const [clock, ampm] = (() => { const m = String(live.time).match(/^(\d{1,2}:\d{2})\s*([AP]\.?M\.?)?(.*)$/i); return m ? [m[1], `${m[2] ?? ''}${m[3] ?? ''}`.trim()] : [live.time, '']; })();
     const owner = live.name || charName;
@@ -97,7 +97,13 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : '<p class="mw-fine">The board’s State line shows up here as moodlets.</p>'}</div>
         <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · drag to set</small></h4>
             <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
-            <p class="mw-fine">Read from the board’s words${weaveOn ? ' and the hidden line' : ''}. Faded bars haven’t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does.</p></div>
+            <p class="mw-fine">Read from the board’s words${weaveOn ? ' and the hidden line' : ''}${needOpts?.drift ? ', and the board’s clock: needs drain a little as in-world time passes and come back up after a time jump' : ''}. Faded bars haven’t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does; nothing extra is printed on your board.</p>
+            ${needOpts ? `<details class="mw-need-settings"><summary>Needs over time <small>all chats</small></summary>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsDrift" ${needOpts.drift ? 'checked' : ''}> Needs drain as in-world time passes</label>
+                <label class="mw-field">How fast<select data-setting-choice="needsSpeed" aria-label="How fast needs drain">${[['gentle', 'Gentle'], ['normal', 'Normal'], ['harsh', 'Harsh']].map(([v, l]) => `<option value="${v}" ${needOpts.speed === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSkips" ${needOpts.skips ? 'checked' : ''}> Time jumps of more than 4 hours top needs back up (they ate, slept and washed off-screen)</label>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsFloor" ${needOpts.floor ? 'checked' : ''}> Time alone never makes a need critical; only the story can</label>
+                <p class="mw-fine">Normal: a few on-screen hours makes them peckish, a long scene with no toilet makes the bladder nag. Flashbacks and boards without a time change nothing. Comfort and health only move when the story moves them.</p></details>` : ''}</div>
         ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny"${pinsOn ? '' : ' disabled'}>
             ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}

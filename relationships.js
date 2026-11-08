@@ -444,6 +444,43 @@ RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Their role')[3].push(
 SHARED_CATEGORIES.find(([n]) => n === 'Their story')[3].push(
     ['monster_on_leash', 'Monster on a leash', 'one is dangerous to everyone; only the other can calm or steer them', 'monster on a leash: one is dangerous to everyone, and only the other can calm or steer them'],
 );
+// 1.39.0: dark, unhinged and lopsided love. Each prompt line says what it looks like on the page.
+SHARED_CATEGORIES.push(['Dark love', '♠', '#c27a9a', [
+    ['one_loves_harder', 'One loves harder', 'one is all in and the other is fond but holding back, and both feel the gap', 'one loves harder: one is all in, the other is fond but holding back, and both feel the gap in every exchange'],
+    ['folie_a_deux', 'Folie à deux', 'a shared madness: each feeds the other’s worst ideas until their private world makes sense only to them', 'folie à deux: they feed each other’s worst ideas until their private world, rules and logic make sense only to them'],
+    ['predator_and_prey', 'Predator and prey', 'courtship as a hunt: one pursues, one runs, and the chase is the romance', 'predator and prey: one hunts, one runs, and the chase itself is how they love'],
+    ['bonnie_and_clyde', 'Bonnie and Clyde', 'lovers on a crime spree: robbery, violence and running together, high on each other', 'Bonnie and Clyde: in love and in crime, running together, violence as their thrill'],
+    ['killer_couple', 'Killer couple', 'both kill, and love shows in shared bodies, alibis and cleanup', 'a killer couple: both kill; love shows in shared victims, alibis and cleaning up after each other'],
+    ['love_bomb_cycle', 'Love-bomb cycle', 'adored, devalued, discarded, hoovered back, again and again', 'a love-bomb cycle: adoration, then contempt, then discarding, then being pulled back with sweetness, over and over'],
+    ['hate_need', 'Hate them, need them', 'can’t stand each other and can’t function apart', 'hate them, need them: they can’t stand each other and fall apart when separated'],
+    ['jealousy_games', 'Jealousy games', 'they make each other jealous on purpose to prove they still matter', 'jealousy games: they flirt with others and flaunt it to make each other jealous and prove they still matter'],
+    ['mutually_possessive', 'Mutually possessive', 'both say mine and mean it; any outsider is a threat to both', 'mutually possessive: both claim each other and treat any outsider as a threat'],
+    ['worship_and_ruin', 'Worship and ruin', 'one worships, the other ruins them for it, and both get something out of it', 'worship and ruin: one worships the other, who wrecks them for it, and both are hooked on that'],
+    ['hunter_hunted', 'Hunter becomes hunted', 'the obsessive one’s target has turned the tables and now holds the obsession', 'the hunter became the hunted: the one who pursued is now the one being watched, wanted and caught'],
+    ['nurse_and_wreck', 'Nurse and wreck', 'one keeps the other alive through drink, drugs or self-destruction, and the caring is part of the trap', 'nurse and wreck: one keeps the self-destructive other alive, and the caring keeps them both stuck'],
+    ['enabling_each_other', 'Enabling each other', 'they feed each other’s habits: drugs, drink, crimes; neither will be the one to stop', 'enabling each other: they feed each other’s habits and neither will be the one to stop'],
+    ['using_together', 'Using together', 'getting high together is their intimacy; scoring is a date and comedowns are their fights', 'using together: getting high is their intimacy, scoring is a date, comedowns are their fights'],
+    ['bought_and_paid', 'Bought and paid for', 'one bought the other through a debt, a deal or an auction, and both know the price', 'bought and paid for: one owns the other through a debt, a deal or a sale, and the price hangs over everything'],
+    ['revenge_romance', 'Revenge romance', 'one got close to destroy the other and fell for them along the way', 'revenge romance: one got close to ruin the other and fell for them anyway, and the plan is still running'],
+    ['stalker_romance', 'Stalker romance', 'one watches, follows and courts the other from the shadows; love and surveillance are the same thing', 'stalker romance: one watches and follows the other unseen, and every gift or note proves how much they know'],
+    ['ruined_for_others', 'Ruined for anyone else', 'they’ve wrecked each other so thoroughly that nobody else could ever do', 'ruined for anyone else: they’ve marked each other so deeply that anyone else feels like nothing'],
+    ['addicted_to_each_other', 'Addicted to each other', 'they treat each other like a drug: binges together, withdrawal apart', 'addicted to each other: binges when together, real withdrawal when apart'],
+    ['two_of_a_kind', 'Two of a kind', 'equally monstrous; they recognise themselves in each other, and that’s the pull', 'two of a kind: equally monstrous, and recognising it in each other is the attraction'],
+    ['made_to_need', 'Made to need them', 'one has deliberately made the other dependent: cut off, drugged, broken down or kept', 'made to need them: one has made the other dependent on purpose, by isolating, drugging or keeping them'],
+    ['pretend_its_nothing', 'Pretend it’s nothing', 'both act like it’s casual while it eats them alive', 'pretending it’s nothing: both act casual while it eats them alive, and neither will say it first'],
+    ['push_and_pull', 'Push and pull', 'one chases while the other runs, then they swap; never both in at once', 'push and pull: whoever leans in, the other pulls away, then they swap'],
+    ['fights_as_foreplay', 'Fights as foreplay', 'every fight ends in bed, and they pick fights to get there', 'fights as foreplay: their fights turn into sex, and they start fights to get there'],
+    ['held_by_threat', 'Held by a threat', 'one stays only because the other threatens to hurt someone, or themselves, if they leave', 'held by a threat: one stays because leaving would set off something terrible, and both know it'],
+    ['knows_what_they_are', 'Knows what they are', 'one knows the other is a killer or worse, and stays anyway', 'knows what they are: one knows the other’s crimes and stays, loves or covers for them anyway'],
+]]);
+RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Attachment & power')[3].push(
+    ['in_deeper', 'In deeper than them', 'loves them more than they love back, and knows it', 'is in deeper than {other} is, and knows it'],
+    ['would_kill_for', 'Would kill for', 'would kill anyone who hurt or took them, without hesitation', 'would kill for {other}, without hesitation'],
+    ['wants_to_become', 'Wants to become them', 'wants their life, face and place; envy that has turned into a kind of love', 'wants to become {other}: their life, their looks, their place'],
+    ['keeps_trophies', 'Keeps trophies of', 'keeps hair, blood, clothes or stolen things of theirs, and handles them in private', 'keeps trophies of {other}: hair, worn clothes, stolen things, handled in private'],
+);
+for (const [cat, id, prompt] of [['Their story', 'obsessive_love', 'obsessive love: every thought, look and choice circles back to the other, and it won’t let go'], ['What they are', 'toxic', 'toxic: they bring out each other’s jealousy, cruelty and lies, and keep coming back']])
+    SHARED_CATEGORIES.find(([n]) => n === cat)[3].find(r => r[0] === id)[3] = prompt;
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
 export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));
@@ -452,7 +489,8 @@ export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));
 // Both-ways tags where the two people play different parts. Opus 5.5 is weaker at inferring who's who unprompted.
 export const TWO_ROLE_SHARED = new Set(['monster_on_leash', 'gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
     'captor_captive', 'stockholm', 'corrupting_love', 'redeeming_love', 'power_imbalance', 'grumpy_sunshine', 'who_did_this', 'touch_and_die',
-    'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide']);
+    'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide',
+    'one_loves_harder', 'predator_and_prey', 'love_bomb_cycle', 'worship_and_ruin', 'hunter_hunted', 'nurse_and_wreck', 'bought_and_paid', 'revenge_romance', 'stalker_romance', 'made_to_need', 'held_by_threat', 'knows_what_they_are']);
 
 // Moods and story tropes that were really about one particular person now live in relationships.
 // Old values move automatically: '{{other}}' means "whoever this sheet used to point at".

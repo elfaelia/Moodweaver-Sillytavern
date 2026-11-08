@@ -393,3 +393,28 @@
   .mw-panel .mw-categories summary{padding:15px 8px}
 }
 @media (prefers-reduced-motion:reduce){.mw-panel *,.mw-panel .mw-plumbob,.mw-sky-fx,.mw-sky::after{animation:none!important;transition:none!important}}
+/* 1.39.0: reactive wants, hot buttons, the You tab and needs-over-time settings */
+.mw-want.mw-want-lit{box-shadow:0 0 0 1px #efd59c55,0 0 16px #efd59c22}
+.mw-want.mw-want-lit.is-down{box-shadow:0 0 0 1px #e26d7a55,0 0 16px #e26d7a22}
+.mw-want.mw-want-lit.is-hot{box-shadow:0 0 0 1px #e79a7a77,0 0 18px #e79a7a33;animation:mw-glow 2.4s ease-in-out 2}
+.mw-want-status{display:block;margin-top:4px;font-size:11px;color:#f5e6c4;opacity:.9}
+.mw-want-lit.is-down .mw-want-status{color:#f0c2c8}
+.mw-want-story,.mw-want-suggest{border-style:dashed}
+.mw-you{display:flex;flex-direction:column;gap:12px}
+.mw-you .mw-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mw-need-settings{margin-top:8px}
+.mw-need-settings summary{cursor:pointer;font-size:12px;opacity:.85}
+.mw-need-settings .mw-field{display:flex;align-items:center;gap:8px;font-size:12px;margin:6px 0}
+.mw-need-settings select{flex:1;max-width:160px}
+.mw-sparks .mw-spark b{font-weight:600;opacity:.75;margin-left:2px}
+/* 1.39.1: desire card */
+.mw-desire-card{margin:10px 0;padding:8px 12px;border-radius:14px;background:#e26d9a10;border:1px solid #e26d9a33}
+.mw-desire-card summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
+.mw-desire-card.is-off summary small{font-weight:400;opacity:.7}
+.mw-desire-minis{display:flex;gap:4px;flex:0 0 96px}
+.mw-desire-mini{flex:1;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--mw-tone) var(--mw-fill),#ffffff1a var(--mw-fill))}
+[data-tone="a"]{--mw-tone:#ef8fb4}[data-tone="s"]{--mw-tone:#8fb4ef}[data-tone="f"]{--mw-tone:#efb07a}
+.mw-desire-row{margin-top:8px}
+.mw-desire-bar{width:100%;accent-color:var(--mw-tone)}
+.mw-desire-opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+.mw-desire-opts label{display:flex;align-items:center;gap:6px}

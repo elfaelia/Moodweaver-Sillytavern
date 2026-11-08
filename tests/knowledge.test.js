@@ -36,7 +36,7 @@ test('source text is bounded and escaped and discarded for private or default en
 test('budget warning never drops knowledge or weak settings', async () => {
     const extras = { player: { name: 'Sam', state: persona, knowledge: { tired: { mode: 'known', source: 'They told Alex.' } } } };
     const result = await budgetPrompt(subject, 'Alex', 1, text => text.length, extras);
-    assert.match(result.prompt, /faint: low on energy \(how: They told Alex\.\)/);
+    assert.match(result.prompt, /faint: low on energy[^\n]*\(how: They told Alex\.\)/);
     assert.equal(result.omitted, 0);
     assert.equal(result.overBudget, result.tokens - 1);
 });

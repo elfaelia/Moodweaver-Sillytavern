@@ -93,14 +93,14 @@ export const phrases = text => String(text ?? '').split(/[,;]| and (?=[a-z]+ing\
 // ---- Needs, read from the board's own words ----
 // 100 is fully met, 0 is desperate. Words only move a need when they clearly say so.
 export const NEEDS = [
-    ['hunger', 'Hunger', 'food keeps pulling at their attention and their temper'],
-    ['energy', 'Energy', 'slow, sloppy and fighting to stay awake'],
-    ['bladder', 'Bladder', 'fidgety, and cutting things short to find a toilet'],
-    ['hygiene', 'Hygiene', 'aware of feeling and smelling filthy, and others notice'],
-    ['comfort', 'Comfort', 'pain, cold or stiffness they keep shifting against'],
-    ['social', 'Social', 'starved for company, attention or touch'],
-    ['fun', 'Fun', 'bored and restless, looking for a thrill or trouble'],
-    ['health', 'Health', 'hurt or sick enough that their body won’t do everything they want'],
+    ['hunger', 'Hunger', 'stomach growling, distracted by food, shorter temper; eats whatever’s at hand when they can'],
+    ['energy', 'Energy', 'heavy-lidded, yawning, slow and sloppy; wants to sit or lie down and dozes if left alone'],
+    ['bladder', 'Bladder', 'fidgeting, legs pressed together, distracted; cuts things short to find a toilet, or can’t'],
+    ['hygiene', 'Hygiene', 'aware they smell and feel filthy; others notice; wants a wash'],
+    ['comfort', 'Comfort', 'keeps shifting against pain, cold, cramp or restraint, and it shortens their temper'],
+    ['social', 'Social', 'starved for company: talks to anyone, lingers and clings, or sulks at being left alone'],
+    ['fun', 'Fun', 'bored and restless: needles people, picks at things, goes looking for trouble'],
+    ['health', 'Health', 'hurt or sick: winces, slows down, the body won’t do everything they want'],
 ].map(([id, label, cue]) => ({ id, label, cue }));
 export const NEED_IDS = new Set(NEEDS.map(n => n.id));
 // p: read from Physical State only. s: from State only. ps: either.
@@ -112,22 +112,25 @@ const RULES = [
     ['energy', 30, 'ps', /tired|sleepy|drowsy|weary|fatigue|yawn|heavy[- ]lidded|worn out|sluggish|no sleep|sleep[- ]deprived|drained|hungover|coming down|hasn'?t slept/],
     ['energy', 92, 'ps', /well[- ]rested|wide awake|wired|buzzing|alert/],
     ['bladder', 8, 'p', /bursting|about to wet|desperate (to pee|for the (toilet|bathroom|loo))/],
-    ['bladder', 30, 'p', /needs? (the|a) (toilet|bathroom|loo|piss|pee|wee)|full bladder|bladder/],
+    ['bladder', 30, 'ps', /needs? (the|a) (toilet|bathroom|loo|piss|pee|wee)|needs? to (pee|piss|wee)|has to (pee|piss|go)|holding it|full bladder|bladder|squirming|crossing (his|her|their) legs/],
+    ['bladder', 95, 'p', /just (peed|pissed|relieved (himself|herself|themselves))|empty bladder/],
     ['hygiene', 12, 'p', /filthy|caked|covered in (blood|filth|mud|grime|shit|vomit|sick)|reeks|stinks|soaked in (blood|sweat)|blood[- ]spattered|drenched in blood|gore/],
-    ['hygiene', 35, 'p', /sweat|grimy|dirty|greasy|unwashed|sticky|muddy|grime|smells? of|blood on|tacky with/],
+    ['hygiene', 35, 'p', /sweat|grimy|dirty|greasy|unwashed|sticky|muddy|grime|smells? of|blood on|tacky with|needs? a (shower|bath|wash)|hasn'?t (showered|washed|bathed)|\bripe\b|\brank\b|musky/],
     ['hygiene', 95, 'p', /fresh(ly)? (showered|washed|bathed|shaved)|clean[- ]shaven|just (bathed|showered)|fresh (from|out of) the (bath|shower)|scrubbed clean|squeaky clean/],
     ['comfort', 8, 'p', /agony|excruciat|unbearable|screaming pain|white[- ]hot pain/],
     ['comfort', 35, 'p', /pain|ache|aching|sore|stiff|cramp|headache|migraine|throb|\braw\b|tender|freezing|shiver|chilled|\bcold\b|numb|itch|nause|queasy|hungover|overheat|sweltering|dizzy/],
     ['comfort', 35, 'p', /soaked|drenched|soaking|wet through|dripping wet|rain[- ]soaked|wet (clothes|hair)|damp clothes/],
+    ['comfort', 30, 'p', /\btied\b|bound|restrained|shackled|cuffed|cramped|chafing|chafed|uncomfortable|kneeling for|hard floor|stiff neck/],
     ['comfort', 35, 'p', /(needs?|craving|dying for) (a |another )?(smoke|cigarette|drink|fix|hit|line)|jonesing|itching for (a )?(smoke|fix|hit|drink)/],
     ['comfort', 92, 'p', /comfortable|cos[yi]|cozy|relaxed|warm and/],
-    ['social', 22, 's', /lonely|isolated|starved for (company|touch|attention)|desperate for company|abandoned/],
-    ['social', 40, 's', /craving (company|attention|touch)|wants company|touch[- ]starved/],
-    ['social', 92, 's', /socially drained|peopled out|wants? to be left alone/],
-    ['fun', 25, 's', /bored|stir[- ]crazy|tedium|listless|restless/],
-    ['fun', 90, 's', /thrilled|amused|entertained|delighted|giddy|playful|having fun/],
+    ['social', 22, 'ps', /lonely|isolated|starved for (company|touch|attention)|desperate for company|abandoned|left alone for/],
+    ['social', 40, 'ps', /craving (company|attention|touch)|wants company|touch[- ]starved|missing (him|her|them)|ignored/],
+    ['social', 92, 'ps', /socially drained|peopled out|wants? to be left alone/],
+    ['fun', 20, 'ps', /bored stiff|bored out of|stir[- ]crazy|nothing to do|climbing the walls/],
+    ['fun', 30, 'ps', /bored|tedium|listless|restless|antsy|itching for (trouble|something)/],
+    ['fun', 90, 'ps', /thrilled|amused|entertained|delighted|giddy|playful|having fun/],
     ['health', 10, 'p', /dying|bleeding out|gut[- ]shot|stab wound|stabbed|mortal|unconscious|overdos|convuls|shattered/],
-    ['health', 38, 'p', /bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|burnt|scald|blister|singed|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked|withdrawal|dope ?sick/],
+    ['health', 38, 'p', /feverish|vomit|throwing up|withdrawals?\b|concussed|bruised ribs|bleed|\bcuts?\b|gash|wound|bruis|split lip|\bburns?\b|burned|burnt|scald|blister|singed|sprain|injur|limp|sick|fever|bitten|fractur|broken|black eye|swollen|concuss|cracked|withdrawal|dope ?sick/],
     ['health', 95, 'p', /unhurt|unharmed|uninjured|healthy|in perfect health/],
 ];
 const HORNY = [
@@ -161,6 +164,68 @@ export function hornyFromBoard(board) {
 }
 export const needWord = v => v <= 15 ? 'Critical' : v <= 35 ? 'Low' : v <= 65 ? 'Okay' : 'Fine';
 export const NEED_DEFAULT = 80;
+
+// ---- 1.39.0: needs over in-world time ----
+// The board's Date and Time rows give a clock. Between two boards close together in time, needs drain a
+// little (hours of holding it fill the bladder, a long night makes them hungry). A bigger gap is a time
+// jump: life went on off-screen, so they ate, slept, washed and saw people, and those needs come back up
+// unless the reply after the jump says otherwise. Backwards time (a flashback) and boards without a clock
+// change nothing. Everything is worked out from the replies still in the chat, so a swipe undoes it.
+export function boardClock(board) {
+    if (!board) return null;
+    const t = String(board.time ?? '').toLowerCase();
+    let minutes = null;
+    const ap = t.match(/(\d{1,2})(?:[:.](\d{2}))?\s*([ap])\.?\s*m\b/);
+    const h24 = t.match(/\b([01]?\d|2[0-3])[:h]([0-5]\d)\b/);
+    if (ap) minutes = ((Number(ap[1]) % 12) + (ap[3] === 'p' ? 12 : 0)) * 60 + Number(ap[2] ?? 0);
+    else if (h24) minutes = Number(h24[1]) * 60 + Number(h24[2]);
+    else if (/midnight/.test(t)) minutes = 0; else if (/noon|midday/.test(t)) minutes = 720;
+    const raw = String(board.date ?? '').split('|')[0].replace(/^\s*[a-z]+day,?\s*/i, '').replace(/(\d)(st|nd|rd|th)\b/gi, '$1').trim();
+    const ms = raw && /\d{3,4}/.test(raw) ? Date.parse(raw) : NaN;
+    return { minutes, day: Number.isFinite(ms) ? Math.round(ms / 86400000) : null };
+}
+// Hours from one board to the next; null when it can't be told or time went backwards.
+export function hoursBetween(a, b) {
+    if (a?.minutes == null || b?.minutes == null) return null;
+    if (a.day != null && b.day != null) { const h = ((b.day - a.day) * 1440 + b.minutes - a.minutes) / 60; return h < 0 ? null : h; }
+    const diff = b.minutes - a.minutes;
+    return (diff >= 0 ? diff : diff + 1440) / 60;
+}
+// Per in-world hour on screen. Comfort and health only change when the story changes them.
+export const NEED_DRAIN = { hunger: 5, energy: 4, bladder: 12, hygiene: 2, social: 2, fun: 4, comfort: 0, health: 0 };
+export const NEED_SPEEDS = { gentle: 0.5, normal: 1, harsh: 1.6 };
+export const cleanNeedOpts = o => ({ drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
+const hrs = h => h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : `${Math.round(h * 10) / 10} h`;
+// timeline: the character's replies oldest first, [{ index, board, needs: { id: level }, deltas: { id: ±n } }].
+export function simulateNeeds(timeline = [], options = {}) {
+    const o = cleanNeedOpts(options), speed = NEED_SPEEDS[o.speed];
+    const values = Object.fromEntries(NEEDS.map(n => [n.id, NEED_DEFAULT])), source = {}, known = {};
+    let prev = null;
+    for (const step of timeline ?? []) {
+        const clock = boardClock(step.board);
+        const h = o.drift && prev && clock ? hoursBetween(prev, clock) : null;
+        if (h && h > 0) {
+            if (h > o.skipHours && o.skips) {
+                for (const id of ['hunger', 'energy', 'bladder', 'hygiene', 'social', 'fun']) if (values[id] < 75) { values[id] = 75; source[id] = `${hrs(h)} later: life went on off-screen`; }
+                values.comfort = Math.max(values.comfort, Math.round((values.comfort + 80) / 2));
+                values.health = Math.min(100, values.health + Math.min(25, Math.floor(h / 8) * 5));
+            } else {
+                const span = Math.min(h, o.skipHours);
+                for (const [id, rate] of Object.entries(NEED_DRAIN)) {
+                    if (!rate) continue;
+                    const next = Math.round(Math.max(Math.min(values[id], o.floor ? 30 : 0), values[id] - rate * span * speed));
+                    if (next < values[id]) { values[id] = next; source[id] = `${hrs(span)} passed`; if (next < 66) known[id] = true; }
+                }
+            }
+        }
+        if (clock?.minutes != null) prev = clock;
+        const read = step.board ? needsFromBoard(step.board) : {};
+        for (const [id, r] of Object.entries(read)) { values[id] = r.value; source[id] = r.source; known[id] = true; }
+        for (const [id, v] of Object.entries(step.needs ?? {})) if (id in values) { values[id] = v; source[id] = 'the story'; known[id] = true; }
+        for (const [id, d] of Object.entries(step.deltas ?? {})) if (id in values) { values[id] = Math.max(0, Math.min(100, values[id] + d)); source[id] = `the story (${d > 0 ? '+' : ''}${d})`; known[id] = true; }
+    }
+    return { values, source, known };
+}
 
 // ---- Tiles: board phrases matched to the catalogue for an icon and colour ----
 let index = null, indexSize = 0;
@@ -253,8 +318,12 @@ export function liveBoard(found, meta, names = {}, needSteps = {}, opts = {}) {
     // Whichever is newer wins: the board's words or the need the weave line last reported.
     const steps = Object.entries(needSteps ?? {}).map(([i, v]) => [Number(i), v]).sort((x, y) => y[0] - x[0]);
     const woven = id => { const hit = steps.find(([, v]) => id in v); return hit && hit[0] >= (found?.index ?? -1) ? hit[1][id] : null; };
+    // 1.39.0: with a timeline, needs are worked out reply by reply, with in-world time in between.
+    const sim = Array.isArray(opts.timeline) ? simulateNeeds(opts.timeline, opts.needs) : null;
     const needs = NEEDS.map(n => {
-        const pinned = Object.hasOwn(b.needs, n.id), w = woven(n.id);
+        const pinned = Object.hasOwn(b.needs, n.id);
+        if (sim) return { ...n, value: pinned ? b.needs[n.id] : sim.values[n.id], pinned, source: pinned ? '' : sim.source[n.id] ?? '', known: pinned || Boolean(sim.known[n.id]) };
+        const w = woven(n.id);
         const value = pinned ? b.needs[n.id] : w ?? read[n.id]?.value ?? NEED_DEFAULT;
         return { ...n, value, pinned, source: pinned || w !== null ? '' : read[n.id]?.source ?? '', known: pinned || w !== null || Boolean(read[n.id]) };
     });
@@ -316,7 +385,7 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     const cut = [...b.mute.state, ...b.mute.physical].filter(p => [live.board?.state, live.board?.physical].some(line => String(line ?? '').toLowerCase().includes(p.toLowerCase())));
     if (cut.length) out.push(`The player cut these. Drop them from the board and the scene: ${pt(cut.join(', '))}.`);
     const needs = live.needs.filter(nd => nd.pinned || (nd.known && nd.value <= 35));
-    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', `${n}'s needs right now. Low ones nag and leak into mood and choices; a critical one takes over until it's dealt with or something worse wins:`,
+    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', `${n}'s needs right now (keep them off the board unless it already shows them). Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins:`,
         ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn’t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
         ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
     const rest = live.needs.filter(nd => nd.known && !nd.pinned && nd.value > 35);

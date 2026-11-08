@@ -4,6 +4,10 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.39.1:** a ♨ Desire meter on the Bonds tab (arousal, holding back, frustration; slow burn by default, with a cap), 82 traits from The Sims 3 and 4, and a switch for how feelings show (default wording plus yours, only yours, or off). Install the new `sims.js` too. See [the update notes](UPDATE-1.39.0.md#1391).
+
+**1.39.0:** everything reacts. Kinks are turn-ons that light up ✧ and count stronger next reply, along with 78 new turn-ons. Feelings say how they show, and you can set a character's own way. Hot buttons, wants that react, needs that follow in-world time and handle time jumps, a You tab for your character, a pattern breaker, every author rewritten by technique (15 new), and dead dove that names the dodges. Install the four new files too. See [the update notes](UPDATE-1.39.0.md).
+
 **1.38.1:** a bug sweep. The scene reader can no longer drain feelings with a broken reply, Continue keeps the board of the reply it's finishing, a name with a quote mark can't break the note, and redraws wait for your finger to lift. All 90 tests pass again. See [the update notes](UPDATE-1.38.0.md#1381-a-sweep).
 
 **1.38.0:** the info board reads far more of what Claude writes. It understands phrases ("barely holding it together", "putty in her hands"), about 130 everyday words, American spellings and curly apostrophes, and the board's words now fill in feelings the hidden line didn't mention. Memories and board pins are switched off by default, each with its own switch. See [the update notes](UPDATE-1.38.0.md).

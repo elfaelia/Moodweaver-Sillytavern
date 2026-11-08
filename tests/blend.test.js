@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { ERA_LOCALE } from '../locale.js';
 import { MOODS, freshState, composePrompt, budgetPrompt, blendAnalysis, analysisMessages, sceneData, activeMoods, tierOf } from '../core.js';
 const count = text => Math.ceil(text.length / 4);
 // Settings reach the note as strength words ("- clear: …"), not numbers.
@@ -43,6 +44,8 @@ test('settings never crowd each other out, weak beside strong in either order', 
     for (let i = 0; i < 2500; i++) {
         const a = MOODS[rnd(MOODS.length)], b = MOODS[rnd(MOODS.length)];
         if (a.id === b.id || (a.kind === 'story') !== (b.kind === 'story')) continue;
+        // An American place-and-time lock respells the whole note, so its partner's line legitimately changes.
+        if ([a.id, b.id].some(id => ERA_LOCALE[id]?.locale === 'us')) continue;
         const story = a.kind === 'story';
         for (const [x, y] of [[4, 90], [90, 4]]) {
             const got = settingLines(freshState({ moods: { [a.id]: x, [b.id]: y } }), story);

@@ -47,6 +47,6 @@ test('the weave line can name the new feelings and relationship types', () => {
 
 test('a new option reaches the prompt as its short description', () => {
     const p = composePrompt(freshState({ moods: { wheedling: 60, goth_masc: 50 } }), 'Lamb');
-    assert.match(p, /coaxing a yes with pouts, sweetness and little touches/);
+    assert.match(p, /wheedling: sweet voice, pouts, little touches until they get a yes/);
     assert.match(p, /long coat, band tee, boots, rings/);
 });

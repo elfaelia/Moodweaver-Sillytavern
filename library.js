@@ -19,7 +19,8 @@ export const groupExists = group => Boolean(CATEGORY_ROW[group] || TURN_GROUP[gr
 export function cleanLibrary(list) {
     const seen = new Set();
     return (Array.isArray(list) ? list : []).map(e => ({
-        id: LIBRARY_ID.test(e?.id) ? e.id : '', group: String(e?.group ?? ''),
+        // 1.39.0: Kinks became turn-ons, so your own kinks move to the Kinks turn-on group.
+        id: LIBRARY_ID.test(e?.id) ? e.id : '', group: e?.group === 'appetites' ? turnGroupKey('Kinks') : String(e?.group ?? ''),
         label: text(e?.label, 60), cue: text(e?.cue, 160), dark: e?.dark === true,
     })).filter(e => e.id && e.label && groupExists(e.group) && !seen.has(e.id) && seen.add(e.id)).slice(0, 400);
 }

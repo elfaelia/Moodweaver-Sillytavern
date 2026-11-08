@@ -93,7 +93,7 @@ export function cleanBond(raw = {}, on = true) {
     const steps = {};
     for (const [i, s] of Object.entries(b.steps ?? {})) if (/^\d+$/.test(i) && s && typeof s === 'object')
         steps[i] = { f: step(s.f), r: step(s.r), t: step(s.t), p: step(s.p), l: step(s.l), thinks: (Array.isArray(s.thinks) ? s.thinks : []).map(t => text(t)).filter(Boolean).slice(0, 3),
-            sparks: (Array.isArray(s.sparks) ? s.sparks : []).map(x => ({ text: text(x?.text, 60), off: x?.off === true, id: TURN_BY_ID[x?.id] ? x.id : '' })).filter(x => x.text).slice(0, 3) };
+            sparks: (Array.isArray(s.sparks) ? s.sparks : []).map(x => ({ text: text(x?.text, 60), off: x?.off === true, id: TURN_BY_ID[x?.id] ? x.id : '', trait: text(x?.trait, 60) })).filter(x => x.text).slice(0, 3) };
     const keep = Object.keys(steps).map(Number).sort((a, c) => c - a).slice(0, 120);
     // 1.36.0: a dragged meter is an anchor: "it stood at v just after this reply".
     const anchors = {};
@@ -109,6 +109,7 @@ export function cleanBond(raw = {}, on = true) {
         steps: b.v === 2 ? {} : Object.fromEntries(keep.map(i => [i, steps[i]])),
         muted: [...new Set((b.muted ?? []).map(t => text(t).toLowerCase()).filter(Boolean))].slice(0, 30),
         own: [...new Set((b.own ?? []).map(t => text(t)).filter(Boolean))].slice(0, 6),
+        desire: cleanDesire(b.desire),
     };
 }
 // Older saves kept steps by message number; they're still readable for the one-time move to 1.36.
@@ -165,12 +166,29 @@ export function setMeter(bond, key, value, list = []) {
     if (bond.pins[key] !== null) bond.pins[key] = v;
 }
 // A sparked phrase matched to one of the character's own turn-ons, if it names one.
-export function turnIdFor(text, prefs = {}) {
-    const words = String(text).toLowerCase().replace(/[^a-z' -]/g, ' ').split(/\s+/).filter(w => w.length > 2);
-    const set = Object.keys(prefs).filter(id => prefs[id] && TURN_BY_ID[id]);
-    const score = id => { const t = TURN_BY_ID[id], keys = `${t.noun} ${t.label} ${t.prompt}`.toLowerCase(); return words.filter(w => keys.includes(w)).length; };
-    const best = set.map(id => [id, score(id)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1])[0];
+// 1.39.0: the turn-on's own name wins outright, then its extra words (kinks: "choked" finds Choking).
+const sparkWords = text => String(text).toLowerCase().replace(/[^a-z' -]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !['the', 'and', 'her', 'his', 'their', 'with', 'being', 'someone'].includes(w));
+const stem = w => w.replace(/(ing|ed|es|s)$/, '');
+function bestMatch(text, items) {
+    const raw = String(text).toLowerCase().trim(), words = sparkWords(text);
+    const exact = items.find(x => x.names.some(n => n && (raw === n || raw.includes(n) && n.length > 3)));
+    if (exact) return exact.id;
+    const score = x => words.filter(w => x.keys.some(k => k === w || (w.length > 4 && stem(k) === stem(w)))).length;
+    const best = items.map(x => [x.id, score(x)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1])[0];
     return best?.[0] ?? '';
+}
+const turnItem = id => { const t = TURN_BY_ID[id]; const names = [t.noun, t.label, t.prompt].map(x => String(x).toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').trim());
+    return { id, names, keys: [...new Set(`${names.join(' ')} ${t.keys ?? ''}`.toLowerCase().replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(w => w.length > 2))] }; };
+export function turnIdFor(text, prefs = {}) {
+    return bestMatch(text, Object.keys(prefs).filter(id => prefs[id] && TURN_BY_ID[id]).map(turnItem));
+}
+// A sparked phrase matched to a turn-on first, then to one of their active bedroom traits (roles and
+// psychosexual entries: traits = [{ id, label }]). Returns { id } for a turn-on or { trait } for a trait.
+export function sparkTarget(text, prefs = {}, traits = []) {
+    const id = turnIdFor(text, prefs);
+    if (id) return { id, trait: '' };
+    const items = traits.map(t => { const n = String(t.label).toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').trim(); return { id: t.id, names: [n], keys: n.split(/[\s/-]+/).filter(w => w.length > 3) }; });
+    return { id: '', trait: bestMatch(text, items) };
 }
 
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
@@ -183,5 +201,65 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
         ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(t.text)).join(', ')}`] : []),
+        ...desireLines(bond, list ?? [], pt(n), pt(u)),
     ];
+}
+
+// ---- 1.39.1: the desire meter ----
+// Arousal (how turned on toward the player right now), restraint (how hard they hold back) and frustration
+// (built up without release). Read from the hidden line reply by reply like the other meters, so swipes undo
+// it. Pace caps how far one reply can push arousal up; a cap stops it at a chosen stage for slow burns.
+export const DESIRE_PACE = { slow: 5, normal: 10, fast: 20 };
+export const DESIRE_CAPS = [[100, 'No limit'], [94, 'Desperate'], [80, 'Aching'], [60, 'Warm'], [40, 'Interested']];
+export const DESIRE_STAGES = [[95, 'Past thinking'], [81, 'Desperate'], [61, 'Aching'], [41, 'Warm'], [26, 'Interested'], [11, 'Noticing'], [0, 'Not in the mood']];
+export const desireStage = (a, after = false) => after ? 'Afterglow' : DESIRE_STAGES.find(([min]) => a >= min)[1];
+export const restraintWord = v => v >= 81 ? 'fighting it with everything' : v >= 61 ? 'holding back hard' : v >= 41 ? 'holding back some' : v >= 21 ? 'barely holding back' : 'not holding back';
+export const frustrationWord = v => v >= 81 ? 'unbearable' : v >= 61 ? 'high' : v >= 31 ? 'building' : v >= 1 ? 'low' : 'none';
+export function cleanDesire(raw) {
+    const x = raw && typeof raw === 'object' ? raw : {};
+    const n = (v, d) => Number.isFinite(Number(v)) ? clamp(Math.round(Number(v)), 0, 100) : d;
+    const pin = v => v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : n(v, 0);
+    const a = x.anchor && typeof x.anchor === 'object' ? { a: n(x.anchor.a, 0), s: n(x.anchor.s, 50), f: n(x.anchor.f, 0),
+        key: String(x.anchor.key ?? '').slice(0, 120), pos: Number.isFinite(Number(x.anchor.pos)) ? Math.round(Number(x.anchor.pos)) : -1 } : null;
+    return { on: x.on === true, pace: DESIRE_PACE[x.pace] ? x.pace : 'slow', cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
+        anchor: a, pins: { a: pin(x.pins?.a), s: pin(x.pins?.s), f: pin(x.pins?.f) } };
+}
+// list: [{ pos, key, s: { d: { a, s, release } | null } }] oldest first.
+export function computeDesire(desire, list = []) {
+    const d = cleanDesire(desire), up = DESIRE_PACE[d.pace];
+    let a = 0, s = 50, f = 0, after = 0, start = 0;
+    if (d.anchor) {
+        let at = d.anchor.key ? list.findIndex(x => x.key === d.anchor.key) : -1;
+        if (at < 0 && !d.anchor.key) at = -1; else if (at < 0) for (let i = list.length - 1; i >= 0; i--) if (list[i].pos <= d.anchor.pos) { at = i; break; }
+        ({ a, s, f } = d.anchor); start = at + 1;
+    }
+    for (let i = start; i < list.length; i++) {
+        const x = list[i].s?.d;
+        if (x?.release) { a = 15; f = 0; after = 2; } else after = Math.max(0, after - 1);
+        if (x?.a) a = clamp(a + clamp(x.a, -40, up), 0, d.cap);
+        else if (!x && a > 20) a -= 2;
+        if (x?.s) s = clamp(s + clamp(x.s, -up, up), 0, 100);
+        if (!x?.release) f = clamp(f + (a >= 41 ? Math.ceil((a - 35) / 8) : -3), 0, 100);
+    }
+    a = Math.min(d.pins.a ?? a, d.cap); s = d.pins.s ?? s; f = d.pins.f ?? f;
+    return { a, s, f, after: after > 0 && d.pins.a === null, stage: desireStage(a, after > 0 && d.pins.a === null), cap: d.cap, pace: d.pace, pins: d.pins };
+}
+// Dragging a bar sets all three where they stand now; later replies move them from there.
+export function setDesire(bond, key, value, list = []) {
+    const d = bond.desire = cleanDesire(bond.desire), now = computeDesire(d, list), last = list[list.length - 1];
+    const v = clamp(Math.round(Number(value) || 0), 0, 100);
+    d.anchor = { a: now.a, s: now.s, f: now.f, [key]: v, key: last?.key ?? '', pos: last?.pos ?? -1 };
+    if (d.pins[key] !== null) d.pins[key] = v;
+}
+// The rows Claude reads under "[character] toward [player]".
+export function desireLines(bond, list, n, u) {
+    if (!bond?.desire?.on) return [];
+    const x = computeDesire(bond.desire, list), cap = DESIRE_CAPS.find(([c]) => c === x.cap)?.[1];
+    const how = x.after ? `just after release: spent, loose and slow; soft, awkward or cold, depending on who ${n} is`
+        : x.a <= 10 ? `desire isn't part of this moment; don't add it`
+        : x.a <= 40 ? `a flicker: ${n} notices ${u}'s body in passing and moves on`
+        : x.s >= 61 ? `${n} wants ${u} and is fighting it: it leaks into looks, standing too close and touches pulled back`
+        : x.s >= 31 ? `it shows in looks, closeness and loaded words; ${n} takes openings without forcing them`
+        : `${n} acts on it whenever there's an opening`;
+    return [`desire for ${pt(u)}: ${x.stage.toLowerCase()}; ${restraintWord(x.s)}; frustration ${frustrationWord(x.f)}. ${how[0].toUpperCase()}${how.slice(1)}.${x.f >= 61 && !x.after ? ` Pent-up frustration sharpens ${n}'s temper and makes small touches land hard.` : ''}${x.pace === 'slow' ? ' It builds slowly in this chat: a small step a reply at most.' : x.pace === 'fast' ? ' It can build fast.' : ''}${x.cap < 100 ? ` For now it tops out at ${cap.toLowerCase()}; don't take it past that.` : ''}`];
 }

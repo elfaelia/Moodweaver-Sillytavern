@@ -32,34 +32,60 @@ function changes(v, max = 5) {
 }
 export const NEED_WORDS = { critical: 10, low: 30, okay: 55, ok: 55, fine: 85, full: 95, met: 90 };
 const NEED_NAMES = ['hunger', 'energy', 'bladder', 'hygiene', 'comfort', 'social', 'fun', 'health'];
-// "hunger low, energy critical" → { hunger: 30, energy: 10 }
-function needs(v) {
+// "hunger low, energy critical" → { hunger: 30, energy: 10 }. 1.39.0: "health -10" is a change, kept
+// separately in deltas so older readers that only know levels never mistake it for one.
+function needs(v, deltas = null) {
     const out = {};
     for (const part of NONE.test(String(v ?? '').trim()) ? [] : String(v ?? '').split(/[,;]/)) {
-        const m = part.trim().toLowerCase().match(/^([a-z]+)\s*:?\s*(critical|low|okay|ok|fine|full|met|\d{1,3})\b/);
+        const t = part.trim().toLowerCase().replace(/[−–]/g, '-');
+        const d = t.match(/^([a-z]+)\s*:?\s*([+-])\s*(\d{1,3})\b/);
+        if (d && NEED_NAMES.includes(d[1])) { if (deltas) deltas[d[1]] = clamp((deltas[d[1]] ?? 0) + Number(d[2] + d[3]), -100, 100); continue; }
+        const m = t.match(/^([a-z]+)\s*:?\s*(critical|low|okay|ok|fine|full|met|\d{1,3})\b/);
         if (m && NEED_NAMES.includes(m[1])) out[m[1]] = /\d/.test(m[2]) ? clamp(Number(m[2]), 0, 100) : NEED_WORDS[m[2]];
     }
     return out;
 }
+// "get her to eat +, escape -, keep her safe done" → [{ text, status }]
+const wantItems = v => list(v, 4, 80).map(s => {
+    const m = s.replace(/[−–]/g, '-').match(/^(.+?)\s*(\+|-|\bdone\b|\bcame true\b|\bblocked\b|\bcloser\b)\s*$/i);
+    if (!m) return { text: s, status: '+' };
+    const k = m[2].toLowerCase();
+    return { text: unquote(m[1]), status: k === '-' || k === 'blocked' ? '-' : k === '+' || k === 'closer' ? '+' : 'done' };
+}).filter(w => w.text);
 // "her defiance, her crying (off)" → [{ text, off }]
 const sparks = v => list(v, 3, 60).map(s => ({ text: s.replace(/\s*\((?:off|turn-?off)\)\s*$/i, '').trim(), off: /\((?:off|turn-?off)\)\s*$/i.test(s) })).filter(s => s.text);
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember)\b\s*:?\s*([\s\S]*)$/i;
+// 1.39.1: "arousal +6, restraint -4" or "release" → { a, s, release }.
+function desireOf(v) {
+    if (!v || NONE.test(String(v).trim())) return null;
+    const t = String(v).toLowerCase().replace(/[−–]/g, '-'), out = { a: 0, s: 0, release: /\b(release|released|climax\w*|came|orgasm\w*)\b/.test(t) };
+    for (const part of t.split(/[,;]/)) {
+        const m = part.trim().match(/^(arousal|aroused|desire|restraint|holding back)?\s*:?\s*([+-]\s*\d{1,3})/); if (!m) continue;
+        const d = clamp(Number(m[2].replace(/\s/g, '')), -50, 50);
+        if (/restraint|holding/.test(m[1] ?? '')) out.s += d; else out.a += d;
+    }
+    return out.a || out.s || out.release ? out : null;
+}
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
     for (const part of body.split('|')) {
         const x = part.trim().match(FIELDS); if (!x) continue;
-        const key = x[1].toLowerCase().replace(/^(mood|feelings)$/, 'moods').replace(/^sparks$/, 'sparked');
+        const key = x[1].toLowerCase().replace(/^(mood|feelings)$/, 'moods').replace(/^sparks$/, 'sparked').replace(/^goals$/, 'wants').replace(/^new\s+wants?$/, 'newwant');
         f[key] ??= x[2].trim();
     }
     const remember = unquote(f.remember ?? '');
     // "toward" without numbers ("devoted, wary") is read like the old "feels" words.
-    const toward = changes(f.toward, 3), feels = list(f.feels, 3, 40);
+    const toward = changes(f.toward, 3), feels = list(f.feels, 3, 40), deltas = {};
     if (!toward.length && f.toward && !feels.length) feels.push(...list(f.toward, 3, 40));
     return {
         f: clamp(num(f.friendship), -10, 10), r: clamp(num(f.romance), -10, 10), t: clamp(num(f.trust), -10, 10), p: clamp(num(f.power), -10, 10),
         hasTrust: 'trust' in f, hasPower: 'control' in f || 'power' in f, pRaw: f.control ?? f.power ?? '', lRaw: f.pull ?? '',
-        moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs), toward, feels,
+        moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
+        wants: wantItems(f.wants), fears: list(f.fears, 3, 80), pressed: list(f.pressed, 3, 80),
+        newWant: NONE.test(unquote(f.newwant ?? '')) ? '' : unquote(f.newwant ?? '').slice(0, 100),
+        desire: desireOf(f.desire),
+        you: 'you' in f ? (NONE.test(String(f.you).trim()) || /^(healed|fine|nothing|unhurt)\.?$/i.test(String(f.you).trim()) ? [] : list(f.you, 5, 60)) : null,
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked),
         remember: !remember || NONE.test(remember) ? '' : remember.slice(0, 160),
@@ -78,6 +104,11 @@ export function parseWeave(mes) {
         out.feels = [...out.feels, ...x.feels].slice(0, 6); out.needs = { ...out.needs, ...x.needs };
         out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6);
         if (x.remember) out.remember = x.remember;
+        for (const [k, d] of Object.entries(x.needDeltas ?? {})) out.needDeltas[k] = clamp((out.needDeltas[k] ?? 0) + d, -100, 100);
+        out.wants = [...out.wants, ...x.wants].slice(0, 8); out.fears = [...out.fears, ...x.fears].slice(0, 6); out.pressed = [...out.pressed, ...x.pressed].slice(0, 6);
+        if (x.newWant) out.newWant = x.newWant;
+        if (x.desire) out.desire = out.desire ? { a: out.desire.a + x.desire.a, s: out.desire.s + x.desire.s, release: out.desire.release || x.desire.release } : x.desire;
+        if (x.you) out.you = x.you;
     }
     return out;
 }
@@ -102,24 +133,30 @@ export function powerChange(raw, charName = '', userName = '') {
 // asked for every reply (which invites small invented changes). Values only, never reasons: asking a
 // thinking model to write its reasoning into the reply can be refused.
 // opts: { n, u, bond, extra (trust & power), moods (feelings, needs, relationship), remember }
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false }) {
     if (!bond && !moods && !remember) return [];
     const example = [
-        ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low', 'toward protective +5'] : []),
-        ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', `sparked: ${u}'s defiance`] : []),
+        ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low, health -10', 'toward protective +5'] : []),
+        ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', 'sparked: defiance'] : []),
+        ...(desire ? ['desire: arousal +4, restraint -2'] : []),
+        ...(wants ? ['wants: get her to eat +'] : []), ...(buttons ? ['pressed: being pitied'] : []),
+        ...(you ? ['you: split lip'] : []),
         ...(remember ? [`remember: ${u} promised to stay`] : []),
     ];
     return [
         `End every reply with one hidden line that only Moodweaver reads, listing what this reply changed for ${n}. Leave out anything that didn't change; if nothing did, write <!-- weave: none -->. This example shows the shape only, so report this reply's own changes:`,
         `<!-- weave: ${example.join(' | ')} -->`,
         ...(moods ? [`- moods: ${n}'s own feelings that rose or fell, by the names in these notes or a plain feeling word, -30 to +30, or off when one is over (afraid off).`,
-            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health, each critical, low, okay or fine.`,
+            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10), for what the scene did: food, sleep, washing and company fill them; drink, holding it, filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them (a beating costs health even if enjoyed).`,
             `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
         ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -10 to +10; 1 to 3 for ordinary moments, more only for turning points. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
             ...(extra ? [`- control: who gained real control this reply (doors, money, freedom, who decides what happens), 1 to 10, as ${n} +3 or ${u} +3.`,
                 `- pull: who gained emotional hold (who needs whom more, who gives way), the same way. Control and pull can move opposite ways in one reply: ${u} can win a demand while ${n} still holds every key.`] : []),
             `- thinks: words that finish "${n} thinks ${u} is…" (stubborn, his, a liar).`,
-            `- sparked: something ${u} did that hit one of ${n}'s turn-ons or turn-offs, from these notes or the card; add (off) for a turn-off.`] : []),
+            `- sparked: any of ${n}'s turn-ons or turn-offs (people, bodies, acts, kinks, fetishes) or bedroom traits this reply touched, whoever brought it, by its name in these notes; add (off) for a turn-off.`] : []),
+        ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: a want or goal this reply moved (+ closer, - blocked, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting, only if obvious' : ''].filter(Boolean).join('; ')}. Use ${n}'s own wording from these notes.`] : []),
+        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} and how hard ${n} holds back, as small steps (arousal +3, restraint -5); add release if they climaxed.`] : []),
+        ...(you ? [`- you: lasting things the story did to ${u}'s body (injured, drugged, soaked, tied), the full current list, or none once healed.`] : []),
         ...(remember ? [`- remember: a turning point between them, in one plain line: a confession, promise, betrayal, first time or secret learned.`] : []),
     ];
 }

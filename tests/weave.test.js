@@ -69,7 +69,7 @@ test('meters: four bars, a named dynamic, and the standing sits under the relati
     assert.match(prompt, /- their dynamic, toxic obsession: Easterman keeps Lamb close/);
     assert.match(prompt, /both are true/);
     assert.match(prompt, /<!-- weave: moods/);
-    assert.match(prompt, /no closing paragraph of reflection/);
+    assert.match(prompt, /no closing paragraph that sums up/);
 });
 
 test('Easterman and Lamb: he holds the keys, she has the pull, and the dynamic is a gilded cage', async () => {

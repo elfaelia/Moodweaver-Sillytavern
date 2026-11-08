@@ -26,7 +26,7 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
         <label class="mw-toggle"><input type="checkbox" data-bond-on> Hidden weave line for ${esc(charName)} in this chat</label>
         <p class="mw-fine">Off. Nothing is asked for or sent, and the info board’s words update feelings instead.</p></section>`;
     return `<section class="mw-bond">
-        ${bond.extra ? `<div class="mw-dyn-card" data-dynamic="${slug(d.dynamic.name)}"><small>${esc(charName)} &amp; ${esc(userName)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(d.dynamic.cue)}</p>
+        ${bond.extra ? `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.name)}"><small>${esc(charName)} &amp; ${esc(userName)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(d.dynamic.cue)}</p>
             <label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic"><option value="">Read it from the story (${esc(d.auto)})</option>${DYNAMIC_NAMES.map(name => `<option value="${esc(name)}" ${bond.fixed === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
             <small class="mw-dyn-why">${bond.fixed ? 'Chosen by you; it stays until you switch back.' : `Read from these meters and ${esc(charName)}’s feelings toward ${esc(userName)} below. Pinned meters win.`}</small></div>` : ''}
         ${moreBlock(bond, list ?? [], userName)}
@@ -36,13 +36,13 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
             ${meter('r', 'Romance', d.r, d.romance, pin('r'))}
             ${bond.extra ? `${meter('p', 'Control', d.p, d.control, pin('p'), [userName, charName])}${meter('l', 'Pull', d.l, d.pull, pin('l'), [userName, charName])}${meter('t', 'Trust', d.t, d.trust, pin('t'))}` : ''}
         </div>
-        ${d.sparks.length ? `<div class="mw-bond-block"><h4>Lit lately <small>turn-ons and bedroom traits the last replies set off</small></h4><div class="mw-sparks">${d.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}" title="Message ${x.index + 1}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div></div>` : ''}
-        ${tally?.sparks?.length ? `<div class="mw-bond-block"><h4>What gets to ${esc(charName)} <small>over this chat</small></h4><div class="mw-sparks">${tally.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
-        ${tally?.pressed?.length ? `<div class="mw-bond-block"><h4>Hot buttons pressed</h4><div class="mw-sparks">${tally.pressed.map(x => `<span class="mw-spark is-off">⚡ ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
-        <div class="mw-bond-block"><h4>${esc(charName)} thinks ${esc(userName)} is…</h4>
+        ${d.sparks.length ? `<div class="mw-bond-block" data-anchor="bond-lit"><h4>Lit lately <small>turn-ons and bedroom traits the last replies set off</small></h4><div class="mw-sparks">${d.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}" title="Message ${x.index + 1}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div></div>` : ''}
+        ${tally?.sparks?.length ? `<div class="mw-bond-block" data-anchor="bond-tally"><h4>What gets to ${esc(charName)} <small>over this chat</small></h4><div class="mw-sparks">${tally.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
+        ${tally?.pressed?.length ? `<div class="mw-bond-block" data-anchor="bond-pressed"><h4>Hot buttons pressed</h4><div class="mw-sparks">${tally.pressed.map(x => `<span class="mw-spark is-off">⚡ ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
+        <div class="mw-bond-block" data-anchor="bond-thinks"><h4>${esc(charName)} thinks ${esc(userName)} is…</h4>
             <div class="mw-bond-thinks">${d.thinks.length ? d.thinks.map(t => `<span class="mw-bond-chip${t.own ? ' is-own' : ''}" title="${t.own ? 'Added by you' : `Strength ${Math.min(100, t.value)}`}">${esc(t.text)}<button type="button" data-bond-mute="${esc(t.text)}" aria-label="Remove ${esc(t.text)}">×</button></span>`).join('') : `<i class="mw-fine">Nothing yet. Opinions show up as the story gives ${esc(charName)} reasons.</i>`}</div>
             <div class="mw-bond-add"><input type="text" maxlength="40" data-bond-new placeholder="Add one (e.g. reckless)" aria-label="Add an opinion"><button type="button" data-action="bond-add">Add</button></div></div>
-        ${changes.length ? `<div class="mw-bond-block"><h4>Recent changes</h4><ul class="mw-bond-recent">${changes.map(s => `<li><b>#${s.index + 1}</b>${[['f', 'friendship'], ['r', 'romance'], ['t', 'trust'], ['p', 'control'], ['l', 'pull']].filter(([k]) => s[k]).map(([k, w]) => `<span class="${s[k] > 0 ? 'is-up' : 'is-down'}">${w} ${sign(s[k])}</span>`).join('')}</li>`).join('')}</ul></div>` : ''}
+        ${changes.length ? `<div class="mw-bond-block" data-anchor="bond-recent"><h4>Recent changes</h4><ul class="mw-bond-recent">${changes.map(s => `<li><b>#${s.index + 1}</b>${[['f', 'friendship'], ['r', 'romance'], ['t', 'trust'], ['p', 'control'], ['l', 'pull']].filter(([k]) => s[k]).map(([k, w]) => `<span class="${s[k] > 0 ? 'is-up' : 'is-down'}">${w} ${sign(s[k])}</span>`).join('')}</li>`).join('')}</ul></div>` : ''}
         <details class="mw-bond-settings"><summary>Weave line settings</summary>
             <label class="mw-toggle"><input type="checkbox" data-bond-on checked> Hidden weave line for ${esc(charName)} in this chat</label>
             <label class="mw-toggle"><input type="checkbox" data-bond-extra ${bond.extra ? 'checked' : ''}> Trust, Control, Pull and the named dynamic</label>
@@ -61,7 +61,7 @@ function desireCard(bond, list, charName, userName, sparks = []) {
         <p class="mw-fine">Arousal plus how it shows: boldness, tender or rough, fixation on you, shame and holding back. Moved by each reply’s hidden line, slow by default.</p></details>`;
     const x = computeDesire(d, list), who = esc(userName);
     const word = (k, v) => k === 'a' ? x.stage : k === 'f' ? frustrationWord(v) : scaleWord(k, v).replace('them', who);
-    const bar = (key, label) => `<div class="mw-desire-row" data-tone="${key}"><div class="mw-bond-head"><b>${label}</b><span>${esc(word(key, x[key]))}</span>
+    const bar = (key, label) => `<div class="mw-desire-row" data-anchor="desire-${key}" data-tone="${key}"><div class="mw-bond-head"><b>${label}</b><span>${esc(word(key, x[key]))}</span>
         <button type="button" class="mw-need-pin" data-desire-pin="${key}" aria-pressed="${x.pins[key] !== null}" title="${x.pins[key] !== null ? 'Unpin: let replies move it again' : 'Pin: hold it here'}">${x.pins[key] !== null ? '◆' : '◇'}</button></div>
         <input type="range" min="0" max="100" step="1" value="${x[key]}" data-desire-bar="${key}" class="mw-desire-bar" style="--mw-fill:${x[key]}%" aria-label="${label}"></div>`;
     const mini = (v, tone) => `<i class="mw-desire-mini" data-tone="${tone}" style="--mw-fill:${v}%"></i>`;
@@ -84,7 +84,7 @@ function moreBlock(bond, list, userName) {
     const d = computeMore(bond.more, list), on = d.on;
     const bars = on.map(k => {
         const [, label, two] = MORE_METERS.find(m => m[0] === k), v = d.values[k], pinned = d.pins[k] !== null;
-        return `<div class="mw-bond-meter mw-more-meter" data-tone="${k}"><div class="mw-bond-head"><b>${label}</b><span data-more-word="${k}">${esc(moreWord(k, v).replace(/\bthem\b/, userName))}</span>
+        return `<div class="mw-bond-meter mw-more-meter" data-anchor="more-${k}" data-tone="${k}"><div class="mw-bond-head"><b>${label}</b><span data-more-word="${k}">${esc(moreWord(k, v).replace(/\bthem\b/, userName))}</span>
             <button type="button" class="mw-need-pin" data-more-pin="${k}" aria-pressed="${pinned}" title="${pinned ? 'Unpin: let replies move it again' : 'Pin: hold it here'}">${pinned ? '◆' : '◇'}</button></div>
             <input type="range" min="${two ? -100 : 0}" max="100" step="1" value="${v}" data-more-meter="${k}" data-two="${two ? 1 : 0}" class="mw-bond-bar" style="--mw-fill:${two ? (v + 100) / 2 : v}%" aria-label="${label}"></div>`;
     }).join('');

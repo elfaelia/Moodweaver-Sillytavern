@@ -81,7 +81,8 @@ export const SHARED_CATEGORIES = [
         ['bodyguard', 'Bodyguard', 'one protects the other for a living, and it gets personal', 'bodyguard romance'],
         ['size_difference', 'Size difference', 'a big difference in size that keeps getting noticed', 'size difference'],
         ['beauty_and_beast', 'Beauty and the beast', 'gentleness finding something lovable in a monster', 'beauty and the beast'],
-        ['hurt_comfort', 'Hurt/comfort', 'one is hurt, the other takes care of them', 'hurt/comfort: one is hurt and the other takes care of them'],
+        ['hurt_comfort', 'Hurt/comfort', 'the AO3 kind: one gets hurt badly and on the page, the other puts them back together, and pain is the only time they let each other close', 'hurt/comfort, the fanfic kind: one gets hurt (wounded, sick, broken) and the hurt is dwelt on in the body; the other tends them, and only then do they touch, say things and let each other close. The care is intimate and charged, can turn possessive, and the hurt is slow to heal or comes back'],
+        ['hurt_no_comfort', 'Hurt/no comfort', 'whump with no payoff: the hurt keeps coming and nobody makes it better', 'hurt/no comfort: the hurt keeps coming, dwelt on in the body, and nobody tends it or makes it better'],
         ['who_did_this', 'Who did this to you', 'furious protectiveness when one of them gets hurt', '"who did this to you" protectiveness'],
         ['touch_and_die', 'Touch them and die', 'one would destroy anyone who lays a hand on the other', '"touch them and die"'],
         ['villain_romance', 'Villain romance', 'one of them is the villain, and the other falls anyway', 'villain romance'],
@@ -487,7 +488,7 @@ export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag =
 export const SHARED_BY_ID = Object.fromEntries(SHARED_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));
 // Both-ways tags where the two people play different parts. Opus 5.5 is weaker at inferring who's who unprompted.
-export const TWO_ROLE_SHARED = new Set(['monster_on_leash', 'gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
+export const TWO_ROLE_SHARED = new Set(['monster_on_leash', 'gilded_cage', 'spoiled_captive', 'unrequited_love', 'secret_admirer', 'hurt_comfort', 'hurt_no_comfort', 'bodyguard', 'villain_romance', 'beauty_and_beast',
     'captor_captive', 'stockholm', 'corrupting_love', 'redeeming_love', 'power_imbalance', 'grumpy_sunshine', 'who_did_this', 'touch_and_die',
     'scientist_and_subject', 'sugar', 'size_difference', 'age_gap', 'if_i_cant_have_you', 'class_divide',
     'one_loves_harder', 'predator_and_prey', 'love_bomb_cycle', 'worship_and_ruin', 'hunter_hunted', 'nurse_and_wreck', 'bought_and_paid', 'revenge_romance', 'stalker_romance', 'made_to_need', 'held_by_threat', 'knows_what_they_are']);

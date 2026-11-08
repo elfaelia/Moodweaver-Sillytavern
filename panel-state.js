@@ -1,6 +1,6 @@
 // Keep UI state outside chat data. A redraw must not move the item being edited.
 const views = new Map();
-const tracked = '[data-mood], [data-relation-row], [data-custom-row], [data-memory-row], [data-knowledge-row]';
+const tracked = '[data-mood], [data-relation-row], [data-custom-row], [data-memory-row], [data-knowledge-row], [data-skill-row], [data-anchor], [data-bond-kind]';
 const keyOf = element => {
     if (!element) return '';
     if (element.id) return `#${CSS.escape(element.id)}`;

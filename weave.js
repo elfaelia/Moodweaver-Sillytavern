@@ -69,13 +69,13 @@ function desireOf(v) {
     }
     return ['a', 's', 'b', 't', 'x', 'h'].some(k => out[k]) || out.release ? out : null;
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters|used|skills)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
     for (const part of body.split('|')) {
         const x = part.trim().match(FIELDS); if (!x) continue;
-        const key = x[1].toLowerCase().replace(/^(mood|feelings)$/, 'moods').replace(/^sparks$/, 'sparked').replace(/^goals$/, 'wants').replace(/^new\s+wants?$/, 'newwant');
+        const key = x[1].toLowerCase().replace(/^(mood|feelings)$/, 'moods').replace(/^sparks$/, 'sparked').replace(/^goals$/, 'wants').replace(/^new\s+wants?$/, 'newwant').replace(/^skills$/, 'used');
         f[key] ??= x[2].trim();
     }
     const remember = unquote(f.remember ?? '');
@@ -88,7 +88,7 @@ function readLine(body) {
         moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
         wants: wantItems(f.wants), fears: list(f.fears, 3, 80), pressed: list(f.pressed, 3, 80),
         newWant: NONE.test(unquote(f.newwant ?? '')) ? '' : unquote(f.newwant ?? '').slice(0, 100),
-        desire: desireOf(f.desire), meters: metersOf(f.meters),
+        desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
         you: 'you' in f ? (NONE.test(String(f.you).trim()) || /^(healed|fine|nothing|unhurt)\.?$/i.test(String(f.you).trim()) ? [] : list(f.you, 5, 60)) : null,
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked),
@@ -111,6 +111,7 @@ export function parseWeave(mes) {
         for (const [k, d] of Object.entries(x.needDeltas ?? {})) out.needDeltas[k] = clamp((out.needDeltas[k] ?? 0) + d, -100, 100);
         out.wants = [...out.wants, ...x.wants].slice(0, 8); out.fears = [...out.fears, ...x.fears].slice(0, 6); out.pressed = [...out.pressed, ...x.pressed].slice(0, 6);
         if (x.newWant) out.newWant = x.newWant;
+        out.used = [...(out.used ?? []), ...(x.used ?? [])].slice(0, 8);
         if (x.meters) { out.meters ??= {}; for (const [k, d] of Object.entries(x.meters)) out.meters[k] = (out.meters[k] ?? 0) + d; }
         if (x.desire) out.desire = out.desire ? { ...Object.fromEntries(['a', 's', 'b', 't', 'x', 'h'].map(k => [k, (out.desire[k] ?? 0) + (x.desire[k] ?? 0)])), release: out.desire.release || x.desire.release } : x.desire;
         if (x.you) out.you = x.you;
@@ -140,7 +141,7 @@ export function powerChange(raw, charName = '', userName = '') {
 // opts: { n, u, bond, extra (trust & power), moods (feelings, needs, relationship), remember }
 const desireNames = d => { const names = [d.b !== false && 'bold', d.t !== false && 'rough or tender', d.x !== false && 'fixation', d.h !== false && 'shame', d.s !== false && 'restraint'].filter(Boolean);
     return names.length ? `, and any of ${names.join(', ')} that moved` : ''; };
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [] }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false }) {
     if (!bond && !moods && !remember) return [];
     const example = [
         ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low, health -10', 'toward protective +5'] : []),
@@ -152,20 +153,20 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, rem
         ...(remember ? [`remember: ${u} promised to stay`] : []),
     ];
     return [
-        `End every reply with one hidden line that only Moodweaver reads, listing what this reply changed for ${n}. Leave out anything that didn't change; if nothing did, write <!-- weave: none -->. This example shows the shape only, so report this reply's own changes:`,
+        `End every reply with one hidden line only Moodweaver reads, listing what this reply changed for ${n}. Leave out what didn't change (nothing changed: <!-- weave: none -->). The example shows the shape only:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [`- moods: ${n}'s own feelings that rose or fell, by the names in these notes or a plain feeling word, -30 to +30, or off when one is over (afraid off).`,
-            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10), for what the scene did: food, sleep, washing and company fill them; drink, holding it, filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them (a beating costs health even if enjoyed).`,
+        ...(moods ? [`- moods: ${n}'s feelings that rose or fell, by name or a plain feeling word, -30 to +30, or off when one ends.`,
+            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10): food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them, and a beating costs health even if enjoyed.`,
             `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
         ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -10 to +10; 1 to 3 for ordinary moments, more only for turning points. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
-            ...(extra ? [`- control: who gained real control this reply (doors, money, freedom, who decides what happens), 1 to 10, as ${n} +3 or ${u} +3.`,
-                `- pull: who gained emotional hold (who needs whom more, who gives way), the same way. Control and pull can move opposite ways in one reply: ${u} can win a demand while ${n} still holds every key.`] : []),
+            ...(extra ? [`- control: who gained real control (doors, money, freedom, who decides), 1 to 10, as ${n} +3 or ${u} +3. pull: who gained emotional hold (who needs whom more), the same way. They can move opposite ways in one reply.`] : []),
             `- thinks: words that finish "${n} thinks ${u} is…" (stubborn, his, a liar).`,
             `- sparked: any of ${n}'s turn-ons or turn-offs (people, bodies, acts, kinks, fetishes) or bedroom traits this reply touched, whoever brought it, by its name in these notes; add (off) for a turn-off.`] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: a want or goal this reply moved (+ closer, - blocked, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting, only if obvious' : ''].filter(Boolean).join('; ')}. Use ${n}'s own wording from these notes.`] : []),
         ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved for ${n} toward ${u}, -10 to +10${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +3)${desireNames(desire)}, as small steps; add release if they climaxed.`] : []),
         ...(you ? [`- you: lasting things the story did to ${u}'s body (injured, drugged, soaked, tied), the full current list, or none once healed.`] : []),
+        ...(skills ? [`- used: any skill someone used or was tested on this reply, a word or two each (lying, lockpicking, first aid).`] : []),
         ...(remember ? [`- remember: a turning point between them, in one plain line: a confession, promise, betrayal, first time or secret learned.`] : []),
     ];
 }

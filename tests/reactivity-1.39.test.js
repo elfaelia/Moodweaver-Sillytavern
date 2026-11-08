@@ -131,7 +131,7 @@ test('feelings say how they show, so a different blend reads differently', () =>
     const a = composePrompt(freshState({ moods: { angry: 50 } }), 'Rick'), b = composePrompt(freshState({ moods: { playful: 50 } }), 'Rick');
     assert.match(a, /- clear: angry: raised or ice-cold voice/);
     assert.match(b, /- clear: playful[^:\n]*: jokes, teasing, silly voices/);
-    assert.match(a, /these feelings are the main thing that makes this reply different from the last one/);
+    assert.match(a, /These feelings are what make this reply different from the last/);
 });
 
 test('dead dove names the dodges and keeps fade to black for sex', () => {
@@ -156,6 +156,6 @@ test('a character can show a feeling their own way, at the same strength', () =>
     assert.match(p, /- strong: angry: gets quieter and more polite, smiles too much/);
     assert.doesNotMatch(p, /raised or ice-cold voice/);
     assert.match(p, /affectionate[^\n]*: touches often, pet names, fond looks/, 'feelings without their own wording keep the default');
-    assert.match(p, /If the card or their traits say Bateman shows a feeling another way/);
+    assert.match(p, /if the card or traits show a feeling another way \(rage as a pleasant smile\), keep the strength and use Bateman's way/);
     assert.equal(freshState(s).shows.angry, 'gets quieter and more polite, smiles too much', 'kept in character defaults');
 });

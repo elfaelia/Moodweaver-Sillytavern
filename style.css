@@ -439,3 +439,11 @@
 .mw-dyn-card:is([data-dynamic=prey],[data-dynamic=dangerous-adoration],[data-dynamic=toy],[data-dynamic=unmasked],[data-dynamic=contempt]){border-color:#c9454d66;background:radial-gradient(1px 1px at 82% 22%,#fff6 50%,transparent),radial-gradient(120% 90% at 100% 0%,#c9454d33,transparent 60%),linear-gradient(160deg,#250d12,#0f080b)}
 .mw-dyn-card:is([data-dynamic=lifeline],[data-dynamic=protector],[data-dynamic=penitent],[data-dynamic=codependent],[data-dynamic=grudging-respect],[data-dynamic=worthy-rival]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
 .mw-dyn-card[data-dynamic=bored-of-you]{border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
+
+/* 1.41.0: Skills */
+.mw-skill-row.is-lit{box-shadow:inset 3px 0 0 #9fc0e8}
+.mw-skill-row .mw-row-head output{min-width:3.2em;text-align:right}
+.mw-skill-now{margin:8px 0 0;font-size:12px;color:var(--mw-muted)}
+.mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.mw-skill-add{display:grid;gap:6px;margin:10px 0 4px}
+.mw-skill-add input{width:100%;box-sizing:border-box}

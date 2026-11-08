@@ -4,6 +4,8 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.41.0:** a ✪ Skills tab (113 skills from The Sims 3 and 4 and beyond, levels out of 10, sent only when the scene calls for them), The world leads (no more stopping on the edge of something to hand you the choice), a Cleaner writing group with nine new fixes, 25 more turn-ons with a much wider net, AO3-style hurt/comfort, Clear everything with a way back, Bonds keeping your place, and a note about 350 tokens lighter. Install the new `skills.js` too. See [the update notes](UPDATE-1.41.0.md).
+
 **1.40.0:** combos and cravings on top of Lit, 13 optional Bonds meters with quick picks for Easterman, Jefferson, Joe, Bateman and Rick, 23 new named dynamics with their own backgrounds, and strength that shows in every feeling line. Install the new `meters.js` and `reactive.js` too. See [the update notes](UPDATE-1.40.0.md).
 
 **1.39.2:** the ♨ Desire card gets four new scales: Boldness, Tender ↔ rough, Fixation and Shame. Holding back now starts low and only comes up when it's high. Any scale can be switched off. See [the update notes](UPDATE-1.39.0.md#1392).
@@ -173,7 +175,7 @@ To remove it, disable it in Manage Extensions and reload, or move its folder out
 
 ## Development and verification
 
-Run `node --test tests/*.test.js` (all 90 pass as of 1.38.1). Tests cover the catalogue, complete blend preservation and token-target reporting, strict parsing, smoothing, pins, chat isolation, group speakers, late results, deduplication and generation exclusions.
+Run `node --test tests/*.test.js` (all 122 pass as of 1.41.0). Tests cover the catalogue, complete blend preservation and token-target reporting, strict parsing, smoothing, pins, chat isolation, group speakers, late results, deduplication and generation exclusions.
 
 Run `node preview-server.mjs` and open `http://127.0.0.1:8768` for a simulated interactive preview using the actual UI module. It makes no paid calls and does not use real chats. Desktop and 390px-wide layouts were inspected, including search, pins, mode changes, analysis and chat switching. The real SillyTavern load check is recorded in `VERIFICATION.md`.
 

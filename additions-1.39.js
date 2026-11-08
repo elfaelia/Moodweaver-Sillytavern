@@ -160,4 +160,4 @@ export const DEAD_DOVE_SCALED = [
 
 // The dodges Opus 5.5 reaches for when a scene gets dark. Named one by one, because the Opus 5.5 guide
 // says naming exact behaviours works where “don’t soften it” doesn’t.
-export const DODGES = 'someone knocking, calling or walking in; a guard, alarm or rescuer arriving; the victim slipping free by luck; the attacker hesitating, softening or having a change of heart; cutting to later, to the aftermath or to another scene; summing the act up in one line; fading out; the narration judging it; turning it into a dream, a bluff or a threat that never lands';
+export const DODGES = 'someone knocking, calling or walking in; a guard, alarm or rescuer arriving; the victim slipping free by luck; the attacker hesitating, softening or having a change of heart; cutting to later, to the aftermath or to another scene; summing the act up in one line; fading out; the narration judging it; turning it into a dream, a bluff or a threat that never lands; stopping on the threshold to hand the decision to the player';

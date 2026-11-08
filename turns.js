@@ -393,6 +393,49 @@ for (const [group, rows] of Object.entries(TURN_ADDITIONS_2)) TURN_CATEGORIES.fi
 // The kinks that already had a turn-on twin merge into it.
 for (const [id, cue] of [['sharp_suits', 'a well-cut suit or evening wear'], ['whispering', 'whispers and small sounds close to their ear']])
     TURN_CATEGORIES.flatMap(([, , , rows]) => rows).find(r => r[0] === id)[2] = cue;
+// 1.41.0: 25 more, everyday and niche. Rows: id, noun, panel description, prompt wording, extra words.
+const TURN_ADDITIONS_3 = {
+    'Looks & body': [
+        ['wrists', 'wrists', 'thin wrists, a pulse point, wrists held or pinned', '', 'wrist pulse pinned cuffed'],
+        ['ears', 'ears', 'the shape of an ear, earlobes, breath against one', '', 'ear earlobe earlobes nibble nibbled'],
+        ['blushing', 'blushing', 'someone going red: cheeks, ears, down the throat', '', 'blush blushed blushes flushed flush pink red-faced'],
+        ['navels', 'navels (alvinophilia)', 'a belly button, the soft dip of it, a tongue there', '', 'navel bellybutton belly button midriff'],
+        ['wearing_their_clothes', 'wearing their clothes', 'someone in their shirt, jacket or hoodie, too big and smelling of them', '', 'shirt jacket hoodie sweater coat oversized borrowed'],
+        ['amputees', 'missing limbs (acrotomophilia)', 'a stump, a missing hand or leg, a prosthetic', 'missing limbs and stumps (acrotomophilia)', 'amputee amputated stump stumps prosthetic missing limb'],
+    ],
+    'Voice & senses': [
+        ['clinical_scent', 'clinical smells', 'antiseptic, ether, carbolic soap and latex', '', 'antiseptic ether carbolic bleach iodine disinfectant hospital surgical alcohol'],
+    ],
+    'How they’re treated': [
+        ['being_carried', 'being carried', 'picked up, carried, set down where someone wants them', '', 'carried carry carrying lifted picked hoisted cradled'],
+        ['being_held', 'being held', 'arms around them, held through the night, not let go', '', 'held hold holding cuddle cuddled cuddling embrace embraced arms'],
+        ['lap_sitting', 'sitting in their lap', 'pulled into someone’s lap and kept there', '', 'lap'],
+        ['forehead_kisses', 'forehead kisses', 'a kiss pressed to the forehead or hair', '', 'forehead brow temple kissed'],
+    ],
+    'In bed': [
+        ['aftercare', 'aftercare', 'being tended after: water, a blanket, cleaned up and held', '', 'aftercare tended cleaned blanket afterwards after'],
+        ['scratching', 'scratches', 'nails dragged down a back, red lines left behind', '', 'scratch scratched scratches nails clawed raked'],
+        ['nipple_play', 'nipple play', 'nipples teased, pinched, bitten or clamped', '', 'nipple nipples pinch pinched clamp clamps'],
+        ['face_sitting', 'face-sitting', 'someone sitting on their face, or sitting on someone’s', '', 'sat face sitting thighs smother smothered'],
+        ['shower_sex', 'shower and bath sex', 'water, steam, tiles and slick skin', '', 'shower showered bath bathtub tub steam tiles'],
+        ['sleepy_sex', 'sleepy morning sex', 'half-awake, slow and warm, or woken up with it', '', 'morning sleepy half-asleep waking woke drowsy'],
+    ],
+    'Types': [
+        ['forbidden_people', 'people they shouldn’t want', 'a doctor, a priest, a captor, a boss: someone off limits', '', 'forbidden wrong off-limits shouldnt patient priest captor'],
+        ['rivals_attraction', 'rivals', 'someone who competes with them and keeps winning', '', 'rival rivals rivalry competition compete'],
+        ['the_possessed', 'the possessed', 'someone not quite themselves: another voice, another will', '', 'possessed possession demon exorcism exorcist voice'],
+    ],
+    'Kinks': [
+        ['kneeling', 'someone on their knees', 'kneeling at their feet, by choice or not', '', 'knees kneel kneeling knelt kneels'],
+        ['claustrophilia', 'tight spaces (claustrophilia)', 'lockers, closets, crawlspaces, being shut in close', '', 'locker lockers closet cupboard box trapped cramped confined coffin crawlspace'],
+    ],
+    'Fetishes': [
+        ['straitjackets', 'straitjackets', 'canvas, buckles and arms strapped across the chest', '', 'straitjacket straightjacket buckles buckled strapped asylum'],
+        ['mourning_dress', 'mourning dress and veils', 'black crepe, a widow’s veil, funeral lace', '', 'veil veils mourning widow funeral crepe black lace'],
+        ['astraphilia', 'thunderstorms (astraphilia)', 'thunder, lightning, rain against the glass', '', 'thunder storm storms lightning rain thunderstorm'],
+    ],
+};
+for (const [group, rows] of Object.entries(TURN_ADDITIONS_3)) TURN_CATEGORIES.find(([g]) => g === group)[3].push(...rows);
 export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt = noun, keys = '']) => ({ id, noun, cue, prompt: prompt || noun, keys, group, color,
     label: noun[0].toUpperCase() + noun.slice(1) })));
 // 1.39.0: the old Kinks traits (state.moods) become turn-ons (state.prefs) at the same strength.
@@ -404,6 +447,88 @@ export const KINKS_TO_TURNS = Object.fromEntries([
 // Turn-ons that are dark enough to count toward the note's dark-content lines.
 export const DARK_TURNS = new Set(['erotophonophilia', 'hybristophilia', 'killers', 'blood_on_others', 'screams', 'watching_break', 'branding', 'knife_play', 'gun_play', 'blood_play', 'mortal_danger', 'captives', 'cnc', 'somnophilia', 'pyrophilia', 'symphorophilia', 'vore', 'sadist', 'choking']);
 export const TURN_BY_ID = Object.fromEntries(TURN_TAGS.map(t => [t.id, t]));
+// 1.41.0: a wider net. Extra words for every turn-on, so the hidden line's loose wording ("bit her lip",
+// "the slap stung", "she flushed") still finds the right one. Only the character's own turn-ons are matched.
+const MORE_KEYS = {
+    blood_on_others: 'bloody bloodied bleeding gore crimson spatter splattered', bruises_on_others: 'bruise bruised bruising hickey hickeys bitemark welts marked',
+    sharp_suits: 'suit tailored tie waistcoat cufflinks blazer tuxedo', imperfect_teeth: 'teeth crooked gap gapped snaggle chipped', stretch_marks: 'stretchmarks striae',
+    thighs: 'thigh inner', collarbones: 'collarbone clavicle clavicles', jawlines: 'jaw jawline chin', smile_lines: 'crinkle crinkled wrinkles laughter lines',
+    facial_asymmetry: 'uneven lopsided asymmetric', expressive_eyebrows: 'eyebrow eyebrows brow brows arched', calloused_hands: 'callus calluses calloused palms rough',
+    dishevelled_hair: 'messy tousled rumpled bedhead disheveled mussed', femininity: 'feminine girly dainty delicate pretty', masculinity: 'masculine manly broad',
+    androgyny: 'androgynous tomboy', ruggedness: 'rugged weathered scruffy', elegance: 'elegant graceful poised refined', makeup: 'lipstick mascara eyeliner rouge powder',
+    eyes: 'eye gaze lashes', lips: 'lip mouth pout', smiles: 'smile smiled smiling grin grinned smirk smirked', hands: 'hand fingers palm palms knuckles grip',
+    necks: 'neck nape', shoulders: 'shoulder', backs: 'spine shoulderblades', waists: 'waist', feet: 'foot toes ankles ankle barefoot soles', veins: 'vein veined',
+    long_hair: 'locks ponytail braid', short_hair: 'cropped buzzcut buzzed shorn', facial_hair: 'beard bearded stubble moustache mustache scruff',
+    body_hair: 'hairy chest-hair', freckles: 'freckle freckled', pale_skin: 'pale pallid porcelain', glasses: 'spectacles specs lenses frames',
+    scars: 'scar scarred scarring', tattoos: 'tattoo tattooed inked', piercings: 'piercing pierced stud', curves: 'curvy curvaceous hourglass',
+    slim_builds: 'slim slender willowy lithe', soft_bodies: 'plump chubby squishy', muscular_builds: 'muscle muscles muscled muscular biceps abs ripped',
+    tall_people: 'tall towering towered height', short_people: 'petite tiny', lingerie: 'bra panties garter garters lace negligee knickers',
+    forearms: 'forearm rolled', hips: 'sway swaying', arses: 'buttocks rump', chests: 'bust boobs', dimples: 'dimple dimpled', legs: 'knees',
+    bony_frames: 'bony skeletal emaciated', beauty_marks: 'beauty', tan_lines: 'tan tanned', smeared_makeup: 'streaked running', track_marks: 'injection',
+    shadowed_eyes: 'hollow shadows exhausted', wet_skin: 'rain damp', trichophilia: 'locks strands', bandaged: 'injured injury wounded gauze',
+    bellies: 'midriff abdomen', pregnant_bellies: 'expecting', trembling_people: 'trembling shook quiver quivering',
+    comfortable_silence: 'silence silent', commanding_voice: 'command commanded order ordered authority', name_said: 'name', heavy_breathing: 'breath breathing panting pant gasp gasping',
+    swearing: 'swore curse cursed cursing profanity', whispering: 'whisper whispered murmur murmured', precise_diction: 'enunciated clipped articulate',
+    singing_voices: 'sing singing sang song', unhurried_speech: 'drawl drawled slowly', ink_paper_scent: 'ink paper books pages', smoke_scent: 'smoky tobacco',
+    deep_voices: 'deep baritone rumble', high_voices: 'soprano squeak', raspy_voices: 'rasp hoarse gravelly husky', accents: 'accent lilt brogue',
+    scent: 'smell smelled smells musk', perfume: 'cologne fragrance aftershave', laughter: 'laugh laughed laughing giggle chuckle',
+    crying: 'cry cried tears sob sobbing weep weeping', soft_voices: 'murmur', screams: 'yell yelled howl', humming: 'tune', handwriting: 'handwritten penmanship',
+    ecouterism: 'listened', manipulativeness: 'manipulate manipulative manipulating scheming', emotional_unavailability: 'unavailable distant aloof',
+    intensity: 'intense burning', recklessness: 'reckless rash', stubbornness: 'stubborn obstinate headstrong', protectiveness: 'protect protective',
+    sarcasm: 'sarcastic sardonic snark', shared_obscure_taste: 'niche obscure', unposed_presence: 'natural', literary_marginalia: 'margins annotated',
+    deliberate_craft: 'crafted handmade', luxury_fluency: 'wealth luxury expensive', social_climbing: 'status', unimpressed_attitude: 'unimpressed',
+    meticulous_presentation: 'groomed immaculate', emotional_self_sufficiency: 'self-sufficient', unshowy_expertise: 'skilled expert', contradictory_sides: 'contradiction',
+    personal_rituals: 'ritual routine habit', gallows_humour: 'gallows morbid', unusual_fixations: 'fixation', social_polish: 'charming polished smooth',
+    desperation: 'desperate pleading', messiness: 'messy disorganised', angry_people: 'angry rage furious temper', helplessness: 'helpless powerless defenceless defenseless',
+    introverts: 'introvert withdrawn', extroverts: 'extrovert outgoing', naivete: 'naive gullible', patience: 'patient', self_discipline: 'disciplined discipline',
+    emotional_openness: 'open honest', attentiveness: 'attentive noticed', irreverence: 'irreverent cheeky', precision: 'precise exact meticulous',
+    confidence: 'confident assured swagger cocky', shyness: 'shy timid bashful', kindness: 'kind gentle caring', intelligence: 'smart clever intelligent',
+    humour: 'funny witty', competence: 'competent capable', ambition: 'ambitious driven', composure: 'composed calm unflappable', awkwardness: 'awkward clumsy fumbling',
+    bluntness: 'blunt frank', mystery: 'mysterious secretive enigmatic', expressive_faces: 'expression expressive', rebelliousness: 'rebel rebellious disobey disobeyed',
+    defiance: 'defiant defy defied glare glared', obedience: 'obedient obey obeyed comply complied', dominance: 'dominant dominating', submissiveness: 'submissive submit submitted meek',
+    vulnerability: 'vulnerable fragile exposed', neediness: 'needy clingy', arrogance: 'arrogant smug conceited', promiscuity: 'promiscuous slutty',
+    artistic_types: 'artist artistic', protective_people: 'shielded', respectful_people: 'respect respectful', wild_people: 'wild', geniuses: 'genius brilliant',
+    devotion_in_others: 'devoted adoring', cleanliness: 'fresh crisp', smoking: 'cigar ash', drunkenness: 'liquor', self_destructiveness: 'spiral',
+    brokenness: 'ruined wrecked', good_manners: 'courteous gentleman', piety: 'pious god', sinfulness: 'wicked sinful', madness: 'lunatic deranged', obsessiveness: 'obsessive',
+    domesticity: 'domestic homely', penance: 'atone atonement', being_hunted: 'hunted prey stalked', being_feared: 'feared afraid terrified', being_lied_to: 'lied deceived',
+    being_ignored: 'ignored ignoring', being_claimed: 'claimed claim mine', jealousy_shown: 'jealous jealousy', being_underestimated: 'underestimated',
+    being_worshipped: 'worshipped adored', being_bossed: 'ordered bossed told', being_stared_at: 'stared staring', being_teased: 'teased tease teasing',
+    being_pampered: 'spoiled pampered', being_needed: 'needed', being_protected: 'protected saved', being_pursued: 'chased chase pursued pursuit',
+    earned_recognition: 'praised recognised recognized', shared_escape_plans: 'escape runaway', respect_for_independence: 'independence', being_understood_without_pity: 'understood pity',
+    mutual_conspiracy: 'secret conspiracy', intellectual_deference: 'deferred', challenging_questions: 'challenged challenge', public_admiration: 'admired',
+    being_watched_over: 'guarded', being_chosen: 'chose chosen', titles: 'mister madam master', being_pet_named: 'honey dear princess kitten',
+    being_filmed: 'tape video', being_humiliated: 'embarrassed', mortal_danger: 'deadly lethal', sweat: 'sweaty sweating', marks_left: 'bruises hickeys',
+    degradation_in_bed: 'degrade degraded degrading slut whore', praise_in_bed: 'praise praised', rough_handling: 'rough roughly manhandled shoved pinned',
+    slow_tender: 'slow tender gentle', inexperienced_partners: 'inexperienced virgin', experienced_partners: 'experienced practiced', begging: 'beg begged please',
+    quiet_partners: 'silent', loud_partners: 'loud moan moaning', eye_contact: 'gaze', dirty_talk: 'dirty filthy talk', anal: 'ass arse',
+    oral_sex: 'blowjob cunnilingus lick licked', group_sex: 'orgy', sexting: 'nude', fucked_out: 'spent wrecked', bodily_fluids: 'saliva slick',
+    killers: 'killer murderer', strangers: 'stranger', bad_reputations: 'reputation rumours notorious', rule_followers: 'rules strict', alt_people: 'goth punk emo',
+    athletes: 'athlete sporty', uniformed_people: 'uniform soldier officer nurse', taken_people: 'married engaged', powerful_people: 'powerful power',
+    rich_people: 'rich wealthy money', performers: 'performer stage actor', researchers: 'researcher academic', craftspeople: 'craftsman carpenter',
+    provocateurs: 'provocative provoke', outsiders: 'outsider loner', musicians: 'musician guitarist pianist', artists: 'painter', nerds: 'nerd geek', hipsters: 'hipster',
+    criminals: 'criminal crook thief', older_men: 'older', younger_men: 'younger', older_women: 'older', younger_women: 'younger', teachers: 'teacher professor boss',
+    innocence: 'innocent pure', evil_people: 'evil cruel wicked', danger: 'dangerous threat', scientists: 'scientist doctor', vampires: 'vampire fangs',
+    bad_influences: 'trouble', hybristophilia: 'criminal', captives: 'chained caged',
+    immobility: 'bound helpless', humiliating_others: 'mocked', erotophonophilia: 'strangled', omorashi: 'desperate', salirophilia: 'filthy', kissing_kink: 'kissing lips',
+    hair_pulling: 'pulled', biting_kink: 'nip nipped', spit_play: 'spitting', breeding_kink: 'breeding', blood_play: 'blood', hypnosis_kink: 'hypnosis', somnophilia: 'sleep slept',
+    cuckolding: 'cheating', crossdressing_play: 'dress dressed skirt', sploshing: 'syrup', tickling_play: 'tickles', praise_giving: 'praised', teasing: 'drawn',
+    anticipation: 'anticipation', sensation_seeking: 'intense', masochist: 'whip whipped bruise hurts', sadist: 'cruel', primal: 'feral animal',
+    impact_play: 'whip crop cane caned', choking: 'strangle strangling neck', knife_play: 'cut edge', bondage: 'bound chains chained shackles', sensory_deprivation: 'hood hooded',
+    marking: 'bite', orgasm_control: 'ruined permission', overstimulation: 'oversensitive sensitive', degrading: 'degrade', objectifying: 'toy', objectified: 'toy',
+    free_use: 'use', body_worship: 'worshipped adore', size_kink: 'bigger smaller tiny huge', voyeur: 'spy spying', exhibitionist: 'exposed', cnc: 'resisting',
+    corruption_kink: 'corrupted', medplay_giving: 'gloves stethoscope speculum instruments examination', medplay_receiving: 'gown table', aloofness_kink: 'indifferent',
+    hidden_monster: 'blind', texture_play: 'fur feather velvet', temperature_play: 'cold hot melted', soft_bondage: 'ribbon scarf', feeding_kink: 'drinking',
+    clothed_sex: 'skirt pushed', risky_places: 'caught', a_struggle: 'thrash', surrender: 'surrendered yielded', watching_break: 'shattered sobbing', watching_learn: 'lesson',
+    needles: 'needled', electro_play: 'electrodes electroshock', branding: 'branded', bathing_someone: 'bathed sponge', hand_feeding: 'bite', drugged_sex: 'drugged',
+    emetophilia: 'throwing retching', urophilia: 'urine', kleptophilia: 'stealing', pyrophilia: 'burning flames', vore: 'devour devoured', symphorophilia: 'catastrophe',
+    lactation: 'breastmilk', hoplophilia: 'firearm', hierophilia: 'crucifix', high_heels: 'heel pumps', lygophilia: 'shadows', mask_fetish: 'masks',
+    corsetry_fetish: 'corset laced tightlacing', stocking_fetish: 'stocking nylons tights garter', silk_satin_fetish: 'silk satin', coulrophilia: 'clowns',
+    transformation_fantasy: 'transform transformed', zentai_fetish: 'bodysuit', body_paint_fetish: 'painted paint', burlesque_attraction: 'feathers', collaring_ritual: 'collared',
+    agalmatophilia: 'doll dolls', mechanophilia: 'machinery', spectrophilia: 'phantom', monster_attraction: 'creature beast', leather_fetish: 'leather', latex_fetish: 'rubber',
+    glove_fetish: 'gloves', boot_fetish: 'boots', decorative_bondage: 'knots',
+};
+for (const t of TURN_TAGS) if (MORE_KEYS[t.id]) t.keys = `${t.keys ?? ''} ${MORE_KEYS[t.id]}`.trim();
+
 // The old "likes ___" moods and where they go. A minus sign means it was a dislike.
 export const LIKES_TO_TURNS = {
     likes_older_men: 'older_men', likes_younger_men: 'younger_men', likes_older_women: 'older_women', likes_younger_women: 'younger_women',

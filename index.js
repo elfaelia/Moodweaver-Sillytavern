@@ -1,3 +1,4 @@
+import { SKILL_CATEGORIES, SKILL_BY_ID, skillWord, skillsOf, litSkills, skillLines, cleanSkills, cleanAlways, cleanOwnSkills } from './skills.js';
 import { analysed, KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, STORY_RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, isExtended, shortName, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
 import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone, hasBoard, stripBoard, feelingId, relationId, parseBoard, boardKeyOf, NO_BOARD, fixActive } from './board.js';
 import { boardView } from './board-ui.js';
@@ -22,11 +23,11 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.40.0';
+const VERSION = '1.41.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1 };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 // UI-only: the settings sheet, and the "make your own" editor ({ kind, id? editing a library entry, fromOwn? promoting a one-off row }).
@@ -199,7 +200,7 @@ function settings() {
         needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
         showsMode: ['all', 'mine', 'off'].includes(saved.showsMode) ? saved.showsMode : 'all',
         // 1.40.0: combos and cravings.
-        combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false,
+        combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
     });
 }
 function members() {
@@ -765,14 +766,16 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on });
         const react = reactions(ch, history, liveNow), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
         const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, moods: bm.feed, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on) }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
+        // 1.41.0: skills go only when the scene calls for them.
+        const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
         // instead of pausing the whole note for that reply.
         const count = async text => { try { const n = await c.getTokenCountAsync(text); return Number.isFinite(n) ? n : Math.ceil(text.length / 3.6); } catch { return Math.ceil(text.length / 3.6); } };
         const result = await budgetPrompt(state, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: getKnowledge(ch), condition: settings().youTrack ? react.condition : [] }, story, cast: getCast(ch), pairs: pairExtras(ch), board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList(ch, history) }), weave });
+            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList(ch, history) }), weave, skills });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -1192,7 +1195,7 @@ function personCard(ch, state, live) {
 // One sticky row of icon tabs: fits a phone screen and stays reachable while scrolling long lists.
 // Needs is the live board; Facts is the old needs-and-facts list; personality types sit at the top of Traits.
 // 1.34.0: Meters live at the top of Bonds, beside the relationship they measure.
-const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
+const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['skills', '✪', 'Skills', '#9fc0e8'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
 // 1.39.0: on your own character the Needs tab becomes You: outfit, condition and the moodlets showing.
 const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${TABS.map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row).map(([k, icon, label, color]) =>
     `<button type="button" role="tab" data-tab="${k}" aria-selected="${tab === k}" aria-pressed="${tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;
@@ -1233,6 +1236,10 @@ function settingsView(state) {
         ${(() => { const n = pinCounts(), words = n ? pinWords(n) : ''; return `<details class="mw-advanced" data-settings="pins"><summary>Pins in this chat <small>${words ? 'some set' : 'none'}</small></summary>
             <p class="mw-fine">${words ? `Right now: ${esc(words)}.` : 'Nothing is pinned in this chat.'} Unpinning everything covers everyone in this chat: ${esc(target()?.name ?? 'the character')}, ${esc(playerName())}, the cast and the story. Sliders and meters keep their values and can move again. Needs you set and board corrections go back to following the board. Saved defaults for new chats aren't changed.</p>
             <div class="mw-actions"><button type="button" class="mw-danger" data-action="unpin-all"${words ? '' : ' disabled'}>Unpin everything</button></div></details>`; })()}
+        <details class="mw-advanced" data-settings="fresh"><summary>Clear everything <small>${esc(whose)}</small></summary>
+            <p class="mw-fine">Turns off every moodlet, trait, turn-on, fact, want, item, skill and row of your own for ${esc(whose)} in this chat, and their relationships (their side, both-ways and memories). Pins come off. Bonds meters, the board and saved defaults stay.</p>
+            <label class="mw-toggle"><input type="checkbox" data-keep-types checked> Keep personality types</label>
+            <div class="mw-actions"><button type="button" class="mw-danger" data-action="clear-everything">Clear everything</button>${state.lastCleared ? '<button type="button" data-action="clear-undo">↺ Bring it back</button>' : ''}</div></details>
         <details class="mw-advanced" data-settings="defaults"><summary>Defaults for new chats</summary>
             <p class="mw-fine">Each chat keeps its own settings. Saving a default seeds ${esc(whose)}’s future chats; existing chats stay as they are.</p>
             <div class="mw-actions"><button data-action="baseline">${who === 'cast' ? 'Save the whole cast' : who === 'user' ? 'Save persona default' : who === 'story' ? 'Save story default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moodlets</button></div></details>
@@ -1320,12 +1327,84 @@ function sectionContent(state, kind, ch, active) {
     ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
+// ---- 1.41.0: Skills ----
+// Who can have skills in this reply: the character, your character and the cast in the scene.
+function skillPeople(ch, state, mine) {
+    return [{ name: shortName(ch?.name ?? ''), st: state }, { name: shortName(playerName()), st: mine },
+        ...getCast(ch).filter(p => p.inScene).map(p => ({ name: shortName(p.name), st: p.state }))].filter(p => p.st?.enabled);
+}
+// What calls for a skill: your latest message and the character's last reply (or more, by the Look back setting),
+// plus whatever the newest reply's hidden line says was used. Read from the chat each time, so swipes undo it.
+function skillScene(ch, history = liveChat()) {
+    const chat = (history ?? []).filter(m => m && !m.is_system), mine = writes(ch);
+    const lastUser = [...chat].reverse().find(m => m.is_user), replies = chat.filter(m => mine(m));
+    const scene = [lastUser, ...replies.slice(-settings().skillLookback)].filter(Boolean).map(m => stripWeave(m.mes)).join('\n');
+    const newest = replies.at(-1), used = (newest ? weaveOf(newest)?.used ?? [] : []).join(', ');
+    return { scene, used };
+}
+function skillsView(state, ch) {
+    const whose = esc(subjectName()), set = cleanSkills(state.skills), always = cleanAlways(state.skillAlways), own = cleanOwnSkills(state.ownSkills);
+    const { scene, used } = skillScene(ch, liveChat()), going = litSkills(state, scene, used), lit = new Map(going.map(x => [x.id, x.why]));
+    const why = { always: 'Sent every reply', used: 'Used in the last reply', scene: 'The scene calls for it' };
+    const row = (id, label, cue, from, value, isOwn = false) => `<div class="mw-mood mw-skill-row ${lit.has(id) ? 'is-lit' : ''}" data-skill-row="${id}" data-search="${esc(`${label} ${cue} ${from}`)}">
+        <div class="mw-row-head"><label for="mw-skill-${id}">${lit.has(id) ? '✧ ' : ''}${esc(label)}</label><span data-skill-word>${value ? skillWord(value) : 'off'}</span><output for="mw-skill-${id}">${value}/10</output>
+            <button type="button" class="mw-need-pin" data-skill-always="${id}" aria-pressed="${Boolean(always[id])}" title="${always[id] ? 'Stop sending it every reply' : 'Send it every reply, called for or not'}" aria-label="${always[id] ? `Stop always sending ${esc(label)}` : `Always send ${esc(label)}`}">${always[id] ? '◆' : '◇'}</button>${isOwn ? `<button type="button" class="mw-list" data-own-skill-remove="${id}" title="Remove" aria-label="Remove ${esc(label)}">×</button>` : ''}</div>
+        <input id="mw-skill-${id}" type="range" min="0" max="10" step="1" value="${value}" ${isOwn ? 'data-own-skill' : 'data-skill'}="${id}" style="--mw-fill:${value * 10}%" aria-valuetext="${value} out of 10, ${value ? skillWord(value) : 'off'}">
+        <small>${esc(cue)}${from ? ` · ${esc(from)}` : ''}${lit.has(id) ? ` · <b>${why[lit.get(id)]}</b>` : ''}</small></div>`;
+    const chips = skillsOf(state).map(x => `<button type="button" data-skill-jump="${x.id}" class="mw-chip ${lit.has(x.id) ? 'is-lit' : ''}" style="--mw-accent:${SKILL_BY_ID[x.id]?.color ?? '#9fc0e8'}" title="${lit.has(x.id) ? `${why[lit.get(x.id)]}. ` : ''}Adjust ${esc(x.label)}"><span>${lit.has(x.id) ? '✧ ' : ''}${x.always ? '◆ ' : ''}${esc(x.label)}</span><b>${x.level}</b><i style="width:${x.level * 10}%"></i></button>`).join('');
+    const groups = SKILL_CATEGORIES.map(([name, icon, color, rows]) => { const on = rows.filter(([id]) => set[id]).length;
+        return `<details data-skill-group="${esc(name)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${esc(name)}</span><small>${on ? `${on} set` : rows.length}</small></summary><div class="mw-category-body">${rows.map(([id, label, cue, from]) => row(id, label, cue, from, set[id] ?? 0)).join('')}</div></details>`; }).join('');
+    return `<div class="mw-summary"><div class="mw-section-label">${chips ? 'Skills' : 'No skills yet'}<span>${skillsOf(state).length} set</span></div>
+        <div class="mw-chips">${chips || `<p>Nothing set. Pick a level out of 10 for anything ${whose} can do.</p>`}</div>
+        <p class="mw-skill-now">${going.length ? `Going to Claude this reply: ${going.map(x => `${esc(x.label)} ${x.level}`).join(', ')}` : 'None going to Claude this reply. Each one waits until the scene calls for it.'}</p></div>
+    <p class="mw-explainer">A skill only reaches Claude when the scene calls for it: its words turn up in your latest message or the last reply, or Claude says it was used. Then its level decides how attempts go, yours included. ◆ sends one every reply; ✧ means it’s going this reply.</p>
+    <div class="mw-skill-opts"><label class="mw-field">Look back<select data-skill-lookback aria-label="How far back skills look">${[[1, 'Your message + the last reply'], [2, '+ the last 2 replies'], [3, '+ the last 3 replies']].map(([v, l]) => `<option value="${v}" ${settings().skillLookback === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+    <input type="search" data-skill-search placeholder="Find a skill…" aria-label="Search skills">
+    <div class="mw-categories">${groups}
+        <details data-skill-group="Your own" style="--mw-accent:#b9b3d6"><summary><span class="mw-category-icon">✎</span><span>Your own</span><small>${own.length || 'make one'}</small></summary><div class="mw-category-body">
+            ${own.map(x => row(x.id, x.label, x.words ? `called for by: ${x.words}` : 'add words that call for it, or ◆ to always send it', 'yours', x.level, true)).join('')}
+            <div class="mw-skill-add"><input type="text" data-skill-new-label maxlength="40" placeholder="Name it (e.g. Taxidermy)" aria-label="Skill name"><input type="text" data-skill-new-words maxlength="200" placeholder="Words that call for it: mount, stuffed, pelt*" aria-label="Words that call for it"><button type="button" data-action="skill-add">＋ Add skill</button></div>
+            <p class="mw-fine">Separate words with commas. End a word with * to catch every ending (pelt* finds pelts and pelting).</p></div></details></div>
+    <p class="mw-fine" data-skill-empty hidden>No matching skills.</p>`;
+}
+function filterSkills() {
+    const input = panel?.querySelector('[data-skill-search]'); if (!input) return;
+    const term = input.value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    let shown = 0;
+    panel.querySelectorAll('[data-skill-group]').forEach(group => {
+        let visible = 0;
+        group.querySelectorAll('[data-skill-row]').forEach(row => { row.hidden = Boolean(term) && !searchText(row).includes(term); if (!row.hidden) visible++; });
+        group.hidden = Boolean(term) && !visible; if (term) group.open = visible > 0; shown += visible;
+    });
+    const none = panel.querySelector('[data-skill-empty]'); if (none) none.hidden = !term || shown > 0;
+}
+// ---- 1.41.0: clear everything for one person, with a way back ----
+async function clearEverything(keepTypes) {
+    const meta = ctx().chatMetadata?.[KEY], me = personKeyOfSubject();
+    await changeState(s => {
+        const pairs = Object.fromEntries(Object.entries(meta?.pairs ?? {}).filter(([, p]) => (p?.members ?? []).includes(me)));
+        s.lastCleared = { at: Date.now(), state: structuredClone({ ...s, history: [], lastCleared: null }), pairs: structuredClone(pairs) };
+        const blank = freshState({});
+        for (const id of Object.keys(s.moods)) { s.moods[id] = 0; s.pins[id] = false; }
+        Object.assign(s, { causes: {}, shows: {}, prefs: {}, custom: [], inventory: [], wants: [], relationships: [], skills: {}, skillAlways: {}, ownSkills: [], reason: '', targets: blank.targets, loadout: [] });
+        if (!keepTypes) Object.assign(s, { personality: blank.personality, enneagram: blank.enneagram });
+        for (const id of Object.keys(pairs)) delete meta.pairs[id];
+    });
+}
+async function undoClear() {
+    const meta = ctx().chatMetadata?.[KEY];
+    await changeState(s => {
+        const saved = s.lastCleared; if (!saved?.state) return;
+        const history = s.history; Object.assign(s, saved.state, { history, lastCleared: null });
+        for (const [id, p] of Object.entries(saved.pairs ?? {})) (meta.pairs ??= {})[id] = p;
+    });
+}
 // 1.35.1: a redraw that fails shows the error in the panel, so ◆ Moods always opens and the cause is visible.
 let lastDrawError = '';
 // 1.36.0: a redraw that comes from the chat (a reply arriving, a swipe) waits while you're typing in
 // the panel, so it can't wipe a half-written board correction or note. It runs when you leave the field.
 // 1.38.1: a finger down in the panel (dragging a slider, mid-tap) holds it too, so the button under it isn't rebuilt.
-let pointerInPanel = false;
+let pointerInPanel = false, drawnPeer, drawnPairView;
 const typingInPanel = () => { const a = document.activeElement; return pointerInPanel || Boolean(panel && a && panel.contains(a) && a.matches('textarea, input[type=text], input[type=search], input:not([type])')); };
 function render(background = false) {
     if (!panel) return;
@@ -1358,10 +1437,16 @@ function drawPanel() {
     const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + activePersonalities(state).length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
         rel: relationshipCount, state: active.filter(m => m.kind === 'state' && sectionOf(m) === 'state').length,
         needs: who === 'user' ? (settings().youTrack && ch ? reactions(ch).condition.length : 0) : live?.needs.filter(n => n.known && n.value <= 35).length ?? 0,
-        inv: (state?.inventory ?? []).filter(i => i.carried).length, wants: (state?.wants ?? []).filter(w => !w.done && w.value > 0).length };
+        inv: (state?.inventory ?? []).filter(i => i.carried).length, wants: (state?.wants ?? []).filter(w => !w.done && w.value > 0).length, skills: state ? skillsOf(state).length : 0 };
     const peer = state && who !== 'story' ? currentPeer() : null;
     const view = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', settingsOpen ? 'settings' : tab, browsing, tab === 'rel' ? peer?.key : '', tab === 'rel' ? pairView : '']);
-    const snapshot = savedPanel(view), sameView = panel.dataset.view === view;
+    // 1.41.0: clearing the last thing set for someone can drop them from the people list, which used to count as
+    // a new view and jump to the top. If you didn't pick another person or side, the redraw keeps your place.
+    const coarse = JSON.stringify([identity(ch), who, who === 'cast' ? selectedCast()?.id : '', settingsOpen ? 'settings' : tab, browsing]);
+    const oldView = panel.dataset.view, keepPlace = Boolean(oldView) && oldView !== view && panel.dataset.coarse === coarse && selectedPeer === drawnPeer && pairView === drawnPairView;
+    const prevScroll = panel.scrollTop;
+    const snapshot = savedPanel(keepPlace ? oldView : view), sameView = keepPlace || panel.dataset.view === view;
+    panel.dataset.coarse = coarse; drawnPeer = selectedPeer; drawnPairView = pairView;
     search = snapshot?.searches['#mw-catalogue-search'] ?? '';
     panel.dataset.view = view;
     // The plumbob takes the lead moodlet's colour, or the board's mood when nothing is set by hand.
@@ -1375,6 +1460,7 @@ function drawPanel() {
         : who === 'user' && tab === 'needs' ? youView(state, ch, live)
         : who !== 'story' && tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: boardEditing && settings().boardPins, focus: boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : who !== 'story' && tab === 'wants' ? wantsView(state, ch)
+        : who !== 'story' && tab === 'skills' ? skillsView(state, ch)
         : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch) }) : '') + relationshipView({
             peerExtra: who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
         : sectionContent(state, kind, ch, active)}`;
@@ -1388,7 +1474,7 @@ function drawPanel() {
     <div data-status role="status" class="mw-status">${esc(status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     restorePanelFields(panel, snapshot);
     filterRows(); filterRelationships(panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(panel);
-    renderPreview(); restorePanelPosition(panel, snapshot, sameView); toggleTop();
+    renderPreview(); filterSkills(); restorePanelPosition(panel, snapshot, sameView); if (keepPlace && !panel.querySelector(snapshot?.anchor || '[data-none]')) panel.scrollTop = prevScroll; toggleTop();
 }
 function toggleTop() { const b = panel?.querySelector('.mw-to-top'); if (b) b.hidden = panel.scrollTop < 500; }
 function showGroupMatches(group, count, term) {
@@ -1645,6 +1731,12 @@ function setup() {
     panel.addEventListener('scroll', toggleTop, { passive: true });
     panel.addEventListener('input', e => {
         if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
+        if (e.target.hasAttribute('data-skill-search')) { filterSkills(); return; }
+        if (e.target.dataset.skill !== undefined || e.target.dataset.ownSkill !== undefined) {
+            const v = Number(e.target.value), row = e.target.closest('.mw-skill-row');
+            if (row) { put(row, 'output', `${v}/10`); put(row, '[data-skill-word]', v ? skillWord(v) : 'off'); }
+            e.target.style.setProperty('--mw-fill', `${v * 10}%`); return;
+        }
         if (e.target.dataset.maker && maker) {
             const f = e.target.dataset.maker; maker.draft[f] = f === 'dark' ? e.target.checked : e.target.value;
             if (f === 'group') lastGroup[maker.kind] = e.target.value;
@@ -1731,6 +1823,9 @@ function setup() {
     panel.addEventListener('change', async e => {
         const input = e.target;
         if (input.dataset.maker) return; // drafts live in memory until saved
+        if (input.dataset.skill !== undefined) { const id = input.dataset.skill, v = Number(input.value); await changeState(s => { s.skills = cleanSkills(s.skills); if (v > 0) s.skills[id] = v; else delete s.skills[id]; }); return; }
+        if (input.dataset.ownSkill !== undefined) { const id = input.dataset.ownSkill, v = Number(input.value); await changeState(s => { s.ownSkills = cleanOwnSkills(s.ownSkills).map(x => x.id === id ? { ...x, level: v } : x); }); return; }
+        if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
         if (input.dataset.launch === 'show') { setLaunch({ show: input.checked }); return; }
         if (input.dataset.launch === 'small') { setLaunch({ small: input.checked }); return; }
         if (input.dataset.need) { const id = input.dataset.need, v = Number(input.value); await editBoard(b => { b.needs[id] = v; }); return; }
@@ -1950,6 +2045,9 @@ function setup() {
                 else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
             }); return;
         }
+        if (button.dataset.skillAlways) { const id = button.dataset.skillAlways; await changeState(s => { const a = cleanAlways(s.skillAlways); if (a[id]) delete a[id]; else a[id] = true; s.skillAlways = a; }); return; }
+        if (button.dataset.ownSkillRemove) { const id = button.dataset.ownSkillRemove; await changeState(s => { s.ownSkills = cleanOwnSkills(s.ownSkills).filter(x => x.id !== id); const a = cleanAlways(s.skillAlways); delete a[id]; s.skillAlways = a; }); return; }
+        if (button.dataset.skillJump) { const row = panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
         if (button.dataset.bondMute) {
             const text = button.dataset.bondMute;
             await editBond(b => { b.own = b.own.filter(t => t.toLowerCase() !== text.toLowerCase()); b.muted.push(text.toLowerCase()); }); return;
@@ -2175,6 +2273,17 @@ function setup() {
                 if (!confirm(`Clear ${whose} ${what}? Their sliders go to 0 and pins come off. Everything in the other tabs stays, and the list stays so you can set a new scene quickly.`)) break;
                 await changeState(s => clearSection(s, kind)); break;
             }
+            case 'skill-add': {
+                const label = String(panel.querySelector('[data-skill-new-label]')?.value ?? '').trim(); if (!label) break;
+                const words = String(panel.querySelector('[data-skill-new-words]')?.value ?? '').trim();
+                await changeState(s => { s.ownSkills = cleanOwnSkills([...(s.ownSkills ?? []), { label, words, level: 5 }]); }); break;
+            }
+            case 'clear-everything': {
+                const keep = panel.querySelector('[data-keep-types]')?.checked !== false, whose = who === 'story' ? 'the story' : subjectName();
+                if (!confirm(`Clear everything set for ${whose} in this chat? Moodlets, traits, turn-ons, facts, wants, items, skills, your own rows and relationships all go, pins too. ${keep ? 'Personality types stay.' : 'Personality types go too.'} “Bring it back” undoes it until you clear again.`)) break;
+                await clearEverything(keep); status = `Cleared everything for ${whose}.`; renderStatus(); break;
+            }
+            case 'clear-undo': await undoClear(); status = 'Brought back what was cleared.'; renderStatus(); break;
             case 'reset': await changeState(s => { for (const m of MOODS) if (sectionOf(m) === 'mood' && !s.pins[m.id]) s.moods[m.id] = 0; s.reason = ''; }); break;
             case 'undo': await changeState(s => {
                 const previous = s.history.pop(); if (!previous) return;

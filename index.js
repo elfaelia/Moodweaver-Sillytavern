@@ -1,8 +1,10 @@
 import { analysed, KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, STORY_RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, isExtended, shortName, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
 import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone, hasBoard, stripBoard, feelingId, relationId, parseBoard, boardKeyOf, NO_BOARD, fixActive } from './board.js';
 import { boardView } from './board-ui.js';
-import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor, sparkTarget, sliderAxes, storedSteps, METERS, setDesire, cleanDesire } from './bond.js';
+import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor, sparkTarget, sliderAxes, storedSteps, METERS, setDesire, cleanDesire, computeDesire } from './bond.js';
 import { findPatterns } from './patterns.js';
+import { MORE_PRESETS, cleanMore, setMore, meterWeaveNames, computeMore } from './meters.js';
+import { cravingsFrom, findCombos, cleanCombos, COMBOS } from './reactive.js';
 import { ON_PAGE } from './onpage.js';
 import { bondView, bondMini } from './bond-ui.js';
 import { parseWeave, hasWeave, stripWeave, weavePrompt, powerChange } from './weave.js';
@@ -20,11 +22,11 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.39.1';
+const VERSION = '1.40.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all' };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 5, library: [], readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true };
 let panel, selectedAvatar = '', selectedCastId = '', castAction = '', pending = null, promptVersion = 0, suspended = false;
 let promptInfo = { prompt: '', tokens: 0, omitted: 0 }, status = '', search = '', tab = 'mood', who = 'char';
 // UI-only: the settings sheet, and the "make your own" editor ({ kind, id? editing a library entry, fromOwn? promoting a one-off row }).
@@ -196,6 +198,8 @@ function settings() {
         needsDrift: saved.needsDrift !== false, needsSpeed: ['gentle', 'normal', 'harsh'].includes(saved.needsSpeed) ? saved.needsSpeed : 'normal',
         needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
         showsMode: ['all', 'mine', 'off'].includes(saved.showsMode) ? saved.showsMode : 'all',
+        // 1.40.0: combos and cravings.
+        combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false,
     });
 }
 function members() {
@@ -357,8 +361,8 @@ function wantMatch(text, wants) {
 // What the story set off, read from the hidden lines still in the chat: lit turn-ons and traits, wants
 // moved or blocked, fears touched, hot buttons pressed, wants that came true, wants it suggests, and
 // what it has done to your character's body. Swiping a reply takes all of it with it.
-function reactions(ch, chat = liveChat()) {
-    const st = getState(ch), out = { turns: new Set(), traits: new Set(), free: [], wants: new Map(), done: new Set(), doneAt: new Map(), suggest: [], condition: [] };
+function reactions(ch, chat = liveChat(), live = null) {
+    const st = getState(ch), out = { turns: new Set(), traits: new Set(), free: [], wants: new Map(), done: new Set(), doneAt: new Map(), suggest: [], condition: [], craving: new Map(), cravingMet: new Set(), combos: [] };
     if (!st || !ch || !bondData(ch).on) return out;
     const mine = writes(ch), replies = [];
     (chat ?? []).forEach((m, i) => { if (mine(m) && !m.is_system) { const w = weaveOf(m); if (w) replies.push([i, w]); } });
@@ -381,6 +385,20 @@ function reactions(ch, chat = liveChat()) {
         out.suggest.push({ text: t, index: i });
     }
     for (const [, w] of replies.slice(-12)) if (Array.isArray(w.you)) out.condition = w.you;
+    // 1.40.0: cravings (strong turn-ons that haven't lit in a while) and combos (two things at once).
+    const prefs = st.prefs ?? {}, bedroom = bedroomTraits(st);
+    const litPer = replies.map(([, w]) => new Set((w.sparked ?? []).filter(sp => !sp.off).map(sp => sparkTarget(sp.text, prefs, bedroom).id).filter(Boolean)));
+    if (settings().cravingsOn) {
+        const before = cravingsFrom(prefs, litPer.slice(0, -1)), now = cravingsFrom(prefs, litPer);
+        out.craving = new Map(now.map(c => [c.id, c.gap]));
+        out.cravingMet = new Set(before.filter(c => litPer.at(-1)?.has(c.id)).map(c => c.id));
+    }
+    if (settings().combosOn && newest) {
+        const list = bondList(ch, chat), bond = bondData(ch), statuses = [...out.wants.values()];
+        out.combos = findCombos({ lit: litPer.at(-1) ?? new Set(), litTraits: out.traits, moods: st.moods, pressed: statuses.includes('pressed'), blocked: statuses.includes('-'),
+            desire: bond.desire?.on ? computeDesire(bond.desire, list) : null, more: computeMore(bond.more, list).values, cravingMet: out.cravingMet,
+            needsLow: new Set((live?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id)) }, cleanCombos(st.combos), shortName(ch.name), shortName(playerName()));
+    }
     return out;
 }
 // For the Bonds tab: what has set the character off over the whole chat, and how often.
@@ -453,7 +471,7 @@ function bondList(ch, chat = liveChat()) {
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
-        out.push({ pos, key: readOf(m).wkey, s: { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null } });
+        out.push({ pos, key: readOf(m).wkey, s: { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null } });
     });
     if (out.length) { const st = getState(ch), prefs = st?.prefs ?? {}, traits = bedroomTraits(st); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
@@ -743,10 +761,11 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const history = effectiveChat(c.chat ?? [], type);
         const n = shortName(name), u = shortName(player), bond = bondData(ch), bm = cleanBoardMeta(boardMeta());
         const memories = settings().boardMemories;
-        const board = boardPromptLines({ send: boardSend(), live: liveFor(ch, history), char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on });
-        const react = reactions(ch, history), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
+        const liveNow = liveFor(ch, history);
+        const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on });
+        const react = reactions(ch, history, liveNow), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
         const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, moods: bm.feed, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on) }) : [];
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
@@ -1097,6 +1116,30 @@ function wantsView(state, ch) {
 }
 // 1.39.0: your own character's tab. No needs (you play them): what you're wearing, what the story has done
 // to your body, and the moodlets you've set, at a glance.
+// 1.40.0: combos firing now, cravings building, and your own combos, on the character's Turn-ons tab.
+function reactiveBlock(state, ch) {
+    if (!bondData(ch).on) return '';
+    const r = reactions(ch, liveChat(), liveFor(ch)), name = esc(shortName(ch.name));
+    const things = [...Object.entries(state.prefs ?? {}).filter(([id, v]) => v > 0 && TURN_BY_ID[id]).map(([id]) => [`turn:${id}`, `✧ ${TURN_BY_ID[id].label} lights up`]),
+        ...activeMoods(state).filter(m => sectionOf(m) === 'mood').map(m => [`mood:${m.id}`, `◇ ${m.label} (clear or above)`]),
+        ...activeMoods(state).filter(m => ['dynamics', 'psychosexual'].includes(m.category)).map(m => [`trait:${m.id}`, `❂ ${m.label} lights up`]),
+        ['button', '⚡ a hot button goes off'], ...['hunger', 'energy', 'bladder', 'hygiene', 'comfort', 'social', 'fun', 'health'].map(id => [`need:${id}`, `◔ ${id} is low`])];
+    const opts = attr => `<select ${attr}><option value="">Choose…</option>${things.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`;
+    const label = token => things.find(([v]) => v === token)?.[1] ?? token;
+    const own = cleanCombos(state.combos);
+    return `${r.combos.length ? `<div class="mw-combo">${r.combos.map(c => `<div><b>⚡ ${esc(c.name)}</b><small>${esc(c.text)}</small></div>`).join('')}</div>` : ''}
+        ${r.craving.size ? `<div class="mw-sparks mw-cravings"><small>Craving</small>${[...r.craving].map(([id, gap]) => `<span class="mw-spark is-craving" title="Not lit for ${gap} replies">◌ ${esc(TURN_BY_ID[id]?.label ?? id)} <b>${gap}</b></span>`).join('')}</div>` : ''}
+        <details class="mw-combo-settings"><summary>Combos &amp; cravings</summary>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="combosOn" ${settings().combosOn ? 'checked' : ''}> Combos: two things at once fire a bigger effect</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="cravingsOn" ${settings().cravingsOn ? 'checked' : ''}> Cravings: strong turn-ons that haven’t lit in a while pull ${name} toward them</label>
+            <p class="mw-fine">Built in: ${COMBOS.map(([n]) => esc(n)).join(', ')}. Strong turn-ons crave after 8 quiet replies, intense ones after 5. All ${settings().combosOn || settings().cravingsOn ? '' : 'off, so nothing is '}worked out from the replies still in the chat, so a swipe undoes it.</p>
+            <b class="mw-pre-label">${name}’s own combos</b>
+            ${own.map(c => `<div class="mw-done-row"><span><b>${esc(c.name)}</b>: ${esc(label(c.a))} + ${esc(label(c.b))}</span><button type="button" class="mw-list" data-combo-remove="${esc(c.id)}" title="Delete">×</button></div>`).join('') || '<p class="mw-fine">None yet.</p>'}
+            <div class="mw-combo-maker">${opts('data-combo-a aria-label="First thing"')}<span>+</span>${opts('data-combo-b aria-label="Second thing"')}
+                <input type="text" data-combo-name maxlength="40" placeholder="Name (e.g. Claim)"><input type="text" data-combo-text maxlength="160" placeholder="What happens (e.g. he has to put her back in her place)">
+                <button type="button" data-action="combo-add" class="mw-primary">＋ Add combo</button></div>
+        </details>`;
+}
 function youView(state, ch, live) {
     const react = settings().youTrack ? reactions(ch) : null, moods = activeMoods(state).filter(m => sectionOf(m) === 'mood').slice(0, 10);
     const where = live?.found ? [live.time, live.location].filter(Boolean).join(' · ') : '';
@@ -1268,6 +1311,7 @@ function sectionContent(state, kind, ch, active) {
         : kind === 'trait' ? `Who ${esc(whose)} is underneath. Traits stay put unless you switch on ❂ Traits in the scene reader.` : '';
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
         <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
+        ${kind === 'turn' && who === 'char' ? reactiveBlock(state, ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
         ${kind === 'mood' && state.reason ? `<div class="mw-observation">✧ ${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${kind === 'mood' ? readerBlock(state) : ''}
@@ -1612,6 +1656,7 @@ function setup() {
             else { put(panel, '[data-follow-out]', `${v}%`); e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
             return;
         }
+        if (e.target.dataset.moreMeter) { const v = Number(e.target.value); e.target.style.setProperty('--mw-fill', `${e.target.dataset.two === '1' ? (v + 100) / 2 : v}%`); return; }
         if (e.target.dataset.desireBar) { e.target.style.setProperty('--mw-fill', `${e.target.value}%`); return; }
         if (e.target.dataset.bondMeter) {
             const key = e.target.dataset.bondMeter, v = Number(e.target.value);
@@ -1697,6 +1742,9 @@ function setup() {
         if (input.hasAttribute('data-desire-on')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), on: input.checked }; }); return; }
         if (input.hasAttribute('data-desire-pace')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), pace: input.value }; }); return; }
         if (input.hasAttribute('data-desire-cap')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), cap: Number(input.value) }; }); return; }
+        if (input.dataset.moreOn) { const key = input.dataset.moreOn; await editBond(b => { const d = cleanMore(b.more); d.on = input.checked ? [...d.on, key] : d.on.filter(k => k !== key); b.more = d; }); return; }
+        if (input.dataset.moreMeter) { const key = input.dataset.moreMeter, v = Number(input.value); await editBond((b, list) => setMore(b, key, v, list)); return; }
+        if (input.dataset.desireScale) { const key = input.dataset.desireScale; await editBond(b => { const d = cleanDesire(b.desire); d.scales[key] = input.checked; b.desire = d; }); return; }
         if (input.dataset.desireBar) { const key = input.dataset.desireBar, v = Number(input.value); await editBond((b, list) => setDesire(b, key, v, list)); return; }
         if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
         if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
@@ -1871,6 +1919,20 @@ function setup() {
             await persist(main); await syncPrompt(); render(); return;
         }
         if (button.dataset.boardUnpin) { const key = button.dataset.boardUnpin; await editBoard(b => { delete b.fix[key]; }); return; }
+        if (button.dataset.morePreset !== undefined) {
+            const pick = MORE_PRESETS.find(([name]) => name === button.dataset.morePreset)?.[1] ?? [];
+            await editBond(b => { const d = cleanMore(b.more); d.on = [...pick]; b.more = d; }); return;
+        }
+        if (button.dataset.morePin) {
+            const key = button.dataset.morePin;
+            await editBond((b, list) => {
+                const d = b.more = cleanMore(b.more);
+                if (d.pins[key] === null) d.pins[key] = Number(panel.querySelector(`[data-more-meter="${key}"]`)?.value ?? 0);
+                else { const v = d.pins[key]; d.pins[key] = null; setMore(b, key, v, list); }
+            });
+            return;
+        }
+        if (button.dataset.comboRemove) { const id = button.dataset.comboRemove; await changeState(s => { s.combos = cleanCombos(s.combos).filter(c => c.id !== id); }); return; }
         if (button.dataset.desirePin) {
             const key = button.dataset.desirePin;
             await editBond((b, list) => {
@@ -2021,6 +2083,12 @@ function setup() {
                 if (!confirm(`Delete “${entry.label}” from your library? It disappears from every character.`)) break;
                 settings().library = cleanLibrary(settings().library.filter(e => e.id !== entry.id)); settings(); ctx().saveSettingsDebounced();
                 maker = null; status = `“${entry.label}” deleted.`; await syncPrompt(); render(); break;
+            }
+            case 'combo-add': {
+                const val = sel => panel.querySelector(sel)?.value?.trim() ?? '';
+                const combo = { id: newId(), a: val('[data-combo-a]'), b: val('[data-combo-b]'), name: val('[data-combo-name]'), text: val('[data-combo-text]') };
+                if (!combo.a || !combo.b || !combo.name) { status = 'A combo needs two things and a name.'; renderStatus(); break; }
+                await changeState(s => { s.combos = cleanCombos([...cleanCombos(s.combos), combo]); }); break;
             }
             case 'want-add': {
                 const kind = button.dataset.kind, field = panel.querySelector(`[data-want-new="${kind}"]`);

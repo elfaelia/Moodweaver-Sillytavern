@@ -5,6 +5,7 @@
 import { parseWeave, hasWeave, stripWeave, traitKey } from './weave.js';
 import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
+import { cleanMore, computeMore, moreLines, COMBO_DYNAMICS, SINGLE_DYNAMICS } from './meters.js';
 export const parseBond = mes => parseWeave(mes);
 export const hasBond = hasWeave;
 export const stripBond = stripWeave;
@@ -77,6 +78,10 @@ const DYNAMICS = [
     ['Hostile', d => d.f <= -20 || d.r <= -30, (n, u) => `${n} is cold or hostile toward ${u}: short answers, distance, looking for faults`],
     ['Strangers', () => true, (n, u) => `${n} hasn't settled on what ${u} is yet: watching, testing, filing things away`],
 ];
+// 1.40.0: dynamics the new meters unlock (meters.js). Two-meter ones are checked first; single-meter ones
+// sit just before the general dynamics. Each only fires when the meters it reads are switched on.
+DYNAMICS.unshift(...COMBO_DYNAMICS);
+DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...SINGLE_DYNAMICS);
 export const DYNAMIC_NAMES = DYNAMICS.map(([name]) => name);
 // fixed: a dynamic the player chose; it replaces the automatic reading.
 export function dynamicOf(d, n = 'one', u = 'the other', fixed = '') {
@@ -109,7 +114,7 @@ export function cleanBond(raw = {}, on = true) {
         steps: b.v === 2 ? {} : Object.fromEntries(keep.map(i => [i, steps[i]])),
         muted: [...new Set((b.muted ?? []).map(t => text(t).toLowerCase()).filter(Boolean))].slice(0, 30),
         own: [...new Set((b.own ?? []).map(t => text(t)).filter(Boolean))].slice(0, 6),
-        desire: cleanDesire(b.desire),
+        desire: cleanDesire(b.desire), more: cleanMore(b.more),
     };
 }
 // Older saves kept steps by message number; they're still readable for the one-time move to 1.36.
@@ -153,9 +158,10 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // The upper hand keeps changing hands: control or pull flipped direction twice or more in the last eight replies.
     const flips = key => steps.slice(-8).map(([, s]) => Math.sign(s[key] ?? 0)).filter(Boolean).reduce((n, sign, i, all) => n + (i && sign !== all[i - 1] ? 1 : 0), 0);
     const swing = Math.max(flips('p'), flips('l')) >= 2;
-    return { ...v, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
+    const more = computeMore(bond.more, all).values, axesNow = { ...blend(v, axes, bond.pins), ...more };
+    return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic: dynamicOf(blend(v, axes, bond.pins), n, u, bond.fixed), auto: dynamicOf(blend(v, axes, bond.pins), n, u).name };
+        dynamic: dynamicOf(axesNow, n, u, bond.fixed), auto: dynamicOf(axesNow, n, u).name };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.
@@ -201,65 +207,99 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
         ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(t.text)).join(', ')}`] : []),
+        ...moreLines(bond.more, list ?? [], pt(n), pt(u)),
         ...desireLines(bond, list ?? [], pt(n), pt(u)),
     ];
 }
 
-// ---- 1.39.1: the desire meter ----
-// Arousal (how turned on toward the player right now), restraint (how hard they hold back) and frustration
-// (built up without release). Read from the hidden line reply by reply like the other meters, so swipes undo
-// it. Pace caps how far one reply can push arousal up; a cap stops it at a chosen stage for slow burns.
+// ---- The desire meter (1.39.1; scales added in 1.39.2) ----
+// Arousal toward the player right now, plus scales for how it shows: boldness, tender ↔ rough, fixation on
+// them, shame, and holding back. Frustration builds without release. Read from the hidden line reply by
+// reply like the other meters, so swipes undo it. Pace caps how fast arousal climbs; a cap stops it at a stage.
 export const DESIRE_PACE = { slow: 5, normal: 10, fast: 20 };
 export const DESIRE_CAPS = [[100, 'No limit'], [94, 'Desperate'], [80, 'Aching'], [60, 'Warm'], [40, 'Interested']];
 export const DESIRE_STAGES = [[95, 'Past thinking'], [81, 'Desperate'], [61, 'Aching'], [41, 'Warm'], [26, 'Interested'], [11, 'Noticing'], [0, 'Not in the mood']];
+// key, label, starting value, words by strength.
+export const DESIRE_SCALES = [
+    ['b', 'Boldness', 50, [[81, 'predatory'], [61, 'forward'], [41, 'open about it'], [21, 'coy'], [0, 'shy']]],
+    ['t', 'Tender ↔ rough', 45, [[81, 'cruel'], [61, 'rough'], [41, 'eager'], [21, 'sweet'], [0, 'tender']]],
+    ['x', 'Fixation', 50, [[81, 'only them'], [61, 'fixed on them'], [41, 'mostly them'], [21, 'drawn to them'], [0, 'anyone would do']]],
+    ['h', 'Shame', 0, [[81, 'hates themselves for it'], [61, 'sick with it'], [41, 'ashamed'], [21, 'uneasy about it'], [1, 'a twinge'], [0, 'none']]],
+    ['s', 'Holding back', 25, [[81, 'fighting it with everything'], [61, 'holding back hard'], [41, 'holding back some'], [21, 'barely holding back'], [0, 'not holding back']]],
+];
+const SCALE = Object.fromEntries(DESIRE_SCALES.map(r => [r[0], r]));
+const KEYS = ['a', 'f', ...DESIRE_SCALES.map(([k]) => k)];
+const START = { a: 0, f: 0, ...Object.fromEntries(DESIRE_SCALES.map(([k, , v]) => [k, v])) };
 export const desireStage = (a, after = false) => after ? 'Afterglow' : DESIRE_STAGES.find(([min]) => a >= min)[1];
-export const restraintWord = v => v >= 81 ? 'fighting it with everything' : v >= 61 ? 'holding back hard' : v >= 41 ? 'holding back some' : v >= 21 ? 'barely holding back' : 'not holding back';
+export const scaleWord = (key, v) => SCALE[key][3].find(([min]) => v >= min)[1];
+export const restraintWord = v => scaleWord('s', v);
 export const frustrationWord = v => v >= 81 ? 'unbearable' : v >= 61 ? 'high' : v >= 31 ? 'building' : v >= 1 ? 'low' : 'none';
 export function cleanDesire(raw) {
     const x = raw && typeof raw === 'object' ? raw : {};
-    const n = (v, d) => Number.isFinite(Number(v)) ? clamp(Math.round(Number(v)), 0, 100) : d;
+    const n = (v, d) => Number.isFinite(Number(v)) && v !== null && v !== '' ? clamp(Math.round(Number(v)), 0, 100) : d;
     const pin = v => v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : n(v, 0);
-    const a = x.anchor && typeof x.anchor === 'object' ? { a: n(x.anchor.a, 0), s: n(x.anchor.s, 50), f: n(x.anchor.f, 0),
+    const anchor = x.anchor && typeof x.anchor === 'object' ? { ...Object.fromEntries(KEYS.map(k => [k, n(x.anchor[k], START[k])])),
         key: String(x.anchor.key ?? '').slice(0, 120), pos: Number.isFinite(Number(x.anchor.pos)) ? Math.round(Number(x.anchor.pos)) : -1 } : null;
     return { on: x.on === true, pace: DESIRE_PACE[x.pace] ? x.pace : 'slow', cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
-        anchor: a, pins: { a: pin(x.pins?.a), s: pin(x.pins?.s), f: pin(x.pins?.f) } };
+        anchor, pins: Object.fromEntries(KEYS.map(k => [k, pin(x.pins?.[k])])), scales: Object.fromEntries(DESIRE_SCALES.map(([k]) => [k, x.scales?.[k] !== false])) };
 }
-// list: [{ pos, key, s: { d: { a, s, release } | null } }] oldest first.
+// list: [{ pos, key, s: { d: { a, s, b, t, x, h, release } | null } }] oldest first.
 export function computeDesire(desire, list = []) {
-    const d = cleanDesire(desire), up = DESIRE_PACE[d.pace];
-    let a = 0, s = 50, f = 0, after = 0, start = 0;
+    const d = cleanDesire(desire), up = DESIRE_PACE[d.pace], side = Math.max(up, 10), v = { ...START };
+    let after = 0, start = 0;
     if (d.anchor) {
         let at = d.anchor.key ? list.findIndex(x => x.key === d.anchor.key) : -1;
-        if (at < 0 && !d.anchor.key) at = -1; else if (at < 0) for (let i = list.length - 1; i >= 0; i--) if (list[i].pos <= d.anchor.pos) { at = i; break; }
-        ({ a, s, f } = d.anchor); start = at + 1;
+        if (at < 0 && d.anchor.key) for (let i = list.length - 1; i >= 0; i--) if (list[i].pos <= d.anchor.pos) { at = i; break; }
+        for (const k of KEYS) v[k] = d.anchor[k]; start = at + 1;
     }
     for (let i = start; i < list.length; i++) {
         const x = list[i].s?.d;
-        if (x?.release) { a = 15; f = 0; after = 2; } else after = Math.max(0, after - 1);
-        if (x?.a) a = clamp(a + clamp(x.a, -40, up), 0, d.cap);
-        else if (!x && a > 20) a -= 2;
-        if (x?.s) s = clamp(s + clamp(x.s, -up, up), 0, 100);
-        if (!x?.release) f = clamp(f + (a >= 41 ? Math.ceil((a - 35) / 8) : -3), 0, 100);
+        if (x?.release) { v.a = 15; v.f = 0; after = 2; } else after = Math.max(0, after - 1);
+        if (x?.a) v.a = clamp(v.a + clamp(x.a, -40, up), 0, d.cap);
+        else if (!x && v.a > 20) v.a -= 2;
+        for (const [k] of DESIRE_SCALES) if (x?.[k] && d.scales[k]) v[k] = clamp(v[k] + clamp(x[k], -side, side), 0, 100);
+        if (!x?.release) v.f = clamp(v.f + (v.a >= 41 ? Math.ceil((v.a - 35) / 8) : -3), 0, 100);
     }
-    a = Math.min(d.pins.a ?? a, d.cap); s = d.pins.s ?? s; f = d.pins.f ?? f;
-    return { a, s, f, after: after > 0 && d.pins.a === null, stage: desireStage(a, after > 0 && d.pins.a === null), cap: d.cap, pace: d.pace, pins: d.pins };
+    for (const k of KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];
+    v.a = Math.min(v.a, d.cap);
+    const glow = after > 0 && d.pins.a === null;
+    return { ...v, after: glow, stage: desireStage(v.a, glow), cap: d.cap, pace: d.pace, pins: d.pins, scales: d.scales };
 }
-// Dragging a bar sets all three where they stand now; later replies move them from there.
+// Dragging a bar sets them all where they stand now; later replies move them from there.
 export function setDesire(bond, key, value, list = []) {
     const d = bond.desire = cleanDesire(bond.desire), now = computeDesire(d, list), last = list[list.length - 1];
-    const v = clamp(Math.round(Number(value) || 0), 0, 100);
-    d.anchor = { a: now.a, s: now.s, f: now.f, [key]: v, key: last?.key ?? '', pos: last?.pos ?? -1 };
-    if (d.pins[key] !== null) d.pins[key] = v;
+    if (!KEYS.includes(key)) return;
+    const val = clamp(Math.round(Number(value) || 0), 0, 100);
+    d.anchor = { ...Object.fromEntries(KEYS.map(k => [k, now[k]])), [key]: val, key: last?.key ?? '', pos: last?.pos ?? -1 };
+    if (d.pins[key] !== null) d.pins[key] = val;
 }
-// The rows Claude reads under "[character] toward [player]".
+const BOLD_HOW = { shy: (n, u) => `${n} wants ${u} but can't make the move: blushes, fumbles, waits to be led`, coy: (n, u) => `${n} hints with glances and half-touches and waits for ${u} to notice`,
+    'open about it': n => `${n} lets it show and takes openings`, forward: n => `${n} makes the move and says what they want`, predatory: n => `${n} doesn't wait for an opening but makes one: corners, closes in, takes` };
+const TOUCH_HOW = { tender: 'Touches are slow and gentle.', sweet: 'Warm and affectionate about it.', eager: '', rough: 'Grabby and hard: grips, pins, bites.', cruel: 'Wants it to hurt: cruel words, pain and marks.' };
+// The rows Claude reads under "[character] toward [player]". Only scales that say something get a word.
 export function desireLines(bond, list, n, u) {
     if (!bond?.desire?.on) return [];
-    const x = computeDesire(bond.desire, list), cap = DESIRE_CAPS.find(([c]) => c === x.cap)?.[1];
-    const how = x.after ? `just after release: spent, loose and slow; soft, awkward or cold, depending on who ${n} is`
+    const x = computeDesire(bond.desire, list), on = k => x.scales[k], live = x.a > 10 && !x.after;
+    const cap = DESIRE_CAPS.find(([c]) => c === x.cap)?.[1];
+    const tags = [x.stage.toLowerCase()];
+    if (on('b') && live) tags.push(scaleWord('b', x.b));
+    if (on('t') && live && (x.t <= 40 || x.t >= 61)) tags.push(scaleWord('t', x.t));
+    if (on('x') && live && (x.x <= 20 || x.x >= 61)) tags.push(scaleWord('x', x.x).replace('them', u));
+    if (on('h') && x.h >= 21) tags.push(scaleWord('h', x.h));
+    if (on('s') && x.s >= 41 && live) tags.push(scaleWord('s', x.s));
+    if (x.f >= 31) tags.push(`frustration ${frustrationWord(x.f)}`);
+    const how = x.after ? `just after release: spent, loose and slow${on('h') && x.h >= 41 ? ', until the shame comes in' : ''}`
         : x.a <= 10 ? `desire isn't part of this moment; don't add it`
-        : x.a <= 40 ? `a flicker: ${n} notices ${u}'s body in passing and moves on`
-        : x.s >= 61 ? `${n} wants ${u} and is fighting it: it leaks into looks, standing too close and touches pulled back`
-        : x.s >= 31 ? `it shows in looks, closeness and loaded words; ${n} takes openings without forcing them`
-        : `${n} acts on it whenever there's an opening`;
-    return [`desire for ${pt(u)}: ${x.stage.toLowerCase()}; ${restraintWord(x.s)}; frustration ${frustrationWord(x.f)}. ${how[0].toUpperCase()}${how.slice(1)}.${x.f >= 61 && !x.after ? ` Pent-up frustration sharpens ${n}'s temper and makes small touches land hard.` : ''}${x.pace === 'slow' ? ' It builds slowly in this chat: a small step a reply at most.' : x.pace === 'fast' ? ' It can build fast.' : ''}${x.cap < 100 ? ` For now it tops out at ${cap.toLowerCase()}; don't take it past that.` : ''}`];
+        : x.a <= 40 ? `a flicker: ${n} notices ${u}'s body in passing${on('b') && x.b <= 20 ? ' and hides it' : on('b') && x.b >= 61 ? ' and lets it show' : ''}`
+        : on('s') && x.s >= 61 ? `${n} wants ${u} and is fighting it: it leaks into looks, standing too close and touches pulled back`
+        : on('b') ? BOLD_HOW[scaleWord('b', x.b)](n, u) : `it shows in looks, closeness and loaded words, and ${n} takes openings`;
+    const extra = [
+        on('t') && live && x.a > 40 ? TOUCH_HOW[scaleWord('t', x.t)] : '',
+        on('x') && live ? (x.x <= 20 ? `It isn't about ${u} in particular.` : x.x >= 81 ? `Only ${u} will do; anyone else is invisible.` : x.x >= 61 ? `It's all aimed at ${u}.` : '') : '',
+        on('h') && live && x.h >= 41 ? (x.h >= 61 ? `${n} hates wanting it, and it comes out as anger, coldness or self-punishment.` : `${n} is ashamed of wanting it.`) : '',
+        x.f >= 61 && !x.after ? `Pent-up frustration sharpens ${n}'s temper and makes small touches land hard.` : '',
+        x.pace === 'slow' ? 'It builds slowly in this chat: a small step a reply at most.' : x.pace === 'fast' ? 'It can build fast.' : '',
+        x.cap < 100 ? `For now it tops out at ${cap.toLowerCase()}; don't take it past that.` : '',
+    ].filter(Boolean);
+    return [`desire for ${u}: ${tags.join('; ')}. ${how[0].toUpperCase()}${how.slice(1)}.${extra.map(e => ` ${e}`).join('')}`];
 }

@@ -10,7 +10,8 @@ const step = (i, d) => ({ pos: i, key: `k${i}`, s: { d } });
 
 test('the hidden line reports desire, and pace caps how fast it climbs', () => {
     const w = parseWeave('x <!-- weave: desire: arousal +30, restraint -4 -->');
-    assert.deepEqual(w.desire, { a: 30, s: -4, release: false });
+    assert.deepEqual(w.desire, { a: 30, s: -4, b: 0, t: 0, x: 0, h: 0, release: false });
+    assert.deepEqual(parseWeave('x <!-- weave: desire: arousal +3, bold +5, tender +4, shame +6, fixation +2 -->').desire, { a: 3, s: 0, b: 5, t: -4, x: 2, h: 6, release: false }, 'tender counts as less rough');
     assert.equal(parseWeave('x <!-- weave: desire: release -->').desire.release, true);
     const list = [step(1, { a: 30, s: 0 }), step(2, { a: 30, s: 0 })];
     assert.equal(computeDesire({ on: true, pace: 'slow' }, list).a, 10, 'slow burn: five a reply at most');
@@ -38,15 +39,27 @@ test('you can drag and pin it, and it still moves from where you put it', () => 
     assert.equal(computeDesire(bond.desire, [...list, step(2, { s: -10 })]).s, 90, 'a pin holds');
 });
 
-test('the note says what it looks like, not a number', () => {
-    const bond = cleanBond({ desire: { on: true, pace: 'slow', cap: 60, anchor: { a: 55, s: 75, f: 70, key: '', pos: -1 } } });
-    const [line] = desireLines(bond, [], 'Easterman', 'Lamb');
-    assert.match(line, /desire for Lamb: warm; holding back hard; frustration high/);
-    assert.match(line, /wants Lamb and is fighting it/);
-    assert.match(line, /builds slowly in this chat/);
-    assert.match(line, /tops out at warm/);
+test('the note says what it looks like, not a number, and only what the scales are saying', () => {
+    const held = cleanBond({ desire: { on: true, pace: 'slow', cap: 60, anchor: { a: 55, s: 75, f: 70, key: '', pos: -1 } } });
+    const [line] = desireLines(held, [], 'Easterman', 'Lamb');
+    assert.match(line, /desire for Lamb: warm; open about it; holding back hard; frustration high/);
+    assert.match(line, /Easterman wants Lamb and is fighting it/);
+    assert.match(line, /builds slowly in this chat/); assert.match(line, /tops out at warm/);
+    // Holding back starts low, so by default it isn't mentioned and boldness decides how they act on it.
+    const plain = desireLines(cleanBond({ desire: { on: true, anchor: { a: 70, key: '', pos: -1 } } }), [], 'Rick', 'Lamb')[0];
+    assert.doesNotMatch(plain, /holding back|fighting it/);
+    assert.match(plain, /Rick lets it show and takes openings/);
+    const dark = desireLines(cleanBond({ desire: { on: true, anchor: { a: 85, b: 90, t: 90, x: 95, h: 70, key: '', pos: -1 } } }), [], 'Bateman', 'Lamb')[0];
+    assert.match(dark, /desperate; predatory; cruel; only Lamb; sick with it/);
+    assert.match(dark, /doesn't wait for an opening but makes one/);
+    assert.match(dark, /Wants it to hurt/); assert.match(dark, /Only Lamb will do/); assert.match(dark, /hates wanting it/);
+    // A scale switched off says nothing and isn't moved by replies.
+    const off = cleanBond({ desire: { on: true, scales: { s: false, b: false }, anchor: { a: 60, s: 90, b: 90, key: '', pos: -1 } } });
+    assert.doesNotMatch(desireLines(off, [], 'Rick', 'Lamb')[0], /holding back|forward|predatory/);
+    assert.equal(computeDesire(off.desire, [step(1, { s: -10, b: -10 })]).s, 90);
     assert.deepEqual(desireLines(cleanBond({}), [], 'E', 'L'), [], 'off sends nothing');
-    assert.equal(cleanDesire({}).on, false);
+    assert.equal(cleanDesire({}).on, false); assert.equal(computeDesire({}).s, 25, 'holding back starts low');
+    assert.ok(weavePrompt({ n: 'Rick', u: 'Lamb', desire: { b: true, t: true, x: false, h: true, s: false } }).some(l => /any of bold, rough or tender, shame that moved/.test(l)));
 });
 
 test('how feelings show: default plus yours, only yours, or off', () => {

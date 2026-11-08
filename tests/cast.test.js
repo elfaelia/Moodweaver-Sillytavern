@@ -36,7 +36,7 @@ test('directed hatred and comparisons resolve the right people for main, player 
     const chloe = person('Chloe', { one_step_ahead: 65 }); chloe.state.relationships = [rel('{{char}}', { hates: 90 })];
     const player = { name: 'Ellie', state: mine, knowledge: { [relationshipKey(mine.relationships[0], 'hates')]: { mode: 'suspected' } } };
     const prompt = composePrompt(main, 'Mark', { player, cast: [chloe] });
-    assert.match(prompt, /Mark toward Chloe:\n- maximum: is consumed by hatred for Chloe\n- clear: keeps weighing Chloe against Ellie/);
+    assert.match(prompt, /Mark toward Chloe:\n- maximum: is consumed by hatred for Chloe \(full force in every line\)\n- clear: keeps weighing Chloe against Ellie/);
     assert.match(prompt, /Mark toward Ellie:\n- faint: feels a flicker of hostility toward Ellie/);
     assert.match(prompt, /Ellie toward Mark:\nWhat Mark suspects:\n- clear: hates Mark/);
     assert.match(prompt, /Chloe toward Mark:\n- intense: loathes Mark/);

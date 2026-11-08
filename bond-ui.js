@@ -1,4 +1,5 @@
-import { computeBond, DYNAMIC_NAMES, computeDesire, DESIRE_CAPS, restraintWord, frustrationWord } from './bond.js';
+import { MORE_METERS, MORE_PRESETS, computeMore, moreWord } from './meters.js';
+import { computeBond, DYNAMIC_NAMES, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord } from './bond.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const sign = v => v > 0 ? `+${v}` : `${v}`;
@@ -28,6 +29,7 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
         ${bond.extra ? `<div class="mw-dyn-card" data-dynamic="${slug(d.dynamic.name)}"><small>${esc(charName)} &amp; ${esc(userName)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(d.dynamic.cue)}</p>
             <label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic"><option value="">Read it from the story (${esc(d.auto)})</option>${DYNAMIC_NAMES.map(name => `<option value="${esc(name)}" ${bond.fixed === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label>
             <small class="mw-dyn-why">${bond.fixed ? 'Chosen by you; it stays until you switch back.' : `Read from these meters and ${esc(charName)}’s feelings toward ${esc(userName)} below. Pinned meters win.`}</small></div>` : ''}
+        ${moreBlock(bond, list ?? [], userName)}
         ${desireCard(bond, list ?? [], charName, userName, d.sparks)}
         <div class="mw-bond-grid">
             ${meter('f', 'Friendship', d.f, d.friend, pin('f'))}
@@ -50,24 +52,45 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
     </section>`;
 }
 
-// 1.39.1: the desire card. Closed, it's one line: the stage and three thin bars. Open, the bars can be dragged
-// and pinned like the other meters, with pace and a cap for slow burns.
+// 1.39.1: the desire card. Closed, it's one line: the stage, how it's showing and two thin bars. Open, every
+// bar can be dragged and pinned like the other meters; scales you don't want can be switched off.
 function desireCard(bond, list, charName, userName, sparks = []) {
     const d = bond.desire ?? {};
     if (!d.on) return `<details class="mw-desire-card is-off"><summary><span>♨ Desire</span><small>off in this chat</small></summary>
         <label class="mw-toggle"><input type="checkbox" data-desire-on> Track ${esc(charName)}’s desire for ${esc(userName)} in this chat</label>
-        <p class="mw-fine">Arousal, how hard they hold back, and frustration, moved by each reply’s hidden line. Slow by default, so it builds over many replies.</p></details>`;
-    const x = computeDesire(d, list);
-    const bar = (key, label, value, word, tone) => `<div class="mw-desire-row" data-tone="${tone}"><div class="mw-bond-head"><b>${label}</b><span data-desire-word="${key}">${esc(word)}</span>
+        <p class="mw-fine">Arousal plus how it shows: boldness, tender or rough, fixation on you, shame and holding back. Moved by each reply’s hidden line, slow by default.</p></details>`;
+    const x = computeDesire(d, list), who = esc(userName);
+    const word = (k, v) => k === 'a' ? x.stage : k === 'f' ? frustrationWord(v) : scaleWord(k, v).replace('them', who);
+    const bar = (key, label) => `<div class="mw-desire-row" data-tone="${key}"><div class="mw-bond-head"><b>${label}</b><span>${esc(word(key, x[key]))}</span>
         <button type="button" class="mw-need-pin" data-desire-pin="${key}" aria-pressed="${x.pins[key] !== null}" title="${x.pins[key] !== null ? 'Unpin: let replies move it again' : 'Pin: hold it here'}">${x.pins[key] !== null ? '◆' : '◇'}</button></div>
-        <input type="range" min="0" max="100" step="1" value="${value}" data-desire-bar="${key}" class="mw-desire-bar" style="--mw-fill:${value}%" aria-label="${label}"></div>`;
+        <input type="range" min="0" max="100" step="1" value="${x[key]}" data-desire-bar="${key}" class="mw-desire-bar" style="--mw-fill:${x[key]}%" aria-label="${label}"></div>`;
     const mini = (v, tone) => `<i class="mw-desire-mini" data-tone="${tone}" style="--mw-fill:${v}%"></i>`;
+    const shown = DESIRE_SCALES.filter(([k]) => x.scales[k]);
+    const flavour = [x.scales.b ? scaleWord('b', x.b) : '', x.scales.t ? scaleWord('t', x.t) : ''].filter(w => w && x.a > 10).join(' · ');
     const lit = sparks.filter(s => !s.off).slice(0, 4);
-    return `<details class="mw-desire-card"><summary><span>♨ ${esc(x.stage)}</span><span class="mw-desire-minis">${mini(x.a, 'a')}${mini(x.s, 's')}${mini(x.f, 'f')}</span></summary>
-        ${bar('a', 'Arousal', x.a, x.stage, 'a')}${bar('s', 'Holding back', x.s, restraintWord(x.s), 's')}${bar('f', 'Frustration', x.f, frustrationWord(x.f), 'f')}
+    return `<details class="mw-desire-card"><summary><span>♨ ${esc(x.stage)}${flavour ? ` <small>· ${esc(flavour)}</small>` : ''}</span><span class="mw-desire-minis">${mini(x.a, 'a')}${mini(x.f, 'f')}</span></summary>
+        ${bar('a', 'Arousal')}${shown.map(([k, label]) => bar(k, label)).join('')}${bar('f', 'Frustration')}
         ${lit.length ? `<div class="mw-sparks"><small>Lit lately</small>${lit.map(s => `<span class="mw-spark ${s.fresh ? 'is-fresh' : ''}">✧ ${esc(s.text)}</span>`).join('')}</div>` : ''}
         <div class="mw-desire-opts"><label>Pace<select data-desire-pace>${[['slow', 'Slow burn'], ['normal', 'Normal'], ['fast', 'Fast']].map(([v, l]) => `<option value="${v}" ${x.pace === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
             <label>Tops out at<select data-desire-cap>${DESIRE_CAPS.map(([v, l]) => `<option value="${v}" ${x.cap === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
-        <p class="mw-fine">Each reply moves it a little; slow burn allows only a small step up per reply. Release resets arousal and frustration, then a short afterglow. Drag a bar to set it, pin ◆ to hold it. Turned off, nothing is asked for or sent.</p>
+        <div class="mw-desire-scales"><small>Scales</small>${DESIRE_SCALES.map(([k, label]) => `<label class="mw-scale-chip"><input type="checkbox" data-desire-scale="${k}" ${x.scales[k] ? 'checked' : ''}> ${label}</label>`).join('')}</div>
+        <p class="mw-fine">Boldness decides how they act on it, unless holding back is high. Only scales that are saying something reach Claude. Slow burn lets arousal rise only a small step per reply. Release resets arousal and frustration, then a short afterglow. Drag a bar to set it; pin ◆ to hold it.</p>
         <label class="mw-toggle"><input type="checkbox" data-desire-on checked> Track desire in this chat</label></details>`;
+}
+
+// 1.40.0: the extra meters. Only the ones you switch on get a bar; quick picks switch on a set that suits
+// a character. They shape the named dynamic and reach Claude only when they're saying something.
+function moreBlock(bond, list, userName) {
+    const d = computeMore(bond.more, list), on = d.on;
+    const bars = on.map(k => {
+        const [, label, two] = MORE_METERS.find(m => m[0] === k), v = d.values[k], pinned = d.pins[k] !== null;
+        return `<div class="mw-bond-meter mw-more-meter" data-tone="${k}"><div class="mw-bond-head"><b>${label}</b><span data-more-word="${k}">${esc(moreWord(k, v).replace(/\bthem\b/, userName))}</span>
+            <button type="button" class="mw-need-pin" data-more-pin="${k}" aria-pressed="${pinned}" title="${pinned ? 'Unpin: let replies move it again' : 'Pin: hold it here'}">${pinned ? '◆' : '◇'}</button></div>
+            <input type="range" min="${two ? -100 : 0}" max="100" step="1" value="${v}" data-more-meter="${k}" data-two="${two ? 1 : 0}" class="mw-bond-bar" style="--mw-fill:${two ? (v + 100) / 2 : v}%" aria-label="${label}"></div>`;
+    }).join('');
+    return `<div class="mw-more">${bars ? `<div class="mw-bond-grid">${bars}</div>` : ''}
+        <details class="mw-more-pick"><summary>＋ Meters <small>${on.length ? `${on.length} on` : 'all off'}</small></summary>
+            <div class="mw-more-presets"><small>Quick picks</small>${MORE_PRESETS.map(([name]) => `<button type="button" class="mw-chip-btn" data-more-preset="${esc(name)}">${esc(name)}</button>`).join('')}<button type="button" class="mw-chip-btn" data-more-preset="">None</button></div>
+            ${MORE_METERS.map(([k, label, , , , , , , desc]) => `<label class="mw-toggle mw-more-opt"><input type="checkbox" data-more-on="${k}" ${on.includes(k) ? 'checked' : ''}> <span><b>${label}</b> <small>${esc(desc)}</small></span></label>`).join('')}
+            <p class="mw-fine">For this chat. A quick pick replaces which meters are on. The hidden line moves the ones that are on, they unlock new named dynamics above, and they go to Claude only when they’re saying something.</p></details></div>`;
 }

@@ -4,6 +4,10 @@ A SillyTavern mood panel inspired by Sims moodlets: blendable feelings, gradual 
 
 ## Start here
 
+**1.40.0:** combos and cravings on top of Lit, 13 optional Bonds meters with quick picks for Easterman, Jefferson, Joe, Bateman and Rick, 23 new named dynamics with their own backgrounds, and strength that shows in every feeling line. Install the new `meters.js` and `reactive.js` too. See [the update notes](UPDATE-1.40.0.md).
+
+**1.39.2:** the ♨ Desire card gets four new scales: Boldness, Tender ↔ rough, Fixation and Shame. Holding back now starts low and only comes up when it's high. Any scale can be switched off. See [the update notes](UPDATE-1.39.0.md#1392).
+
 **1.39.1:** a ♨ Desire meter on the Bonds tab (arousal, holding back, frustration; slow burn by default, with a cap), 82 traits from The Sims 3 and 4, and a switch for how feelings show (default wording plus yours, only yours, or off). Install the new `sims.js` too. See [the update notes](UPDATE-1.39.0.md#1391).
 
 **1.39.0:** everything reacts. Kinks are turn-ons that light up ✧ and count stronger next reply, along with 78 new turn-ons. Feelings say how they show, and you can set a character's own way. Hot buttons, wants that react, needs that follow in-world time and handle time jumps, a You tab for your character, a pattern breaker, every author rewritten by technique (15 new), and dead dove that names the dodges. Install the four new files too. See [the update notes](UPDATE-1.39.0.md).

@@ -103,3 +103,24 @@ Nothing is deleted when you switch.
 - **Left out:** the ones that only exist as game mechanics, such as Grimborn, school-team rewards and Recycle Disciple.
 
 107 tests pass. The desire card, the switch and the new traits were clicked through in a phone-sized browser with no errors.
+
+## 1.39.2
+
+### New scales on the ♨ Desire card
+- **Boldness** (shy, coy, open about it, forward, predatory): how they act on desire. They blush and wait to be led, hint and wait, let it show, make the move, or make their own opening and take.
+- **Tender ↔ rough** (tender, sweet, eager, rough, cruel): how they want it. It ranges from slow and gentle to grips, pins and bites, to wanting it to hurt.
+- **Fixation** (anyone would do, drawn to you, mostly you, fixed on you, only you): how much it's about you in particular.
+- **Shame** (none up to hates themselves for it): how they feel about wanting it. They can act on it fully and still hate it, and at the top it comes out as anger, coldness or self-punishment. After release, the shame comes in.
+
+### Holding back no longer runs everything
+- It starts low (“barely holding back”) instead of in the middle, and it's only mentioned to Claude at “holding back some” or above.
+- Boldness decides how they act unless holding back is high.
+
+### Cleaner
+- **Only scales saying something reach Claude.** Eager, “mostly you” and no shame add nothing, so an ordinary state stays a short line.
+- **Any scale can be switched off** under Scales on the card. It disappears from the card and the note, and replies stop moving it.
+- **Closed, the card reads like** “♨ Aching · forward · rough”.
+
+The hidden line can report the new scales too, as “bold +3, tender +4, shame +5”. Tender counts as less rough.
+
+107 tests pass. The card was clicked through in a phone-sized browser: bars, pins, scale switches and the note. No errors.

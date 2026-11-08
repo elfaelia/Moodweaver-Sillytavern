@@ -418,3 +418,24 @@
 .mw-desire-bar{width:100%;accent-color:var(--mw-tone)}
 .mw-desire-opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px}
 .mw-desire-opts label{display:flex;align-items:center;gap:6px}
+/* 1.39.2: desire scales */
+[data-tone="b"]{--mw-tone:#e7c36f}[data-tone="t"]{--mw-tone:#d9706f}[data-tone="x"]{--mw-tone:#c79af0}[data-tone="h"]{--mw-tone:#9fb39a}
+.mw-desire-card summary small{font-weight:400;opacity:.8}
+.mw-desire-scales{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px}
+.mw-scale-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid #ffffff22}
+/* 1.40.0: extra meters, combos, cravings, new dynamics */
+.mw-more{margin:10px 0}.mw-more-pick{margin-top:8px}.mw-more-pick summary{cursor:pointer;font-weight:600}.mw-more-pick summary small{font-weight:400;opacity:.75;margin-left:6px}
+.mw-more-presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.mw-more-presets small{opacity:.75;margin-right:2px}
+.mw-chip-btn{padding:4px 10px;border-radius:999px;font-size:12px;background:#ffffff0d;border:1px solid #ffffff26;color:inherit}
+.mw-more-opt small{display:block;opacity:.7;font-size:11px}
+.mw-combo{display:flex;flex-direction:column;gap:6px;margin:8px 0;padding:10px 12px;border-radius:14px;border:1px solid #efd59c66;background:linear-gradient(120deg,#efd59c1f,#e26d9a14);animation:mw-glow 2.4s ease-in-out 2}
+.mw-combo b{color:#f5e6c4}.mw-combo small{display:block;opacity:.85;font-size:12px}
+.mw-spark.is-craving{border-style:dashed;color:#f0d0e4;background:#e26d9a12;border-color:#e26d9a55}
+.mw-combo-settings{margin:8px 0}.mw-combo-settings summary{cursor:pointer;font-size:12.5px;opacity:.9}
+.mw-combo-maker{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin-top:6px}
+.mw-combo-maker input,.mw-combo-maker button{grid-column:1 / -1}
+.mw-dyn-card:is([data-dynamic=shrine],[data-dynamic=obsessed],[data-dynamic=watcher],[data-dynamic=jealous-storm],[data-dynamic=claimed],[data-dynamic=fallen-idol],[data-dynamic=cold-war]){border-color:#b06ad955;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#b06ad933,transparent 60%),linear-gradient(160deg,#2a1634,#150d1e)}
+.mw-dyn-card:is([data-dynamic=specimen],[data-dynamic=muse-and-maker],[data-dynamic=pet-project],[data-dynamic=corruption]){border-color:#7fb3c955;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#7fb3c92b,transparent 60%),linear-gradient(160deg,#15242c,#0e151c)}
+.mw-dyn-card:is([data-dynamic=prey],[data-dynamic=dangerous-adoration],[data-dynamic=toy],[data-dynamic=unmasked],[data-dynamic=contempt]){border-color:#c9454d66;background:radial-gradient(1px 1px at 82% 22%,#fff6 50%,transparent),radial-gradient(120% 90% at 100% 0%,#c9454d33,transparent 60%),linear-gradient(160deg,#250d12,#0f080b)}
+.mw-dyn-card:is([data-dynamic=lifeline],[data-dynamic=protector],[data-dynamic=penitent],[data-dynamic=codependent],[data-dynamic=grudging-respect],[data-dynamic=worthy-rival]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
+.mw-dyn-card[data-dynamic=bored-of-you]{border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}

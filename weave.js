@@ -69,7 +69,7 @@ function desireOf(v) {
     }
     return ['a', 's', 'b', 't', 'x', 'h'].some(k => out[k]) || out.release ? out : null;
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters|used|skills)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters|used|skills|dynamic)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
@@ -83,7 +83,9 @@ function readLine(body) {
     const toward = changes(f.toward, 3), feels = list(f.feels, 3, 40), deltas = {};
     if (!toward.length && f.toward && !feels.length) feels.push(...list(f.toward, 3, 40));
     return {
-        f: clamp(num(f.friendship), -10, 10), r: clamp(num(f.romance), -10, 10), t: clamp(num(f.trust), -10, 10), p: clamp(num(f.power), -10, 10),
+        f: clamp(num(f.friendship), -25, 25), r: clamp(num(f.romance), -25, 25), t: clamp(num(f.trust), -25, 25), p: clamp(num(f.power), -25, 25),
+        // 1.42.0: the story's own name for the dynamic, only when it shifted.
+        dynamic: NONE.test(unquote(f.dynamic ?? '')) ? '' : unquote(f.dynamic ?? '').replace(/\s*\(.*$/, '').slice(0, 40),
         hasTrust: 'trust' in f, hasPower: 'control' in f || 'power' in f, pRaw: f.control ?? f.power ?? '', lRaw: f.pull ?? '',
         moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
         wants: wantItems(f.wants), fears: list(f.fears, 3, 80), pressed: list(f.pressed, 3, 80),
@@ -101,7 +103,8 @@ export function parseWeave(mes) {
     if (parts.length === 1) return parts[0];
     const out = parts[0];
     for (const x of parts.slice(1)) {
-        for (const k of ['f', 'r', 't', 'p']) out[k] = clamp(out[k] + x[k], -10, 10);
+        for (const k of ['f', 'r', 't', 'p']) out[k] = clamp(out[k] + x[k], -25, 25);
+        if (x.dynamic) out.dynamic = x.dynamic;
         out.hasTrust ||= x.hasTrust; out.hasPower ||= x.hasPower; out.hasMoods ||= x.hasMoods;
         out.pRaw = [out.pRaw, x.pRaw].filter(Boolean).join(' ; '); out.lRaw = [out.lRaw, x.lRaw].filter(Boolean).join(' ; ');
         out.moods = [...out.moods, ...x.moods].slice(0, 10); out.toward = [...out.toward, ...x.toward].slice(0, 6);
@@ -124,14 +127,14 @@ export function parseWeave(mes) {
 export function powerChange(raw, charName = '', userName = '') {
     // Two weave lines in one reply arrive joined by " ; ", and each part counts.
     const parts = String(raw ?? '').split(';').map(s => s.trim()).filter(Boolean);
-    if (parts.length > 1) return clamp(parts.reduce((sum, part) => sum + powerChange(part, charName, userName), 0), -10, 10);
+    if (parts.length > 1) return clamp(parts.reduce((sum, part) => sum + powerChange(part, charName, userName), 0), -25, 25);
     const text = String(raw ?? '').toLowerCase(), size = Math.abs(num(text));
     const names = name => String(name).toLowerCase().split(/\s+/).filter(w => w.length > 2 && !['doctor', 'the', 'mr', 'mrs', 'miss', 'mother', 'father'].includes(w));
     const has = name => names(name).some(w => new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
     if (!size || /\b(even|none|steady|no change)\b/.test(text) && !/\d/.test(text)) return 0;
-    if (has(userName) && !has(charName)) return -clamp(size, 0, 10);
-    if (has(charName)) return clamp(size, 0, 10);
-    return clamp(num(text), -10, 10);
+    if (has(userName) && !has(charName)) return -clamp(size, 0, 25);
+    if (has(charName)) return clamp(size, 0, 25);
+    return clamp(num(text), -25, 25);
 }
 
 // What the line asks for. Opus 5.5 follows a filled-in example more reliably than a template of
@@ -141,12 +144,22 @@ export function powerChange(raw, charName = '', userName = '') {
 // opts: { n, u, bond, extra (trust & power), moods (feelings, needs, relationship), remember }
 const desireNames = d => { const names = [d.b !== false && 'bold', d.t !== false && 'rough or tender', d.x !== false && 'fixation', d.h !== false && 'shame', d.s !== false && 'restraint'].filter(Boolean);
     return names.length ? `, and any of ${names.join(', ')} that moved` : ''; };
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false }) {
+// 1.42.0: step sizes follow the chat's pace, so long scenes drift and short ones turn.
+const SIZES = {
+    slow: { range: 5, ordinary: '1', turn: '3 to 5' },
+    steady: { range: 10, ordinary: '1 to 3', turn: 'more' },
+    quick: { range: 20, ordinary: '3 to 6', turn: '10 to 20' },
+    volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25' },
+};
+// dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
+    const size = SIZES[pace] ?? SIZES.steady;
     if (!bond && !moods && !remember) return [];
     const example = [
         ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low, health -10', 'toward protective +5'] : []),
         ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', 'sparked: defiance'] : []),
         ...(meters.length ? [`meters: ${meters[0]} +2`] : []),
+        ...(dynamic ? [`dynamic: ${dynamic.pool?.[0] ?? 'kept and tended'}`] : []),
         ...(desire ? [`desire: arousal +4${desire.b !== false ? ', bold +3' : ''}`] : []),
         ...(wants ? ['wants: get her to eat +'] : []), ...(buttons ? ['pressed: being pitied'] : []),
         ...(you ? ['you: split lip'] : []),
@@ -158,12 +171,13 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, rem
         ...(moods ? [`- moods: ${n}'s feelings that rose or fell, by name or a plain feeling word, -30 to +30, or off when one ends.`,
             `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10): food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them, and a beating costs health even if enjoyed.`,
             `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
-        ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -10 to +10; 1 to 3 for ordinary moments, more only for turning points. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
-            ...(extra ? [`- control: who gained real control (doors, money, freedom, who decides), 1 to 10, as ${n} +3 or ${u} +3. pull: who gained emotional hold (who needs whom more), the same way. They can move opposite ways in one reply.`] : []),
+        ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -${size.range} to +${size.range}; ${size.ordinary} for ordinary moments, ${size.turn} only for turning points. Score what this reply shows, even against where they stand now. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
+            ...(extra ? [`- control: who gained real control (doors, money, freedom, who decides, who makes the demands and sets the rewards), 1 to ${size.range}, as ${n} +3 or ${u} +3. pull: who gained emotional hold (who needs whom more), the same way. They can move opposite ways in one reply.`] : []),
+            ...(dynamic ? [`- dynamic: when this reply shows their dynamic is now something other than ${dynamic.now}, name what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words (kept and tended, cold war, worship)'}. Leave it out while it holds.`] : []),
             `- thinks: words that finish "${n} thinks ${u} is…" (stubborn, his, a liar).`,
             `- sparked: any of ${n}'s turn-ons or turn-offs (people, bodies, acts, kinks, fetishes) or bedroom traits this reply touched, whoever brought it, by its name in these notes; add (off) for a turn-off.`] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: a want or goal this reply moved (+ closer, - blocked, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting, only if obvious' : ''].filter(Boolean).join('; ')}. Use ${n}'s own wording from these notes.`] : []),
-        ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved for ${n} toward ${u}, -10 to +10${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
+        ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved for ${n} toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +3)${desireNames(desire)}, as small steps; add release if they climaxed.`] : []),
         ...(you ? [`- you: lasting things the story did to ${u}'s body (injured, drugged, soaked, tied), the full current list, or none once healed.`] : []),
         ...(skills ? [`- used: any skill someone used or was tested on this reply, a word or two each (lying, lockpicking, first aid).`] : []),

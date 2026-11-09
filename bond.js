@@ -5,7 +5,8 @@
 import { parseWeave, hasWeave, stripWeave, traitKey } from './weave.js';
 import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
-import { cleanMore, computeMore, moreLines, COMBO_DYNAMICS, SINGLE_DYNAMICS } from './meters.js';
+import { cleanMore, computeMore, moreLines, COMBO_DYNAMICS, SINGLE_DYNAMICS, MORE_METERS } from './meters.js';
+import { FRONT_DYNAMICS, LATE_DYNAMICS, PICKED_DYNAMICS, BUILT_IN_META, DYNAMIC_GROUPS, ownRows, matchDynamic, fill } from './dynamics.js';
 export const parseBond = mes => parseWeave(mes);
 export const hasBond = hasWeave;
 export const stripBond = stripWeave;
@@ -54,7 +55,22 @@ export function sliderAxes(moods = {}, shared = {}, theirs = {}) {
 }
 // Where a slider says more than the meter, it pulls the dynamic toward it.
 // A pinned meter is the player's word, so it always wins.
-const blend = (v, axes, pins = {}) => !axes ? v : Object.fromEntries(METERS.map(k => [k, pins[k] === null && Math.abs(axes[k] ?? 0) > Math.abs(v[k]) ? Math.round(v[k] * 0.25 + axes[k] * 0.75) : v[k]]));
+// 1.42.0: unless the last few replies have been pushing that meter the other way: then the story wins over
+// a slider set long ago (Easterman bathing Lamb and making the demands can't stay "worship" forever).
+const blend = (v, axes, pins = {}, trend = {}) => !axes ? v : Object.fromEntries(METERS.map(k => {
+    const against = Math.sign(trend[k] ?? 0) !== 0 && Math.sign(trend[k]) !== Math.sign(axes[k] ?? 0) && Math.abs(trend[k]) >= 6;
+    return [k, pins[k] === null && !against && Math.abs(axes[k] ?? 0) > Math.abs(v[k]) ? Math.round(v[k] * 0.25 + axes[k] * 0.75) : v[k]];
+}));
+// 1.42.0: how fast things move in this chat. cap: the biggest step one reply can make. window and lean: how
+// many recent replies the named dynamic leans on, and how hard, so a turn in the scene shows up quickly
+// without the meters themselves jumping.
+export const PACE = {
+    slow: { label: 'Slow burn', cap: 5, window: 10, lean: 0.5, hint: 'for scenes that run fifty replies or more' },
+    steady: { label: 'Steady', cap: 10, window: 6, lean: 1, hint: 'the default' },
+    quick: { label: 'Quick scenes', cap: 20, window: 4, lean: 1.5, hint: 'for scenes of around ten replies' },
+    volatile: { label: 'Volatile', cap: 25, window: 3, lean: 2, hint: 'big swings every reply' },
+};
+export const paceOf = bond => PACE[bond?.pace] ?? PACE.steady;
 
 // The four axes combine into one Sims-style status. First match wins, darkest shapes first. Each cue
 // says what the dynamic looks like on the page, because Opus 5.5 carries feeling best through small,
@@ -82,11 +98,51 @@ const DYNAMICS = [
 // sit just before the general dynamics. Each only fires when the meters it reads are switched on.
 DYNAMICS.unshift(...COMBO_DYNAMICS);
 DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...SINGLE_DYNAMICS);
+// 1.42.0: the bigger catalogue (dynamics.js). The most specific go first; ones only you or the story can
+// pick go last, where the meters never reach them.
+for (const row of DYNAMICS) row.push(...(BUILT_IN_META[row[0]] ?? ['distance', '', []]));
+for (const row of [...COMBO_DYNAMICS, ...SINGLE_DYNAMICS]) if (row.length < 6) row.push(...(BUILT_IN_META[row[0]] ?? ['obsess', '', []]));
+DYNAMICS.unshift(...FRONT_DYNAMICS);
+DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...LATE_DYNAMICS);
+DYNAMICS.push(...PICKED_DYNAMICS);
 export const DYNAMIC_NAMES = DYNAMICS.map(([name]) => name);
-// fixed: a dynamic the player chose; it replaces the automatic reading.
-export function dynamicOf(d, n = 'one', u = 'the other', fixed = '') {
-    const [name, , cue] = DYNAMICS.find(([dn]) => dn === fixed) ?? DYNAMICS.find(([, test]) => test(d));
-    return { name, cue: cue(n, u) };
+export { DYNAMIC_GROUPS };
+// Every dynamic, your own included: [name, test, cue, group, keys, covers].
+export const dynamicRows = () => [...DYNAMICS, ...ownRows()];
+const groupTone = Object.fromEntries(DYNAMIC_GROUPS.map(([id, , , tone]) => [id, tone]));
+const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: row[2](n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
+// A name the story or the reader wrote that isn't in the catalogue still works, in its own words.
+const freeDynamic = (text, n, u) => {
+    const t = String(text).replace(/\s+/g, ' ').trim().slice(0, 40), name = t.charAt(0).toUpperCase() + t.slice(1);
+    return { name, key: name, cue: `${n} and ${u}: ${t.toLowerCase()}. It decides how they act together: who gives way, what gets said and how close they stand`, group: 'own', tone: 'rose', covers: [] };
+};
+// fixed: a dynamic the player chose; it replaces the automatic reading. pool: names the player picked for
+// this pair; the meters try those first.
+export function dynamicOf(d, n = 'one', u = 'the other', fixed = '', pool = []) {
+    const rows = dynamicRows();
+    if (fixed) { const row = rows.find(([dn]) => dn === fixed); return row ? asDynamic(row, n, u) : freeDynamic(fixed, n, u); }
+    const picked = new Set(pool), ordered = picked.size ? [...rows.filter(r => picked.has(r[0])), ...rows.filter(r => !picked.has(r[0]))] : rows;
+    return asDynamic(ordered.find(([, test]) => test && test(d)), n, u);
+}
+// The story's newest call on the dynamic (a hidden line's "dynamic:"), or the scene reader's if that's newer.
+// Read from the replies still in the chat, so a swipe takes its call with it.
+export function storyCall(bond, all = []) {
+    let at = -1, text = '';
+    for (let i = all.length - 1; i >= 0; i--) if (all[i].s?.dy) { at = i; text = all[i].s.dy; break; }
+    const r = bond?.read;
+    if (r?.name) {
+        let ri = r.key ? all.findIndex(x => x.key === r.key) : -1;
+        if (ri < 0 && r.key) for (let i = all.length - 1; i >= 0; i--) if (all[i].pos <= r.pos) { ri = i; break; }
+        if (ri >= at) return { text: r.name, at: ri, by: 'reader', ago: Math.max(0, all.length - 1 - ri) };
+    }
+    return text ? { text, at, by: 'story', ago: all.length - 1 - at } : null;
+}
+// What the story said, as a catalogue dynamic. With picks, only those count.
+export function resolveCall(text, n, u, pool = []) {
+    const rows = dynamicRows(), picked = pool.length ? rows.filter(r => pool.includes(r[0])) : rows;
+    const row = matchDynamic(text, picked, n, u);
+    if (row) return asDynamic(row, n, u);
+    return pool.length ? null : freeDynamic(text, n, u);
 }
 
 export function cleanBond(raw = {}, on = true) {
@@ -107,7 +163,12 @@ export function cleanBond(raw = {}, on = true) {
         if (a && typeof a === 'object' && Number.isFinite(Number(a.v))) anchors[k] = { v: n(a.v), key: text(a.key, 120), pos: Math.max(-1, Math.round(Number(a.pos) || 0)) };
     }
     return {
-        on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: DYNAMIC_NAMES.includes(b.fixed) ? b.fixed : '',
+        on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: text(b.fixed, 60),
+        // 1.42.0: who names the dynamic (story: the reply's hidden line; meters: the numbers), your picks for
+        // this pair, how fast things move, and the scene reader's last call.
+        mode: b.mode === 'meters' ? 'meters' : 'story', pace: PACE[b.pace] ? b.pace : 'steady',
+        pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 60),
+        read: b.read && typeof b.read === 'object' && text(b.read.name, 60) ? { name: text(b.read.name, 60), why: text(b.read.why, 160), key: text(b.read.key, 120), pos: Math.round(Number(b.read.pos) || -1) } : null,
         v: b.v === 2 ? 2 : 1, anchors,
         base: Object.fromEntries(METERS.map(k => [k, n(b.base?.[k])])),
         pins: Object.fromEntries(METERS.map(k => [k, pin(b.pins?.[k])])),
@@ -134,7 +195,8 @@ function startOf(bond, k, steps) {
 export function meterValue(bond, k, steps) {
     if (bond.pins?.[k] !== null && bond.pins?.[k] !== undefined) return bond.pins[k];
     let [v, from] = startOf(bond, k, steps);
-    for (let i = from; i < steps.length; i++) v = clamp(v + (steps[i].s?.[k] ?? 0), -100, 100);
+    const cap = paceOf(bond).cap;
+    for (let i = from; i < steps.length; i++) v = clamp(v + clamp(steps[i].s?.[k] ?? 0, -cap, cap), -100, 100);
     return v;
 }
 // list: [{ pos, key, s }] oldest first, read from the chat. Without one, older stored steps are used.
@@ -158,10 +220,25 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // The upper hand keeps changing hands: control or pull flipped direction twice or more in the last eight replies.
     const flips = key => steps.slice(-8).map(([, s]) => Math.sign(s[key] ?? 0)).filter(Boolean).reduce((n, sign, i, all) => n + (i && sign !== all[i - 1] ? 1 : 0), 0);
     const swing = Math.max(flips('p'), flips('l')) >= 2;
-    const more = computeMore(bond.more, all).values, axesNow = { ...blend(v, axes, bond.pins), ...more };
+    const pace = paceOf(bond), more = computeMore(bond.more, all, pace.cap).values;
+    // 1.42.0: the named dynamic leans on the last few replies, so a turn in the scene shows up fast.
+    const recentSteps = all.slice(-pace.window), sum = get => recentSteps.reduce((t, x) => t + clamp(get(x.s) ?? 0, -pace.cap, pace.cap), 0);
+    const trend = Object.fromEntries(METERS.map(k => [k, sum(s => s?.[k])]));
+    const lean = (k, val, lo = -100) => clamp(Math.round(val + clamp(trend[k] * pace.lean, -35, 35)), lo, 100);
+    const base = blend(v, axes, bond.pins, trend), eff = Object.fromEntries(METERS.map(k => [k, bond.pins[k] !== null ? base[k] : lean(k, base[k])]));
+    const moreEff = Object.fromEntries(Object.entries(more).map(([k, val]) => {
+        const def = MORE_METERS.find(m => m[0] === k), t = sum(s => s?.m?.[k]);
+        return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + clamp(t * pace.lean, -35, 35)), def?.[2] ? -100 : 0, 100)];
+    }));
+    const ds = bond.desire?.on ? computeDesire(bond.desire, all).a : undefined;
+    const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
+    const meters = dynamicOf(axesNow, n, u, '', bond.pool);
+    const call = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, called = call ? resolveCall(call.text, n, u, bond.pool) : null;
+    const dynamic = bond.fixed ? dynamicOf(axesNow, n, u, bond.fixed) : called ?? meters;
+    const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic: dynamicOf(axesNow, n, u, bond.fixed), auto: dynamicOf(axesNow, n, u).name };
+        dynamic, auto: meters.name, source, call: called ? { ...call, name: called.name } : null, trend };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.
@@ -207,7 +284,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
         ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(t.text)).join(', ')}`] : []),
-        ...moreLines(bond.more, list ?? [], pt(n), pt(u)),
+        ...moreLines(bond.more, list ?? [], pt(n), pt(u), paceOf(bond).cap),
         ...desireLines(bond, list ?? [], pt(n), pt(u)),
     ];
 }

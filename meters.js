@@ -32,17 +32,37 @@ export const MORE_METERS = [
         (n, u) => `${n} is pulling ${u} into ${n}'s world one compromise at a time and savours each step down`, null, 'How far they’re dragging you into their world.'],
     ['kn', 'Knows about you', false, 0, 'knows', [[81, 'knows everything'], [61, 'knows far too much'], [41, 'knows a lot'], [21, 'has looked into them'], [0, 'knows what they’ve been told']],
         (n, u) => `${n} knows more about ${u} than ${u} has said: routines, secrets and small details used too casually`, null, 'How much they’ve found out by watching or digging.'],
+    // 1.42.0: seven more, so care, rules, heat, grudges, chaos, loyalty and teaching can each steer a scene.
+    ['ca', 'Care', false, 0, 'care', [[81, 'sees to their every need'], [61, 'tends to them'], [41, 'looks after them'], [21, 'checks on them'], [0, 'leaves them to it']],
+        (n, u) => `${n} looks after ${u} with ${n}'s own hands: feeding, bathing, dressing, patching up, and the closeness that comes with it`, null, 'How much they look after you: feeding, bathing, dressing, nursing.'],
+    ['di', 'Discipline', false, 0, 'discipline', [[81, 'rules everything they do'], [61, 'strict'], [41, 'sets rules'], [21, 'expects things'], [0, 'no rules']],
+        (n, u) => `${n} holds ${u} to rules: expectations said plainly, rewards for doing well, consequences for slipping`, null, 'Rules, rewards and punishments they hold you to.'],
+    ['lu', 'Lust', false, 0, 'lust', [[81, 'burning for them'], [61, 'wants them badly'], [41, 'wants them'], [21, 'notices them'], [0, 'no heat']],
+        (n, u) => `${n} wants ${u} physically and it's never far from ${n}'s mind: looks, closeness, touches that linger`, null, 'How much they want you physically, over the whole relationship. The ♨ Desire card is arousal right now.'],
+    ['rs', 'Resentment', false, 0, 'resentment', [[81, 'bitter to the core'], [61, 'resents them'], [41, 'holds a grudge'], [21, 'a sore spot'], [0, 'no grudge']],
+        (n, u) => `${n} carries a grudge against ${u}: old wounds brought up, small paybacks, softness that gets punished`, null, 'Grudges and bitterness toward you, even alongside love.'],
+    ['vo', 'Volatility', false, 0, 'volatility', [[81, 'about to blow'], [61, 'explosive'], [41, 'stormy'], [21, 'touchy'], [0, 'steady']],
+        (n, u) => `things between ${n} and ${u} are about to blow: tempers spike over nothing, and the making up is as intense as the fight`, null, 'How unstable it is: fights, breakups and making up.'],
+    ['ly', 'Loyalty', false, 0, 'loyalty', [[81, 'would die for them'], [61, 'fiercely loyal'], [41, 'loyal'], [21, 'sticks around'], [0, 'owes them nothing']],
+        (n, u) => `${n} stands by ${u} whatever it costs: covering for ${u}, staying when anyone sane would leave`, null, 'How bound they feel to you, even when they don’t like you.'],
+    ['gd', 'Guidance', false, 0, 'guidance', [[81, 'shaping who they become'], [61, 'teaching them'], [41, 'guides them'], [21, 'gives advice'], [0, 'not teaching']],
+        (n, u) => `${n} is teaching ${u} and steering who ${u} becomes: lessons, corrections, standards, and pride or disappointment in the result`, null, 'How much they teach and steer you, for better or worse.'],
 ];
 export const MORE_KEYS = MORE_METERS.map(([k]) => k);
 const DEF = Object.fromEntries(MORE_METERS.map(m => [m[0], m]));
 export const moreWord = (k, v) => DEF[k][5].find(([min]) => v >= min)[1];
 // Quick picks for the characters you play most. They only switch meters on; you can change any of them.
 export const MORE_PRESETS = [
-    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn']],
-    ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op']],
+    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn', 'ca', 'di']],
+    ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op', 'gd', 'lu']],
     ['Joe', ['ob', 'pe', 'je', 'pr', 'kn', 'hu', 'gu']],
-    ['Bateman', ['re', 'hu', 'op', 'fa', 'je']],
-    ['Rick', ['re', 'de', 'op', 'pr', 'gu']],
+    ['Bateman', ['re', 'hu', 'op', 'fa', 'je', 'lu']],
+    ['Rick', ['re', 'de', 'op', 'pr', 'gu', 'rs', 'ly']],
+    // 1.42.0: by kind of relationship rather than by character.
+    ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu']],
+    ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je']],
+    ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly']],
+    ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co']],
 ];
 export function cleanMore(raw) {
     const x = raw && typeof raw === 'object' ? raw : {};
@@ -55,7 +75,8 @@ export function cleanMore(raw) {
 }
 // list: [{ pos, key, s: { m: { ob: +3, ... } } }] oldest first. Meters that are off stay undefined, so
 // nothing that depends on them can fire.
-export function computeMore(raw, list = []) {
+// cap: the largest step one reply can make, set by the chat's pace (bond.js PACE).
+export function computeMore(raw, list = [], cap = 10) {
     const d = cleanMore(raw), v = Object.fromEntries(MORE_KEYS.map(k => [k, DEF[k][3]]));
     let start = 0;
     if (d.anchor) {
@@ -65,24 +86,30 @@ export function computeMore(raw, list = []) {
     }
     for (let i = start; i < list.length; i++) for (const k of d.on) {
         const step = list[i].s?.m?.[k]; if (!step) continue;
-        v[k] = clamp(v[k] + clamp(step, -10, 10), DEF[k][2] ? -100 : 0, 100);
+        v[k] = clamp(v[k] + clamp(step, -cap, cap), DEF[k][2] ? -100 : 0, 100);
     }
     for (const k of MORE_KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];
     return { values: Object.fromEntries(d.on.map(k => [k, v[k]])), on: d.on, pins: d.pins };
 }
 // Dragging a bar sets every meter where it stands now; later replies move them from there.
-export function setMore(bond, key, value, list = []) {
+export function setMore(bond, key, value, list = [], cap = 10) {
     if (!DEF[key]) return;
-    const d = bond.more = cleanMore(bond.more), now = computeMore({ ...d, on: MORE_KEYS }, list).values, last = list[list.length - 1];
+    const d = bond.more = cleanMore(bond.more), now = computeMore({ ...d, on: MORE_KEYS }, list, cap).values, last = list[list.length - 1];
     const v = clamp(Math.round(Number(value) || 0), DEF[key][2] ? -100 : 0, 100);
     d.anchor = { ...now, [key]: v, key: last?.key ?? '', pos: last?.pos ?? -1 };
     if (d.pins[key] !== null) d.pins[key] = v;
 }
 // What Claude reads under "[character] toward [player]": only meters that say something, in words.
-export function moreLines(raw, list, n, u) {
-    const { values, on } = computeMore(raw, list);
+const says = (k, v) => DEF[k][2] ? Math.abs(v) >= 25 : k === 'op' ? v >= 41 || v <= 20 : v >= 21;
+// 1.43.0: the meters that make it onto the line, with their values (the overlap check reads this).
+export function saidMeters(raw, list = [], cap = 10) {
+    const { values, on } = computeMore(raw, list, cap);
+    return Object.fromEntries(on.filter(k => says(k, values[k])).map(k => [k, values[k]]));
+}
+export function moreLines(raw, list, n, u, cap = 10) {
+    const { values, on } = computeMore(raw, list, cap);
     if (!on.length) return [];
-    const said = on.filter(k => DEF[k][2] ? Math.abs(values[k]) >= 25 : k === 'op' ? values[k] >= 41 || values[k] <= 20 : values[k] >= 21);
+    const said = on.filter(k => says(k, values[k]));
     if (!said.length) return [];
     const words = said.map(k => `${DEF[k][1].toLowerCase()}: ${moreWord(k, values[k]).replace(/\bthem\b/, u)}`);
     const strong = said.map(k => values[k] >= 61 ? DEF[k][6](n, u) : (DEF[k][2] && values[k] <= -60) || (k === 'op' && values[k] <= 20) ? DEF[k][7]?.(n, u) : '').filter(Boolean);
@@ -94,7 +121,7 @@ export function metersOf(v) {
     for (const part of String(v ?? '').toLowerCase().replace(/[−–]/g, '-').split(/[,;]/)) {
         const m = part.trim().match(/^([a-z ]+?)\s*:?\s*([+-]\s*\d{1,3})/); if (!m) continue;
         const word = m[1].trim(), hit = MORE_METERS.find(r => word.startsWith(r[4]) || word === r[1].toLowerCase()); if (!hit) continue;
-        out[hit[0]] = (out[hit[0]] ?? 0) + clamp(Number(m[2].replace(/\s/g, '')), -10, 10);
+        out[hit[0]] = (out[hit[0]] ?? 0) + clamp(Number(m[2].replace(/\s/g, '')), -25, 25);
     }
     return Object.keys(out).length ? out : null;
 }

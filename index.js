@@ -2,9 +2,12 @@ import { SKILL_CATEGORIES, SKILL_BY_ID, skillWord, skillsOf, litSkills, skillLin
 import { analysed, KNOWLEDGE_MODES, knowledgeEntry, MERGED_SEARCH_NAMES, CATEGORIES, MOODS, BY_ID, TRAIT_CATEGORIES, sectionOf, RECIPES, STORY_RECIPES, activeMoods, freshState, extendCatalogue, migrateCatalogue, isExtended, shortName, level, escapeHtml as esc, clamp, budgetPrompt, parseAnalysis, applyAnalysis, sceneData, analysisMessages, fingerprint, cleanScope, cleanWants, WANT_KINDS } from './core.js';
 import { latestBoard, liveBoard, cleanBoardMeta, boardPromptLines, namedIn, matchMood, needWord, EDIT_FIELDS, feelingsFromBoard, relationsFromBoard, feedValues, isNone, hasBoard, stripBoard, feelingId, relationId, parseBoard, boardKeyOf, NO_BOARD, fixActive } from './board.js';
 import { boardView } from './board-ui.js';
-import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor, sparkTarget, sliderAxes, storedSteps, METERS, setDesire, cleanDesire, computeDesire } from './bond.js';
+import { cleanBond, setMeter, bondStanding, computeBond, turnIdFor, sparkTarget, sliderAxes, storedSteps, METERS, setDesire, cleanDesire, computeDesire, paceOf, dynamicRows, DYNAMIC_GROUPS } from './bond.js';
+import { setOwnDynamics, cleanOwnDynamics, fill as fillDynamic } from './dynamics.js';
+import { bondReadMessages, parseBondRead } from './bondread.js';
 import { findPatterns } from './patterns.js';
-import { MORE_PRESETS, cleanMore, setMore, meterWeaveNames, computeMore } from './meters.js';
+import { MORE_PRESETS, MORE_METERS, cleanMore, setMore, meterWeaveNames, computeMore, saidMeters } from './meters.js';
+import { findOverlaps, droppedIds } from './overlap.js';
 import { cravingsFrom, findCombos, cleanCombos, COMBOS } from './reactive.js';
 import { ON_PAGE } from './onpage.js';
 import { bondView, bondMini } from './bond-ui.js';
@@ -23,7 +26,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.41.0';
+const VERSION = '1.43.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -192,6 +195,8 @@ function settings() {
         outputTokens: clamp(c.extensionSettings[KEY].outputTokens ?? 800, 300, 16000),
         baselines: c.extensionSettings[KEY].baselines ?? {},
         castDefaults: c.extensionSettings[KEY].castDefaults ?? {},
+        // 1.42.0: dynamics you've written, and the dynamics picked for each character's new chats.
+        ownDynamics: (setOwnDynamics(saved.ownDynamics), cleanOwnDynamics(saved.ownDynamics)), dynamicPools: saved.dynamicPools && typeof saved.dynamicPools === 'object' ? saved.dynamicPools : {},
         boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false, blendPlan: saved.blendPlan === true, bondTrack: saved.bondTrack !== false, boardStrip: saved.boardStrip !== false,
         // 1.38.0: board memories and board pins are opt-in; board words count alongside the hidden line.
         boardMemories: saved.boardMemories === true, boardPins: saved.boardPins === true, boardWithWeave: saved.boardWithWeave !== false,
@@ -397,7 +402,7 @@ function reactions(ch, chat = liveChat(), live = null) {
     if (settings().combosOn && newest) {
         const list = bondList(ch, chat), bond = bondData(ch), statuses = [...out.wants.values()];
         out.combos = findCombos({ lit: litPer.at(-1) ?? new Set(), litTraits: out.traits, moods: st.moods, pressed: statuses.includes('pressed'), blocked: statuses.includes('-'),
-            desire: bond.desire?.on ? computeDesire(bond.desire, list) : null, more: computeMore(bond.more, list).values, cravingMet: out.cravingMet,
+            desire: bond.desire?.on ? computeDesire(bond.desire, list) : null, more: computeMore(bond.more, list, paceOf(bond).cap).values, cravingMet: out.cravingMet,
             needsLow: new Set((live?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id)) }, cleanCombos(st.combos), shortName(ch.name), shortName(playerName()));
     }
     return out;
@@ -447,7 +452,7 @@ function bondData(ch) {
     const meta = ctx().chatMetadata?.[KEY]; if (!meta || !ch) return cleanBond({}, false);
     meta.bond ??= {};
     const key = `char:${ch.avatar}`;
-    if (!meta.bond[key]) meta.bond[key] = { base: seedBond(ch), v: 2 };
+    if (!meta.bond[key]) meta.bond[key] = { base: seedBond(ch), v: 2, pool: [...(settings().dynamicPools?.[key] ?? [])] };
     let bond = cleanBond(meta.bond[key], settings().bondTrack);
     if (bond.v !== 2) bond = migrateBond(bond, ch);
     return (meta.bond[key] = bond);
@@ -472,7 +477,7 @@ function bondList(ch, chat = liveChat()) {
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
-        out.push({ pos, key: readOf(m).wkey, s: { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null } });
+        out.push({ pos, key: readOf(m).wkey, s: { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' } });
     });
     if (out.length) { const st = getState(ch), prefs = st?.prefs ?? {}, traits = bedroomTraits(st); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
@@ -488,6 +493,30 @@ function bondAxes(ch) {
     const mine = (getUserState()?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === name);
     return sliderAxes(rel && rel.enabled !== false ? rel.moods ?? {} : {}, pair?.enabled !== false ? pair?.moods ?? {} : {}, mine && mine.enabled !== false ? mine.moods ?? {} : {});
 }
+// 1.43.0: the same idea switched on in more than one place (a meter, the dynamic, his slider toward you, a
+// both-ways tag, a story trope). Worked out from what the note would actually send; syncPrompt sends each
+// idea once and the Bonds tab lists them with a tidy button.
+function bondOverlaps(ch, history, bond = bondData(ch), list = null, bd = null) {
+    if (!bond?.on) return [];
+    const st = getState(ch), story = getStoryState(ch), rel = st ? userRelation(st) : null;
+    const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
+    const steps = list ?? bondList(ch, history);
+    const d = bd ?? (bond.extra ? computeBond(bond, history.length, shortName(ch.name), shortName(playerName()), bondAxes(ch), steps) : null);
+    const sent = { meters: saidMeters(bond.more, steps, paceOf(bond).cap), base: d && (d.t >= 10 || d.t <= -20) ? { t: d.t } : {}, dynamic: d?.dynamic.key ?? '' };
+    return findOverlaps({ sent, rel: rel && rel.enabled !== false ? rel.moods : {}, shared: pair && pair.enabled !== false ? pair.moods : {},
+        story: story?.enabled ? story.moods : {}, moods: st?.moods ?? {} });
+}
+// Names for the Bonds tab's "Doubled up" list.
+function overlapNames(list, n, u) {
+    const name = x => x.kind === 'meter' ? `${MORE_METERS.find(m => m[0] === x.id)?.[1] ?? x.id} meter` : x.kind === 'base' ? 'Trust meter'
+        : x.kind === 'dynamic' ? `${fillDynamic(x.id, n, u)} (dynamic)` : x.kind === 'rel' ? `${RELATIONSHIP_BY_ID[x.id]?.label ?? x.id} ${u} (${n}’s side)`
+        : x.kind === 'shared' ? `${SHARED_BY_ID[x.id]?.label ?? x.id} (both ways)` : `${BY_ID[x.id]?.label ?? x.id} (${x.kind === 'story' ? 'story' : 'moodlet'})`;
+    return list.map(o => ({ key: o.key, label: o.label, keep: name(o.keep), both: o.both.map(name), drop: o.drop.filter(x => !feedsMeters(x)).map(name),
+        held: o.drop.filter(feedsMeters).map(name), also: o.also.map(name) }));
+}
+// Sliders and both-ways tags that also move the meters (trusts, obsessed, captor of…). The note can skip them,
+// but Tidy leaves them on: turning them off would shift the meters and maybe the dynamic.
+const feedsMeters = x => x.kind === 'rel' ? Object.values(sliderAxes({ [x.id]: 100 })).some(Boolean) : x.kind === 'shared' ? Object.values(sliderAxes({}, { [x.id]: 100 })).some(Boolean) : false;
 const seedBond = ch => Object.fromEntries(Object.entries(bondAxes(ch)).map(([k, v]) => [k, Math.round(v * 0.8)]));
 const userRelation = (st, create = false) => {
     const you = playerName().toLowerCase();
@@ -765,7 +794,18 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const liveNow = liveFor(ch, history);
         const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on });
         const react = reactions(ch, history, liveNow), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
-        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, moods: bm.feed, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
+        // 1.42.0: the current dynamic, worked out once. The story is asked to rename it when it shifts, and
+        // both-ways or story lines it already says are left out of this note.
+        const bondList0 = bond.on ? bondList(ch, history) : [], bd = bond.on && bond.extra ? computeBond(bond, history.length, n, u, bondAxes(ch), bondList0) : null;
+        const storyNames = bd && bond.mode === 'story' && !bond.fixed ? { now: bd.dynamic.name.toLowerCase(), pool: bond.pool.map(name => fillDynamic(name, n, u)) } : null;
+        const covered = new Set(bd?.dynamic.covers ?? []);
+        // 1.43.0: one idea, one line. Whatever's doubled up is sent once, from the most specific place.
+        const dropped = droppedIds(bondOverlaps(ch, history, bond, bondList0, bd));
+        const pairDrop = new Set([...covered, ...dropped.shared]), storyDrop = new Set([...covered, ...dropped.story]);
+        const zero = (moods, ids) => Object.fromEntries(Object.entries(moods ?? {}).map(([id, v]) => [id, ids.has(id) ? 0 : v]));
+        const youRel = dropped.rel.size ? userRelation(state) : null;
+        const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
+        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
         // 1.41.0: skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
@@ -774,8 +814,10 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
         // instead of pausing the whole note for that reply.
         const count = async text => { try { const n = await c.getTokenCountAsync(text); return Number.isFinite(n) ? n : Math.ceil(text.length / 3.6); } catch { return Math.ceil(text.length / 3.6); } };
-        const result = await budgetPrompt(state, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: getKnowledge(ch), condition: settings().youTrack ? react.condition : [] }, story, cast: getCast(ch), pairs: pairExtras(ch), board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList(ch, history) }), weave, skills });
+        const pairs = pairExtras(ch).map(p => pairDrop.size && p.names[0] === name && p.names[1] === player ? { ...p, moods: zero(p.moods, pairDrop) } : p);
+        const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
+        const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: getKnowledge(ch), condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
+            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), weave, skills });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -885,6 +927,45 @@ async function analyse(force = false, whom = who, ch = target()) {
     } finally {
         clearTimeout(timer); pending = null;
         await syncPrompt(); render();
+    }
+}
+
+// 1.42.0: Bonds → Re-read the scene. One request to the reader's connection, only when tapped: where the
+// character and your persona stand now, from the latest messages. The meters are set there (pinned ones are
+// left alone) and, in story mode, the dynamic the reader names holds until a reply names another.
+async function readBond(ch = target()) {
+    const c = ctx(), bond = bondData(ch), profile = readerProfile();
+    if (suspended || !ch || !bond.on || pending) return;
+    if (!profile) { status = 'Pick a reader connection under ✧ Scene reader (Moods tab) first.'; renderStatus(); return; }
+    const n = shortName(ch.name), u = shortName(playerName()), list = bondList(ch), now = computeBond(bond, Infinity, n, u, bondAxes(ch), list);
+    const on = cleanMore(bond.more).on, meters = on.map(k => { const m = MORE_METERS.find(x => x[0] === k); return { key: k, word: m[4], two: m[2] }; });
+    const names = (bond.pool.length ? dynamicRows().filter(r => bond.pool.includes(r[0])) : dynamicRows()).map(r => fillDynamic(r[0], n, u));
+    const data = sceneData(c.chat, ch, getState(ch), settings(), { sceneStart: sceneStart() });
+    const current = { friendship: now.friend, romance: now.romance, ...(bond.extra ? { trust: now.trust, control: now.control, pull: now.pull } : {}), dynamic: now.dynamic.name,
+        ...Object.fromEntries(meters.map(m => [m.word, now.more[m.key]])) };
+    const messages = bondReadMessages({ n, u, notes: data.character.notes, scene: data.scene, current, meters, names, extra: bond.extra });
+    const controller = new AbortController(), snapshot = identity(ch), fp = fingerprint(c.chat), metadata = c.chatMetadata;
+    pending = { controller, snapshot };
+    const timer = setTimeout(() => controller.abort(), 45000);
+    status = `Reading where ${n} and ${u} stand…`; render();
+    try {
+        const response = await c.ConnectionManagerRequestService.sendRequest(profile, messages, settings().outputTokens,
+            { stream: false, signal: controller.signal, extractData: true, includePreset: false, includeInstruct: true });
+        if (controller.signal.aborted || metadata !== ctx().chatMetadata || snapshot !== identity(ch) || fp !== fingerprint(ctx().chat)) {
+            status = 'The scene changed while reading, so that read was thrown away.'; return;
+        }
+        const read = parseBondRead(response?.content ?? '', meters), cap = paceOf(bond).cap;
+        await editBond((b, steps) => {
+            for (const k of METERS) if (read[k] !== null && b.pins[k] === null && (bond.extra || ['f', 'r'].includes(k))) setMeter(b, k, read[k], steps);
+            for (const [k, v] of Object.entries(read.m)) if (cleanMore(b.more).pins[k] === null) setMore(b, k, v, steps, cap);
+            const last = steps.at(-1);
+            if (read.dynamic) b.read = { name: read.dynamic, why: read.why, key: last?.key ?? '', pos: last?.pos ?? -1 };
+        });
+        status = `Re-read: ${read.dynamic || 'meters updated'}${read.why ? `. ${read.why}` : ''}`;
+    } catch (error) {
+        status = controller.signal.aborted ? 'Reading stopped or timed out. Nothing changed.' : (error.message || 'Reading failed. Nothing changed.');
+    } finally {
+        clearTimeout(timer); pending = null; render();
     }
 }
 
@@ -1461,7 +1542,7 @@ function drawPanel() {
         : who !== 'story' && tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: boardEditing && settings().boardPins, focus: boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : who !== 'story' && tab === 'wants' ? wantsView(state, ch)
         : who !== 'story' && tab === 'skills' ? skillsView(state, ch)
-        : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch) }) : '') + relationshipView({
+        : who !== 'story' && tab === 'rel' ? (who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())) }) : '') + relationshipView({
             peerExtra: who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: removingRelation })
         : sectionContent(state, kind, ch, active)}`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
@@ -1748,6 +1829,15 @@ function setup() {
             else { put(panel, '[data-follow-out]', `${v}%`); e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
             return;
         }
+        if (e.target.hasAttribute('data-dyn-search')) {
+            const q = e.target.value.trim().toLowerCase();
+            panel.querySelectorAll('.mw-dyn-group').forEach(g => {
+                let hits = 0;
+                g.querySelectorAll('[data-dyn-row]').forEach(r => { const show = !q || r.dataset.dynRow.includes(q); r.hidden = !show; if (show) hits++; });
+                g.hidden = Boolean(q) && !hits && !g.querySelector('[data-dyn-own-name]'); if (q && hits) g.open = true;
+            });
+            return;
+        }
         if (e.target.dataset.moreMeter) { const v = Number(e.target.value); e.target.style.setProperty('--mw-fill', `${e.target.dataset.two === '1' ? (v + 100) / 2 : v}%`); return; }
         if (e.target.dataset.desireBar) { e.target.style.setProperty('--mw-fill', `${e.target.value}%`); return; }
         if (e.target.dataset.bondMeter) {
@@ -1843,6 +1933,8 @@ function setup() {
         if (input.dataset.desireBar) { const key = input.dataset.desireBar, v = Number(input.value); await editBond((b, list) => setDesire(b, key, v, list)); return; }
         if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
         if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
+        if (input.hasAttribute('data-dyn-pace')) { await editBond(b => { b.pace = input.value; }); return; }
+        if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
         if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
         if (input.hasAttribute('data-board-toward')) { await editBoard(b => { b.includeToward = input.checked; }); return; }
         if (input.hasAttribute('data-board-sync')) { settings().boardPresent = input.checked; ctx().saveSettingsDebounced(); render(); return; }
@@ -2014,6 +2106,46 @@ function setup() {
             await persist(main); await syncPrompt(); render(); return;
         }
         if (button.dataset.boardUnpin) { const key = button.dataset.boardUnpin; await editBoard(b => { delete b.fix[key]; }); return; }
+        if (button.dataset.dynMode) {
+            const mode = button.dataset.dynMode, ch = target();
+            const now = computeBond(bondData(ch), Infinity, shortName(ch.name), shortName(playerName()), bondAxes(ch), bondList(ch)).dynamic.key;
+            await editBond(b => { if (mode === 'pick') b.fixed = b.fixed || now; else { b.fixed = ''; b.mode = mode; } }); return;
+        }
+        if (button.dataset.dynGroupAll) {
+            const names = dynamicRows().filter(r => (r[3] ?? 'own') === button.dataset.dynGroupAll).map(r => r[0]);
+            await editBond(b => { const all = names.every(x => b.pool.includes(x)); b.pool = all ? b.pool.filter(x => !names.includes(x)) : [...new Set([...b.pool, ...names])]; }); return;
+        }
+        if (button.dataset.dynOwnRemove) {
+            const name = button.dataset.dynOwnRemove;
+            settings().ownDynamics = cleanOwnDynamics(settings().ownDynamics.filter(x => x.name !== name)); setOwnDynamics(settings().ownDynamics); ctx().saveSettingsDebounced();
+            await editBond(b => { b.pool = b.pool.filter(x => x !== name); if (b.fixed === name) b.fixed = ''; }); return;
+        }
+        // 1.43.0: turn off the extra copies of a doubled-up idea (or all of them). Meters, the dynamic and
+        // moodlets stay as they are; only the sliders, both-ways tags and story tropes the note was skipping go to 0.
+        if (button.dataset.overlapTidy !== undefined) {
+            const ch = target(), only = button.dataset.overlapTidy, st = getState(ch), story = getStoryState(ch);
+            const list = bondOverlaps(ch, effectiveChat(ctx().chat ?? [])).filter(o => !only || o.key === only).map(o => ({ ...o, drop: o.drop.filter(x => !feedsMeters(x)) }));
+            const ids = droppedIds(list), rel = st ? userRelation(st) : null, pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
+            for (const id of ids.rel) if (rel?.moods) rel.moods[id] = 0;
+            for (const id of ids.shared) if (pair?.moods) pair.moods[id] = 0;
+            for (const id of ids.story) if (story?.moods) story.moods[id] = 0;
+            const count = ids.rel.size + ids.shared.size + ids.story.size;
+            status = count ? `Turned off ${count} extra cop${count === 1 ? 'y' : 'ies'}. Each idea now lives in one place.` : 'Nothing doubled up to tidy.';
+            if (ids.story.size && story) story.revision = (story.revision || 0) + 1;
+            await persist(ids.rel.size ? st : null); await syncPrompt(); render(); renderStatus(); return;
+        }
+        if (['dyn-pool-save', 'dyn-pool-load', 'dyn-pool-clear', 'dyn-own-add', 'bond-reread'].includes(button.dataset.action)) {
+            const ch = target(), key = `char:${ch?.avatar}`, act = button.dataset.action;
+            if (act === 'bond-reread') { await readBond(ch); return; }
+            if (act === 'dyn-pool-save') { settings().dynamicPools[key] = [...bondData(ch).pool]; ctx().saveSettingsDebounced(); status = `Saved ${bondData(ch).pool.length} picks for ${ch.name}’s new chats.`; renderStatus(); return; }
+            if (act === 'dyn-pool-load') { const saved = settings().dynamicPools?.[key] ?? []; await editBond(b => { b.pool = [...saved]; }); return; }
+            if (act === 'dyn-pool-clear') { await editBond(b => { b.pool = []; }); return; }
+            const name = String(panel.querySelector('[data-dyn-own-name]')?.value ?? '').trim(), cue = String(panel.querySelector('[data-dyn-own-cue]')?.value ?? '').trim();
+            if (!name || !cue) { status = 'Give your dynamic a name and say what it looks like.'; renderStatus(); return; }
+            if (dynamicRows().some(r => r[0].toLowerCase() === name.toLowerCase())) { status = 'There’s already a dynamic with that name.'; renderStatus(); return; }
+            settings().ownDynamics = cleanOwnDynamics([...settings().ownDynamics, { name, cue }]); setOwnDynamics(settings().ownDynamics); ctx().saveSettingsDebounced();
+            await editBond(b => { b.pool = [...b.pool, name]; }); status = `${name} added to your dynamics and picked for these two.`; renderStatus(); return;
+        }
         if (button.dataset.morePreset !== undefined) {
             const pick = MORE_PRESETS.find(([name]) => name === button.dataset.morePreset)?.[1] ?? [];
             await editBond(b => { const d = cleanMore(b.more); d.on = [...pick]; b.more = d; }); return;
@@ -2326,7 +2458,7 @@ function setup() {
 // jQuery ready also works when installed after APP_READY has fired.
 if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();
 
-export { analyse, getState, getKnowledge, getCast, saveCastDefault, loadCastDefault, syncPrompt, boardChanged, reconcile, stopGenerating, bondData, bondList, clearAllPins, pinCounts };
+export { analyse, getState, getKnowledge, getCast, saveCastDefault, loadCastDefault, syncPrompt, boardChanged, reconcile, stopGenerating, bondData, bondList, clearAllPins, pinCounts, readBond };
 
 export function onDisable() {
     suspended = true; ++promptVersion; cancelAnalysis();

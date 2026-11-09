@@ -447,3 +447,54 @@
 .mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
 .mw-skill-add{display:grid;gap:6px;margin:10px 0 4px}
 .mw-skill-add input{width:100%;box-sizing:border-box}
+
+/* 1.42.0: who names the dynamic, pace, re-read and the dynamics picked for a pair */
+.mw-dyn-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:12px;padding:3px;border-radius:12px;background:#0e0b17aa;border:1px solid #ffffff14}
+.mw-panel .mw-dyn-modes button{padding:7px 4px;border:0;border-radius:9px;background:none;font-size:12px;color:#d7cfe8;white-space:nowrap}
+.mw-panel .mw-dyn-modes button[aria-pressed=true]{background:#ef9fbe2e;color:#fbe9f1;box-shadow:inset 0 0 0 1px #ef9fbe55}
+.mw-dyn-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mw-dyn-row label{display:flex;align-items:center;gap:8px;flex:1;min-width:150px;font-size:11.5px;color:#d7cfe8}
+.mw-panel .mw-dyn-row select{flex:1;padding:6px 9px;font-size:12px;background:#0e0b17aa}
+.mw-panel .mw-dyn-read{flex:none}
+.mw-dyn-pool{margin-top:10px;border-top:1px solid #ffffff14;padding-top:8px}
+.mw-dyn-pool>summary{cursor:pointer;font-size:12.5px;font-weight:600;color:#fbe9f1}.mw-dyn-pool>summary small{font-weight:400;opacity:.75;margin-left:6px}
+.mw-panel .mw-dyn-pool input[type=search]{width:100%;margin:6px 0;padding:7px 10px;font-size:12px;background:#0e0b17aa}
+.mw-dyn-tools{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.mw-dyn-group{margin:4px 0;border-radius:10px;background:#ffffff06;border:1px solid #ffffff10}
+.mw-dyn-group>summary{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;font-size:12.5px;color:#e2d8ee}
+.mw-dyn-group>summary small{opacity:.7;font-size:11px}
+.mw-dyn-group[open]>summary{border-bottom:1px solid #ffffff10}
+.mw-dyn-all{margin:8px 10px 2px}
+.mw-dyn-opt{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-top:1px solid #ffffff08}
+.mw-dyn-opt:first-of-type{border-top:0}
+.mw-dyn-opt input{margin-top:3px;flex:none}
+.mw-dyn-opt span{min-width:0;font-size:12.5px;color:#f1e8f6}.mw-dyn-opt b{font-weight:600}
+.mw-dyn-opt small{display:block;margin-top:2px;font-size:11px;line-height:1.4;color:#b9aecf}
+.mw-dyn-only{font-style:normal;font-size:10px;padding:0 6px;border-radius:999px;border:1px solid #ffffff22;color:#c9bedf;margin-left:4px}
+.mw-panel .mw-dyn-x{border:0;background:none;padding:0 4px;font-size:13px;color:#d79aa8}
+.mw-dyn-own{display:grid;gap:6px;padding:8px 10px}
+.mw-panel .mw-dyn-own input,.mw-panel .mw-dyn-own textarea{width:100%;padding:7px 10px;font:inherit;font-size:12px;border-radius:8px;background:#0e0b17aa;color:inherit;border:1px solid #ffffff1c;resize:vertical}
+.mw-panel .mw-dyn-own button{justify-self:start}
+/* A background per group, under the named ones that already have their own. */
+.mw-dyn-card:where([data-tone=blood]){border-color:#e26d7a55;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e26d7a33,transparent 60%),linear-gradient(160deg,#2c1424,#170f1d)}
+.mw-dyn-card:where([data-tone=violet]){border-color:#b06ad955;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#b06ad933,transparent 60%),linear-gradient(160deg,#2a1634,#150d1e)}
+.mw-dyn-card:where([data-tone=clinic]){border-color:#7fb3c955;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#7fb3c92b,transparent 60%),linear-gradient(160deg,#15242c,#0e151c)}
+.mw-dyn-card:where([data-tone=ember]){border-color:#e8875f55;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e8875f33,transparent 60%),linear-gradient(160deg,#2e1718,#180d10)}
+.mw-dyn-card:where([data-tone=bruise]){border-color:#9a6fb855;background:radial-gradient(1px 1px at 82% 22%,#fff7 50%,transparent),radial-gradient(120% 90% at 100% 0%,#6f9ab833,transparent 60%),linear-gradient(160deg,#1d1a2e,#120f1c)}
+.mw-dyn-card:where([data-tone=amber]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
+.mw-dyn-card:where([data-tone=parchment]){border-color:#d9c79a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#d9c79a26,transparent 60%),linear-gradient(160deg,#25211c,#16130f)}
+.mw-dyn-card:where([data-tone=ash]){border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
+/* 1.43.0: Doubled up */
+.mw-overlap{margin:10px 0;padding:8px 12px;border-radius:14px;background:#7a8cc410;border:1px dashed #7a8cc455}
+.mw-overlap summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
+.mw-overlap summary small{font-weight:400;opacity:.75;text-align:right}
+.mw-overlap-list{list-style:none;margin:6px 0;padding:0;display:grid;gap:6px}
+.mw-overlap-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 8px;border-radius:10px;background:#ffffff0d}
+.mw-overlap-row>div{display:grid;gap:2px;min-width:0}
+.mw-overlap-row span{font-size:.86em;line-height:1.3;overflow-wrap:anywhere}
+.mw-overlap-keep{opacity:.9}
+.mw-overlap-drop{opacity:.65;text-decoration:line-through;text-decoration-color:#ffffff55}
+.mw-overlap-also{opacity:.65;font-style:italic}
+.mw-overlap-tidy,.mw-overlap-all{flex:none;min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid #7a8cc488;background:#7a8cc422;color:inherit;cursor:pointer}
+.mw-overlap-all{width:100%;margin-top:2px}
+.mw-overlap-held{opacity:.65}

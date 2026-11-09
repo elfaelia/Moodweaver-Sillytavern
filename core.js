@@ -1,3 +1,4 @@
+import { pronounize } from './pronouns.js';
 import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalities, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS, KINKS_TO_TURNS } from './turns.js';
 import { ADDITIONS_7, DARK_CUES, DEAD_DOVE_SCALED, DODGES } from './additions-1.39.js';
@@ -2121,8 +2122,29 @@ CATEGORIES.splice(CATEGORIES.findIndex(([id]) => id === 'archetype') + 1, 0, ['s
         ['prose_no_therapy_speak', 'No therapy-speak', 'nobody talks like a therapist or HR (“I hear you”, “that’s valid”, “boundaries”, “I need space to process”) unless that’s who they are'],
         ['prose_real_dialogue', 'Dialogue like people', 'people interrupt, dodge, trail off and answer the wrong question; nobody speaks in tidy paragraphs or says exactly what they feel'],
     );
+    // 1.44.0: more for Opus 5.5, from what testers report about it in dark roleplay. It writes dark scenes but
+    // tones them down a notch, holds a scene at the level it was handed, over-explains endings, and is better at
+    // using a detail than inventing one. The dialogue and planning rules used to live in the IHYLL preset.
+    craft[4].push(
+        ['prose_no_rerun', 'No reruns', 'don’t replay a beat from earlier replies: the same warning, gesture, threat, joke or realisation. If it happened, it’s done; write what comes after', 'For replies that keep circling the same moment.'],
+        ['prose_no_reflection_breaks', 'No pausing to reflect', 'no paragraph where the narrator or a character stops to take in what just happened or what it means; the next thing happens instead', 'The processing paragraph Opus 5.5 likes to add mid-scene and at the end.'],
+        ['prose_feeling_in_action', 'Feeling inside action', 'carry emotion in an ordinary physical action (how a cup is set down, a cuff buttoned, a door closed) and skip symbolic images', 'Plays to what Opus 5.5 does best.'],
+        ['prose_use_whats_there', 'Use what’s there', 'build on details already in the card, the lorebook and earlier replies (objects, injuries, rooms, habits, names) before inventing new ones', 'Opus 5.5 is better at using a detail than inventing one.'],
+        ['prose_dark_plain', 'Dark, said plainly', 'violence, sex and cruelty in exact nouns and verbs: what was done, with what, to which part of the body. No euphemism, no “something dark”, no poetic distance, no narrator wincing', 'Stops the tasteful blur over the worst moments.'],
+        ['prose_menace_no_speeches', 'Menace without speeches', 'dangerous people don’t monologue, explain their own psychology or announce a threat; they act, stay casual and let the other person work it out', 'Bateman, Jefferson, Easterman.'],
+        ['prose_no_em_dashes', 'No em dashes', 'no em dashes, and no hyphens standing in for them; use a comma, a full stop or a new sentence'],
+        ['prose_no_assistant_voice', 'No assistant voice', 'nobody talks like a chatbot: no “okay, so”, “honestly”, “here’s the thing”, “to be fair”, “great question”, “I’m going to go ahead and”, and no line announcing that an explanation is coming', 'The helper voice leaking into dialogue.'],
+        ['prose_no_applause', 'No applauding the line', 'the narration never rates its own dialogue: no letting a remark land, sit or hang, nobody hearing themselves say it, no “and it was true”', 'Moved here from the IHYLL preset.'],
+        ['prose_speech_in_paragraphs', 'Speech inside paragraphs', 'every paragraph with spoken dialogue also carries action, perception or thought in the same paragraph; no paragraph that is only a quoted line', 'The old Dialogue Weave rule from the IHYLL preset.'],
+        ['prose_plan_as_character', 'Plan as the character', 'when thinking a reply through, plan it as the character: what they want right now, what they notice, what they decide and do. Don’t plan it as a structure, a pivot or an opening for the player', 'Planning in outline words leaks outline words into the scene.'],
+    );
     // The world leads sits beside Follow through: it's about who drives the story, not how it reads.
     const home = CATEGORIES.find(cat => cat[4].some(r => r[0] === 'follow_through')) ?? CATEGORIES.find(([id]) => id === 'stakes');
+    home[4].push(
+        ['escalates_alone', 'They escalate on their own', 'when a character would go further (crueller, closer, more explicit, more dangerous), they do it now, without waiting for the player to raise it first', 'Opus 5.5 holds a scene at the level it was handed. This lets characters raise it.'],
+        ['full_strength', 'No gentler version', 'write the act at the strength the scene set up: no milder substitute, smaller injury, shortened cruelty or a character going easier than they would', 'Opus 5.5 tones a dark scene down more often than it refuses one.'],
+        ['no_check_ins', 'No check-ins', 'nobody stops to ask “are you alright”, “is this okay” or “tell me to stop” unless that is who they are; a character who wouldn’t ask doesn’t', 'Stops villains pausing to make sure.'],
+    );
     home[4].push(['world_leads', 'The world leads', 'the characters and the world make the big moves; no stopping on the edge of something to hand you the choice', 'You only write your character’s words, thoughts and choices. Strong or above makes it push forward every reply.']);
 }
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue, note]) => ({ id, label, cue, ...(note ? { note } : {}), category, color, kind })));
@@ -2187,6 +2209,9 @@ export const STORY_RECIPES = {
     'Dennis · sitcom': { party_comedy: 50, dark_comedy: 60, satire: 40, prose_sitcom_timing: 65, prose_running_gags: 50, author_john_kennedy_toole: 60 },
     'Real stakes · no mercy': { real_stakes: 80, player_not_safe: 70, no_rescues: 80, decline_in_stages: 75, let_it_get_worse: 60, death_on_the_table: 70,
         consequences_persist: 70, no_unearned_hope: 60, prose_unflinching: 60, prose_slow_motion_crisis: 45 },
+    // 1.44.0: everything the trimmed IHYLL preset now leaves to Moodweaver, in one tap.
+    'IHYLL companion · clean and dark': { prose_no_ai_tells: 70, prose_no_echo: 70, prose_trust_reader: 65, prose_no_rerun: 70, prose_no_em_dashes: 70, prose_no_assistant_voice: 65,
+        prose_speech_in_paragraphs: 80, prose_dark_plain: 70, pattern_breaker: 60, world_leads: 70, escalates_alone: 65, full_strength: 75, follow_through: 75, no_fade_out: 70 },
     'Angst & grief': { angst: 70, grief_story: 50, tragedy: 45, consequences_persist: 60, grief_gets_room: 60, no_unearned_hope: 55,
         prose_quiet_devastation: 60, prose_no_silver_lining: 50 },
     'Mother Gooseberry': { era_1960s_america: 50, cold_war_horror: 50, body_horror: 40, prose_nursery_rhyme: 70, author_edward_gorey: 50, author_angela_carter: 40 },
@@ -3471,7 +3496,7 @@ const DARK_STORY_IDS = new Set([
     'home_invasion', 'rising_body_count', 'no_one_safe', 'psychological_torment', 'escalating_violence',
     'bad_ending', 'villain_wins', 'lethal_combat', 'gory_combat', 'gritty_combat', 'sudden_violence',
     'unethical_experiments', 'reconditioning', 'medical_crisis', 'impossible_choice', 'addiction_spiral', 'killing_spree',
-    'drug_world_violence', 'deaths_that_dont_stick', 'relapse', 'slow_death', 'loss_of_a_main', 'follow_through', 'no_fade_out', 'no_rescues', 'death_on_the_table',
+    'drug_world_violence', 'deaths_that_dont_stick', 'relapse', 'slow_death', 'loss_of_a_main', 'follow_through', 'no_fade_out', 'no_rescues', 'death_on_the_table', 'full_strength',
 ]);
 // Prompt-safe text. Only angle brackets could break the note's tags, so apostrophes stay readable ("he's", not "he&#39;s").
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
@@ -3532,11 +3557,21 @@ const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply',
 const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
 // Turn-ons, wants, their own rows and inventory, for one person. Kinds pick which of their own rows belong here.
 // lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id → status), done: Set }.
-function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit = null) {
+function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit = null, know = null) {
     if (!state?.enabled) return [];
     const out = [], person = kinds.includes('mood');
     const prefs = person ? livePrefs(state) : [];
-    if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${lit?.turns?.has(id) ? ' (LIT last reply)' : lit?.craving?.has(id) ? ` (CRAVING: not lit for ${lit.craving.get(id)} replies)` : ''}`));
+    // 1.44.0: the player's turn-ons, split by what the character knows. Known ones are theirs to use on
+    // purpose; the rest are for the story to bring in without anyone meaning to.
+    if (prefs.length && know) {
+        const row = ([id, v]) => { const e = knowledgeEntry(know.knowledge?.[`turn:${id}`]);
+            return [e.mode, `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${e.source ? ` (how: ${pt(e.source)})` : ''}`]; };
+        const rows = prefs.map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
+        const known = pick(['known']), suspected = pick(['suspected']), unknown = pick(['scene', 'private']);
+        if (known.length) out.push(`Turn-ons and turn-offs ${know.observer} knows about:`, ...known);
+        if (suspected.length) out.push(`Turn-ons and turn-offs ${know.observer} suspects:`, ...suspected);
+        if (unknown.length) out.push(`Turn-ons and turn-offs ${know.observer} doesn't know about:`, ...unknown);
+    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${lit?.turns?.has(id) ? ' (LIT last reply)' : lit?.craving?.has(id) ? ` (CRAVING: not lit for ${lit.craving.get(id)} replies)` : ''}`));
     const free = person ? (lit?.free ?? []) : [];
     if (free.length) out.push(`Also set off last reply: ${free.map(x => `${pt(x.text)}${x.off ? ' (turn-off)' : ''}`).join(', ')}`);
     const wants = person ? liveWants(state, lit?.done) : [];
@@ -3594,7 +3629,8 @@ export function composePrompt(state, name, extras = {}) {
         .filter(p => p.tags.length || p.memories.length);
     const lit = extras.lit ?? null;
     const mineExtra = extraLines(state, undefined, '', lit), storyExtra = extraLines(storyState, ['story']);
-    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u);
+    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n });
+    const prefKnown = mode => livePrefs(player?.state).some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
     // 1.34.0: the meters sit with the rest of what the character feels about the player; the weave line request goes last.
@@ -3634,7 +3670,7 @@ export function composePrompt(state, name, extras = {}) {
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra,
             ...(condition.length ? [`${u}'s body right now, from earlier replies: ${condition.map(pt).join(', ')}. It stays until the story heals or changes it.`] : []), '',
             `The player writes what ${u} says, chooses and thinks; what happens to ${u}'s body and circumstances follows the story. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
-            ...(prefs ? [`Work ${u}'s turn-ons into the scene now and then where they fit, through how ${n} and others already look, sound and act, and let a turn-off crop up sometimes for friction. Keep it natural: nobody changes to match, and ${n} only learns them from how ${u} reacts.`] : []),
+            ...(prefs ? [pronounize(`${u}'s turn-ons belong in the story whether or not ${n} knows them.${prefKnown('known') ? ` The ones ${n} knows about, ${n} uses on purpose and in character: plays to them, teases with them, holds them back or rewards with them.` : ''}${prefKnown('suspected') ? ` The ones ${n} suspects, ${n} tests to see what happens.` : ''}${livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) ? ` The ones ${n} doesn't know about still turn up, every few replies, through how ${n} and others already look, sound and act, by chance as far as anyone in the story can tell. Nobody changes to match, and ${n} only learns them from how ${u} reacts.` : ''} Let a turn-off crop up sometimes for friction.`, n, u)] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
@@ -3699,7 +3735,7 @@ export function composePrompt(state, name, extras = {}) {
     const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category) && m.id !== 'world_leads');
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
-    const followPeak = Math.max(deadDoveStrength, peakOf(story.filter(m => ['follow_through', 'no_fade_out', 'no_rescues'].includes(m.id)))), followOn = followPeak >= 21;
+    const followPeak = Math.max(deadDoveStrength, peakOf(story.filter(m => ['follow_through', 'no_fade_out', 'no_rescues', 'full_strength'].includes(m.id)))), followOn = followPeak >= 21;
     if (eras.length) out.push('', ...listLines(storyState, eras, U), '',
         `Keep everything true to that period and place: technology, money, slang, manners, laws, medicine, what people know and the attitudes of the time. No anachronisms. Labels in these notes are modern shorthand (trauma bond, gaslighting, narcissist and so on), so show them through period words and behaviour.`,
         ...(locales.length ? [LOCALE_MARK] : []));
@@ -3717,7 +3753,13 @@ export function composePrompt(state, name, extras = {}) {
     if (leadPeak) out.push('', `The world leads. ${n}, everyone else and events make the big moves; the player only writes ${u}'s words, thoughts and deliberate choices, and wants to be carried. When something big is coming, brutal or erotic, it happens in this reply. Don't end on the threshold (a raised hand, fingers at a zip, "are you ready"), on a question or choice put to ${u}, on someone waiting for a go-ahead they wouldn't wait for, or on ${u}'s reaction before the act lands. Stop only where the very next beat has to be ${u}'s own words or choice.${leadPeak >= 61 ? ' Push the story forward every reply without being asked.' : ''}`);
     // Follow-through: the player asked for harm and decline to land, so say so plainly and early enough to steer planning.
     const stakesPeak = peakOf(stakes), playerAtRisk = stakes.some(m => m.id === 'player_not_safe');
-    if (stakes.length) out.push('', ...listLines(storyState, stakes, U), '',
+    // 1.44.0: no saying it twice. The follow-through paragraph above already spells out its own settings, so
+    // their rows keep the name and strength only, and the "stakes are real" paragraph waits for a setting that
+    // is actually about harm and loss.
+    const DRIVE = new Set(['follow_through', 'no_fade_out', 'full_strength', 'escalates_alone', 'no_check_ins']);
+    const stakeRows = listLines(storyState, stakes, U).map(line => followOn ? line.replace(/^(- [a-z ]+: (?:follow through|no gentler version|no fade-outs)):.*$/, '$1') : line);
+    if (stakes.length && stakes.every(m => DRIVE.has(m.id))) out.push('', ...stakeRows);
+    else if (stakes.length) out.push('', ...stakeRows, '',
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply: narration, rhythm, word choice and what gets lingered on or skipped. Hold them from the first line to the last instead of drifting back to a default style.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,

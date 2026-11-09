@@ -6,7 +6,8 @@ import { parseWeave, hasWeave, stripWeave, traitKey } from './weave.js';
 import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
 import { cleanMore, computeMore, moreLines, COMBO_DYNAMICS, SINGLE_DYNAMICS, MORE_METERS } from './meters.js';
-import { FRONT_DYNAMICS, LATE_DYNAMICS, PICKED_DYNAMICS, BUILT_IN_META, DYNAMIC_GROUPS, ownRows, matchDynamic, fill } from './dynamics.js';
+import { pronounize } from './pronouns.js';
+import { FRONT_MORE, LATE_MORE, FRONT_DYNAMICS, LATE_DYNAMICS, PICKED_DYNAMICS, BUILT_IN_META, DYNAMIC_GROUPS, ownRows, matchDynamic, fill } from './dynamics.js';
 export const parseBond = mes => parseWeave(mes);
 export const hasBond = hasWeave;
 export const stripBond = stripWeave;
@@ -84,7 +85,7 @@ const DYNAMICS = [
     ['Hate-love', d => d.r >= 30 && d.f <= -20, (n, u) => `${n} wants ${u} and can't stand ${u}, often in the same moment: barbs that turn into lingering, closeness that turns into a fight`],
     ['Guarded love', d => d.r >= 40 && d.t < 15 && d.f < 30, (n, u) => `${n} loves ${u} and won't say so or trust it: it comes out sideways, in insults, rescues and staying when ${n} could leave`],
     ['Devoted', d => d.r >= 55 && d.f >= 45 && d.t >= 35, (n, u) => `${n} loves, likes and trusts ${u}: easy touches, private jokes, leaning on ${u} without asking`],
-    ['Captor', d => d.p >= 55 && d.f <= 10 && d.r < 30, (n, u) => `${n} holds power over ${u} without warmth: rules, routines and watching, ${u} handled rather than met`],
+    ['Captor', d => d.p >= 55 && d.f <= 10 && d.r < 30, (n, u) => `${n} holds power over ${u} without warmth: rules, routines and watching, with ${u} handled rather than met`],
     ['Nemesis', d => d.f <= -55 && d.t <= -20, (n, u) => `${n} sees ${u} as an enemy to beat or break: every exchange a move, every kindness a tactic`],
     ['Found family', d => d.f >= 50 && d.r < 20 && d.t >= 20, (n, u) => `${n} is loyal and protective toward ${u} with no romance in it: looking out, bickering, showing up`],
     ['Falling', d => d.r >= 30, (n, u) => `${n} is falling for ${u} and it shows more than ${n} would like: noticing too much, standing too close, covering it badly`],
@@ -102,15 +103,15 @@ DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...SINGLE
 // pick go last, where the meters never reach them.
 for (const row of DYNAMICS) row.push(...(BUILT_IN_META[row[0]] ?? ['distance', '', []]));
 for (const row of [...COMBO_DYNAMICS, ...SINGLE_DYNAMICS]) if (row.length < 6) row.push(...(BUILT_IN_META[row[0]] ?? ['obsess', '', []]));
-DYNAMICS.unshift(...FRONT_DYNAMICS);
-DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...LATE_DYNAMICS);
+DYNAMICS.unshift(...FRONT_MORE, ...FRONT_DYNAMICS);
+DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...LATE_MORE, ...LATE_DYNAMICS);
 DYNAMICS.push(...PICKED_DYNAMICS);
 export const DYNAMIC_NAMES = DYNAMICS.map(([name]) => name);
 export { DYNAMIC_GROUPS };
 // Every dynamic, your own included: [name, test, cue, group, keys, covers].
 export const dynamicRows = () => [...DYNAMICS, ...ownRows()];
 const groupTone = Object.fromEntries(DYNAMIC_GROUPS.map(([id, , , tone]) => [id, tone]));
-const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: row[2](n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
+const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: (row[3] ?? 'own') === 'own' ? row[2](n, u) : pronounize(row[2](n, u), n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
 // A name the story or the reader wrote that isn't in the catalogue still works, in its own words.
 const freeDynamic = (text, n, u) => {
     const t = String(text).replace(/\s+/g, ' ').trim().slice(0, 40), name = t.charAt(0).toUpperCase() + t.slice(1);
@@ -167,6 +168,8 @@ export function cleanBond(raw = {}, on = true) {
         // 1.42.0: who names the dynamic (story: the reply's hidden line; meters: the numbers), your picks for
         // this pair, how fast things move, and the scene reader's last call.
         mode: b.mode === 'meters' ? 'meters' : 'story', pace: PACE[b.pace] ? b.pace : 'steady',
+        // 1.44.0: pronouns for the lines Claude reads (auto guesses from the card and persona).
+        pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 60),
         read: b.read && typeof b.read === 'object' && text(b.read.name, 60) ? { name: text(b.read.name, 60), why: text(b.read.why, 160), key: text(b.read.key, 120), pos: Math.round(Number(b.read.pos) || -1) } : null,
         v: b.v === 2 ? 2 : 1, anchors,
@@ -254,8 +257,10 @@ const sparkWords = text => String(text).toLowerCase().replace(/[^a-z' -]/g, ' ')
 const stem = w => w.replace(/(ing|ed|es|s)$/, '');
 function bestMatch(text, items) {
     const raw = String(text).toLowerCase().trim(), words = sparkWords(text);
-    const exact = items.find(x => x.names.some(n => n && (raw === n || raw.includes(n) && n.length > 3)));
-    if (exact) return exact.id;
+    // 1.44.0: whole words only, and the longest name wins, so "lipstick marks" isn't read as "lips".
+    const whole = n => raw === n || (n.length > 3 && new RegExp(`(^|[^a-z])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(raw));
+    const exact = items.map(x => [x.id, Math.max(0, ...x.names.filter(n => n && whole(n)).map(n => n.length))]).filter(([, len]) => len > 0).sort((a, b) => b[1] - a[1])[0];
+    if (exact) return exact[0];
     const score = x => words.filter(w => x.keys.some(k => k === w || (w.length > 4 && stem(k) === stem(w)))).length;
     const best = items.map(x => [x.id, score(x)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1])[0];
     return best?.[0] ?? '';

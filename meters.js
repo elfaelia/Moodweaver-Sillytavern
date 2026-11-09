@@ -1,3 +1,4 @@
+import { pronounize } from './pronouns.js';
 // 1.40.0: more Bonds meters, all off until you switch them on, and the dynamics they unlock. Each meter is
 // how the character is toward your persona, moved by the reply's hidden line like Friendship and Romance.
 // Data and small pure functions only; bond.js does the reading and the panel.
@@ -9,11 +10,11 @@ export const MORE_METERS = [
     ['ob', 'Obsession', false, 0, 'obsession', [[81, 'consumed'], [61, 'fixated'], [41, 'preoccupied'], [21, 'thinks about them a lot'], [1, 'curious'], [0, 'not obsessed']],
         (n, u) => `${u} is in every thought: ${n} replays, collects and plans around ${u}`, null, 'How much of their head you take up.'],
     ['po', 'Possessiveness', false, 0, 'possessive', [[81, 'treats them as property'], [61, 'openly possessive'], [41, 'possessive'], [21, 'a little territorial'], [0, 'not possessive']],
-        (n, u) => `${n} acts like ${u} belongs to them: hands on, deciding for ${u}, warning others off`, null, 'How much they think you’re theirs.'],
+        (n, u) => `${n} acts like ${u} belongs to ${n}: hands on, deciding for ${u}, warning others off`, null, 'How much they think you’re theirs.'],
     ['je', 'Jealousy', false, 0, 'jealousy', [[81, 'seething'], [61, 'jealous'], [41, 'watchful'], [21, 'twinges'], [0, 'calm']],
         (n, u) => `anyone near ${u} is a rival: ${n} questions, goes cold, punishes ${u} or them`, null, 'How threatened they are by anyone near you.'],
     ['pr', 'Protectiveness', false, 0, 'protective', [[81, 'would kill for them'], [61, 'fiercely protective'], [41, 'protective'], [21, 'watches out for them'], [0, 'not protective']],
-        (n, u) => `${n} puts themselves between ${u} and any harm, and calls the control that comes with it care`, null, 'How hard they guard you.'],
+        (n, u) => `${n} puts ${n}self between ${u} and any harm, and calls the control that comes with it care`, null, 'How hard they guard you.'],
     ['re', 'Respect', true, 0, 'respect', [[60, 'admires them'], [25, 'respects them'], [-24, 'neutral'], [-59, 'looks down on them'], [-100, 'contempt']],
         (n, u) => `${n} takes ${u} seriously: listens, argues as an equal, is privately impressed`, (n, u) => `${n} holds ${u} in contempt: talks over, mocks, explains slowly`, 'From contempt to admiration.'],
     ['fa', 'Fascination', false, 0, 'fascination', [[81, 'can’t look away'], [61, 'fascinated'], [41, 'intrigued'], [21, 'curious'], [0, 'indifferent']],
@@ -112,7 +113,7 @@ export function moreLines(raw, list, n, u, cap = 10) {
     const said = on.filter(k => says(k, values[k]));
     if (!said.length) return [];
     const words = said.map(k => `${DEF[k][1].toLowerCase()}: ${moreWord(k, values[k]).replace(/\bthem\b/, u)}`);
-    const strong = said.map(k => values[k] >= 61 ? DEF[k][6](n, u) : (DEF[k][2] && values[k] <= -60) || (k === 'op' && values[k] <= 20) ? DEF[k][7]?.(n, u) : '').filter(Boolean);
+    const strong = said.map(k => values[k] >= 61 ? DEF[k][6](n, u) : (DEF[k][2] && values[k] <= -60) || (k === 'op' && values[k] <= 20) ? DEF[k][7]?.(n, u) : '').filter(Boolean).map(s => pronounize(s, n, u));
     return [`${words.join('; ')}${strong.length ? `. ${strong.map(s => s[0].toUpperCase() + s.slice(1)).join('. ')}` : ''}`];
 }
 // Field names on the hidden line: "obsession +3, jealousy +5, respect -4".
@@ -145,14 +146,14 @@ export const COMBO_DYNAMICS = [
 ];
 export const SINGLE_DYNAMICS = [
     ['Penitent', d => d.gu >= 60, (n, u) => `${n} is trying to atone for what ${n} did to ${u}: gifts, softness, staying close, none of it erasing anything`],
-    ['Claimed', d => d.po >= 70, (n, u) => `${n} treats ${u} as theirs in front of everyone: a hand at the back, introductions, quiet warnings`],
+    ['Claimed', d => d.po >= 70, (n, u) => `${n} treats ${u} as ${n}'s in front of everyone: a hand at the back, introductions, quiet warnings`],
     ['Jealous storm', d => d.je >= 65, (n, u) => `everyone near ${u} is a threat to ${n}: questions, following, punishing ${u} for other people's looks`],
     ['Protector', d => d.pr >= 65, (n, u) => `${n} guards ${u} from everyone and calls the control care`],
     ['Corruption', d => d.co >= 55, (n, u) => `${n} is pulling ${u} into ${n}'s world one compromise at a time and savouring each step down`],
     ['Specimen', d => d.fa >= 60, (n, u) => `${n} observes ${u} like a case: notes, tests and small provocations to see what ${u} does`],
     ['Codependent', d => d.de >= 60, (n, u) => `${n} can't function without ${u} and resents it: clinging, then snapping, then clinging`],
     ['Obsessed', d => d.ob >= 70, (n, u) => `${n}'s world has shrunk to ${u}: every plan, look and thought bends toward ${u}`],
-    ['Grudging respect', d => d.re >= 40, (n, u) => `${n} respects ${u} despite themselves: insults with approval in them, listening when ${u} talks`],
+    ['Grudging respect', d => d.re >= 40, (n, u) => `${n} respects ${u} despite ${n}self: insults with approval in them, listening when ${u} talks`],
     ['Contempt', d => d.re <= -55, (n, u) => `${n} looks down on ${u}: talking over, mocking, explaining slowly`],
     ['Bored of you', d => d.fa <= 10 && d.ob <= 10 && d.r < 10 && d.f < 20, (n, u) => `${n} is losing interest in ${u}: half-listening, checking the time, unmoved by what used to land`],
 ];

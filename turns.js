@@ -436,6 +436,77 @@ const TURN_ADDITIONS_3 = {
     ],
 };
 for (const [group, rows] of Object.entries(TURN_ADDITIONS_3)) TURN_CATEGORIES.find(([g]) => g === group)[3].push(...rows);
+// 1.44.0: 50 more, darker and more niche, with Easterman and Lamb's 1960s, Bateman, Rick and Jefferson in
+// mind. Same rows: id, noun, panel description, prompt wording, extra words that light it up.
+const TURN_ADDITIONS_4 = {
+    'Looks & body': [
+        ['lipstick_marks', 'lipstick marks', 'lipstick left on a collar, a glass or skin', '', 'lipstick smudge smudged print collar kiss mark stained'],
+        ['hospital_gowns', 'hospital gowns', 'a thin gown tied at the back, bare legs, a wristband', '', 'gown hospital wristband ward smock ties'],
+        ['white_coats', 'white coats', 'a lab coat, sleeves pushed up, a pen in the breast pocket', '', 'lab coat labcoat white coat'],
+        ['undone_ties', 'loosened ties and rolled sleeves', 'a collar open, a tie pulled loose, sleeves rolled at the end of the day', '', 'tie loosened undone collar unbuttoned sleeves rolled cuffs'],
+        ['nosebleeds', 'nosebleeds', 'blood from a nose, wiped away with the back of a hand', '', 'nosebleed nose bleeding bloody nostril'],
+        ['sickliness', 'sickliness', 'someone feverish, weak and pale in a bed', 'someone sick and weak', 'fever feverish sick ill weak frail pallor bedridden clammy faint'],
+        ['glazed_eyes', 'glazed eyes', 'blown pupils and a stare that doesn’t focus: drugged, dazed or far away', '', 'glazed glassy vacant unfocused pupils dilated dazed drugged'],
+        ['set_hair_pearls', 'set hair and pearls', 'hair set and sprayed, pearls, white gloves, a pressed dress, nothing out of place', '', 'pearls hairspray curlers coiffed pressed prim gloves hat'],
+    ],
+    'Voice & senses': [
+        ['reading_aloud', 'being read to', 'a steady voice reading to them, a page turning', '', 'read reading aloud book page story recited chapter'],
+        ['counting_aloud', 'counting aloud', 'someone made to count: strokes, seconds, doses, steps', '', 'count counted counting numbers aloud one two three'],
+        ['clinical_voice', 'a clinical voice', 'calm, detached instructions: breathe in, hold still, good', '', 'clinical detached instructions calmly breathe hold still dictating dictation'],
+        ['tape_recordings', 'tape recordings', 'a voice caught on a reel and played back, kept in a labelled box', '', 'tape reel recorder recording recorded playback dictaphone cassette'],
+        ['shutter_clicks', 'the click of a shutter', 'a camera going off, a flash, the pause while the film winds on', '', 'shutter click camera flash lens snap film'],
+    ],
+    'Personality & vibe': [
+        ['hollow_charm', 'hollow charm', 'a perfect surface with nothing behind it; a smile that never reaches the eyes', '', 'hollow empty mask veneer dead-eyed blank charming'],
+        ['nihilism', 'nihilism', 'someone who believes nothing matters and says so', '', 'nihilist nihilistic meaningless pointless nothing matters'],
+        ['god_complex', 'a god complex', 'someone sure they’re the smartest thing in the room, and acting like it', '', 'god complex superior smartest condescending omnipotent untouchable'],
+        ['clinical_detachment', 'clinical detachment', 'someone who studies people instead of feeling for them', '', 'detached clinical dispassionate objective analytical unmoved'],
+        ['brattiness', 'brattiness', 'pouting, demanding, pushing to see what happens', '', 'brat bratty pout pouted pouting sulk sulked sulking demanding spoiled spoilt tantrum huff'],
+        ['fear_in_others', 'fear', 'someone frightened of them: wide eyes, a quick pulse, a step back', 'someone’s fear', 'fear scared frightened terrified afraid panic flinch flinched cowered'],
+        ['losing_control', 'someone losing control', 'a careful person finally cracking: voice raised, hands shaking, mask gone', '', 'cracked snapped unravelled unraveled composure slipped slipping lost control'],
+    ],
+    'How they’re treated': [
+        ['being_studied', 'being studied', 'watched, measured and written down like a rare specimen', '', 'studied observed notes noted measured examined specimen chart'],
+        ['being_dressed', 'being dressed', 'someone choosing their clothes and putting them on them', '', 'dressed dressing buttoned zipped outfit chosen clothes'],
+        ['being_kept', 'being kept', 'locked in and provided for, with someone else holding the keys', '', 'kept locked keys key cage captive cell room provided'],
+        ['being_scolded', 'being scolded', 'told off firmly, like they should have known better', '', 'scold scolded scolding reprimand reprimanded chided tutted lectured told off'],
+        ['being_the_exception', 'being the exception', 'someone cruel to everyone but them', '', 'exception only one special soft only different spared'],
+        ['being_punished', 'being punished', 'consequences handed down for breaking a rule', '', 'punish punished punishment consequence consequences disciplined corrected'],
+    ],
+    'In bed': [
+        ['desk_sex', 'desk and office sex', 'bent over a desk, papers on the floor, the door maybe locked', '', 'desk office blotter typewriter paperwork filing cabinet'],
+        ['makeup_sex', 'make-up sex', 'sex straight after a fight, with the anger not gone yet', '', 'make-up after fight argument row angry furious'],
+        ['hand_over_mouth', 'a hand over the mouth', 'kept quiet with a palm, breathing through fingers', '', 'hand over mouth muffled muffle hush hushed palm silenced quiet'],
+    ],
+    'Types': [
+        ['yuppies', 'yuppies', 'good suits, reservations nobody can get, a business card for everything', '', 'yuppie banker broker wall street reservation business card'],
+        ['the_doomed', 'the doomed', 'someone dying, cursed or running out of time', '', 'dying doomed terminal cursed fading last days'],
+        ['came_back_wrong', 'people who came back wrong', 'someone who died and came back different', '', 'undead revenant resurrected risen came back dead brought back'],
+        ['exophilia', 'aliens (exophilia)', 'someone not human at all: other skin, other anatomy, other rules', '', 'alien aliens extraterrestrial species inhuman tentacle tentacles'],
+        ['doubles_clones', 'doubles and clones', 'another version of someone: a twin, a clone, a copy from somewhere else', '', 'clone clones double twin duplicate copy doppelganger version'],
+    ],
+    'Kinks': [
+        ['pet_play', 'pet play', 'a pet name, a leash, a bowl, a place at someone’s feet', '', 'pet kitten puppy leash bowl crawl crawled heel'],
+        ['fear_play', 'fear play', 'being scared on purpose, or scaring someone, and liking it', '', 'scare scared frighten frightened terror threat threatened chase'],
+        ['posing_someone', 'posing someone', 'arranging a body limb by limb like a composition', '', 'posed pose posing arranged arranging tilt chin composition'],
+        ['writing_on_skin', 'writing on skin', 'words, names or notes written on a body', '', 'written wrote pen marker ink name skin scrawled'],
+        ['conditioning_kink', 'conditioning', 'training a response into someone with reward and repetition', '', 'conditioning conditioned trained training reward trigger reflex bell'],
+        ['keepsakes', 'keepsakes', 'keeping something of theirs: a lock of hair, underwear, a tooth, a photograph', '', 'keepsake trophy souvenir memento lock of hair kept pocketed stolen'],
+        ['withholding', 'withholding', 'touch, food, sleep or attention kept back until it’s earned', '', 'withheld withhold denied deny earn earned ration rationed deprived'],
+        ['talked_through', 'being talked through it', 'a steady voice saying what’s happening and what comes next', '', 'talked through narrated explaining next going to now'],
+        ['being_experimented_on', 'being experimented on', 'used as a test subject: electrodes, doses, notes and results', '', 'experiment experimented test tested trial subject electrodes dose results'],
+        ['cruel_choices', 'cruel choices', 'someone made to choose between two bad options', '', 'choose choice pick either decide dilemma which one'],
+    ],
+    'Fetishes': [
+        ['gurneys', 'gurneys and restraint chairs', 'padded straps, steel frames, wheels on linoleum', '', 'gurney chair straps strapped restraints buckled trolley stirrups'],
+        ['plastic_sheeting', 'raincoats and plastic sheeting', 'clear plastic, a raincoat buttoned to the neck, a floor covered for mess', '', 'raincoat plastic sheeting tarp tarpaulin newspaper'],
+        ['paperwork', 'files and paperwork', 'a file with their name on it, forms, stamps and signatures', '', 'file files folder form forms dossier stamped chart clipboard signature'],
+        ['polaroids', 'photographs', 'pictures of them taken, developed, kept or pinned up', '', 'polaroid photograph photo picture print darkroom developed negatives'],
+        ['ribbons_bows', 'ribbons and bows', 'a ribbon in the hair, a bow at the throat, something to untie', '', 'ribbon ribbons bow bows tied untied'],
+        ['nightgowns', 'nightgowns and slips', 'a thin nightgown or slip, bare shoulders at bedtime', '', 'nightgown nightdress nightie slip chemise babydoll'],
+    ],
+};
+for (const [group, rows] of Object.entries(TURN_ADDITIONS_4)) TURN_CATEGORIES.find(([g]) => g === group)[3].push(...rows);
 export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt = noun, keys = '']) => ({ id, noun, cue, prompt: prompt || noun, keys, group, color,
     label: noun[0].toUpperCase() + noun.slice(1) })));
 // 1.39.0: the old Kinks traits (state.moods) become turn-ons (state.prefs) at the same strength.
@@ -445,7 +516,8 @@ export const KINKS_TO_TURNS = Object.fromEntries([
     ['praise_seeking', 'praise_in_bed'], ['rough', 'rough_handling'], ['degradation_seeking', 'degradation_in_bed'],
 ].filter(([id]) => !['immobility', 'humiliating_others', 'erotophonophilia', 'omorashi', 'salirophilia', 'a_struggle', 'surrender', 'watching_break', 'watching_learn', 'needles', 'electro_play', 'branding', 'bathing_someone', 'hand_feeding', 'drugged_sex', 'emetophilia', 'urophilia', 'kleptophilia', 'pyrophilia', 'vore', 'symphorophilia', 'lactation', 'hoplophilia', 'hierophilia', 'high_heels', 'lygophilia'].includes(id)));
 // Turn-ons that are dark enough to count toward the note's dark-content lines.
-export const DARK_TURNS = new Set(['erotophonophilia', 'hybristophilia', 'killers', 'blood_on_others', 'screams', 'watching_break', 'branding', 'knife_play', 'gun_play', 'blood_play', 'mortal_danger', 'captives', 'cnc', 'somnophilia', 'pyrophilia', 'symphorophilia', 'vore', 'sadist', 'choking']);
+export const DARK_TURNS = new Set(['erotophonophilia', 'hybristophilia', 'killers', 'blood_on_others', 'screams', 'watching_break', 'branding', 'knife_play', 'gun_play', 'blood_play', 'mortal_danger', 'captives', 'cnc', 'somnophilia', 'pyrophilia', 'symphorophilia', 'vore', 'sadist', 'choking',
+    'fear_in_others', 'fear_play', 'being_experimented_on', 'withholding', 'cruel_choices', 'keepsakes', 'glazed_eyes', 'plastic_sheeting', 'the_doomed', 'being_kept', 'gurneys']);
 export const TURN_BY_ID = Object.fromEntries(TURN_TAGS.map(t => [t.id, t]));
 // 1.41.0: a wider net. Extra words for every turn-on, so the hidden line's loose wording ("bit her lip",
 // "the slap stung", "she flushed") still finds the right one. Only the character's own turn-ons are matched.

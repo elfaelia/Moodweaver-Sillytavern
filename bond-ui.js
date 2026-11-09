@@ -1,5 +1,6 @@
 import { MORE_METERS, MORE_PRESETS, computeMore, moreWord } from './meters.js';
 import { computeBond, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord, dynamicRows, DYNAMIC_GROUPS, PACE, paceOf } from './bond.js';
+import { PRONOUN_CHOICES } from './pronouns.js';
 import { fill } from './dynamics.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -142,6 +143,7 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool }) {
         <div class="mw-dyn-row"><label>Pace<select data-dyn-pace aria-label="How fast things change">${Object.entries(PACE).map(([k, p]) => `<option value="${k}" ${pace === k ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}</select></label>
             ${canRead ? `<button type="button" class="mw-chip-btn mw-dyn-read" data-action="bond-reread" ${pending ? 'disabled' : ''} title="Ask the scene reader where these two stand right now">${pending ? 'Reading…' : '✧ Re-read the scene'}</button>` : ''}</div>
         <small class="mw-dyn-why">${esc(why)} ${esc(PACE[pace].label)}: ${esc(PACE[pace].hint)}.</small>
+        <div class="mw-dyn-row mw-dyn-pronouns" title="So the lines Claude reads say he and she instead of repeating names">${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)} is<select data-dyn-pronoun="${k}" aria-label="Pronoun for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`).join('')}</div>
         <details class="mw-dyn-pool" data-anchor="dyn-pool"><summary>Dynamics for these two <small>${pool.size ? `${pool.size} picked` : 'none picked: any of them'}</small></summary>
             <p class="mw-fine">Story mode: the hidden line chooses from your picks. Meters: your picks are tried first. With none picked, it can be any of them.</p>
             <input type="search" data-dyn-search placeholder="Find a dynamic (captor, crush, toxic…)" aria-label="Find a dynamic">

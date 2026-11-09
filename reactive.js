@@ -1,3 +1,4 @@
+import { pronounize } from './pronouns.js';
 // 1.40.0: cravings and combos, built on Lit.
 // Craving: a strong turn-on that hasn't been lit for a while starts pulling the character toward it.
 // Combo: two things at once (something lit, a feeling, a pressed button, a meter) fire a bigger effect.
@@ -24,7 +25,7 @@ const feel = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min)
 export const COMBOS = [
     ['Craving met', c => c.cravingMet.size > 0, (n, u) => `something ${n} has been craving finally happened: relief and greed at once, and ${n} wants more of it right now`],
     ['Claim', c => any(c.lit, ['defiance', 'rebelliousness', 'stubbornness', 'a_struggle', 'being_ignored']) && feel(c.moods, ['possessive', 'controlling', 'jealous', 'power_drunk', 'reasserting', 'domineering']),
-        (n, u) => `${n} needs to put ${u} back in their place, right now: closer, firmer, final`],
+        (n, u) => `${n} needs to put ${u} back in ${u}'s place, right now: closer, firmer, final`],
     ['Undone', c => any(c.lit, ['crying', 'vulnerability', 'helplessness', 'trembling_people', 'begging']) && feel(c.moods, ['guilty', 'contrite', 'affectionate', 'devoted', 'lovesick', 'worshipful', 'soft', 'indulgent']),
         (n, u) => `every resolve breaks: ${n} gives ${u} whatever makes it stop`],
     ['Feeding on it', c => any(c.lit, ['crying', 'screams', 'being_feared', 'begging', 'trembling_people', 'watching_break']) && feel(c.moods, ['sadistic_glee', 'cruel', 'toying', 'predatory', 'bloodthirsty', 'power_drunk', 'breaking_them']),
@@ -44,6 +45,13 @@ export const COMBOS = [
         (n, u) => `being thwarted lands as a personal wound: ${n} sulks, lashes out or begs`],
     ['Breaking point', c => c.needsLow.size > 0 && (c.pressed || feel(c.moods, ['angry', 'desperate'], 61)), (n, u) => `${n}'s body and temper give out together: whatever ${n} was holding back comes out`],
     ['Into the obsession', c => c.lit.size > 0 && ((c.more?.ob ?? 0) >= 61 || (c.more?.fa ?? 0) >= 61), (n, u) => `it goes straight into the obsession: ${n} stops to study it and will replay it for days`],
+    // 1.44.0: three for the newer turn-ons.
+    ['Clinical heat', c => any(c.lit, ['hospital_gowns', 'clinical_voice', 'gurneys', 'being_experimented_on', 'being_studied', 'medplay_giving', 'clinical_scent', 'paperwork', 'glazed_eyes', 'sickliness']) && ((c.desire?.a ?? 0) >= 41 || feel(c.moods, ['horny', 'heated', 'curious'])),
+        (n, u) => `the clinic and the want run together: ${n} keeps the professional voice and lets ${n}'s hands say the rest`],
+    ['Taking the bait', c => any(c.lit, ['brattiness', 'defiance', 'rebelliousness', 'being_teased']) && feel(c.moods, ['playful', 'indulgent', 'fond_exasperation', 'smug', 'flirty', 'toying']),
+        (n, u) => `${n} takes the bait on purpose: lets ${u} push, then settles it in a way ${u} will remember`],
+    ['Something to keep', c => any(c.lit, ['keepsakes', 'polaroids', 'tape_recordings', 'shutter_clicks', 'writing_on_skin', 'posing_someone']) && (feel(c.moods, ['possessive', 'obsessed', 'predatory']) || (c.more?.ob ?? 0) >= 41),
+        (n, u) => `${n} wants something to keep from this: a picture, a recording, a mark, a small thing slipped into a pocket`],
     ['Shame spiral', c => (c.desire?.a ?? 0) >= 41 && (c.desire?.h ?? 0) >= 61, (n, u) => `wanting it makes ${n} hate ${u} for it: cruelty or coldness right after the want`],
 ];
 // custom: [{ id, a, b, name, text }] where a and b are 'turn:id' (lit last reply), 'trait:id' (lit),
@@ -56,7 +64,7 @@ export const comboToken = (token, c) => {
 export function findCombos(ctx, custom = [], n = 'they', u = 'them') {
     const c = { lit: new Set(), litTraits: new Set(), moods: {}, pressed: false, blocked: false, desire: null, needsLow: new Set(), more: {}, cravingMet: new Set(), ...ctx };
     const mine = (custom ?? []).filter(x => x?.a && x?.b && x?.name && comboToken(x.a, c) && comboToken(x.b, c)).map(x => ({ name: x.name, text: x.text || x.name, own: true }));
-    const built = COMBOS.filter(([, test]) => test(c)).map(([name, , text]) => ({ name, text: text(n, u) }));
+    const built = COMBOS.filter(([, test]) => test(c)).map(([name, , text]) => ({ name, text: pronounize(text(n, u), n, u) }));
     return [...mine, ...built].slice(0, 2);
 }
 export function cleanCombos(list = []) {

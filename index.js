@@ -8,6 +8,7 @@ import { bondReadMessages, parseBondRead } from './bondread.js';
 import { findPatterns } from './patterns.js';
 import { MORE_PRESETS, MORE_METERS, cleanMore, setMore, meterWeaveNames, computeMore, saidMeters } from './meters.js';
 import { findOverlaps, droppedIds } from './overlap.js';
+import { setPronoun, guessPronoun, PRONOUN_CHOICES } from './pronouns.js';
 import { cravingsFrom, findCombos, cleanCombos, COMBOS } from './reactive.js';
 import { ON_PAGE } from './onpage.js';
 import { bondView, bondMini } from './bond-ui.js';
@@ -26,7 +27,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.43.0';
+const VERSION = '1.44.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -274,6 +275,20 @@ function getKnowledge(ch = target(), create = false) {
     if (create) { meta.personaKnowledge ??= {}; meta.personaKnowledge[key] ??= {}; }
     return meta.personaKnowledge?.[key] ?? {};
 }
+// 1.44.0: your turn-ons, and whether the character knows them. Unknown ones still reach the story; known
+// ones the character uses on purpose.
+function turnKnowledgeRows(state, ch, knowledge) {
+    const prefs = Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+    if (!prefs.length) return '';
+    const aware = prefs.filter(([id]) => ['known', 'suspected'].includes(knowledgeEntry(knowledge[`turn:${id}`]).mode)).length;
+    return `<details class="mw-knowledge mw-advanced" data-anchor="turn-knowledge"><summary>Does ${esc(ch.name)} know? <small>${aware} of ${prefs.length} known or suspected</small></summary>
+        <p class="mw-fine">All of your turn-ons reach the story either way. If ${esc(ch.name)} doesn’t know one, it turns up by chance. If they suspect, they test it. If they know, they play into it on purpose.</p>` + prefs.map(([id, v]) => {
+        const key = `turn:${id}`, entry = knowledgeEntry(knowledge[key]), t = TURN_BY_ID[id];
+        return `<div class="mw-knowledge-row" data-knowledge-row="${key}" data-filter-item="knowledge" data-search="${esc(t.label + ' ' + t.cue)}"><label for="mw-knowledge-${key}">${esc(t.label)} <small>turn-${v > 0 ? 'on' : 'off'} · ${Math.abs(v)}%</small></label>
+            <select id="mw-knowledge-${key}" data-knowledge="${key}" aria-label="Does ${esc(ch.name)} know: ${esc(t.label)}">${[['scene', 'Unaware'], ['suspected', 'Suspects'], ['known', 'Knows']].map(([mode, label]) => `<option value="${mode}" ${(entry.mode === 'private' ? 'scene' : entry.mode) === mode ? 'selected' : ''}>${label}</option>`).join('')}</select>
+            ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${key}" aria-label="Source for ${esc(t.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
+    }).join('') + '</details>';
+}
 function knowledgePanel(state, ch) {
     const active = activeMoods(state).filter(m => m.kind !== 'story');
     const knowledge = getKnowledge(ch);
@@ -448,6 +463,18 @@ async function boardChanged() {
     await syncPrompt();
 }
 // 1.33.0: bond meters, kept per character per chat.
+// 1.44.0: who's he and who's she, for the Bonds lines. Auto reads the card and the persona description;
+// a persona nobody described counts as she.
+function pronounsFor(ch, bond) {
+    const pu = ctx().powerUserSettings ?? globalThis.power_user ?? {};
+    return { n: bond.pn !== 'auto' ? bond.pn : guessPronoun(`${ch.description ?? ''} ${ch.personality ?? ''}`) || 'they',
+        u: bond.pu !== 'auto' ? bond.pu : guessPronoun(pu.persona_description ?? '') || 'she' };
+}
+function usePronouns(ch, bond) {
+    const p = pronounsFor(ch, bond);
+    for (const name of [ch.name, shortName(ch.name)]) setPronoun(name, p.n);
+    for (const name of [playerName(), shortName(playerName())]) setPronoun(name, p.u);
+}
 function bondData(ch) {
     const meta = ctx().chatMetadata?.[KEY]; if (!meta || !ch) return cleanBond({}, false);
     meta.bond ??= {};
@@ -455,6 +482,7 @@ function bondData(ch) {
     if (!meta.bond[key]) meta.bond[key] = { base: seedBond(ch), v: 2, pool: [...(settings().dynamicPools?.[key] ?? [])] };
     let bond = cleanBond(meta.bond[key], settings().bondTrack);
     if (bond.v !== 2) bond = migrateBond(bond, ch);
+    usePronouns(ch, bond);
     return (meta.bond[key] = bond);
 }
 // 1.36.0: meter steps used to be stored by message number, which deletions shifted and a long chat
@@ -1405,7 +1433,7 @@ function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
-    ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}
+    ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && who === 'user' ? turnKnowledgeRows(state, ch, getKnowledge(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
 // ---- 1.41.0: Skills ----
@@ -1891,7 +1919,7 @@ function setup() {
             void persist(state); void syncPrompt(); return;
         }
         const sourceId = e.target.dataset.knowledgeSource;
-        if (sourceId && who === 'user' && (BY_ID[sourceId] || ['personality', 'enneagram'].includes(sourceId))) {
+        if (sourceId && who === 'user' && (BY_ID[sourceId] || sourceId.startsWith('turn:') && TURN_BY_ID[sourceId.slice(5)] || ['personality', 'enneagram'].includes(sourceId))) {
             const knowledge = getKnowledge(target(), true);
             knowledge[sourceId] = knowledgeEntry({ ...knowledgeEntry(knowledge[sourceId]), source: e.target.value });
             // Keep the draft in metadata before any other control can redraw the panel.
@@ -1934,6 +1962,7 @@ function setup() {
         if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
         if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
         if (input.hasAttribute('data-dyn-pace')) { await editBond(b => { b.pace = input.value; }); return; }
+        if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
         if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
         if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
         if (input.hasAttribute('data-board-toward')) { await editBoard(b => { b.includeToward = input.checked; }); return; }
@@ -2007,7 +2036,7 @@ function setup() {
         }
         if (input.dataset.target) return;
         const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
-        if (knowledgeId && who === 'user' && (['personality', 'enneagram'].includes(knowledgeId) || BY_ID[knowledgeId] && BY_ID[knowledgeId].kind !== 'story')) {
+        if (knowledgeId && who === 'user' && (['personality', 'enneagram'].includes(knowledgeId) || TURN_BY_ID[knowledgeId.replace(/^turn:/, '')] && knowledgeId.startsWith('turn:') || BY_ID[knowledgeId] && BY_ID[knowledgeId].kind !== 'story')) {
             const knowledge = getKnowledge(target(), true);
             const previous = knowledgeEntry(knowledge[knowledgeId]);
             const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });

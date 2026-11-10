@@ -38,16 +38,16 @@ export function eraGroup(id = '') {
 // Each lens: text by period group. Power has three shapes: a man over a woman (mw), a woman over a man (wm),
 // and anything else (any). {top} holds the power, {low} is under it; {n} and {u} are the character and player.
 const POWER = {
-    victorian: { mw: '{top} has the law and everyone’s assumptions behind him: a woman’s money, body and children belong to her husband or father, her word counts for little against a man’s, and a woman who resists can be called hysterical and shut away',
+    victorian: { mw: ['{top} has the law and everyone’s assumptions behind him: a woman’s money, body and children belong to her husband or father, and her word counts for little against a man’s', ', and a woman who resists can be called hysterical and shut away'],
         wm: 'a woman holding power over a man is improper and fragile: it rests on money, title or secrets, and the law and sympathy are his the moment he turns on her',
         any: 'power runs on class and rank: servants, tenants and dependants owe obedience, and stepping out of place means ruin' },
-    midcentury: { mw: '{top}’s power over {low} is backed by everyone: a man’s word outranks hers with police, doctors and family, she needs a man to sign for credit or a lease, and a woman who fusses gets called hysterical and can be sedated or committed',
+    midcentury: { mw: ['{top}’s power over {low} is backed by everyone: a man’s word outranks hers with police, doctors and family, and she needs a man to sign for credit or a lease', ', and a woman who fusses gets called hysterical and can be sedated or committed'],
         wm: 'a woman over a man is a scandal people explain away: they say she’s unnatural or he’s weak, and the moment he pushes back the world takes his side',
         any: 'power runs on rank, money and respectability: the boss, the doctor and the family name are obeyed, and questioning them marks you as trouble' },
     seventies: { mw: 'women’s liberation is loud but the old rules still hold: a husband’s say, a boss’s hands, police who call it a domestic and leave',
         wm: 'a woman in charge of a man is new and resented; people call her a ball-breaker and wait for her to fail',
         any: 'power runs on money, connections and who knows the police or the union' },
-    eighties: { mw: 'men run the money and the boardroom, harassment is a joke, and a woman who complains is difficult',
+    eighties: { mw: ['men run the money and the boardroom and harassment is a joke', ', and a woman who complains is difficult'],
         wm: 'a powerful woman in a power suit is resented by men who wait for her to slip',
         any: 'power is money and status: who owns, who’s rising, who can make one call' },
     nineties: { any: 'equality on paper; in practice money, contacts and reputation decide who gets believed' },
@@ -71,8 +71,8 @@ const LENSES = {
         nineties: 'out in some places and a slur in others; most still choose carefully who knows',
         modern: 'mostly open, though family, faith or reputation can still make it a secret' },
     manSub: { label: 'Secret desires',
-        victorian: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so it lives behind locked doors and in denial',
-        midcentury: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so it lives behind locked doors and in denial',
+        victorian: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so most men keep it behind locked doors and in denial',
+        midcentury: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so most men keep it behind locked doors and in denial',
         seventies: '{who} wanting to submit is a private shame and a joke if found out; it happens in secret clubs and paid rooms',
         eighties: '{who} wanting to submit is a private shame and a joke if found out; it happens in secret clubs and paid rooms',
         nineties: '{who} wanting to submit is something he would tell almost nobody, and it could still shame him if it got out',
@@ -114,14 +114,16 @@ const OLD = new Set(['victorian', 'midcentury', 'seventies', 'eighties']);
 // A woman over a man, with her looking openly: the one gendered tint that runs the other way.
 const WM_TINTS = { gaze: 'her open looking at a man gets her called fast, or worse' };
 const fillIn = (text, map) => text.replace(/\{(\w+)\}/g, (m, k) => map[k] ?? m);
-// ctx: { era, n, u, gn, gu ('he' | 'she' | 'they'), top: 'n' | 'u' | '', medicine, romance, money, manSub, womanDom, tints: [POWER_TINTS keys] }
+// 1.49.4: the harshest clause of a Power line ("called hysterical and committed") only goes in when the one holding
+// power is in a cold, cruel, angry or controlling mood (ctx.harsh). Otherwise it's the world, not how he treats her.
+// ctx: { era, n, u, gn, gu ('he' | 'she' | 'they'), top: 'n' | 'u' | '', harsh, medicine, romance, money, manSub, womanDom, tints: [POWER_TINTS keys] }
 // manSub / womanDom: the name of the person, or ''. Returns up to three lines, most important first.
 export function eraLenses(ctx) {
     const group = eraGroup(ctx.era); if (!group) return [];
     const out = [], name = { n: ctx.n, u: ctx.u }, gender = { n: ctx.gn, u: ctx.gu };
     if (ctx.top) {
         const low = ctx.top === 'n' ? 'u' : 'n', shape = gender[ctx.top] === 'he' && gender[low] === 'she' ? 'mw' : gender[ctx.top] === 'she' && gender[low] === 'he' ? 'wm' : 'any';
-        const text = POWER[group][shape] ?? POWER[group].any;
+        const raw = POWER[group][shape] ?? POWER[group].any, text = Array.isArray(raw) ? raw[0] + (ctx.harsh ? raw[1] : '') : raw;
         const tints = !OLD.has(group) ? [] : (ctx.tints ?? []).map(k => shape === 'mw' ? POWER_TINTS[k] : shape === 'wm' ? WM_TINTS[k] : '').filter(Boolean).slice(0, 2);
         out.push(['Power', fillIn(text, { top: name[ctx.top], low: name[low] }) + (tints.length ? `. Here, ${tints.join('; ')}` : '')]);
     }

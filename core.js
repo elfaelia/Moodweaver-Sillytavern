@@ -330,7 +330,7 @@ export const CATEGORIES = [
         ['happy', 'Happy', 'pleased and in good spirits, up to outright delight'],
         ['excited', 'Excited', 'looking forward to something, up to giddy excitement'],
         ['playful', 'Playful', 'up for fun, silliness and laughter'],
-        ['mischievous', 'Mischievous', 'up to no good'],
+        ['mischievous', 'Mischievous', 'playfully up to no good: teasing, little provocations and fun trouble, not malice'],
         ['chatty', 'Chatty', 'in the mood to talk'], ['hopeful', 'Hopeful', 'thinks things might get better'],
         ['inspired', 'Inspired', 'full of ideas'], ['entertained', 'Entertained', 'finding it all amusing'],
         ['experimental', 'Experimental', 'up for trying new things'],
@@ -3761,7 +3761,7 @@ export function composePrompt(state, name, extras = {}) {
     // 1.49.0: the period as one plain instruction and a short line, then what it does to the things in play.
     const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
     if (eras.length) out.push('', ...[...eras].sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map((m, i) => `${i ? 'It also touches on' : 'Keep the story set in'} ${/^\d+s$/.test(m.label) ? 'the ' : ''}${m.label}${i ? '' : year}. ${m.cue[0].toUpperCase()}${m.cue.slice(1)}.`),
-        ...(extras.lenses?.length ? [`What the period does to what's in play:`, ...extras.lenses.map(pt)] : []),
+        ...(extras.lenses?.length ? [`What the period does to what's in play. It's the world around them, not a script: how much ${n} goes along with it depends on mood, wants and nature, and it can be defied or ignored:`, ...extras.lenses.map(pt)] : []),
         `Keep technology, money, slang, manners, laws, medicine and attitudes true to it, with no anachronisms. People talk like people of the time, casual and full of contractions, never stiff or archaic. Modern labels in these notes (trauma bond, gaslighting, narcissist) are shorthand: show them through period words and behaviour.`,
         ...(locales.length ? [LOCALE_MARK] : []));
     if (plot.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, plot, U), ...storyExtra, '',
@@ -3942,13 +3942,15 @@ export function analysisMessages(data) {
         ...(traitIds.length ? [`Traits are who they are, not a mood. Only include one when the scene clearly shows it or shows it changing; leave the rest out.`] : []),
         ...(own.length ? [`own lists the player's own options; rate them by their id like the rest.`] : []),
         ...(scope.wants ? [`wants holds their wants, goals and fears. In "wants", give any of them a new value, or "done": true if it came true or stopped mattering. In "new", add at most 2 the scene clearly gives them: {"kind":"want"|"goal"|"fear","text":"short phrase","value":0-100}. Leave both empty if nothing changed.`] : []),
-        `Reply with JSON only, no markdown: {"moods":{"id":40},${scope.wants ? '"wants":[],"new":[],' : ''}"reason":"one short sentence on what changed"}`,
-        `Only use these ids:`,
+        `Reply with JSON only, no markdown: {"moods":{"id":40},${scope.wants ? '"wants":[],"new":[],' : ''}"reason":"one short sentence on what changed"}`].join('\n');
+    // 1.49.4: the ids ride in the user message. Some connections drop or squash the system message, and the
+    // reader then answered "no mood ids were provided".
+    const list = [`Only use these ids:`,
         ...(moodIds.length ? ['Feelings:', vocabulary(moodIds)] : []),
         ...(bodyIds.length ? ['Body:', vocabulary(bodyIds)] : []),
         ...(traitIds.length ? ['Traits:', vocabulary(traitIds)] : []),
         ...(own.length ? [`Own: ${own.map(r => `${r.id} (${r.text.slice(0, 70)})`).join(', ')}`] : [])].join('\n');
-    return [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify(payload) }];
+    return [{ role: 'system', content: system }, { role: 'user', content: `${JSON.stringify(payload)}\n\n${list}` }];
 }
 export function fingerprint(chat) {
     const text = JSON.stringify(chat.filter(m => !m.is_system).map(m => [m.name, m.is_user, m.mes, m.swipe_id]));

@@ -32,7 +32,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.49.3';
+const VERSION = '1.49.4';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -1518,6 +1518,7 @@ function withLinks(standing, links) {
     const at = standing.findIndex(line => line.startsWith('their dynamic'));
     return at < 0 ? [...standing, ...links] : [...standing.slice(0, at + 1), ...links, ...standing.slice(at + 1)];
 }
+const HARSH_MOODS = ['controlling', 'commanding', 'punitive', 'paternalistic_control', 'contemptuous', 'icy_contempt', 'dismissive', 'clinical_cruelty', 'judgemental_misogyny', 'domestic_tyrant'];
 function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const g = pronounsFor(ch, bond), rel = userRelation(state), relMoods = rel && rel.enabled !== false ? rel.moods ?? {} : {};
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')], pairMoods = pair && pair.enabled !== false ? pair.moods ?? {} : {};
@@ -1546,7 +1547,10 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         (on(state.moods, ['domestic_tyrant', 'womaniser', 'judgemental_misogyny'])) && 'contempt',
     ].filter(Boolean);
     if (!top && tints.length) top = 'n';
-    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, romance, manSub, womanDom, tints,
+    // 1.49.4: harsh only when whoever holds power is in that kind of mood right now.
+    const harshIn = st => MOODS.some(m => (st?.moods?.[m.id] ?? 0) >= 41 && (['angry', 'cruel', 'cold'].includes(m.category) || HARSH_MOODS.includes(m.id)));
+    const harsh = top === 'n' ? harshIn(state) : top === 'u' ? harshIn(mine) : false;
+    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints,
         medicine: strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         money: strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
     const links = [];

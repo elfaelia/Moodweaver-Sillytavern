@@ -18,6 +18,8 @@
 .mw-panel *{box-sizing:border-box}
 .mw-panel:focus{outline:none}
 .mw-panel [hidden],#moodweaver-launcher[hidden],.mw-panel[hidden],.mw-settings-entry[hidden]{display:none!important}
+/* An open panel always shows, whatever a theme or another extension says about dialogs. */
+#moodweaver-panel[open]{display:block!important}
 .mw-panel p{margin:0}
 .mw-panel :focus-visible{outline:2px solid var(--mw-moon);outline-offset:2px}
 .mw-panel button,.mw-panel input,.mw-panel select,.mw-panel textarea{font:inherit}
@@ -37,7 +39,7 @@
 .mw-panel .mw-danger{color:#f3b4bd;border-color:#e26d7a66;background:#e26d7a14}
 .mw-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.mw-panel .mw-actions button{font-size:12px}
 .mw-ic{width:15px;height:15px;flex:none;vertical-align:-2px}
-.mw-panel .mw-tab-icon,.mw-panel .mw-category-icon,.mw-panel .mw-want-icon,.mw-panel .mw-reader-icon,.mw-panel .mw-maker-icon,.mw-panel .mw-tile-icon{font-variant-emoji:text;font-family:system-ui,"Apple Symbols","Segoe UI Symbol",sans-serif}
+.mw-panel .mw-tab-icon,.mw-panel .mw-category-icon,.mw-panel .mw-want-icon,.mw-panel .mw-reader-icon,.mw-panel .mw-tile-icon{font-variant-emoji:text;font-family:system-ui,"Apple Symbols","Segoe UI Symbol",sans-serif}
 
 /* Sliders: one look everywhere; the fill is the accent, the thumb a small moon. */
 .mw-panel input[type=range]{display:block;width:100%;height:6px;margin:12px 0 9px;padding:0;border:0;border-radius:6px;appearance:none;-webkit-appearance:none;cursor:pointer;accent-color:var(--mw-accent);
@@ -46,11 +48,11 @@
 .mw-panel input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#f6f1ff;border:3px solid var(--mw-accent)}
 
 /* Launcher */
-/* 1.35.3: anchored from the top. On phones SillyTavern fixes the body and transforms <html>, so in Safari "bottom:0"
+/* Anchored from the top. On phones SillyTavern fixes the body and transforms <html>, so in Safari "bottom:0"
    means the top edge of the screen. 100dvh is always the real bottom; translateY(-100%) sits the element on it. */
 #moodweaver-launcher{position:fixed;right:16px;bottom:auto;top:calc(100vh - 84px);top:calc(100dvh - 84px);transform:translateY(-100%);z-index:2999;display:flex;align-items:center;gap:8px;border:1px solid #c9b8f055;border-radius:999px;background:#1d1729e6;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ede7f7;padding:9px 15px;font:600 13px -apple-system,system-ui,sans-serif;box-shadow:0 6px 24px #0007;cursor:pointer}
 #moodweaver-launcher span{color:var(--mw-lilac,#c9b8f0);font-size:18px;text-shadow:0 0 12px #c9b8f088}
-/* 1.36.0: drag it anywhere (saved per device), or make it just the ◆. Touch-action keeps the page still while dragging. */
+/* Drag it anywhere (saved per device), or make it just the ◆. Touch-action keeps the page still while dragging. */
 #moodweaver-launcher{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 #moodweaver-launcher.is-small{padding:0;width:44px;height:44px;justify-content:center}
 #moodweaver-launcher.is-placed{right:auto;bottom:auto;transform:none}
@@ -131,11 +133,11 @@
 /* Scene reader: folded away, since it's the only feature that costs a request */
 .mw-panel .mw-reader{margin:0 var(--mw-pad) 12px;padding:0 13px;border-radius:var(--mw-r);border:1px dashed #c9b8f033;background:none;--mw-accent:var(--mw-lilac)}
 .mw-reader[open]{padding-bottom:12px;border-style:solid;background:#c9b8f008}
-.mw-reader-head,.mw-maker-head,.mw-want-head{display:flex;gap:10px;align-items:flex-start}
+.mw-reader-head,.mw-want-head{display:flex;gap:10px;align-items:flex-start}
 .mw-panel summary.mw-reader-head{padding:11px 0;cursor:pointer;list-style:none}.mw-panel summary.mw-reader-head::-webkit-details-marker{display:none}
-.mw-reader-head b,.mw-maker-head b,.mw-want-head b{display:block;font-size:13px;font-weight:600}
-.mw-reader-head small,.mw-maker-head small,.mw-want-head small{display:block;font-size:11px;line-height:1.45;color:var(--mw-muted)}
-.mw-reader-icon,.mw-maker-icon{flex:none;width:22px;text-align:center;font-size:17px;color:var(--mw-lilac)}
+.mw-reader-head b,.mw-want-head b{display:block;font-size:13px;font-weight:600}
+.mw-reader-head small,.mw-want-head small{display:block;font-size:11px;line-height:1.45;color:var(--mw-muted)}
+.mw-reader-icon{flex:none;width:22px;text-align:center;font-size:17px;color:var(--mw-lilac)}
 .mw-scope{display:flex;gap:5px;margin:4px 0 10px}.mw-panel .mw-scope-chip{flex:1 1 auto;padding:6px;border-radius:999px;font-size:11.5px;color:var(--mw-muted);background:none;border:1px dashed var(--mw-line-2);white-space:nowrap}
 .mw-panel .mw-scope-chip[aria-pressed=true]{color:var(--mw-text);background:#c9b8f01f;border:1px solid #c9b8f066}
 .mw-reader-go{display:flex;gap:8px}.mw-panel .mw-read{flex:1}
@@ -158,14 +160,12 @@
 .mw-categories summary small{margin-left:auto;font-size:11px;font-weight:400;color:var(--mw-muted)}
 .mw-category-body{padding:0 8px 6px}
 .mw-mood{padding:11px 0 12px;border-top:1px solid #ffffff09}
-.mw-mood.is-yours{box-shadow:inset 2px 0 0 color-mix(in srgb,var(--mw-accent) 70%,transparent);padding-left:9px;margin-left:-9px}
 .mw-row-head{display:flex;align-items:center;gap:8px}.mw-row-head label{flex:1;min-width:0;font-size:13px;overflow-wrap:anywhere}
 .mw-row-head>span{font-size:10.5px;color:var(--mw-muted)}
 .mw-row-head output,.mw-row-head o{min-width:34px;text-align:right;font:600 12px var(--mw-round);color:var(--mw-accent);font-variant-numeric:tabular-nums}
 .mw-mood>small{display:block;margin-top:2px;font-size:11px;line-height:1.45;color:var(--mw-faint)}
-.mw-panel .mw-pin,.mw-panel .mw-edit,.mw-panel .mw-list{flex:none;width:30px;height:30px;padding:0;border-radius:50%;font-size:14px;line-height:1}
+.mw-panel .mw-pin,.mw-panel .mw-list{flex:none;width:30px;height:30px;padding:0;border-radius:50%;font-size:14px;line-height:1}
 .mw-panel .mw-pin{border:0;background:none;color:var(--mw-faint);font-size:18px}.mw-panel .mw-pin.is-pinned{color:var(--mw-moon)}
-.mw-panel .mw-edit{border:0;background:none;color:var(--mw-muted)}
 .mw-panel .mw-list{background:#ffffff08;border:1px solid var(--mw-line-2);color:var(--mw-muted)}.mw-panel .mw-list.is-in{background:#c9b8f02a;border-color:var(--mw-lilac);color:#fff}
 .mw-panel .mw-tick{color:var(--mw-mint)}
 .mw-panel .mw-cause{margin-top:7px;border-style:dashed;padding:7px 10px;font-size:12px}
@@ -174,16 +174,13 @@
 .mw-turn-ends{display:flex;justify-content:space-between;margin:-5px 0 2px;font-size:10.5px;color:var(--mw-faint)}
 .mw-no-results{padding:18px;text-align:center;color:var(--mw-muted);font-size:12px}
 .mw-panel .mw-empty-list{margin:12px var(--mw-pad)!important;padding:14px;border:1px dashed var(--mw-line-2);border-radius:var(--mw-r);text-align:center}
-.mw-custom{margin:14px var(--mw-pad) 6px}
 .mw-panel .mw-own-text{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px solid var(--mw-line-2);border-radius:0;padding:3px 0;font-size:13px}
 .mw-panel .mw-own select{margin-top:5px;font-size:12px;padding:6px 8px}
 .mw-turns-head{display:flex;gap:12px;align-items:center;margin:18px var(--mw-pad) 8px;padding:12px 14px;border-radius:var(--mw-r);border:1px solid #e7a6c433;background:#e7a6c40d}
 .mw-turns-icon{flex:none;width:22px;text-align:center;font-size:18px;color:var(--mw-rose)}.mw-turns-head b{display:block;font-size:13px}.mw-turns-head small{display:block;font-size:11px;color:var(--mw-muted)}.mw-turns-head em{font-style:normal;color:var(--mw-rose)}
 
 /* Make your own */
-.mw-panel .mw-maker-open{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:12px 0 6px;padding:12px;border:1px dashed var(--mw-line-2);border-radius:var(--mw-r);background:none;color:#d7cfe8;font-size:13px}
-.mw-maker-open span{color:var(--mw-lilac)}
-.mw-maker{margin:12px 0 6px;padding:13px;border-radius:var(--mw-r);border:1px solid #c9b8f040;background:#c9b8f00a}
+
 .mw-panel .mw-field{display:block;margin-top:11px;font-size:12px;color:#d7cfe8}.mw-field small{color:var(--mw-muted);margin-left:4px}.mw-panel .mw-field input,.mw-panel .mw-field textarea{margin-top:5px}
 .mw-panel .mw-field textarea{resize:none;field-sizing:content;min-height:3.4em;line-height:1.45}
 .mw-panel .mw-dark-toggle{margin-top:12px;white-space:normal;color:#f0c2c8}
@@ -362,8 +359,6 @@
 .mw-token-count{font:600 11.5px var(--mw-round);color:var(--mw-mint);margin:14px 0 8px}
 .mw-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto;margin:0;padding:12px;border-radius:10px;border:1px solid var(--mw-line);background:var(--mw-deep);color:#cfc8df;font:10.5px/1.6 ui-monospace,monospace}
 .mw-pre-label{display:block;font-size:12px;margin:12px 0 5px}
-.mw-lib-list{display:flex;flex-direction:column;margin-top:8px}.mw-lib-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--mw-line)}.mw-lib-row>div{flex:1;min-width:0}
-.mw-lib-row b{display:block;font-size:13px;font-weight:550}.mw-lib-row em{font-style:normal;color:var(--mw-blood)}.mw-lib-row small{font-size:11px;color:var(--mw-muted)}
 .mw-settings-entry{border:1px solid #ffffff20;border-radius:8px;padding:12px;margin:10px 0}.mw-settings-entry p{font-size:12px;opacity:.7}
 .mw-settings-entry .mw-ver{opacity:.6;font-size:11px}.mw-settings-entry .mw-diag{margin-top:10px;font-size:12px;line-height:1.45;opacity:.9;white-space:pre-wrap;overflow-wrap:anywhere}.mw-settings-entry .mw-diag.is-bad{color:#f3b4bd}
 
@@ -389,11 +384,11 @@
   .mw-panel input[type=text],.mw-panel input[type=search],.mw-panel input[type=number],.mw-panel select,.mw-panel textarea{font-size:16px!important}
   .mw-panel input[type=range]{height:7px;margin:15px 0 12px}
   .mw-panel input[type=range]::-webkit-slider-thumb{width:24px;height:24px}
-  .mw-panel .mw-pin,.mw-panel .mw-list,.mw-panel .mw-edit{width:34px;height:34px}
+  .mw-panel .mw-pin,.mw-panel .mw-list{width:34px;height:34px}
   .mw-panel .mw-categories summary{padding:15px 8px}
 }
 @media (prefers-reduced-motion:reduce){.mw-panel *,.mw-panel .mw-plumbob,.mw-sky-fx,.mw-sky::after{animation:none!important;transition:none!important}}
-/* 1.39.0: reactive wants, hot buttons, the You tab and needs-over-time settings */
+/* Reactive wants, hot buttons, the You tab and needs-over-time settings */
 .mw-want.mw-want-lit{box-shadow:0 0 0 1px #efd59c55,0 0 16px #efd59c22}
 .mw-want.mw-want-lit.is-down{box-shadow:0 0 0 1px #e26d7a55,0 0 16px #e26d7a22}
 .mw-want.mw-want-lit.is-hot{box-shadow:0 0 0 1px #e79a7a77,0 0 18px #e79a7a33;animation:mw-glow 2.4s ease-in-out 2}
@@ -407,7 +402,7 @@
 .mw-need-settings .mw-field{display:flex;align-items:center;gap:8px;font-size:12px;margin:6px 0}
 .mw-need-settings select{flex:1;max-width:160px}
 .mw-sparks .mw-spark b{font-weight:600;opacity:.75;margin-left:2px}
-/* 1.39.1: desire card */
+/* Desire card */
 .mw-desire-card{margin:10px 0;padding:8px 12px;border-radius:14px;background:#e26d9a10;border:1px solid #e26d9a33}
 .mw-desire-card summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
 .mw-desire-card.is-off summary small{font-weight:400;opacity:.7}
@@ -418,12 +413,12 @@
 .mw-desire-bar{width:100%;accent-color:var(--mw-tone)}
 .mw-desire-opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px}
 .mw-desire-opts label{display:flex;align-items:center;gap:6px}
-/* 1.39.2: desire scales */
+/* Desire scales */
 [data-tone="b"]{--mw-tone:#e7c36f}[data-tone="t"]{--mw-tone:#d9706f}[data-tone="x"]{--mw-tone:#c79af0}[data-tone="h"]{--mw-tone:#9fb39a}
 .mw-desire-card summary small{font-weight:400;opacity:.8}
 .mw-desire-scales{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px}
 .mw-scale-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid #ffffff22}
-/* 1.40.0: extra meters, combos, cravings, new dynamics */
+/* Extra meters, combos, cravings, new dynamics */
 .mw-more{margin:10px 0}.mw-more-pick{margin-top:8px}.mw-more-pick summary{cursor:pointer;font-weight:600}.mw-more-pick summary small{font-weight:400;opacity:.75;margin-left:6px}
 .mw-more-presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}.mw-more-presets small{opacity:.75;margin-right:2px}
 .mw-chip-btn{padding:4px 10px;border-radius:999px;font-size:12px;background:#ffffff0d;border:1px solid #ffffff26;color:inherit}
@@ -440,15 +435,13 @@
 .mw-dyn-card:is([data-dynamic=lifeline],[data-dynamic=protector],[data-dynamic=penitent],[data-dynamic=codependent],[data-dynamic=grudging-respect],[data-dynamic=worthy-rival]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
 .mw-dyn-card[data-dynamic=bored-of-you]{border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
 
-/* 1.41.0: Skills */
+/* Skills */
 .mw-skill-row.is-lit{box-shadow:inset 3px 0 0 #9fc0e8}
 .mw-skill-row .mw-row-head output{min-width:3.2em;text-align:right}
 .mw-skill-now{margin:8px 0 0;font-size:12px;color:var(--mw-muted)}
 .mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
-.mw-skill-add{display:grid;gap:6px;margin:10px 0 4px}
-.mw-skill-add input{width:100%;box-sizing:border-box}
 
-/* 1.42.0: who names the dynamic, pace, re-read and the dynamics picked for a pair */
+/* Who names the dynamic, pace, re-read and the dynamics picked for a pair */
 .mw-dyn-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:12px;padding:3px;border-radius:12px;background:#0e0b17aa;border:1px solid #ffffff14}
 .mw-panel .mw-dyn-modes button{padding:7px 4px;border:0;border-radius:9px;background:none;font-size:12px;color:#d7cfe8;white-space:nowrap}
 .mw-panel .mw-dyn-modes button[aria-pressed=true]{background:#ef9fbe2e;color:#fbe9f1;box-shadow:inset 0 0 0 1px #ef9fbe55}
@@ -471,10 +464,6 @@
 .mw-dyn-opt span{min-width:0;font-size:12.5px;color:#f1e8f6}.mw-dyn-opt b{font-weight:600}
 .mw-dyn-opt small{display:block;margin-top:2px;font-size:11px;line-height:1.4;color:#b9aecf}
 .mw-dyn-only{font-style:normal;font-size:10px;padding:0 6px;border-radius:999px;border:1px solid #ffffff22;color:#c9bedf;margin-left:4px}
-.mw-panel .mw-dyn-x{border:0;background:none;padding:0 4px;font-size:13px;color:#d79aa8}
-.mw-dyn-own{display:grid;gap:6px;padding:8px 10px}
-.mw-panel .mw-dyn-own input,.mw-panel .mw-dyn-own textarea{width:100%;padding:7px 10px;font:inherit;font-size:12px;border-radius:8px;background:#0e0b17aa;color:inherit;border:1px solid #ffffff1c;resize:vertical}
-.mw-panel .mw-dyn-own button{justify-self:start}
 /* A background per group, under the named ones that already have their own. */
 .mw-dyn-card:where([data-tone=blood]){border-color:#e26d7a55;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e26d7a33,transparent 60%),linear-gradient(160deg,#2c1424,#170f1d)}
 .mw-dyn-card:where([data-tone=violet]){border-color:#b06ad955;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#b06ad933,transparent 60%),linear-gradient(160deg,#2a1634,#150d1e)}
@@ -484,7 +473,7 @@
 .mw-dyn-card:where([data-tone=amber]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
 .mw-dyn-card:where([data-tone=parchment]){border-color:#d9c79a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#d9c79a26,transparent 60%),linear-gradient(160deg,#25211c,#16130f)}
 .mw-dyn-card:where([data-tone=ash]){border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
-/* 1.43.0: Doubled up */
+/* Doubled up */
 .mw-overlap{margin:10px 0;padding:8px 12px;border-radius:14px;background:#7a8cc410;border:1px dashed #7a8cc455}
 .mw-overlap summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
 .mw-overlap summary small{font-weight:400;opacity:.75;text-align:right}
@@ -500,7 +489,7 @@
 .mw-overlap-held{opacity:.65}
 .mw-dyn-pronouns{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:10px 0 12px;padding:8px 10px;border-radius:12px;background:#ffffff0a}.mw-dyn-pron-title{flex-basis:100%;font-size:.8em;letter-spacing:.04em;text-transform:uppercase;opacity:.7}.mw-dyn-pronouns label{flex:1 1 0;min-width:0;display:grid;gap:3px;font-size:.86em}.mw-dyn-pronouns select{width:100%;min-width:0}
 .mw-scope-none{margin:-4px 0 8px;color:#e8b86a}
-/* 1.45.0: the story moves moods */
+/* The story moves moods */
 .mw-storymood{margin:10px 0;padding:10px 12px;border-radius:16px;background:#c9b8f010;border:1px solid #c9b8f033}
 .mw-storymood summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
 .mw-storymood summary small{font-weight:400;opacity:.75}

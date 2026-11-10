@@ -47,7 +47,7 @@ const HOLD = {
 const BEND = {
     angry: 'done with rougher hands, shorter words and quicker punishment', cruel: 'with a deliberate edge, testing how much it can hurt',
     sad: 'heavier and quieter, with cracks showing', scared: 'jumpy and defensive, ready to pull back or lash out', desire: 'charged, with touches that linger and everything leaning toward sex',
-    happy: 'lighter and more playful than usual', closeness: 'softer, letting more tenderness through than usual', attachment: 'clingier and more possessive, unwilling to let go',
+    happy: 'lighter and more playful than usual, teasing rather than hurting', closeness: 'softer, letting more tenderness through than usual, and gentle with the body', attachment: 'clingier and more possessive, unwilling to let go',
     cold: 'colder and more distant, done without warmth', calm: 'slower and more deliberate, perfectly controlled', bold: 'cockier and more forceful, pushing further',
     masks: 'behind a mask, so what shows isn’t what’s underneath', energy: 'at a different pace than usual, restless or drained', headspace: 'distracted and half lost in thought',
 };

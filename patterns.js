@@ -17,6 +17,12 @@ export function proseOf(mes) {
 const STOP = new Set(('a an the and or but of to in on at for with from by as is was were be been it its it\'s he she they him her them his their hers theirs '
     + 'i you your my me we us our that this these those there then than so if not no do does did have has had into out up down over just '
     + 'what which who whom when where while like can could would should will one all some any more most very too also only even still').split(' '));
+// 1.49.3: contractions and everyday words are never a pattern. "doesn't", "couldn't", "because" and "nothing" are
+// seven letters long, so they used to be listed as "distinctive words worn thin", and Opus then wrote "does not".
+const COMMON = new Set(('because nothing without through against another already himself herself between thought something anything '
+    + 'everything someone anyone everyone looking another before around enough instead getting against whether nobody minute moment '
+    + 'started turning towards toward across behind beneath inside outside further finally actually exactly probably perhaps').split(' '));
+const plain = w => STOP.has(w) || COMMON.has(w) || w.includes("'");
 const words = s => s.toLowerCase().replace(/[^a-z' ]+/g, ' ').split(/\s+/).filter(Boolean);
 const dialogue = s => [...s.matchAll(/"([^"]{1,400})"/g)].map(m => m[1]);
 const sentences = s => s.split(/(?<=[.!?…])\s+|\n+/).map(x => x.trim()).filter(x => x.length > 2);
@@ -78,7 +84,7 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
         const seen = new Set(), w = words(t);
         for (let i = 0; i + 4 <= w.length; i++) {
             const g = w.slice(i, i + 4);
-            if (g.filter(x => !STOP.has(x) && !ignore.has(x)).length < 2) continue;
+            if (g.filter(x => !plain(x) && !ignore.has(x)).length < 2) continue;
             const k = g.join(' '); if (seen.has(k)) continue; seen.add(k); count(grams, k, k, r);
         }
     });
@@ -87,7 +93,7 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     if (kept.length) out.push({ label: 'phrases repeated across replies', examples: kept.slice(0, 4).map(k => `“${k}”`), n: 4, quoted: true });
     // 6. Distinctive words worn thin: in 4 or more of the last 5 replies.
     const vocab = new Map();
-    replies.forEach((t, r) => { for (const w of new Set(words(t))) if (w.length >= 7 && !STOP.has(w) && !ignore.has(w)) count(vocab, w, w, r); });
+    replies.forEach((t, r) => { for (const w of new Set(words(t))) if (w.length >= 7 && !plain(w) && !ignore.has(w)) count(vocab, w, w, r); });
     const worn = [...vocab.entries()].filter(([, e]) => e.replies.size >= Math.min(4, replies.length) && e.n >= 4).map(([w]) => w).slice(0, 6);
     if (worn.length >= 2) out.push({ label: 'the same distinctive words in nearly every reply', examples: worn, n: 3 });
     return out.sort((a, b) => b.n - a.n).slice(0, max);
@@ -99,5 +105,5 @@ export function patternLines(found, strength = 60) {
     const list = found.slice(0, strength >= 61 ? 6 : strength >= 21 ? 4 : 2);
     return [`Pattern breaker: the last few replies keep reusing these shapes. Don’t use them in this reply, not even with the words swapped, and don’t swap in a lookalike:`,
         ...list.map(p => `- ${p.label}${p.examples.length ? `: ${p.quoted ? p.examples.join(', ') : p.examples.map(e => `“${e}”`).join(', ')}` : ''}`),
-        `Write those beats another way: a different sentence shape, a different kind of detail, or leave the beat out.${strength >= 81 ? ' Vary sentence length and paragraph openings across the whole reply too.' : ''}`];
+        `Write those beats another way: a different sentence shape, a different kind of detail, or leave the beat out. Only these exact shapes are out: ordinary words and contractions (doesn't, can't, he's) stay as normal.${strength >= 81 ? ' Vary sentence length and paragraph openings across the whole reply too.' : ''}`];
 }

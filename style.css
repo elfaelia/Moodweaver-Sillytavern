@@ -498,7 +498,7 @@
 .mw-overlap-tidy,.mw-overlap-all{flex:none;min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid #7a8cc488;background:#7a8cc422;color:inherit;cursor:pointer}
 .mw-overlap-all{width:100%;margin-top:2px}
 .mw-overlap-held{opacity:.65}
-.mw-dyn-pronouns{align-items:end}.mw-dyn-pronouns label{flex:1 1 0;min-width:0;display:grid;gap:3px;font-size:.86em;opacity:.9}.mw-dyn-pronouns select{width:100%;min-width:0}
+.mw-dyn-pronouns{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:10px 0 12px;padding:8px 10px;border-radius:12px;background:#ffffff0a}.mw-dyn-pron-title{flex-basis:100%;font-size:.8em;letter-spacing:.04em;text-transform:uppercase;opacity:.7}.mw-dyn-pronouns label{flex:1 1 0;min-width:0;display:grid;gap:3px;font-size:.86em}.mw-dyn-pronouns select{width:100%;min-width:0}
 .mw-scope-none{margin:-4px 0 8px;color:#e8b86a}
 /* 1.45.0: the story moves moods */
 .mw-storymood{margin:10px 0;padding:10px 12px;border-radius:16px;background:#c9b8f010;border:1px solid #c9b8f033}

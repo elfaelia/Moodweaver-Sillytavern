@@ -15,6 +15,7 @@ import { bondView, bondMini } from './bond-ui.js';
 import { parseWeave, hasWeave, stripWeave, weavePrompt, powerChange } from './weave.js';
 import { weaveKey, effectiveChat, settle, track, untrack, diff } from './ledger.js';
 import { MOOD_PACE, moodPaceOf, paceDelta, fadeStep } from './moodpace.js';
+import { withNudges, PACE_SCALE } from './mood-meters.js';
 import { applyLibrary, cleanLibrary, libraryPrompt, librarySections, newLibraryId, isTurnGroup, turnGroupKey } from './library.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
@@ -28,7 +29,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.46.0';
+const VERSION = '1.47.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -468,7 +469,10 @@ async function boardChanged() {
 // a persona nobody described counts as she.
 function pronounsFor(ch, bond) {
     const pu = ctx().powerUserSettings ?? globalThis.power_user ?? {};
-    return { n: bond.pn !== 'auto' ? bond.pn : guessPronoun(`${ch.description ?? ''} ${ch.personality ?? ''}`) || 'they',
+    // Sentences about your persona would count her pronouns as his, so only the ones that aren't are read.
+    const about = String(`${ch.description ?? ''} ${ch.personality ?? ''} ${ch.scenario ?? ''} ${ch.first_mes ?? ''} ${ch.mes_example ?? ''}`).replace(/\{\{char\}\}/gi, ch.name ?? '').split(/(?<=[.!?\n])\s+/)
+        .filter(x => !/\{\{user\}\}/i.test(x) && !(playerName() && x.toLowerCase().includes(playerName().toLowerCase()))).join(' ');
+    return { n: bond.pn !== 'auto' ? bond.pn : guessPronoun(about) || 'they',
         u: bond.pu !== 'auto' ? bond.pu : guessPronoun(pu.persona_description ?? '') || 'she' };
 }
 function usePronouns(ch, bond) {
@@ -502,11 +506,13 @@ function migrateBond(bond, ch) {
 // Hidden messages still count: hiding a reply isn't taking it back.
 function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
-    const mine = writes(ch), out = [];
+    const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = PACE_SCALE[stored?.pace] ?? 1;
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
-        out.push({ pos, key: readOf(m).wkey, s: { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' } });
+        const step = { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
+        // 1.47.0: feelings that rose this reply nudge the matching meters, unless the line moved them itself.
+        out.push({ pos, key: readOf(m).wkey, s: nudge ? withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale) : step });
     });
     if (out.length) { const st = getState(ch), prefs = st?.prefs ?? {}, traits = bedroomTraits(st); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
@@ -847,7 +853,9 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         // 1.42.0: the current dynamic, worked out once. The story is asked to rename it when it shifts, and
         // both-ways or story lines it already says are left out of this note.
         const bondList0 = bond.on ? bondList(ch, history) : [], bd = bond.on && bond.extra ? computeBond(bond, history.length, n, u, bondAxes(ch), bondList0) : null;
-        const storyNames = bd && bond.mode === 'story' && !bond.fixed ? { now: bd.dynamic.name.toLowerCase(), pool: bond.pool.map(name => fillDynamic(name, n, u)) } : null;
+        // 1.46.2: picks are listed in the hidden line only up to 25 (about 3 tokens each). Past that the line names it in a
+        // few words and the closest of your picks is used, so a big pick list costs nothing extra.
+        const storyNames = bd && bond.mode === 'story' && !bond.fixed ? { now: bd.dynamic.name.toLowerCase(), pool: bond.pool.length <= 25 ? bond.pool.map(name => fillDynamic(name, n, u)) : [] } : null;
         const covered = new Set(bd?.dynamic.covers ?? []);
         // 1.43.0: one idea, one line. Whatever's doubled up is sent once, from the most specific place.
         const dropped = droppedIds(bondOverlaps(ch, history, bond, bondList0, bd));
@@ -2023,6 +2031,7 @@ function setup() {
         if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
         if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
         if (input.hasAttribute('data-dyn-pace')) { await editBond(b => { b.pace = input.value; }); return; }
+        if (input.hasAttribute('data-dyn-nudge')) { await editBond(b => { b.nudge = input.checked; }); return; }
         if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
         if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
         if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }

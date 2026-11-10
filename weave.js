@@ -155,33 +155,29 @@ const SIZES = {
 export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
+    // 1.47.0: the same instructions in about half the words. The line Moodweaver reads is unchanged.
     const example = [
-        ...(moods ? [...(feelings ? ['moods amused +10, wanting +5, afraid off'] : []), 'needs hunger low, health -10', 'toward protective +5'] : []),
-        ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', 'sparked: defiance'] : []),
-        ...(meters.length ? [`meters: ${meters[0]} +2`] : []),
-        ...(dynamic ? [`dynamic: ${dynamic.pool?.[0] ?? 'kept and tended'}`] : []),
-        ...(desire ? [`desire: arousal +4${desire.b !== false ? ', bold +3' : ''}`] : []),
-        ...(wants ? ['wants: get her to eat +'] : []), ...(buttons ? ['pressed: being pitied'] : []),
-        ...(you ? ['you: split lip'] : []),
+        ...(moods ? [...(feelings ? ['moods amused +10, wanting +5, afraid off'] : []), 'needs hunger low'] : []),
+        ...(bond ? ['romance +2', ...(extra ? [`control ${n} +1`] : []), 'sparked: defiance'] : []),
         ...(remember ? [`remember: ${u} promised to stay`] : []),
     ];
     return [
-        `End every reply with one hidden line only Moodweaver reads, listing what this reply changed for ${n}. Leave out what didn't change (nothing changed: <!-- weave: none -->). The example shows the shape only:`,
+        `End every reply with a hidden line for Moodweaver: only what changed for ${n} this reply, or <!-- weave: none -->. Shape:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [...(feelings ? [`- moods: every feeling of ${n}'s that rose, fell or ended this reply, up to eight, desire, amusement and irritation included, in a plain word or its name in these notes: ${mp.ordinary} for ordinary moments, up to ${mp.step} for big ones, off when one ends. Dark, ugly and sexual feelings count as much as kind ones. When the scene moves on from a feeling, turn it down or off.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}`] : []),
-            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10): food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them, and a beating costs health even if enjoyed.`,
-            `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
-        ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -${size.range} to +${size.range}; ${size.ordinary} for ordinary moments, ${size.turn} only for turning points. Score what this reply shows, even against where they stand now. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,
-            ...(extra ? [`- control: who gained real control (doors, money, freedom, who decides, who makes the demands and sets the rewards), 1 to ${size.range}, as ${n} +3 or ${u} +3. pull: who gained emotional hold (who needs whom more), the same way. They can move opposite ways in one reply.`] : []),
-            ...(dynamic ? [`- dynamic: when this reply shows their dynamic is now something other than ${dynamic.now}, name what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words (kept and tended, cold war, worship)'}. Leave it out while it holds.`] : []),
-            `- thinks: words that finish "${n} thinks ${u} is…" (stubborn, his, a liar).`,
-            `- sparked: any of ${n}'s turn-ons or turn-offs (people, bodies, acts, kinks, fetishes) or bedroom traits this reply touched, whoever brought it, by its name in these notes; add (off) for a turn-off.`] : []),
-        ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: a want or goal this reply moved (+ closer, - blocked, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting, only if obvious' : ''].filter(Boolean).join('; ')}. Use ${n}'s own wording from these notes.`] : []),
-        ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved for ${n} toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
-        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +3)${desireNames(desire)}, as small steps; add release if they climaxed.`] : []),
-        ...(you ? [`- you: lasting things the story did to ${u}'s body (injured, drugged, soaked, tied), the full current list, or none once healed.`] : []),
-        ...(skills ? [`- used: any skill someone used or was tested on this reply, a word or two each (lying, lockpicking, first aid).`] : []),
-        ...(remember ? [`- remember: a turning point between them, in one plain line: a confession, promise, betrayal, first time or secret learned.`] : []),
+        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to eight, any kind (dark, sexual and ugly ones count), in plain words: ${mp.ordinary} usually, up to ${mp.step} for big moments, off when gone. Lower or end the ones the scene has moved past.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}`] : []),
+            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them; a beating costs health.`,
+            `- toward: ${n}'s feelings about ${u} that moved (obsessed, protective, distrusts), -30 to +30.`] : []),
+        ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,
+            ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
+            ...(dynamic ? [`- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
+            `- thinks: ${n} thinks ${u} is… (stubborn, his, a liar).`,
+            `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`] : []),
+        ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
+        ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
+        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u}, in small steps (arousal +3)${desireNames(desire)}; release if they climaxed.`] : []),
+        ...(you ? [`- you: lasting things done to ${u}'s body (injured, drugged, tied): the full current list, or none once healed.`] : []),
+        ...(skills ? [`- used: skills someone used or was tested on, a word or two each.`] : []),
+        ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
     ];
 }
 

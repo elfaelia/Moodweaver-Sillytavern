@@ -1,6 +1,6 @@
 import { MORE_METERS, MORE_PRESETS, computeMore, moreWord } from './meters.js';
 import { computeBond, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord, dynamicRows, DYNAMIC_GROUPS, PACE, paceOf } from './bond.js';
-import { PRONOUN_CHOICES } from './pronouns.js';
+import { PRONOUN_CHOICES, pronounize, pronounOf } from './pronouns.js';
 import { fill } from './dynamics.js';
 
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -124,11 +124,12 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool }) {
     const why = mode === 'pick' ? 'Chosen by you; it stays until you switch back.'
         : d.source === 'reader' ? 'From the scene reader. Replies take over again from here.'
         : d.source === 'story' ? `The story named it ${ago}. It changes when a reply shows something different${pool.size ? `, from your ${pool.size} picks` : ''}.`
-        : `${mode === 'story' ? 'No reply has named one yet, so it’s ' : ''}${mode === 'story' ? 'read' : 'Read'} from the meters${PACE[pace].lean ? `, leaning on the last ${PACE[pace].window} replies` : ''}. Pinned meters win${pool.size ? '; your picks come first' : ''}.`;
+        : `${mode === 'story' ? 'No reply has named one yet, so it’s ' : ''}${mode === 'story' ? 'read' : 'Read'} from the meters${PACE[pace].lean ? `, leaning on the last ${PACE[pace].window} replies` : ''}${bond.nudge !== false ? ', which feelings in each reply push too' : ''}. Pinned meters win${pool.size ? '; your picks come first' : ''}.${d.dynamic.toward ? ` Moving toward ${d.dynamic.toward}: it takes over if the next reply agrees.` : ''}`;
     const options = groupRows().map(([, label, , rows]) => rows.length ? `<optgroup label="${esc(label)}">${rows.map(r => `<option value="${esc(r[0])}" ${(bond.fixed || d.dynamic.key) === r[0] ? 'selected' : ''}>${esc(fill(r[0], n, u))}</option>`).join('')}</optgroup>` : '').join('');
+    const cap = t => t ? t[0].toUpperCase() + t.slice(1) : t;
     const short = t => t.length > 120 ? `${t.slice(0, 117).replace(/\s+\S*$/, '')}…` : t;
     const row = r => `<label class="mw-toggle mw-dyn-opt" data-dyn-row="${esc(`${fill(r[0], n, u)} ${r[4] ?? ''}`.toLowerCase())}"><input type="checkbox" data-dyn-pool="${esc(r[0])}" ${pool.has(r[0]) ? 'checked' : ''}>
-        <span><b>${esc(fill(r[0], n, u))}</b>${r[1] ? '' : ' <i class="mw-dyn-only">story or you</i>'}${r[3] === 'own' ? ` <button type="button" class="mw-dyn-x" data-dyn-own-remove="${esc(r[0])}" aria-label="Delete ${esc(r[0])}">×</button>` : ''}<small>${esc(short(r[2](n, u)))}</small></span></label>`;
+        <span><b>${esc(fill(r[0], n, u))}</b>${r[1] ? '' : ' <i class="mw-dyn-only">story or you</i>'}${r[3] === 'own' ? ` <button type="button" class="mw-dyn-x" data-dyn-own-remove="${esc(r[0])}" aria-label="Delete ${esc(r[0])}">×</button>` : ''}<small>${esc(short(cap(pronounize(r[2](n, u), n, u))))}</small></span></label>`;
     const groups = groupRows().map(([id, label, icon, rows]) => {
         const picked = rows.filter(r => pool.has(r[0])).length;
         return `<details class="mw-dyn-group" data-anchor="dyn-group-${id}"><summary><span>${icon} ${esc(label)}</span><small>${picked ? `${picked} of ${rows.length}` : rows.length}</small></summary>
@@ -137,15 +138,16 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool }) {
                 <textarea rows="2" maxlength="240" data-dyn-own-cue placeholder="What it looks like on the page. {n} is ${esc(n)}, {u} is ${esc(u)}." aria-label="What it looks like"></textarea>
                 <button type="button" class="mw-chip-btn" data-action="dyn-own-add">＋ Add</button><small class="mw-fine">Yours are kept for every chat. Only you or the story pick them.</small></div>` : ''}</details>`;
     }).join('');
-    return `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.key)}" data-tone="${d.dynamic.tone}"><small>${esc(n)} &amp; ${esc(u)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(d.dynamic.cue)}</p>
+    return `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.key)}" data-tone="${d.dynamic.tone}"><small>${esc(n)} &amp; ${esc(u)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(cap(d.dynamic.cue))}</p>
+        <div class="mw-dyn-pronouns" role="group" aria-label="Pronouns"><span class="mw-dyn-pron-title">Pronouns</span>${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)}<select data-dyn-pronoun="${k}" aria-label="Pronouns for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${id === 'auto' ? `Auto (${pronounOf(who) === 'they' ? 'names' : pronounOf(who)})` : label}</option>`).join('')}</select></label>`).join('')}</div>
         <div class="mw-dyn-modes" role="group" aria-label="Who names the dynamic">${[['story', '✧ Story'], ['meters', '≋ Meters'], ['pick', '✎ I pick']].map(([k, label]) => `<button type="button" data-dyn-mode="${k}" aria-pressed="${mode === k}">${label}</button>`).join('')}</div>
         ${mode === 'pick' ? `<label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic">${options}</select></label>` : ''}
         <div class="mw-dyn-row"><label>Pace<select data-dyn-pace aria-label="How fast things change">${Object.entries(PACE).map(([k, p]) => `<option value="${k}" ${pace === k ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}</select></label>
+            <label class="mw-toggle mw-dyn-nudge" title="Feelings each reply reports push the matching meters: caring pushes Care, controlling pushes Control and Discipline, horny pushes Lust"><input type="checkbox" data-dyn-nudge ${bond.nudge !== false ? 'checked' : ''}> Feelings push meters</label>
             ${canRead ? `<button type="button" class="mw-chip-btn mw-dyn-read" data-action="bond-reread" ${pending ? 'disabled' : ''} title="Ask the scene reader where these two stand right now">${pending ? 'Reading…' : '✧ Re-read the scene'}</button>` : ''}</div>
         <small class="mw-dyn-why">${esc(why)} ${esc(PACE[pace].label)}: ${esc(PACE[pace].hint)}.</small>
-        <div class="mw-dyn-row mw-dyn-pronouns" title="So the lines Claude reads say he and she instead of repeating names">${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)} is<select data-dyn-pronoun="${k}" aria-label="Pronoun for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`).join('')}</div>
-        <details class="mw-dyn-pool" data-anchor="dyn-pool"><summary>Dynamics for these two <small>${pool.size ? `${pool.size} picked` : 'none picked: any of them'}</small></summary>
-            <p class="mw-fine">Story mode: the hidden line chooses from your picks. Meters: your picks are tried first. With none picked, it can be any of them.</p>
+        <details class="mw-dyn-pool" data-anchor="dyn-pool"><summary>Dynamics for these two <small>${pool.size ? `${pool.size} picked${mode === 'story' && pool.size <= 25 ? ` · about ${Math.ceil([...pool].map(x => fill(x, n, u)).join(', ').length / 3.6)} tokens a reply` : ''}` : 'none picked: any of them'}</small></summary>
+            <p class="mw-fine">Meters mode: the meters choose, trying your picks first. Story mode: the reply names it when things change, matched to your picks (up to 25 are listed in the hidden line; past that it costs nothing extra). Picks marked “story or you” never come from the meters. With none picked, it can be any of them.</p>
             <input type="search" data-dyn-search placeholder="Find a dynamic (captor, crush, toxic…)" aria-label="Find a dynamic">
             <div class="mw-dyn-tools"><button type="button" class="mw-chip-btn" data-action="dyn-pool-save">Save picks for ${esc(n)}’s new chats</button>${savedPool?.length ? `<button type="button" class="mw-chip-btn" data-action="dyn-pool-load">Use saved (${savedPool.length})</button>` : ''}${pool.size ? '<button type="button" class="mw-chip-btn" data-action="dyn-pool-clear">Clear picks</button>' : ''}</div>
             ${groups}</details></div>`;

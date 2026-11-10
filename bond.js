@@ -111,7 +111,7 @@ export { DYNAMIC_GROUPS };
 // Every dynamic, your own included: [name, test, cue, group, keys, covers].
 export const dynamicRows = () => [...DYNAMICS, ...ownRows()];
 const groupTone = Object.fromEntries(DYNAMIC_GROUPS.map(([id, , , tone]) => [id, tone]));
-const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: (row[3] ?? 'own') === 'own' ? row[2](n, u) : pronounize(row[2](n, u), n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
+const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: pronounize(row[2](n, u), n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
 // A name the story or the reader wrote that isn't in the catalogue still works, in its own words.
 const freeDynamic = (text, n, u) => {
     const t = String(text).replace(/\s+/g, ' ').trim().slice(0, 40), name = t.charAt(0).toUpperCase() + t.slice(1);
@@ -167,10 +167,11 @@ export function cleanBond(raw = {}, on = true) {
         on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: text(b.fixed, 60),
         // 1.42.0: who names the dynamic (story: the reply's hidden line; meters: the numbers), your picks for
         // this pair, how fast things move, and the scene reader's last call.
-        mode: b.mode === 'meters' ? 'meters' : 'story', pace: PACE[b.pace] ? b.pace : 'steady',
+        // 1.47.0: Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
+        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false,
         // 1.44.0: pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
-        pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 60),
+        pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // 1.46.2: was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
         read: b.read && typeof b.read === 'object' && text(b.read.name, 60) ? { name: text(b.read.name, 60), why: text(b.read.why, 160), key: text(b.read.key, 120), pos: Math.round(Number(b.read.pos) || -1) } : null,
         v: b.v === 2 ? 2 : 1, anchors,
         base: Object.fromEntries(METERS.map(k => [k, n(b.base?.[k])])),
@@ -203,7 +204,7 @@ export function meterValue(bond, k, steps) {
     return v;
 }
 // list: [{ pos, key, s }] oldest first, read from the chat. Without one, older stored steps are used.
-export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the other', axes = null, list = null) {
+export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the other', axes = null, list = null, raw = false) {
     const all = Array.isArray(list) ? list : storedSteps(bond, chatLength);
     const steps = all.map(x => [x.pos, x.s]);
     const v = Object.fromEntries(METERS.map(k => [k, meterValue(bond, k, all)]));
@@ -237,11 +238,18 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
     const meters = dynamicOf(axesNow, n, u, '', bond.pool);
     const call = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, called = call ? resolveCall(call.text, n, u, bond.pool) : null;
-    const dynamic = bond.fixed ? dynamicOf(axesNow, n, u, bond.fixed) : called ?? meters;
+    // 1.47.0: no flicker. A dynamic read from the meters takes over once it has won two replies running; until
+    // then the last one holds and the card says what it's moving toward. Volatile switches straight away.
+    let shown = meters;
+    if (!raw && !bond.fixed && !called && bond.pace !== 'volatile' && all.length >= 2) {
+        const before = computeBond(bond, chatLength, n, u, axes, all.slice(0, -1), true).byMeters;
+        if (before.key !== meters.key) shown = { ...before, toward: meters.name };
+    }
+    const dynamic = bond.fixed ? dynamicOf(axesNow, n, u, bond.fixed) : called ?? shown;
     const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic, auto: meters.name, source, call: called ? { ...call, name: called.name } : null, trend };
+        dynamic, auto: meters.name, byMeters: meters, source, call: called ? { ...call, name: called.name } : null, trend };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.

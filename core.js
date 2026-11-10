@@ -2,6 +2,7 @@ import { pronounize } from './pronouns.js';
 import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalities, personalityCue } from './personality.js';
 import { TURN_BY_ID, LIKES_TO_TURNS, KINKS_TO_TURNS } from './turns.js';
 import { ADDITIONS_7, DARK_CUES, DEAD_DOVE_SCALED, DODGES } from './additions-1.39.js';
+import { TO_TRAITS, TO_MOODS, MOOD_ADDITIONS } from './moods-1.46.js';
 import { ON_PAGE } from './onpage.js';
 import { AUTHOR_STYLE, NEW_AUTHORS } from './authors-style.js';
 import { patternLines } from './patterns.js';
@@ -2147,6 +2148,20 @@ CATEGORIES.splice(CATEGORIES.findIndex(([id]) => id === 'archetype') + 1, 0, ['s
     );
     home[4].push(['world_leads', 'The world leads', 'the characters and the world make the big moves; no stopping on the edge of something to hand you the choice', 'You only write your character’s words, thoughts and choices. Strong or above makes it push forward every reply.']);
 }
+// 1.46.0: one home per idea. Rows keep their ids wherever they move, so saved values carry over.
+for (const [category, list] of [...Object.entries(TO_TRAITS), ...Object.entries(TO_MOODS)]) {
+    const home = CATEGORIES.find(([id]) => id === category);
+    if (!home) throw new Error(`Moodweaver: unknown category ${category}`);
+    for (const id of list) for (const [cat, , , , rows] of CATEGORIES) {
+        const i = rows.findIndex(([rowId]) => rowId === id);
+        if (i >= 0 && cat !== category) { home[4].push(...rows.splice(i, 1)); break; }
+    }
+}
+for (const [category, rows] of Object.entries(MOOD_ADDITIONS)) {
+    const home = CATEGORIES.find(([id]) => id === category);
+    if (!home) throw new Error(`Moodweaver: unknown category ${category}`);
+    home[4].push(...rows.map(([id, label, cue]) => [id, label, cue]));
+}
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue, note]) => ({ id, label, cue, ...(note ? { note } : {}), category, color, kind })));
 // Traits tab: who someone is, rather than how they feel right now. Same prompt handling as before,
 // but they sit in their own tab and the scene reader never changes them.
@@ -2563,6 +2578,8 @@ export function freshState(base = {}) {
         loadout: cleanLoadout(base.loadout, base),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
+        // 1.45.0: feelings moved by the story's hidden line: on/off, fading on/off, and how fast.
+        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
         reason: '', updatedAt: 0, history: [], revision: 0,
     };

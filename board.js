@@ -2,8 +2,9 @@
 // Moodweaver never changes its HTML (a chat regex styles it). It only reads the latest one back out of
 // the chat, shows it as a Sims-style needs panel, and sends the player's edits and the needs that
 // matter on to the next reply. No extra model calls: the board is already in the reply.
-import { MOODS, SCALED_MOOD_CUES, MERGED_SEARCH_NAMES, analysed } from './core.js';
+import { MOODS, BY_ID, SCALED_MOOD_CUES, MERGED_SEARCH_NAMES, analysed } from './core.js';
 import { RELATIONSHIP_TAGS } from './relationships.js';
+import { MOVED_WORDS } from './moods-1.46.js';
 
 // The board layout. The optional desire row is off unless selected for this chat.
 export const boardTemplate = (char, user, includeHorny = false, rows = {}) => `<div class="ihyll-style">
@@ -534,16 +535,33 @@ function read(line, lookup, phraseList, bare = false) {
 }
 // A feeling named on the weave line: its slider label first ("Clingy / needy", "clingy"), then the
 // same words and synonyms the State row uses. Only feelings resolve; traits and story settings never do.
+// 1.45.0: everyday feeling words the hidden line uses that matched nothing before, so they were dropped.
+const PLAIN_FEELINGS = {
+    'turned on': 'horny', 'hot': 'heated', 'hot and bothered': 'heated', 'wanting': 'craving', 'hungry': 'craving', 'hungry for her': 'starved_for_them', 'hungry for him': 'starved_for_them',
+    'tempted': 'forbidden_want', 'teased': 'heated', 'teasing': 'playful', 'flirtatious': 'flirty', 'coy': 'shy', 'provoked': 'angry', 'riled': 'angry', 'goaded': 'angry', 'insulted': 'angry',
+    'displeased': 'angry', 'vexed': 'angry', 'fascinated': 'curious', 'captivated': 'curious', 'gratified': 'content', 'horrified': 'in_shock', 'appalled': 'disgusted', 'devastated': 'hurt',
+    'fixated': 'obsessed', 'awkward': 'embarrassed', 'conflicted': 'confused', 'torn': 'confused', 'surprised': 'shocked', 'startled': 'shocked', 'weary': 'tired', 'touched': 'deeply_moved',
+    'unimpressed': 'distant', 'aloof': 'distant', 'menacing': 'smiling_threat', 'threatening': 'smiling_threat', 'cornered': 'afraid', 'trapped': 'helpless', 'superior': 'condescending',
+    'haughty': 'condescending', 'arrogant': 'smug', 'controlled': 'controlling', 'in control': 'controlling', 'commanding': 'controlling', 'dominant': 'controlling', 'authoritative': 'controlling',
+    'powerful': 'power_drunk', 'submissive': 'vulnerable', 'obedient': 'vulnerable', 'meek': 'vulnerable', 'docile': 'vulnerable', 'compliant': 'vulnerable', 'deferential': 'vulnerable',
+    'spoiled': 'demanding', 'spoilt': 'demanding', 'pampered': 'content', 'bratty': 'demanding', 'pouty': 'sulking', 'petulant': 'sulking', 'cagey': 'defensive',
+};
 let labelIndex = null, labelSize = 0;
 export function feelingId(name) {
     const text = String(name ?? '').toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return null;
     if (!labelIndex || labelSize !== MOODS.length) {
         labelIndex = new Map(); labelSize = MOODS.length;
-        for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), ...m.label.toLowerCase().split(/\s*\/\s*/), m.id.replace(/_/g, ' '), ...(MERGED_SEARCH_NAMES[m.id] ?? []).map(x => x.toLowerCase())])
-            if (key && !labelIndex.has(key.trim())) labelIndex.set(key.trim(), m.id);
+        // 1.45.0: every moodlet's own name and id first, then search aliases, so "giddy" is Giddy and not
+        // Excited (which lists Giddy as an alias), and "masking (outward coldness)" is that one.
+        const set = key => { key = key?.trim(); if (key && !labelIndex.has(key)) return key; return ''; };
+        for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), m.label.toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' '), m.id.replace(/_/g, ' ')]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
+        for (const m of MOODS) if (analysed(m)) for (const key of [...m.label.toLowerCase().split(/\s*\/\s*/), ...(MERGED_SEARCH_NAMES[m.id] ?? []).map(x => x.toLowerCase())]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
+        for (const [word, id] of Object.entries({ ...PLAIN_FEELINGS, ...MOVED_WORDS })) if (BY_ID[id] && analysed(BY_ID[id]) && !labelIndex.has(word)) labelIndex.set(word, id);
     }
     if (labelIndex.has(text)) return labelIndex.get(text);
+    const bare = text.replace(/\b(with|for|by|at|about|toward|towards|of|on|her|him|his|them|their|lamb|it)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if (bare !== text && labelIndex.has(bare)) return labelIndex.get(bare);
     for (const word of text.split(' ')) { const hit = buildFeelIndex().get(word) ?? (labelIndex.has(word) ? { id: labelIndex.get(word) } : null); if (hit) return hit.id; }
     return null;
 }

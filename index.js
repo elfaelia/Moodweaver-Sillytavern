@@ -14,6 +14,7 @@ import { ON_PAGE } from './onpage.js';
 import { bondView, bondMini } from './bond-ui.js';
 import { parseWeave, hasWeave, stripWeave, weavePrompt, powerChange } from './weave.js';
 import { weaveKey, effectiveChat, settle, track, untrack, diff } from './ledger.js';
+import { MOOD_PACE, moodPaceOf, paceDelta, fadeStep } from './moodpace.js';
 import { applyLibrary, cleanLibrary, libraryPrompt, librarySections, newLibraryId, isTurnGroup, turnGroupKey } from './library.js';
 
 import { castFor, addCastMember, castDefaults, castName, newCastId } from './cast.js';
@@ -27,7 +28,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.44.0';
+const VERSION = '1.46.0';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -603,15 +604,22 @@ function applyReply(meta, writer, st, m, b, hold = null) {
             const led = ((meta.weave ??= {})[`char:${writer.avatar}`] ??= {}); led.auto ??= {};
             const custom = () => (st.custom ??= []);
             // Catalogue names first, then their own rows, then a new row of their own.
+            // 1.46.0: "Only my list" keeps the story to the feelings on the character's list (and their own rows).
+            const listOnly = st.moodScope === 'list', listed = id => !listOnly || st.loadout?.includes(id) || (st.moods[id] ?? 0) > 0;
             const resolve = (name, delta) => {
                 const own = custom().find(r => r.kind === 'mood' && r.text.toLowerCase() === name); if (own) return `custom:${own.id}`;
-                const id = feelingId(name); if (id) return id;
-                if (delta <= 0 || name.length > 40 || name.split(' ').length > 4) return null;
+                const id = feelingId(name); if (id) return listed(id) ? id : null;
+                if (listOnly || delta <= 0 || name.length > 40 || name.split(' ').length > 4) return null;
                 if (Object.entries(led.auto).filter(([rid, text]) => custom().some(r => r.id === rid && r.text === text)).length >= 3) return null;
                 const row = { id: newId(), kind: 'mood', text: name, value: 0, cause: '' };
                 custom().push(row); led.auto[row.id] = row.text; return `custom:${row.id}`;
             };
-            rec.m = track(moodTarget(st), w.moods, (name, delta) => { const id = resolve(name, delta); return id && hold?.m?.has(id) ? null : id; });
+            // 1.45.0: the character's own switch, the pace cap, and arousal from the desire card reaching Horny
+            // (the desire field used to take it, so Horny never moved while the card was on).
+            const pace = moodPaceOf(st), named = new Set();
+            const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
+            if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
+            rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
             const relation = userRelation(st, Boolean(w.toward.length || w.feels.length));
             if (relation) {
                 const before = { ...relation.moods };
@@ -630,7 +638,20 @@ function applyReply(meta, writer, st, m, b, hold = null) {
                 feedValues(st.moods, { ...st.pins, ...named }, fed.moods, feelingsFromBoard(board).filter(x => !named[x.id]));
                 Object.assign(rec.m, diff(before, st.moods));
             }
-            notes.push(...Object.keys(rec.m).map(id => labelOf(st, id)), ...Object.keys(rec.r).map(id => labelOf(st, id)),
+            // 1.45.0: feelings nobody mentioned for a while fade, on the character's pace. Pinned ones and
+            // traits never do. Recorded with the reply, so a swipe or Undo puts them back.
+            if (st.moodAuto !== false && st.moodFade !== false) {
+                for (const id of Object.keys(rec.m)) named.add(id);
+                const values = {};
+                for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
+                for (const r of st.custom ?? []) if (r.kind === 'mood' && r.value > 0) values[`custom:${r.id}`] = r.value;
+                rec.q = structuredClone(st.moodQuiet ?? {});
+                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, moodPaceOf(st));
+                st.moodQuiet = quiet;
+                const target = moodTarget(st);
+                for (const [id, v] of Object.entries(faded)) { rec.m[id] = [values[id], v]; target.set(id, v); rec.f = [...(rec.f ?? []), id]; }
+            }
+            notes.push(...Object.keys(rec.m).filter(id => !rec.f?.includes(id)).map(id => labelOf(st, id)), ...Object.keys(rec.r).map(id => labelOf(st, id)),
                 ...Object.entries(w.needs).map(([k, v]) => `${k} ${needWord(v).toLowerCase()}`));
         }
         if (settings().boardMemories) rec.mem = remember(writer, rec.k, w.remember);
@@ -658,6 +679,7 @@ function applyReply(meta, writer, st, m, b, hold = null) {
 }
 function undoReply(meta, writer, st, rec) {
     const backM = untrack(moodTarget(st), rec.m);
+    if (rec.q) st.moodQuiet = structuredClone(rec.q);
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);
@@ -833,7 +855,7 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const zero = (moods, ids) => Object.fromEntries(Object.entries(moods ?? {}).map(([id, v]) => [id, ids.has(id) ? 0 : v]));
         const youRel = dropped.rel.size ? userRelation(state) : null;
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
-        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
+        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: moodPaceOf(state), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
         // 1.41.0: skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
@@ -925,6 +947,8 @@ async function analyse(force = false, whom = who, ch = target()) {
     const c = ctx(), subject = readerSubject(whom, ch);
     const state = subject?.state;
     if (suspended || !state || !state.enabled || pending || whom === 'story') return;
+    // 1.45.0: nothing ticked means nothing to read; don't pay for an empty request.
+    if (!SCOPES.some(([k]) => cleanScope(state.readScope)[k])) { if (force) { status = `Nothing to read: tick Moodlets, Body, Traits or Wants under ✧ Scene reader first.`; renderStatus(); } return; }
     const profile = readerProfile();
     if (!profile) { status = 'Pick a reader connection under ✧ Scene reader first.'; renderStatus(); return; }
     const snapshot = identity(ch) + subject.key, revision = state.revision, metadata = c.chatMetadata;
@@ -1168,7 +1192,7 @@ function readerBlock(state) {
     const start = sceneStart(), chatLen = ctx().chat?.length ?? 0;
     return `<details class="mw-reader" data-reader ${profile ? 'open' : ''}>
         <summary class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>${profile ? `Reads the latest messages and moves ${esc(subjectName())}’s sliders. Pinned ◆ ones stay put.` : 'Optional, and an extra paid request per read. The hidden weave line already does this for free with every reply.'}</small></div></summary>
-        <div class="mw-scope" role="group" aria-label="What to read">${SCOPES.map(([k, icon, label]) => `<button type="button" class="mw-scope-chip" data-scope="${k}" aria-pressed="${scope[k]}">${icon} ${label}</button>`).join('')}</div>
+        <div class="mw-scope" role="group" aria-label="What to read">${SCOPES.map(([k, icon, label]) => `<button type="button" class="mw-scope-chip" data-scope="${k}" aria-pressed="${scope[k]}">${scope[k] ? '✓' : icon} ${label}</button>`).join('')}</div>${anyScope ? '' : '<p class="mw-fine mw-scope-none">Nothing ticked, so there’s nothing to read. Tap Moodlets to read feelings.</p>'}
         <div class="mw-reader-go"><button class="mw-primary mw-read" data-action="analyse" ${pending || !profile || !state.enabled || !anyScope ? 'disabled' : ''}>${pending ? 'Reading…' : '✧ Read the scene'}</button>${pending ? '<button data-action="cancel">Stop</button>' : `<button data-action="undo" ${!state.history?.length ? 'disabled' : ''} title="Undo the last read">↶ Undo</button>`}</div>
         <p class="mw-reader-meta">Last ${settings().sceneMessages} messages${start ? ' since your scene marker' : ''} · about ${fmtTokens(est)} tokens a read${scope.trait ? ' · traits roughly double it' : ''}</p>
         ${!profile ? '<p class="mw-fine mw-warn">Pick a connection for the reader below. A small, cheap model does the job.</p>' : ''}
@@ -1430,11 +1454,44 @@ function sectionContent(state, kind, ch, active) {
         ${kind === 'turn' && who === 'char' ? reactiveBlock(state, ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
         ${kind === 'mood' && state.reason ? `<div class="mw-observation">✧ ${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
+    ${kind === 'mood' && who === 'char' ? storyMoodBlock(state, ch) : ''}
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
     ${['mood', 'trait'].includes(kind) && who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && who === 'user' ? turnKnowledgeRows(state, ch, getKnowledge(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
+}
+// ---- 1.45.0: the story moves moods ----
+// The hidden line at the end of each reply moves feelings for free. This card switches it on or off per
+// character, sets how fast it moves and fades, and shows (and can undo) what the last reply did.
+const FEELINGS_COUNT = MOODS.filter(analysed).length;
+// The feelings on a character's list, as the plain names the hidden line uses (first part of the label).
+function listedFeelings(st) {
+    const ids = new Set([...(st.loadout ?? []), ...Object.keys(st.moods ?? {}).filter(id => st.moods[id] > 0)]);
+    return [...ids].map(id => BY_ID[id]).filter(m => m && analysed(m)).map(m => m.label.split('/')[0].trim().toLowerCase())
+        .concat((st.custom ?? []).filter(r => r.kind === 'mood').map(r => r.text.toLowerCase()));
+}
+function lastMoodRec(ch) {
+    const list = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [];
+    return list.at(-1) ?? null;
+}
+function storyMoodBlock(state, ch) {
+    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = moodPaceOf(state);
+    const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => !id.startsWith('custom:') || (state.custom ?? []).some(r => `custom:${r.id}` === id));
+    const name = id => id.startsWith('custom:') ? (state.custom ?? []).find(r => `custom:${r.id}` === id)?.text ?? 'their own' : BY_ID[id]?.label ?? id;
+    const step = ([id, [a, b]]) => `<span class="mw-moodstep ${rec.f?.includes(id) ? 'is-fade' : b > a ? 'is-up' : 'is-down'}">${esc(name(id))} ${b === 0 ? 'off' : `${b > a ? '+' : '−'}${Math.abs(b - a)}`}${rec.f?.includes(id) ? ' · fading' : ''}</span>`;
+    const blocked = !bond.on ? 'Switch Bonds on for this character to use it: the hidden line comes with Bonds.' : !feed ? 'Replies are set not to update feelings (Board settings), so this is paused.' : '';
+    return `<details class="mw-storymood" data-anchor="story-moods" ${on ? 'open' : ''}><summary><span>☾ The story moves moods</span><small>${on ? `${esc(pace.label)}${fade ? ', fading' : ''}` : 'off'}</small></summary>
+        <label class="mw-toggle"><input type="checkbox" data-mood-auto ${on ? 'checked' : ''}> Each reply moves ${esc(ch.name)}’s feelings (free, no extra request)</label>
+        ${blocked ? `<p class="mw-fine mw-scope-none">${blocked}</p>` : ''}
+        ${on ? `<div class="mw-storymood-row"><label>Speed<select data-mood-pace aria-label="How fast feelings change">${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${state.moodPace === k || (!MOOD_PACE[state.moodPace] && k === 'steady') ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
+            <label class="mw-toggle"><input type="checkbox" data-mood-fade ${fade ? 'checked' : ''}> Fade</label></div>
+        <label class="mw-storymood-which">Which feelings<select data-mood-scope aria-label="Which feelings the story can set">
+            <option value="any" ${state.moodScope !== 'list' ? 'selected' : ''}>Any of the ${FEELINGS_COUNT} moods</option>
+            <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}’s list (${listedFeelings(state).length})</option></select></label>
+        ${state.moodScope === 'list' ? `<p class="mw-fine">The hidden line is given the names on the list (about ${Math.ceil(listedFeelings(state).join(', ').length / 3.6)} tokens), and anything else it names is ignored. Add moods to the list from the catalogue below.</p>` : ''}
+        <p class="mw-fine">${esc(pace.label)}, ${esc(pace.hint)}: up to ${pace.step} a reply.${fade ? ` A feeling nobody mentions for ${pace.after} repl${pace.after === 1 ? 'y' : 'ies'} loses ${pace.fade} a reply after that.` : ' Feelings stay until the story turns them down.'} Pinned ◆ ones never move.</p>
+        ${moved.length ? `<div class="mw-moodlast"><small>Last reply</small><div>${moved.map(step).join('')}</div><button type="button" data-action="mood-undo-last">↶ Undo</button></div>` : rec?.undone ? '<p class="mw-fine">Last reply’s changes were undone.</p>' : ''}` : ''}</details>`;
 }
 // ---- 1.41.0: Skills ----
 // Who can have skills in this reply: the character, your character and the cast in the scene.
@@ -1952,6 +2009,10 @@ function setup() {
         if (input.dataset.bondMeter) { const key = input.dataset.bondMeter, v = Number(input.value); await editBond((b, list) => setMeter(b, key, v, list)); return; }
         if (input.hasAttribute('data-bond-on')) { await editBond(b => { b.on = input.checked; }); return; }
         // 1.39.1: the desire card.
+        if (input.hasAttribute('data-mood-auto')) { await changeState(s => { s.moodAuto = input.checked; }); return; }
+        if (input.hasAttribute('data-mood-fade')) { await changeState(s => { s.moodFade = input.checked; }); return; }
+        if (input.hasAttribute('data-mood-scope')) { await changeState(s => { s.moodScope = input.value === 'list' ? 'list' : 'any'; }); return; }
+        if (input.hasAttribute('data-mood-pace')) { await changeState(s => { s.moodPace = MOOD_PACE[input.value] ? input.value : 'steady'; }); return; }
         if (input.hasAttribute('data-desire-on')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), on: input.checked }; }); return; }
         if (input.hasAttribute('data-desire-pace')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), pace: input.value }; }); return; }
         if (input.hasAttribute('data-desire-cap')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), cap: Number(input.value) }; }); return; }
@@ -2245,6 +2306,15 @@ function setup() {
         }
         if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
         if (button.dataset.wing !== undefined) { await changeState(s => { s.enneagram = cleanEnneagram({ ...cleanEnneagram(s.enneagram), wing: button.dataset.wing }); }); return; }
+        if (button.dataset.action === 'mood-undo-last') {
+            const ch = target(), st = getState(ch), rec = lastMoodRec(ch); if (!st || !rec) return;
+            const back = untrack(moodTarget(st), rec.m);
+            if (rec.q) st.moodQuiet = structuredClone(rec.q);
+            // Kept in the record (so the reply isn't applied again), with nothing left to apply.
+            rec.m = {}; rec.f = []; rec.undone = true; st.revision = (st.revision || 0) + 1;
+            status = back.length ? `Undid what the last reply did to ${back.length} feeling${back.length === 1 ? '' : 's'}.` : 'Nothing to undo: those feelings were changed by hand since.';
+            await persist(st); await syncPrompt(); render(); renderStatus(); return;
+        }
         if (button.dataset.scope) { const k = button.dataset.scope; await changeState(s => { s.readScope = cleanScope({ ...s.readScope, [k]: !cleanScope(s.readScope)[k] }); }); return; }
         if (button.dataset.readerMsgs) { settings().sceneMessages = Number(button.dataset.readerMsgs); ctx().saveSettingsDebounced(); render(); return; }
         if (button.dataset.libEdit) {

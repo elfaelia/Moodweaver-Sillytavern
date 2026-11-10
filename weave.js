@@ -28,7 +28,7 @@ function changes(v, max = 5) {
     return String(v ?? '').split(/[,;]/).map(part => {
         const m = part.trim().replace(/[−–]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*$/i);
         // "afraid off" ends a feeling outright: the model only sees strength words, not numbers.
-        return m ? { name: unquote(m[1]).toLowerCase(), delta: /off|gone/i.test(m[2]) ? -100 : clamp(num(m[2]), -30, 30) } : null;
+        return m ? { name: unquote(m[1]).toLowerCase(), delta: /off|gone/i.test(m[2]) ? -100 : clamp(num(m[2]), -40, 40) } : null;
     }).filter(x => x && x.name && x.delta).slice(0, max);
 }
 export const NEED_WORDS = { critical: 10, low: 30, okay: 55, ok: 55, fine: 85, full: 95, met: 90 };
@@ -87,7 +87,7 @@ function readLine(body) {
         // 1.42.0: the story's own name for the dynamic, only when it shifted.
         dynamic: NONE.test(unquote(f.dynamic ?? '')) ? '' : unquote(f.dynamic ?? '').replace(/\s*\(.*$/, '').slice(0, 40),
         hasTrust: 'trust' in f, hasPower: 'control' in f || 'power' in f, pRaw: f.control ?? f.power ?? '', lRaw: f.pull ?? '',
-        moods: changes(f.moods, 5), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
+        moods: changes(f.moods, 10), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
         wants: wantItems(f.wants), fears: list(f.fears, 3, 80), pressed: list(f.pressed, 3, 80),
         newWant: NONE.test(unquote(f.newwant ?? '')) ? '' : unquote(f.newwant ?? '').slice(0, 100),
         desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
@@ -107,7 +107,7 @@ export function parseWeave(mes) {
         if (x.dynamic) out.dynamic = x.dynamic;
         out.hasTrust ||= x.hasTrust; out.hasPower ||= x.hasPower; out.hasMoods ||= x.hasMoods;
         out.pRaw = [out.pRaw, x.pRaw].filter(Boolean).join(' ; '); out.lRaw = [out.lRaw, x.lRaw].filter(Boolean).join(' ; ');
-        out.moods = [...out.moods, ...x.moods].slice(0, 10); out.toward = [...out.toward, ...x.toward].slice(0, 6);
+        out.moods = [...out.moods, ...x.moods].slice(0, 14); out.toward = [...out.toward, ...x.toward].slice(0, 6);
         out.feels = [...out.feels, ...x.feels].slice(0, 6); out.needs = { ...out.needs, ...x.needs };
         out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6);
         if (x.remember) out.remember = x.remember;
@@ -152,11 +152,11 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25' },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
-    const size = SIZES[pace] ?? SIZES.steady;
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
+    const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     const example = [
-        ...(moods ? ['moods relieved +15, afraid off', 'needs hunger low, health -10', 'toward protective +5'] : []),
+        ...(moods ? [...(feelings ? ['moods amused +10, wanting +5, afraid off'] : []), 'needs hunger low, health -10', 'toward protective +5'] : []),
         ...(bond ? ['romance +2', ...(extra ? ['trust -1', `control ${n} +1`, `pull ${u} +2`] : []), 'thinks: stubborn', 'sparked: defiance'] : []),
         ...(meters.length ? [`meters: ${meters[0]} +2`] : []),
         ...(dynamic ? [`dynamic: ${dynamic.pool?.[0] ?? 'kept and tended'}`] : []),
@@ -168,7 +168,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, rem
     return [
         `End every reply with one hidden line only Moodweaver reads, listing what this reply changed for ${n}. Leave out what didn't change (nothing changed: <!-- weave: none -->). The example shows the shape only:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [`- moods: ${n}'s feelings that rose or fell, by name or a plain feeling word, -30 to +30, or off when one ends.`,
+        ...(moods ? [...(feelings ? [`- moods: every feeling of ${n}'s that rose, fell or ended this reply, up to eight, desire, amusement and irritation included, in a plain word or its name in these notes: ${mp.ordinary} for ordinary moments, up to ${mp.step} for big ones, off when one ends. Dark, ugly and sexual feelings count as much as kind ones. When the scene moves on from a feeling, turn it down or off.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}`] : []),
             `- needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change (health -10): food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them, and a beating costs health even if enjoyed.`,
             `- toward: ${n}'s feelings about ${u} that moved, by name (obsessed, protective, distrusts), -30 to +30.`] : []),
         ...(bond ? [`- friendship, romance${extra ? ', trust' : ''}: -${size.range} to +${size.range}; ${size.ordinary} for ordinary moments, ${size.turn} only for turning points. Score what this reply shows, even against where they stand now. Friendship is liking and loyalty, romance is desire and love${extra ? `, trust is believing and relying on ${u}` : ''}.`,

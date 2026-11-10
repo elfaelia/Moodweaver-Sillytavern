@@ -499,3 +499,18 @@
 .mw-overlap-all{width:100%;margin-top:2px}
 .mw-overlap-held{opacity:.65}
 .mw-dyn-pronouns{align-items:end}.mw-dyn-pronouns label{flex:1 1 0;min-width:0;display:grid;gap:3px;font-size:.86em;opacity:.9}.mw-dyn-pronouns select{width:100%;min-width:0}
+.mw-scope-none{margin:-4px 0 8px;color:#e8b86a}
+/* 1.45.0: the story moves moods */
+.mw-storymood{margin:10px 0;padding:10px 12px;border-radius:16px;background:#c9b8f010;border:1px solid #c9b8f033}
+.mw-storymood summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
+.mw-storymood summary small{font-weight:400;opacity:.75}
+.mw-storymood .mw-toggle{margin-top:8px}
+.mw-storymood-row{display:flex;align-items:end;gap:12px;margin-top:8px}
+.mw-storymood-row>label:first-child{flex:1;display:grid;gap:3px;font-size:.86em}
+.mw-storymood-row select{width:100%}
+.mw-moodlast{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #ffffff14}
+.mw-moodlast>div{display:flex;flex-wrap:wrap;gap:5px}
+.mw-moodstep{padding:3px 9px;border-radius:999px;font-size:.84em;background:#ffffff0f}
+.mw-moodstep.is-up{background:#7fd1a01f;color:#a7e3bf}.mw-moodstep.is-down{background:#e8a0a01a;color:#efb9b9}.mw-moodstep.is-fade{opacity:.6;font-style:italic}
+.mw-moodlast button{justify-self:start;min-height:34px;padding:4px 14px;border-radius:999px}
+.mw-storymood-which{display:grid;gap:3px;margin-top:8px;font-size:.86em}.mw-storymood-which select{width:100%}

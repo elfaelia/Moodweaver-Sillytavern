@@ -3,6 +3,7 @@ import { cleanPersonality, cleanEnneagram, activePersonality, activePersonalitie
 import { TURN_BY_ID, LIKES_TO_TURNS, KINKS_TO_TURNS } from './turns.js';
 import { ADDITIONS_7, DARK_CUES, DEAD_DOVE_SCALED, DODGES } from './additions-1.39.js';
 import { TO_TRAITS, TO_MOODS, MOOD_ADDITIONS } from './moods-1.46.js';
+import { ERA_CUES } from './era-lenses.js';
 import { ON_PAGE } from './onpage.js';
 import { AUTHOR_STYLE, NEW_AUTHORS } from './authors-style.js';
 import { patternLines } from './patterns.js';
@@ -2162,6 +2163,8 @@ for (const [category, rows] of Object.entries(MOOD_ADDITIONS)) {
     if (!home) throw new Error(`Moodweaver: unknown category ${category}`);
     home[4].push(...rows.map(([id, label, cue]) => [id, label, cue]));
 }
+// 1.49.0: eras say the feel in a short line instead of a list of props.
+for (const row of CATEGORIES.find(([id]) => id === 'era')[4]) if (ERA_CUES[row[0]]) row[2] = ERA_CUES[row[0]];
 export const MOODS = CATEGORIES.flatMap(([category, , , color, rows, kind = 'mood']) => rows.map(([id, label, cue, note]) => ({ id, label, cue, ...(note ? { note } : {}), category, color, kind })));
 // Traits tab: who someone is, rather than how they feel right now. Same prompt handling as before,
 // but they sit in their own tab and the scene reader never changes them.
@@ -2579,7 +2582,7 @@ export function freshState(base = {}) {
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         // 1.45.0: feelings moved by the story's hidden line: on/off, fading on/off, and how fast.
-        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
+        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPaceLinked: base.moodPaceLinked !== false, moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
         reason: '', updatedAt: 0, history: [], revision: 0,
     };
@@ -3666,6 +3669,8 @@ export function composePrompt(state, name, extras = {}) {
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
     const out = [`The player's notes for this reply. They're newer than the card, the chat and earlier style rules, so where they differ, follow these.`];
+    // 1.49.1: said once, so nobody gets called "they" by default.
+    if (extras.pronounLine) out.push(pt(extras.pronounLine));
     if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${TIER_NOTE[t.name.toLowerCase()]}.`));
     if (story.length) out.push('',
         `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it, several at once if several are that high.`);
@@ -3675,7 +3680,7 @@ export function composePrompt(state, name, extras = {}) {
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
     if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pa(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people, lit), ...mineExtra, `</character_state>`);
     if (feelings.length || state.custom?.some(r => r.value > 0 && r.kind === 'mood')) out.push('',
-        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body, what they notice and the choice they make.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Don't swap a listed feeling for the card's usual one; if the reply would read the same with a different blend, rewrite it.`,
+        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Don't swap a listed feeling for the card's usual one; if the reply would read the same with a different blend, rewrite it.`,
         ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their mood decides how openly.`] : []));
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 61 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through on the page. Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
@@ -3719,7 +3724,7 @@ export function composePrompt(state, name, extras = {}) {
                 for (const tag of rows) {
                     const value = relation.moods[tag.id];
                     const source = isPlayer ? knowledgeEntry(player?.knowledge?.[relationshipKey(relation, tag.id)]).source : '';
-                    out.push(`- ${tierWord(value)}: ${pt(relationshipText(tag, value, shortName(target)))}${value >= 61 ? doseOf(value) : ''}${source ? ` (how: ${pt(source)})` : ''}`);
+                    out.push(`- ${tierWord(value)}: ${pt(relationshipText(tag, value, shortName(target), shortName(subject)))}${value >= 61 ? doseOf(value) : ''}${source ? ` (how: ${pt(source)})` : ''}`);
                 }
             }
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
@@ -3753,8 +3758,11 @@ export function composePrompt(state, name, extras = {}) {
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
     const followPeak = Math.max(deadDoveStrength, peakOf(story.filter(m => ['follow_through', 'no_fade_out', 'no_rescues', 'full_strength'].includes(m.id)))), followOn = followPeak >= 21;
-    if (eras.length) out.push('', ...listLines(storyState, eras, U), '',
-        `Keep everything true to that period and place: technology, money, slang, manners, laws, medicine, what people know and the attitudes of the time. No anachronisms. Labels in these notes are modern shorthand (trauma bond, gaslighting, narcissist and so on), so show them through period words and behaviour.`,
+    // 1.49.0: the period as one plain instruction and a short line, then what it does to the things in play.
+    const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
+    if (eras.length) out.push('', ...[...eras].sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map((m, i) => `${i ? 'It also touches on' : 'Keep the story set in'} ${m.label}${i ? '' : year}. ${m.cue[0].toUpperCase()}${m.cue.slice(1)}.`),
+        ...(extras.lenses?.length ? [`What the period does to what's in play:`, ...extras.lenses.map(pt)] : []),
+        `Keep technology, money, slang, manners, laws, medicine and attitudes true to it, with no anachronisms. Modern labels in these notes (trauma bond, gaslighting, narcissist) are shorthand: show them through period words and behaviour.`,
         ...(locales.length ? [LOCALE_MARK] : []));
     if (plot.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, plot, U), ...storyExtra, '',
         `Blend these into one story led by the strongest. They decide what happens, the pace, stakes and consequences, not how anyone feels.${plotPeak >= 91 ? ` An overwhelming one shapes nearly every beat; commit to it instead of drifting somewhere safer.` : ''}`,
@@ -3787,7 +3795,7 @@ export function composePrompt(state, name, extras = {}) {
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject }).split(':')[0]} (${tierWord(st.moods[m.id])})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     for (const { name: subject, target, relation, tags } of relationships) {
-        const high = tags.filter(tag => relation.moods[tag.id] >= 81).map(tag => `${pt(relationshipText(tag, relation.moods[tag.id], shortName(target))).split(':')[0]} (${tierWord(relation.moods[tag.id])})`);
+        const high = tags.filter(tag => relation.moods[tag.id] >= 81).map(tag => `${pt(relationshipText(tag, relation.moods[tag.id], shortName(target), shortName(subject))).split(':')[0]} (${tierWord(relation.moods[tag.id])})`);
         if (high.length) top.push(`${pt(shortName(subject))} toward ${pt(shortName(target))}: ${high.join(', ')}`);
     }
     for (const pair of pairs) {

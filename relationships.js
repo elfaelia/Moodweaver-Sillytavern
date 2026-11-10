@@ -1,3 +1,5 @@
+import { REL_PRONOUN_PROMPTS, REL_PRONOUN_SCALED, fillPronouns } from './rel-pronouns.js';
+import { pronounOf } from './pronouns.js';
 // Relationships come in two kinds.
 // Shared ("between them"): true for both people and sent once, like dating or enemies to lovers.
 // Directed: one person's side only, like a crush, an opinion or "they're mine".
@@ -441,6 +443,9 @@ RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Attachment & power')[3].push(
 RELATIONSHIP_CATEGORIES.find(([n]) => n === 'Their role')[3].push(
     ['deals_to', 'Deals to them', 'supplies their drugs; they owe money, favours or loyalty', 'deals drugs to {other}, who owes money, favours or loyalty'],
     ['buys_from', 'Buys from them', 'gets their drugs from them and needs them for it', 'buys drugs from {other} and needs them for it'],
+    // 1.48.0: Star and fan used to be a dynamic you picked; roles live here now.
+    ['idol_to', 'Famous to them', 'a star they adore from below: posters, rumours, saved clippings', 'is famous to {other}, who adores them as a fan'],
+    ['fan_of', 'Fan of', 'adores them from below as a star they know from a distance', 'is a fan of {other}, adoring them from a distance'],
 );
 SHARED_CATEGORIES.find(([n]) => n === 'Their story')[3].push(
     ['monster_on_leash', 'Monster on a leash', 'one is dangerous to everyone; only the other can calm or steer them', 'monster on a leash: one is dangerous to everyone, and only the other can calm or steer them'],
@@ -552,8 +557,12 @@ export function relationshipCue(tag, value) {
     const scaled = SCALED[tag.id]?.find(([min]) => value >= min)?.[1];
     return scaled ? scaled.replaceAll('{other}', 'them') : tag.cue;
 }
-export function relationshipText(tag, value, other) {
+// 1.49.1: subject is the one the line is about; their pronouns and the other person's come from the Pronouns
+// picker, so "in charge of their treatment" reads "in charge of her treatment".
+export function relationshipText(tag, value, other, subject = '') {
     const full = RELATIONSHIP_BY_ID[tag.id] ?? SHARED_BY_ID[tag.id] ?? tag;
+    const marked = REL_PRONOUN_SCALED[tag.id]?.find(([min]) => value >= min)?.[1] ?? REL_PRONOUN_PROMPTS[tag.id];
+    if (marked) return fillPronouns(marked, pronounOf(subject), pronounOf(other)).replaceAll('{other}', other);
     const scaled = SCALED[tag.id]?.find(([min]) => value >= min)?.[1];
     return (scaled ?? full.prompt ?? full.cue).replaceAll('{other}', other);
 }

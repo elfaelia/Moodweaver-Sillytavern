@@ -165,6 +165,19 @@ export const LATE_MORE = [
 ];
 
 // Never read from the meters: you pick these, or the story names them.
+// 1.48.0: these were never read from the meters, so they got in the way of the automatic list, and each one
+// already had a home in Relationships. They're out of the dynamics list now; picking one in an older chat
+// moves it to its home. kind: rel (his side toward you), shared (both ways), trait or mood.
+export const ROLE_HOMES = {
+    'Captor and captive': ['rel', 'captor_of'], 'Doctor and patient': ['rel', 'doctor_of'], 'Scientist and subject': ['shared', 'scientist_and_subject'],
+    'Photographer and model': ['rel', 'sees_as_muse'], 'Teacher and student (classroom)': ['rel', 'teacher_of'], 'Boss and secretary': ['rel', 'boss_of'],
+    'Master and servant': ['rel', 'employs_in_house'], 'Patriarchal power (1960s)': ['rel', 'has_power_over'], 'Fatherly ({n} to {u})': ['trait', 'fatherly'],
+    'Motherly ({n} to {u})': ['rel', 'caretaker_of'], 'Guardian and ward': ['rel', 'guardian_of'], 'Brother and sister': ['shared', 'siblings'], 'Siblings': ['shared', 'siblings'],
+    'Therapist and patient': ['rel', 'doctor_of'], 'Handler and asset': ['rel', 'leads'], 'Bodyguard and client': ['shared', 'bodyguard'], 'Star and fan': ['rel', 'idol_to'],
+    'Dealer and user': ['rel', 'deals_to'], 'Bandmates': ['shared', 'teammates'], 'Owner and pet': ['trait', 'owner'], 'Arranged marriage': ['shared', 'arranged_marriage'],
+    'Marriage of convenience': ['shared', 'marriage_of_convenience'], 'Fake relationship': ['shared', 'fake_dating'], 'Secret affair': ['shared', 'secret_relationship'],
+    'Exes': ['shared', 'exes'], 'Killer couple': ['shared', 'killer_couple'], 'Grieving them': ['mood', 'grieving'],
+};
 export const PICKED_DYNAMICS = [
     ['Captor and captive', null, (n, u) => `${n} holds ${u} captive: locks, routines, rules, and the slow work of getting through each day of it`, 'captor', 'captor captive kidnapped kidnapper prisoner held captive', ['captor_captive']],
     ['Doctor and patient', null, (n, u) => `${n} treats ${u} with clinical authority: examinations, instructions, notes taken, and ${u}'s body discussed like a case`, 'roles', 'doctor patient clinical examination exam medical', []],

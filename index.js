@@ -8,7 +8,10 @@ import { bondReadMessages, parseBondRead } from './bondread.js';
 import { findPatterns } from './patterns.js';
 import { MORE_PRESETS, MORE_METERS, cleanMore, setMore, meterWeaveNames, computeMore, saidMeters } from './meters.js';
 import { findOverlaps, droppedIds } from './overlap.js';
-import { setPronoun, guessPronoun, PRONOUN_CHOICES } from './pronouns.js';
+import { ROLE_HOMES } from './dynamics.js';
+import { setPronoun, guessPronoun, PRONOUN_CHOICES, pronounize } from './pronouns.js';
+import { eraLenses, POWER_ROLES, UNDER_ROLES, POWER_PAIRS, MEDICINE_ROLES, MEDICINE_PAIRS, ROMANCE_PAIRS, MONEY_ROLES, MONEY_STANDING, SUB_TRAITS, SUB_TURNS, DOM_TRAITS, DOM_TURNS } from './era-lenses.js';
+import { roleLink, moodLink } from './links.js';
 import { cravingsFrom, findCombos, cleanCombos, COMBOS } from './reactive.js';
 import { ON_PAGE } from './onpage.js';
 import { bondView, bondMini } from './bond-ui.js';
@@ -29,7 +32,7 @@ import { capturePanel, savedPanel, restorePanelFields, restorePanelPosition, cle
 const KEY = 'moodweaver';
 const PROMPT_KEY = 'moodweaver-state';
 const ctx = () => SillyTavern.getContext();
-const VERSION = '1.47.0';
+const VERSION = '1.49.1';
 // 1.35.2: which folder this copy runs from, so a second installed copy can be spotted and named.
 const SELF = import.meta.url;
 const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -488,7 +491,29 @@ function bondData(ch) {
     let bond = cleanBond(meta.bond[key], settings().bondTrack);
     if (bond.v !== 2) bond = migrateBond(bond, ch);
     usePronouns(ch, bond);
-    return (meta.bond[key] = bond);
+    meta.bond[key] = bond;
+    // 1.48.0: roles left the dynamics list. Any picked (or chosen with I pick) move to their Relationships tag.
+    const roles = [...new Set([...bond.pool, bond.fixed].filter(name => ROLE_HOMES[name]))];
+    if (roles.length) {
+        bond.pool = bond.pool.filter(name => !ROLE_HOMES[name]);
+        if (ROLE_HOMES[bond.fixed]) bond.fixed = '';
+        const where = moveRoles(ch, roles);
+        if (where.length) status = `Roles live in Relationships now: ${where.join(', ')}.`;
+    }
+    return bond;
+}
+// Sets each role's Relationships tag (his side toward you, both ways, a trait or a feeling) to at least 70.
+function moveRoles(ch, names) {
+    const st = getState(ch), out = [];
+    if (!st) return out;
+    for (const name of names) {
+        const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} → ${label}`); };
+        if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}’s side)`); }
+        else if (kind === 'shared') { const pair = getPair(`char:${ch.avatar}`, 'user', true); if (pair) { pair.moods ??= {}; raise(pair.moods, `${SHARED_BY_ID[id].label} (both ways)`); } }
+        else { raise(st.moods, `${BY_ID[id].label} (${kind === 'trait' ? 'Traits' : 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
+    }
+    for (const [k, list] of Object.entries(settings().dynamicPools ?? {})) settings().dynamicPools[k] = (list ?? []).filter(name => !ROLE_HOMES[name]);
+    return out;
 }
 // 1.36.0: meter steps used to be stored by message number, which deletions shifted and a long chat
 // capped. Now they're read from the chat. Each meter keeps exactly the value it shows today, anchored
@@ -622,7 +647,7 @@ function applyReply(meta, writer, st, m, b, hold = null) {
             };
             // 1.45.0: the character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
-            const pace = moodPaceOf(st), named = new Set();
+            const pace = scenePace(writer, st), named = new Set();
             const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
@@ -652,7 +677,7 @@ function applyReply(meta, writer, st, m, b, hold = null) {
                 for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
                 for (const r of st.custom ?? []) if (r.kind === 'mood' && r.value > 0) values[`custom:${r.id}`] = r.value;
                 rec.q = structuredClone(st.moodQuiet ?? {});
-                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, moodPaceOf(st));
+                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer, st));
                 st.moodQuiet = quiet;
                 const target = moodTarget(st);
                 for (const [id, v] of Object.entries(faded)) { rec.m[id] = [values[id], v]; target.set(id, v); rec.f = [...(rec.f ?? []), id]; }
@@ -863,7 +888,7 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const zero = (moods, ids) => Object.fromEntries(Object.entries(moods ?? {}).map(([id, v]) => [id, ids.has(id) ? 0 : v]));
         const youRel = dropped.rel.size ? userRelation(state) : null;
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
-        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: moodPaceOf(state), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
+        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: scenePace(ch, state), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
         // 1.41.0: skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
@@ -874,8 +899,9 @@ async function syncPrompt(forGeneration = false, chat = null, type = '') {
         const count = async text => { try { const n = await c.getTokenCountAsync(text); return Number.isFinite(n) ? n : Math.ceil(text.length / 3.6); } catch { return Math.ceil(text.length / 3.6); } };
         const pairs = pairExtras(ch).map(p => pairDrop.size && p.names[0] === name && p.names[1] === player ? { ...p, moods: zero(p.moods, pairDrop) } : p);
         const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
+        const links = sceneLinks({ ch, state, mine, story, bond, bd, n, u });
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: getKnowledge(ch), condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), weave, skills });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u) });
         if (version !== promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -1473,6 +1499,65 @@ function sectionContent(state, kind, ch, active) {
 // The hidden line at the end of each reply moves feelings for free. This card switches it on or off per
 // character, sets how fast it moves and fades, and shows (and can undo) what the last reply did.
 const FEELINGS_COUNT = MOODS.filter(analysed).length;
+// 1.49.0: one speed for the whole scene. Unless unlinked on the mood card, feelings move at the Bonds pace.
+function scenePace(ch, st) {
+    const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`];
+    return st?.moodPaceLinked !== false && stored && stored.on !== false && MOOD_PACE[stored.pace] ? MOOD_PACE[stored.pace] : moodPaceOf(st);
+}
+// 1.49.0: what the period does to what's switched on, and how the dynamic meets roles and the strongest feeling.
+const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);
+// "Doctor Easterman is he/him; Lamb is she/her." Only the ones that are known.
+function pronounLine(ch, bond, n, u) {
+    const g = pronounsFor(ch, bond), word = { he: 'he/him', she: 'she/her' };
+    const parts = [[n, g.n], [u, g.u]].filter(([, p]) => word[p]).map(([name, p]) => `${name} is ${word[p]}`);
+    return parts.length ? `${parts.join('; ')}.` : '';
+}
+// The links go right under the dynamic they talk about.
+function withLinks(standing, links) {
+    if (!links.length) return standing;
+    const at = standing.findIndex(line => line.startsWith('their dynamic'));
+    return at < 0 ? [...standing, ...links] : [...standing.slice(0, at + 1), ...links, ...standing.slice(at + 1)];
+}
+function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
+    const g = pronounsFor(ch, bond), rel = userRelation(state), relMoods = rel && rel.enabled !== false ? rel.moods ?? {} : {};
+    const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')], pairMoods = pair && pair.enabled !== false ? pair.moods ?? {} : {};
+    const cname = String(ch?.name ?? '').toLowerCase(), side = (mine?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === cname);
+    const yourSide = side && side.enabled !== false ? side.moods ?? {} : {};
+    const era = story?.enabled ? MOODS.filter(m => m.category === 'era' && (story.moods?.[m.id] ?? 0) > 0).sort((a, b) => story.moods[b.id] - story.moods[a.id])[0]?.id : '';
+    let top = '';
+    if (strongIn(relMoods, POWER_ROLES) || strongIn(yourSide, UNDER_ROLES)) top = 'n';
+    else if (strongIn(relMoods, UNDER_ROLES) || strongIn(yourSide, POWER_ROLES)) top = 'u';
+    else if (strongIn(pairMoods, POWER_PAIRS)) top = g.u === 'he' && g.n !== 'he' ? 'u' : 'n';
+    else if (bd && Math.abs(bd.p) >= 30) top = bd.p > 0 ? 'n' : 'u';
+    else if (bd && ['power', 'captor'].includes(bd.dynamic.group)) top = 'n';
+    const romance = Boolean(bd && (bd.r >= 30 || ['romance', 'heat'].includes(bd.dynamic.group))) || strongIn(pairMoods, ROMANCE_PAIRS) || strongIn(state.moods, ['horny', 'heated', 'craving', 'desperate_for_it']);
+    const people = [[n, g.n, state], [u, g.u, mine]];
+    const kinky = (st, traits, turns) => strongIn(st?.moods, traits) || turns.some(id => (st?.prefs?.[id] ?? 0) > 40);
+    const manSub = people.find(([, gen, st]) => gen === 'he' && kinky(st, SUB_TRAITS, SUB_TURNS))?.[0] ?? '';
+    const womanDom = people.find(([, gen, st]) => gen === 'she' && kinky(st, DOM_TRAITS, DOM_TURNS))?.[0] ?? '';
+    // 1.49.1: darker, gendered tags that colour the Power line in an older period (and count as power on their own).
+    const dyn = bd?.dynamic.key ?? '', on = (moods, ids) => strongIn(moods, ids);
+    const tints = [
+        (on(relMoods, ['captor_of', 'keeps_them']) || on(pairMoods, ['held_by_threat', 'gilded_cage', 'captor_captive']) || ['Captor', 'Gilded cage', 'Closing the circle', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Breaking in'].includes(dyn)) && 'trapped',
+        (on(state.moods, ['male_gaze', 'female_gaze', 'leering', 'checking_out'])) && 'gaze',
+        (on(relMoods, ['possessive', 'theyre_mine', 'wants_to_own', 'controls']) || on(pairMoods, ['mutually_possessive']) || ['Owned', 'Trophy', 'Claimed', 'Possession', 'Possessive worship'].includes(dyn)) && 'possessive',
+        (on(relMoods, ['manipulates']) || on(state.moods, ['gaslighting']) || ['Gaslit', 'Kept small', 'Puppet strings'].includes(dyn)) && 'gaslight',
+        (on(relMoods, ['stalks', 'watches_over']) || ['Stalker’s courtship', 'Watcher'].includes(dyn)) && 'stalking',
+        (on(state.moods, ['domestic_tyrant', 'womaniser', 'judgemental_misogyny'])) && 'contempt',
+    ].filter(Boolean);
+    if (!top && tints.length) top = 'n';
+    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, romance, manSub, womanDom, tints,
+        medicine: strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
+        money: strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
+    const links = [];
+    if (bd) {
+        const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));
+        const topMood = MOODS.filter(m => analysed(m) && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
+        const mood = topMood ? moodLink({ label: topMood.label, family: topMood.category, value: state.moods[topMood.id] }, bd.dynamic, n) : '';
+        if (mood) links.push(pronounize(mood, n, u));
+    }
+    return { lenses, links };
+}
 // The feelings on a character's list, as the plain names the hidden line uses (first part of the label).
 function listedFeelings(st) {
     const ids = new Set([...(st.loadout ?? []), ...Object.keys(st.moods ?? {}).filter(id => st.moods[id] > 0)]);
@@ -1484,7 +1569,7 @@ function lastMoodRec(ch) {
     return list.at(-1) ?? null;
 }
 function storyMoodBlock(state, ch) {
-    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = moodPaceOf(state);
+    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch, state), linked = state.moodPaceLinked !== false && bond.on;
     const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => !id.startsWith('custom:') || (state.custom ?? []).some(r => `custom:${r.id}` === id));
     const name = id => id.startsWith('custom:') ? (state.custom ?? []).find(r => `custom:${r.id}` === id)?.text ?? 'their own' : BY_ID[id]?.label ?? id;
     const step = ([id, [a, b]]) => `<span class="mw-moodstep ${rec.f?.includes(id) ? 'is-fade' : b > a ? 'is-up' : 'is-down'}">${esc(name(id))} ${b === 0 ? 'off' : `${b > a ? '+' : '−'}${Math.abs(b - a)}`}${rec.f?.includes(id) ? ' · fading' : ''}</span>`;
@@ -1492,8 +1577,9 @@ function storyMoodBlock(state, ch) {
     return `<details class="mw-storymood" data-anchor="story-moods" ${on ? 'open' : ''}><summary><span>☾ The story moves moods</span><small>${on ? `${esc(pace.label)}${fade ? ', fading' : ''}` : 'off'}</small></summary>
         <label class="mw-toggle"><input type="checkbox" data-mood-auto ${on ? 'checked' : ''}> Each reply moves ${esc(ch.name)}’s feelings (free, no extra request)</label>
         ${blocked ? `<p class="mw-fine mw-scope-none">${blocked}</p>` : ''}
-        ${on ? `<div class="mw-storymood-row"><label>Speed<select data-mood-pace aria-label="How fast feelings change">${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${state.moodPace === k || (!MOOD_PACE[state.moodPace] && k === 'steady') ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
+        ${on ? `<div class="mw-storymood-row"><label>Speed<select data-mood-pace aria-label="How fast feelings change" ${linked ? 'disabled' : ''}>${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${(linked ? MOOD_PACE[k] === pace : state.moodPace === k || (!MOOD_PACE[state.moodPace] && k === 'steady')) ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
             <label class="mw-toggle"><input type="checkbox" data-mood-fade ${fade ? 'checked' : ''}> Fade</label></div>
+        ${bond.on ? `<label class="mw-toggle mw-storymood-link"><input type="checkbox" data-mood-pace-link ${linked ? 'checked' : ''}> Same speed as Bonds (one speed for the whole scene)</label>` : ''}
         <label class="mw-storymood-which">Which feelings<select data-mood-scope aria-label="Which feelings the story can set">
             <option value="any" ${state.moodScope !== 'list' ? 'selected' : ''}>Any of the ${FEELINGS_COUNT} moods</option>
             <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}’s list (${listedFeelings(state).length})</option></select></label>
@@ -2019,6 +2105,7 @@ function setup() {
         // 1.39.1: the desire card.
         if (input.hasAttribute('data-mood-auto')) { await changeState(s => { s.moodAuto = input.checked; }); return; }
         if (input.hasAttribute('data-mood-fade')) { await changeState(s => { s.moodFade = input.checked; }); return; }
+        if (input.hasAttribute('data-mood-pace-link')) { await changeState(s => { s.moodPaceLinked = input.checked; if (!input.checked) s.moodPace = MOOD_PACE[bondData(target()).pace] ? bondData(target()).pace : s.moodPace; }); return; }
         if (input.hasAttribute('data-mood-scope')) { await changeState(s => { s.moodScope = input.value === 'list' ? 'list' : 'any'; }); return; }
         if (input.hasAttribute('data-mood-pace')) { await changeState(s => { s.moodPace = MOOD_PACE[input.value] ? input.value : 'steady'; }); return; }
         if (input.hasAttribute('data-desire-on')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), on: input.checked }; }); return; }

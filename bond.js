@@ -105,7 +105,7 @@ for (const row of DYNAMICS) row.push(...(BUILT_IN_META[row[0]] ?? ['distance', '
 for (const row of [...COMBO_DYNAMICS, ...SINGLE_DYNAMICS]) if (row.length < 6) row.push(...(BUILT_IN_META[row[0]] ?? ['obsess', '', []]));
 DYNAMICS.unshift(...FRONT_MORE, ...FRONT_DYNAMICS);
 DYNAMICS.splice(DYNAMICS.findIndex(([name]) => name === 'Falling'), 0, ...LATE_MORE, ...LATE_DYNAMICS);
-DYNAMICS.push(...PICKED_DYNAMICS);
+// 1.48.0: roles (PICKED_DYNAMICS) live in Relationships now; see ROLE_HOMES.
 export const DYNAMIC_NAMES = DYNAMICS.map(([name]) => name);
 export { DYNAMIC_GROUPS };
 // Every dynamic, your own included: [name, test, cue, group, keys, covers].

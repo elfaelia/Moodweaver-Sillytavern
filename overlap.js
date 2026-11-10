@@ -26,7 +26,7 @@ export const CONCEPTS = [
     { key: 'volatility', label: 'Volatility', meter: 'vo', shared: ['on_off', 'push_and_pull', 'love_bomb_cycle'], dyn: ['On again, off again', 'Powder keg', 'Push and pull', 'Love-bomb cycle'] },
     { key: 'trust', label: 'Trust', base: 't', rel: ['trusts', 'distrusts', 'suspicious_of'], neg: ['distrusts', 'suspicious_of'] },
     { key: 'captor', label: 'Captor and captive', rel: ['captor_of'], shared: ['captor_captive', 'spoiled_captive', 'gilded_cage', 'stockholm'], story: ['captivity_horror', 'abduction_plot'],
-        dyn: ['Captor', 'Gilded cage', 'Captive’s hold', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Kept and tended', 'Princess and keeper', 'Breaking in', 'For your own good', 'Stockholm drift', 'Flight risk', 'Captor and captive'] },
+        dyn: ['Captor', 'Gilded cage', 'Captive’s hold', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Kept and tended', 'Princess and keeper', 'Breaking in', 'For your own good', 'Stockholm drift', 'Flight risk'] },
 ];
 
 // sent: { meters: { key: value } for meters on the line that are saying something, base: { t: value } when

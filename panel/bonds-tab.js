@@ -1,5 +1,5 @@
 import { MORE_METERS, MORE_PRESETS, computeMore, moreWord } from '../engine/meters.js';
-import { computeBond, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord, dynamicRows, DYNAMIC_GROUPS, PACE, paceOf } from '../engine/bond.js';
+import { computeBond, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord, dynamicRows, DYNAMIC_GROUPS, PACE, TIES, paceOf } from '../engine/bond.js';
 import { PRONOUN_CHOICES, pronounize, pronounOf } from '../engine/pronouns.js';
 import { fill } from '../engine/dynamics.js';
 import { ui } from '../app/state.js';
@@ -22,7 +22,7 @@ export function bondMini(bond, chatLength, axes = null, list = null) {
     return `<span class="mw-mini-bars" aria-hidden="true">${bar('is-f', d.f)}${bar('is-r', d.r)}</span>${bond.extra ? `<span class="mw-mini-dyn">${esc(d.dynamic.name)}</span>` : ''}`;
 }
 // opts: canRead (a scene reader is set up), pending (it's reading now), savedPool (picks saved for this character).
-export function bondView({ bond, charName, userName, chatLength, axes = null, list = null, tally = null, canRead = false, pending = false, savedPool = null, overlaps = [] }) {
+export function bondView({ bond, charName, userName, chatLength, axes = null, list = null, tally = null, canRead = false, pending = false, savedPool = null, overlaps = [], drivers = null }) {
     const d = computeBond(bond, chatLength, charName, userName, axes, list);
     const changes = d.recent.filter(s => s.f || s.r || s.t || s.p || s.l);
     const pin = k => bond.pins[k] !== null;
@@ -30,7 +30,7 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
         <label class="mw-toggle"><input type="checkbox" data-bond-on> Hidden weave line for ${esc(charName)} in this chat</label>
         <p class="mw-fine">Off. Nothing is asked for or sent, and the info board’s words update feelings instead.</p></section>`;
     return `<section class="mw-bond">
-        ${bond.extra ? dynCard(bond, d, charName, userName, { canRead, pending, savedPool }) : ''}
+        ${bond.extra ? dynCard(bond, d, charName, userName, { canRead, pending, savedPool, drivers }) : ''}
         ${overlapBlock(overlaps)}
         ${moreBlock(bond, list ?? [], userName)}
         ${desireCard(bond, list ?? [], charName, userName, d.sparks)}
@@ -118,7 +118,15 @@ function moreBlock(bond, list, userName) {
 // The dynamic card. Who names it (the story, the meters or you), how fast things move, a fresh read
 // of the scene, and the dynamics you've picked for this pair.
 const groupRows = () => DYNAMIC_GROUPS.map(([id, label, icon]) => [id, label, icon, dynamicRows().filter(r => r[3] === id)]).filter(([, , , rows]) => rows.length);
-function dynCard(bond, d, n, u, { canRead, pending, savedPool }) {
+// What's shaping where they stand: the strongest ties set between them, and how much his turn-ons that the
+// player shows warm (or cool) the romance. Shown under the dynamic so the meters don't look like they come
+// from nowhere.
+function driversLine(drivers, n, u) {
+    if (!drivers || (!drivers.ties.length && !drivers.warm)) return '';
+    const side = { n: `${n}’s side`, u: `${u}’s side`, both: 'both ways' };
+    return `<div class="mw-dyn-drivers"><small>Shaped by</small>${drivers.ties.map(t => `<span class="mw-dyn-driver">${esc(t.label)} <i>${esc(side[t.side])} · ${t.value}</i></span>`).join('')}${drivers.warm ? `<span class="mw-dyn-driver ${drivers.warm < 0 ? 'is-off' : ''}">${drivers.warm > 0 ? '♡' : '✕'} turn-ons in play <i>romance ${drivers.warm > 0 ? '+' : ''}${drivers.warm}</i></span>` : ''}</div>`;
+}
+function dynCard(bond, d, n, u, { canRead, pending, savedPool, drivers }) {
     const mode = bond.fixed ? 'pick' : bond.mode, pool = new Set(bond.pool), pace = PACE[bond.pace] ? bond.pace : 'steady';
     const ago = d.call ? (d.call.ago === 0 ? 'in the last reply' : `${d.call.ago} repl${d.call.ago === 1 ? 'y' : 'ies'} ago`) : '';
     const why = mode === 'pick' ? 'Chosen by you; it stays until you switch back.'
@@ -137,13 +145,14 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool }) {
             <button type="button" class="mw-chip-btn mw-dyn-all" data-dyn-group-all="${id}">${picked === rows.length ? 'Unpick all' : 'Pick all'}</button>${rows.map(row).join('')}</details>`;
     }).join('');
     return `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.key)}" data-tone="${d.dynamic.tone}"><small>${esc(n)} &amp; ${esc(u)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(cap(d.dynamic.cue))}</p>
-        <div class="mw-dyn-pronouns" role="group" aria-label="Pronouns"><span class="mw-dyn-pron-title">Pronouns</span>${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)}<select data-dyn-pronoun="${k}" aria-label="Pronouns for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${id === 'auto' ? `Auto (${pronounOf(who) === 'they' ? 'names' : pronounOf(who)})` : label}</option>`).join('')}</select></label>`).join('')}</div>
+        ${driversLine(drivers, n, u)}
+        <details class="mw-dyn-pron-box" data-anchor="dyn-pronouns"><summary>Pronouns <small>${esc([[n, bond.pn], [u, bond.pu]].map(([who, v]) => v === 'auto' ? pronounOf(who) : v).join(' · '))}</small></summary><div class="mw-dyn-pronouns" role="group" aria-label="Pronouns">${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)}<select data-dyn-pronoun="${k}" aria-label="Pronouns for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${id === 'auto' ? `Auto (${pronounOf(who) === 'they' ? 'names' : pronounOf(who)})` : label}</option>`).join('')}</select></label>`).join('')}</div></details>
         <div class="mw-dyn-modes" role="group" aria-label="Who names the dynamic">${[['story', '✧ Story'], ['meters', '≋ Meters'], ['pick', '✎ I pick']].map(([k, label]) => `<button type="button" data-dyn-mode="${k}" aria-pressed="${mode === k}">${label}</button>`).join('')}</div>
         ${mode === 'pick' ? `<label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic">${options}</select></label>` : ''}
-        <div class="mw-dyn-row"><label title="The same pace as the Moods card: feelings and desire move at it too">Pace<select data-pace aria-label="How fast everything moves: meters, feelings and desire">${Object.entries(PACE).map(([k, p]) => `<option value="${k}" ${pace === k ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}</select></label>
+        <div class="mw-dyn-row"><label title="How much the relationship sliders you set between them hold the meters and the dynamic">Your sliders<select data-bond-ties aria-label="How much your relationship sliders weigh">${Object.entries(TIES).map(([k, t]) => `<option value="${k}" ${bond.ties === k ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></label>
             <label class="mw-toggle mw-dyn-nudge" title="Feelings each reply reports push the matching meters: caring pushes Care, controlling pushes Control and Discipline, horny pushes Lust"><input type="checkbox" data-dyn-nudge ${bond.nudge !== false ? 'checked' : ''}> Feelings push meters</label>
             ${canRead ? `<button type="button" class="mw-chip-btn mw-dyn-read" data-action="bond-reread" ${pending ? 'disabled' : ''} title="Ask the scene reader where these two stand right now">${pending ? 'Reading…' : '✧ Re-read the scene'}</button>` : ''}</div>
-        <small class="mw-dyn-why">${esc(why)} ${esc(PACE[pace].label)}: ${esc(PACE[pace].hint)}.</small>
+        <small class="mw-dyn-why">${esc(why)} Your sliders: ${esc(TIES[bond.ties]?.hint ?? TIES.balanced.hint)}. Pace (set on the Moods card): ${esc(PACE[pace].label)}.</small>
         <details class="mw-dyn-pool" data-anchor="dyn-pool"><summary>Dynamics for these two <small>${pool.size ? `${pool.size} picked${mode === 'story' && pool.size <= 25 ? ` · about ${Math.ceil([...pool].map(x => fill(x, n, u)).join(', ').length / 3.6)} tokens a reply` : ''}` : 'none picked: any of them'}</small></summary>
             <p class="mw-fine">Meters mode: the meters choose, trying your picks first. Story mode: the reply names it when things change, matched to your picks (up to 25 are listed in the hidden line; past that it costs nothing extra). With none picked, it can be any of them. Roles like doctor and patient, boss and secretary or exes live in Relationships, not here.</p>
             <input type="search" data-dyn-search placeholder="Find a dynamic (captor, crush, toxic…)" aria-label="Find a dynamic">

@@ -626,3 +626,32 @@ export function feedValues(moods, pins, fed, readings, fade = 15) {
     return changed;
 }
 export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?a|no|—|-|\[.*\])\.?$/i.test(String(text).trim());
+// ---- Facts and time, for facts that run their course (engine/moodpace.js) ----
+// A fact named outright: "drunk", "nosebleed", "wet" (its label, the label before any bracket, or its id).
+// Only the facts that run a course or bring feelings, and only exact names, so a feeling word never lands here.
+let factIndex = null;
+const factKey = s => String(s ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\s+/g, ' ').trim();
+export function factId(name) {
+    if (!factIndex) {
+        factIndex = new Map();
+        for (const m of MOODS) if (m.kind === 'state' && (m.lasts || m.feels)) for (const key of [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')].map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
+    }
+    return factIndex.get(factKey(name)) ?? null;
+}
+// Facts a piece of text mentions by name (the board's Physical State line, the hidden line's "you" list).
+export function factsIn(text) {
+    const t = ` ${factKey(text)} `, out = new Set();
+    if (!t.trim()) return out;
+    if (!factIndex) factId('');
+    for (const [key, id] of factIndex) if (t.includes(` ${key} `)) out.add(id);
+    return out;
+}
+// In-world hours one reply covers, from the info boards before and after it: the clocks when both have one
+// (a time skip counts in full, up to two weeks), an hour for a change of place without a clock, else a few
+// minutes a reply. Backwards time (a flashback) counts as the few minutes.
+export function replyHours(before, after, perReply) {
+    const h = before && after ? hoursBetween(boardClock(before), boardClock(after)) : null;
+    if (h != null) return Math.min(h, 24 * 14);
+    const a = String(before?.location ?? '').split(',')[0].trim().toLowerCase(), b = String(after?.location ?? '').split(',')[0].trim().toLowerCase();
+    return a && b && a !== b ? Math.max(1, perReply) : perReply;
+}

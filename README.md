@@ -20,17 +20,21 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 | Tab | What it holds |
 |---|---|
 | ✦ Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
-| ◔ Needs | The info board, needs (hunger, energy and the rest) and physical state |
-| ♥ Bonds | Relationships, meters (friendship, romance, trust, control, pull and more), the named dynamic (over 250) and the desire card. Feelings in each reply push the meters, so the dynamic follows the mood |
-| ❂ Traits | Who they are: temperament, manner, morals, mind, archetype, personality type |
+| ◔ Needs | The info board and needs (hunger, energy and the rest) |
+| ♥ Bonds | Relationships, meters (friendship, romance, trust, control, pull and more), the named dynamic (over 250) and the desire card. Feelings in each reply push the meters, so the dynamic follows the mood. "Shaped by" shows what's steering it, and **Your sliders** sets how firmly your relationship sliders hold it |
+| ⌂ Facts | A small profile (age, height, what they're into, up to three core traits), then what's true right now (body, bedroom, substances), who they are (looks, background, job, status), and what they carry |
+| ❂ Traits | Who they are: temperament, manner, morals, mind, archetype, personality type. ★ makes a trait core: always sent, whatever the mood (up to three) |
+| ⇋ Turn-ons | What draws them in or puts them off, in eight groups with sub-headings (giving and receiving side by side), with combos and cravings. The ones the other person fits by who they are (their traits, moods, skills, ties, age, height or interests) show under **In play** and count without being mentioned |
 | ⚘ Intimacy | How they want and have sex: roles in bed, sexual temperament, what draws them, and the psychosexual side |
-| ⇋ Turn-ons | What draws them in or puts them off, in eight groups with sub-headings (giving and receiving side by side), with combos and cravings |
 | ✪ Skills | Levels out of 10 for the skills you pick, sent only when the scene calls for them, growing slowly with use |
-| ⌂ Facts | Looks, background, job, status |
-| ☆ Wants | Wants, goals and fears |
-| ◐ You | On your own character, Needs becomes You: outfit, condition and the moodlets showing. The Moods, Traits and Intimacy tabs there also set what the character knows about you |
+| ☆ Wants | Wants, goals and fears. ⚙ Settings › Panel can hide it, and Claude then decides what they want on its own |
+| ◐ You | On your own character, Needs becomes You: outfit, condition, the moodlets showing, then your profile and facts. The Moods, Traits and Intimacy tabs there also set what the character knows about you |
 
-**Pace.** Pick Slow burn, Steady, Quick or Volatile under Speed on the Moods card (or Pace on the Bonds tab, the same setting) and feelings, meters and desire all move at it. Needs drain on their own clock, and skills grow at their own pace (Skills tab).
+**Facts run their course.** Being drunk, bleeding, soaked or concussed wears off by the clock on the info board (or about ten minutes a reply without one), turns into what comes after (drunk into hungover), and stirs the feelings that go with it. A time skip moves it on; undoing or swiping a reply puts it back.
+
+**Why is this on?** A faint line under a feeling says what put it there when it wasn't you (the story raised it, a fact brought it, it's wearing off). ⚙ Settings › Panel › Show why turns it off.
+
+**Pace.** Pick Slow burn, Steady, Quick or Volatile under Speed on the Moods card and feelings, meters and desire all move at it. Needs drain on their own clock, and skills grow at their own pace (Skills tab). Traits shift it a little per character: volatile, impulsive people swing faster, steady ones slower, brooding ones hold on longer.
 
 **Setting something back to 0.** Tap the level word or number on a row ("Clear", "40%", "Neutral", "3/10") and its slider goes to 0, the middle on a two-way one. × still takes it off the list.
 

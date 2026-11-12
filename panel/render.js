@@ -2,7 +2,7 @@
 import { autoOpened, currentPeer, getKnowledge, getState, identity, keyForTarget, members, migratePairs, openRelationGroups, peers, persist, personKeyOfSubject, playerName, selectedCast, subjectName, swapTarget, target, viewState } from '../app/chat.js';
 import { syncPrompt } from '../app/note.js';
 import { readerProfile } from '../app/reader.js';
-import { boardMemoryCount, boardPeople, boardSend, bondAxes, bondData, bondList, bondOverlaps, liveFor, needOpts, overlapNames, reactionTally, reactions } from '../app/replies.js';
+import { boardMemoryCount, boardPeople, boardSend, bondAxes, bondData, bondDrivers, whyMap, bondList, bondOverlaps, liveFor, needOpts, overlapNames, reactionTally, reactions } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { SELF, VERSION, ctx, folderOf, generationSnapshots, run, tintLauncher, ui } from '../app/state.js';
 import { boardView } from './needs-tab.js';
@@ -15,8 +15,7 @@ import { effectiveChat } from '../engine/ledger.js';
 import { capturePanel, restorePanelFields, restorePanelPosition, savedPanel } from './scroll-memory.js';
 import { PLUMBOB, peopleBar, personCard, tabBar } from './header.js';
 import { TONES, moodTone } from '../engine/tone.js';
-import { inventoryView } from './rows.js';
-import { sectionContent, tabKind } from './sections.js';
+import { factsContent, sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
 import { filterSkills, skillsView } from './skills-tab.js';
 import { wantsView, youView } from './wants-tab.js';
@@ -82,7 +81,12 @@ function drawPanel() {
     if (ui.who === 'story') ui.tab = 'mood';
     if (ui.tab === 'personality') ui.tab = 'trait';
     if (ui.tab === 'bond') ui.tab = 'rel';
+    // Items live on Facts now, and your facts on the You tab; a hidden Wants tab falls back to Moods.
+    if (ui.tab === 'inv' || (ui.tab === 'state' && ui.who === 'user')) ui.tab = ui.who === 'user' ? 'needs' : 'state';
+    if (ui.tab === 'wants' && settings().wantsTab === false) ui.tab = 'mood';
     const kind = tabKind();
+    // The faint "why" lines under rows and on chips (Settings › Show why).
+    ui.why = state && charState && settings().whyOn !== false && ['char', 'user'].includes(ui.who) && ['mood', 'trait', 'intimacy', 'state'].includes(kind) ? whyMap(ch, ui.who) : new Map();
     const active = state ? activeMoods(state) : [];
     const live = charState ? liveFor(ch) : null;
     const relationshipCount = state && ui.who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
@@ -109,12 +113,11 @@ function drawPanel() {
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
         : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
-        ${ui.who !== 'story' && ui.tab === 'inv' ? inventoryView(state, ch)
-        : ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live)
+        ${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
-        : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())) }) : '') + relationshipView({
+        : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
             peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation })
         : sectionContent(state, kind, ch, active)}`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
@@ -176,7 +179,7 @@ export function filterRows() {
         });
         d.querySelectorAll('.mw-sub').forEach(sub => { sub.hidden = !sub.querySelector('[data-mood]:not([hidden])'); });
         const waiting = d.querySelector('[data-lazy]'); if (waiting) count = Number(waiting.dataset.count) || 0;
-        const inTab = ui.who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === ui.tab;
+        const inTab = ui.who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === tabKind();
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
         // While searching, open groups with matches so results are one tap away; fold them back after.
         const key = d.dataset.category;

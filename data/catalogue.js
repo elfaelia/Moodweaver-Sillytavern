@@ -17,7 +17,9 @@ export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.t
 
 // [id, name, icon, colour, rows, kind]; rows are [id, label, cue, note].
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
-export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), category: c.id, color: c.color, kind: c.kind })));
+// "hazy_drunk +4, emboldened +2" → [['hazy_drunk', 4], ['emboldened', 2]].
+const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
+export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 
 // The wording sent for each option, where it has one, and how each feeling shows on the page.

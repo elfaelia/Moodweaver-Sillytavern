@@ -1,23 +1,23 @@
 // The Moods, Traits, Body, Turn-ons and Story tabs: the catalogue list, the scene reader card
 // and the per-section tools.
-import { getCast, getKnowledge, playerName, profiles, selectedCast, subjectName, turnKnowledgeRows } from '../app/chat.js';
-import { FEELINGS_COUNT, listedFeelings, scenePace } from '../app/note.js';
+import { getCast, getKnowledge, getState, getUserState, playerName, profiles, selectedCast, subjectName, turnKnowledgeRows } from '../app/chat.js';
+import { FEELINGS_COUNT, listedFeelings, movePace, scenePace } from '../app/note.js';
 import { readerProfile, readerRequest, readerSubject, roughTokens, sceneStart } from '../app/reader.js';
-import { boardMeta, boardSend, bondData, bondList } from '../app/replies.js';
+import { boardMeta, boardSend, bondData, bondList, chatSigns, knowledgeNow } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { KEY, ctx, run, ui } from '../app/state.js';
 import { cleanBoardMeta, latestBoard } from '../engine/board.js';
 import { computeBond } from '../engine/bond.js';
 import { BY_ID, CATEGORIES, MERGED_SEARCH_NAMES, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
 import { KNOWLEDGE_MODES, activeMoods, cleanScope, knowledgeEntry } from '../engine/state.js';
-import { escapeHtml as esc } from '../engine/util.js';
+import { escapeHtml as esc, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { MOOD_PACE } from '../engine/moodpace.js';
-import { fmtTokens, row, tagLabel, turnRow } from './rows.js';
+import { courseNote, fmtTokens, inventoryView, row, tagLabel, turnRow } from './rows.js';
 import { reactiveBlock } from './wants-tab.js';
 import { personalityView } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
-import { TURN_BY_ID, TURN_CATEGORIES, turnGroupKey } from '../engine/turns.js';
+import { TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, turnGroupKey } from '../engine/turns.js';
 import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
 
 function knowledgePanel(state, ch) {
@@ -37,7 +37,8 @@ function knowledgePanel(state, ch) {
 }
 const SECTION_LABEL = { mood: 'moodlets', trait: 'traits', intimacy: 'intimacy', turn: 'turn-ons', state: 'facts', story: 'story settings' };
 // Which catalogue list the open tab shows. Tabs that aren't a list (Needs, Bonds, Items...) fall back to moodlets.
-export const tabKind = () => ui.who === 'story' ? 'story' : ['trait', 'intimacy', 'turn', 'state'].includes(ui.tab) ? ui.tab : 'mood';
+// The catalogue section the open tab shows. Your You tab holds your facts.
+export const tabKind = () => ui.who === 'story' ? 'story' : ui.who === 'user' && ui.tab === 'needs' ? 'state' : ['trait', 'intimacy', 'turn', 'state'].includes(ui.tab) ? ui.tab : 'mood';
 // While the board is in play, the Body list is redundant: needs and physical state come from the board.
 // Body options you'd already switched on still show and still send.
 const boardCoversBody = () => boardSend() || Boolean(latestBoard(ctx().chat));
@@ -53,10 +54,13 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
         if (ui.browsing && !ui.search && !ui.openGroups?.[`details[data-category="${key}"]`]) { ui.lazyBodies.set(key, rows); return `<div class="mw-category-body" data-lazy="${key}" data-count="${count}"></div>`; }
         return `<div class="mw-category-body">${rows()}</div>`;
     };
+    // Facts come in two halves: what's going on with their body right now, and who they are.
+    let half = '';
+    const halfHead = id => { if (kind !== 'state') return ''; const now = NOW_CATEGORIES.has(id) ? 'now' : 'who'; if (now === half) return ''; half = now; return `<h5 class="mw-fact-head">${now === 'now' ? 'Right now <small>wears off or changes as the story goes</small>' : 'Who they are <small>stays put</small>'}</h5>`; };
     const cats = kind === 'turn' ? '' : CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOf({ category: id, kind: k }) === kind).map(([id, name, icon, color]) => {
         const list = MOODS.filter(m => m.category === id && show(m.id) && !(hideBody && id === 'body' && !state.moods[m.id])), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
-        return `<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary>${body(id, list.length, () => list.map(m => row(m, state)).join(''))}</details>`;
+        return `${halfHead(id)}<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary>${body(id, list.length, () => list.map(m => row(m, state)).join(''))}</details>`;
     }).join('');
     const turns = kind !== 'turn' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
         const list = rows.filter(([id]) => show(`turn:${id}`) && TURN_BY_ID[id]), key = turnGroupKey(group);
@@ -121,7 +125,50 @@ function typesBlock(state, ch) {
     return `<details class="mw-types" data-types><summary><span class="mw-category-icon">◈</span><span>Personality type</span><small>${types.length ? types.map(p => p.system === 'enneagram' ? `${p.type}${p.wing ? `w${p.wing}` : ''}` : p.type).join(' · ') : 'none'}</small></summary>
         ${personalityView({ state, isPlayer: ui.who === 'user', focus: ch.name, knowledge: getKnowledge(ch) })}</details>`;
 }
+// Turn-ons and turn-offs that are in play because of who the other one is (engine/turns.js), shown
+// under the chips: ♡ the other shows a turn-on, ✕ a turn-off, ✓ the opposite of a turn-off.
+function signsBlock(ch) {
+    if (!['char', 'user'].includes(ui.who)) return '';
+    const map = chatSigns(ch)[ui.who], other = ui.who === 'char' ? playerName() : ch.name;
+    if (!map.size) return '';
+    // Each chip says why, since a phone has no hover: "♡ Brattiness bratty", "✓ Prudishness opposite: slutty".
+    const chip = ([id, x]) => `<span class="mw-spark mw-sign ${x.is.length && x.v < 0 ? 'is-off' : ''}">${x.is.length ? x.v > 0 ? '♡' : '✕' : '✓'} ${esc(TURN_BY_ID[id].label)} <b>${esc(x.is.length ? x.is.join(', ') : `opposite: ${x.not.join(', ')}`)}</b></span>`;
+    return `<div class="mw-sparks mw-signs"><small>In play from ${esc(shortName(other))}</small>${[...map].map(chip).join('')}</div>`;
+}
+// ---- Facts: the profile, what's going on with their body right now, who they are, what they carry ----
+const NOW_CATEGORIES = new Set(['body', 'bedroom', 'substances']);
+// The profile card: a few facts the extension checks for itself (turn-ons like older men or tall people,
+// comparisons in the note), and the up to three core traits that are always sent.
+function profileCard(state, ch) {
+    const vs = ui.who === 'user' ? [getState(ch), shortName(ch.name)] : [getUserState(), shortName(playerName())];
+    const gap = vs[0]?.enabled ? compareProfiles(state, vs[0]) : '';
+    const core = (state.core ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
+    return `<section class="mw-profile" data-anchor="profile"><div class="mw-profile-head"><h4>Profile</h4><small>for turn-ons and comparisons</small></div>
+        <div class="mw-profile-grid">
+            <label class="mw-pf"><span>Age</span><input type="number" data-profile="age" min="1" max="999" inputmode="numeric" enterkeyhint="done" placeholder="—" value="${cleanAge(state.age)}"></label>
+            <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
+            <label class="mw-pf mw-pf-wide"><span>Into</span><input type="text" data-profile="interests" maxlength="120" enterkeyhint="done" placeholder="guitar, old films, chess" value="${esc(state.interests ?? '')}"></label>
+        </div>
+        <div class="mw-profile-core"><span>Core</span>${core.length ? core.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">★ ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">★ Star up to three traits</button>'}</div>
+        ${gap ? `<p class="mw-profile-vs">${esc(shortName(subjectName()))} is ${esc(gap)} than ${esc(vs[1])}.</p>` : ''}
+    </section>`;
+}
+// The Facts tab (and the bottom of your You tab).
+export function factsContent(state, ch, active) {
+    const facts = active.filter(m => m.kind === 'state' && sectionOf(m) === 'state'), now = facts.filter(m => NOW_CATEGORIES.has(m.category)), who = facts.filter(m => !NOW_CATEGORIES.has(m.category));
+    const chip = m => { const note = courseNote(state, m.id), why = ui.why?.get(m.id) ?? '';
+        return `<button data-jump="${m.id}" class="mw-chip mw-fact-chip" style="--mw-accent:${m.color}" title="${esc(why || `Adjust ${m.label}`)}"><span>${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}${note ? `<small>${esc(note)}</small>` : ''}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`; };
+    const onHere = facts.length;
+    return `${profileCard(state, ch)}
+    <div class="mw-summary mw-facts-summary"><div class="mw-section-label">Facts<span>${onHere} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off the facts, pins too. Other tabs stay as they are">Clear facts</button>` : ''}</span></div>
+        ${now.length ? `<div class="mw-fact-row"><small>Right now</small><div class="mw-chips">${now.map(chip).join('')}</div></div>` : ''}
+        ${who.length ? `<div class="mw-fact-row"><small>Who they are</small><div class="mw-chips">${who.map(chip).join('')}</div></div>` : ''}
+        ${!onHere ? `<p class="mw-fine">Nothing set. Body and substances wear off as story time passes (drunk becomes hungover); looks, job and background stay put.</p>` : ''}</div>
+    ${catalogueBlock(state, 'state', ch, ui.who === 'story' ? 'the story' : subjectName())}
+    ${inventoryView(state, ch)}`;
+}
 export function sectionContent(state, kind, ch, active) {
+    if (kind === 'state') return factsContent(state, ch, active);
     const shown = kind === 'turn' ? [] : active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
     const turnsSet = kind === 'turn' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
     const whose = ui.who === 'story' ? 'the story' : subjectName();
@@ -140,6 +187,7 @@ export function sectionContent(state, kind, ch, active) {
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
         <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
+        ${kind === 'turn' ? signsBlock(ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
         ${kind === 'mood' && state.reason ? `<div class="mw-observation">✧ ${esc(state.reason)}<small>Last scene read · ${esc(new Date(state.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</small></div>` : ''}</div>
     ${kind === 'mood' && ui.who === 'char' ? storyMoodBlock(state, ch) : ''}
@@ -147,7 +195,7 @@ export function sectionContent(state, kind, ch, active) {
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
     ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">With an era set, short lines say how the period shapes what’s in play: power, marriage, dating, vices, faith, the law, being found out. When more apply than fit, they take turns from reply to reply, so a long story keeps meeting new sides of its period.</p>` : ''}
-    ${['mood', 'trait', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, getKnowledge(ch)) : ''}
+    ${['mood', 'trait', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
 export function lastMoodRec(ch) {
@@ -155,7 +203,7 @@ export function lastMoodRec(ch) {
     return list.at(-1) ?? null;
 }
 function storyMoodBlock(state, ch) {
-    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch);
+    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch), moves = movePace(ch);
     const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => BY_ID[id]);
     const name = id => BY_ID[id].label;
     const step = ([id, [a, b]]) => `<span class="mw-moodstep ${rec.f?.includes(id) ? 'is-fade' : b > a ? 'is-up' : 'is-down'}">${esc(name(id))} ${b === 0 ? 'off' : `${b > a ? '+' : '−'}${Math.abs(b - a)}`}${rec.f?.includes(id) ? ' · fading' : ''}</span>`;
@@ -170,6 +218,6 @@ function storyMoodBlock(state, ch) {
             <option value="any" ${state.moodScope !== 'list' ? 'selected' : ''}>Any of the ${FEELINGS_COUNT} moods</option>
             <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}’s list (${listedFeelings(state).length})</option></select></label>
         ${state.moodScope === 'list' ? `<p class="mw-fine">The hidden line is given the names on the list (about ${Math.ceil(listedFeelings(state).join(', ').length / 3.6)} tokens), and anything else it names is ignored. Add moods to the list from the catalogue below.</p>` : ''}
-        <p class="mw-fine">${esc(pace.label)}, ${esc(pace.hint)}: up to ${pace.step} a reply.${fade ? ` A feeling nobody mentions for ${pace.after} repl${pace.after === 1 ? 'y' : 'ies'} loses ${pace.fade} a reply after that.` : ' Feelings stay until the story turns them down.'} Pinned ◆ ones never move.</p>
+        <p class="mw-fine">${esc(pace.label)}, ${esc(pace.hint)}: up to ${moves.step} a reply.${fade ? ` A feeling nobody mentions for ${moves.after} repl${moves.after === 1 ? 'y' : 'ies'} loses ${moves.fade} a reply after that.` : ' Feelings stay until the story turns them down.'} Pinned ◆ ones never move.${moves.temper ? ` ${esc(moves.temper.slice(0, 2).map(id => BY_ID[id].label).join(' and '))} ${moves.temper.length > 1 ? 'shift' : 'shifts'} this: ${moves.swings > 0.2 ? 'feelings swing harder and let go sooner' : moves.swings < -0.2 ? 'feelings move less and hold on longer' : 'feelings hang on longer'}.` : ''}</p>
         ${moved.length ? `<div class="mw-moodlast"><small>Last reply</small><div>${moved.map(step).join('')}</div><button type="button" data-action="mood-undo-last">↶ Undo</button></div>` : rec?.undone ? '<p class="mw-fine">Last reply’s changes were undone.</p>' : ''}` : ''}</details>`;
 }

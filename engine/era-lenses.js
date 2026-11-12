@@ -8,15 +8,12 @@
 // Era → period group, for the lenses.
 function eraGroup(id = '') {
     const y = Number(String(id).match(/era_(\d{4})s/)?.[1]);
-    return !y ? '' : y < 1920 ? 'victorian' : y < 1970 ? 'midcentury' : y < 1980 ? 'seventies' : y < 1990 ? 'eighties' : y < 2010 ? 'nineties' : 'modern';
+    return !y ? '' : y < 1950 ? '' : y < 1970 ? 'midcentury' : y < 1980 ? 'seventies' : y < 1990 ? 'eighties' : y < 2010 ? 'nineties' : 'modern';
 }
 
 // Each lens: text by period group. Power has three shapes: a man over a woman (mw), a woman over a man (wm),
 // and anything else (any). {top} holds the power, {low} is under it; {n} and {u} are the character and player.
 const POWER = {
-    victorian: { mw: ['{top} has the law and everyone’s assumptions behind him: a woman’s money, body and children belong to her husband or father, and her word counts for little against a man’s', ', and a woman who resists can be called hysterical and shut away'],
-        wm: 'a woman holding power over a man is improper and fragile: it rests on money, title or secrets, and the law and sympathy are his the moment he turns on her',
-        any: 'power runs on class and rank: servants, tenants and dependants owe obedience, and stepping out of place means ruin' },
     midcentury: { mw: ['{top}’s power over {low} is backed by everyone: a man’s word outranks hers with police, doctors and family, and she needs a man to sign for credit or a lease', ', and a woman who fusses gets called hysterical and can be sedated or committed'],
         wm: 'a woman over a man is a scandal people explain away: they say she’s unnatural or he’s weak, and the moment he pushes back the world takes his side',
         any: 'power runs on rank, money and respectability: the boss, the doctor and the family name are obeyed, and questioning them marks you as trouble' },
@@ -31,44 +28,36 @@ const POWER = {
 };
 const LENSES = {
     medicine: { label: 'Medicine',
-        victorian: 'doctors decide what a woman’s nerves need: rest cures, laudanum, the asylum; nobody asks consent, and complaining proves the diagnosis',
         midcentury: 'a doctor’s word is law: patients aren’t told, a husband or father signs consent, and ECT, sedation, restraints and lobotomy are routine, with a state hospital the threat behind every visit',
         seventies: 'doctors are gods in white coats: Valium for unhappy wives, institutions closing and patients dumped, consent mostly a form',
         eighties: 'doctors still talk over patients; a frightened or difficult one gets a prescription, and AIDS fear makes some of them cruel',
         nineties: 'patients have rights and records now; a doctor’s power is the chart, the prescription pad and being believed',
         modern: 'patients have rights and records; a doctor’s power is the chart, the prescription pad and being believed' },
     queer: { label: 'Queer desire',
-        victorian: 'love between women is a friendship nobody names and between men it is a crime; it lives in letters, looks and locked rooms',
-        victorianMen: 'love between men is a crime, as the Wilde trials showed: it lives in coded looks, locked rooms and the constant risk of blackmail',
-        victorianWomen: 'love between women is a romantic friendship nobody names: it lives in letters, shared beds and looks, and a husband or family can end it with one decision',
         midcentury: 'being queer is an illness, a sin and a crime: bar raids, firings, blackmail and aversion therapy, so it lives in coded looks, false names and back rooms',
         seventies: 'queer people are coming out after Stonewall but most still pass; families disown, bosses fire and police raid',
         eighties: 'AIDS and fear: being out costs jobs and family, so desire hides behind jokes and sudden coldness',
         nineties: 'out in some places and a slur in others; most still choose carefully who knows',
         modern: 'mostly open, though family, faith or reputation can still make it a secret' },
     manSub: { label: 'Secret desires',
-        victorian: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so most men keep it behind locked doors and in denial',
         midcentury: '{who} wanting to kneel, be dressed up or be hurt is a shameful secret that could ruin or commit a man of his standing, so most men keep it behind locked doors and in denial',
         seventies: '{who} wanting to submit is a private shame and a joke if found out; it happens in secret clubs and paid rooms',
         eighties: '{who} wanting to submit is a private shame and a joke if found out; it happens in secret clubs and paid rooms',
         nineties: '{who} wanting to submit is something he would tell almost nobody, and it could still shame him if it got out',
         modern: '{who} wanting to submit is something he would tell almost nobody, and it could still shame him if it got out' },
     womanDom: { label: 'Secret desires',
-        victorian: '{who} wanting to dominate or hurt is unnatural to everyone else, the mark of a madwoman or a whore, so she hides it or keeps it to a role nobody sees',
         midcentury: '{who} wanting to dominate or hurt is unnatural to everyone else, the mark of a madwoman or a whore, so she hides it or keeps it to a role nobody sees',
         seventies: '{who} liking to dominate is something men pay for in private and fear in a wife',
         eighties: '{who} liking to dominate is something men pay for in private and fear in a wife',
         nineties: '{who} liking to dominate is a fantasy for some men and a threat to others',
         modern: '{who} liking to dominate is a fantasy for some men and a threat to others' },
     sex: { label: 'Sex and reputation',
-        victorian: 'a woman’s reputation is everything and one rumour of desire ruins her, so wanting happens in glances, gloves and closed carriages',
         midcentury: 'good girls wait, wives don’t stray and a woman who wants it gets talked about; sex outside marriage is hidden, guilty and thrilling for it',
         seventies: 'the sexual revolution is in full swing but the double standard isn’t: he’s a stud and she’s easy',
         eighties: 'sex sells and AIDS scares; she gets judged for wanting it and for not wanting it',
         nineties: 'she still gets judged for wanting it, just more quietly',
         modern: 'sex is talked about openly; shame survives in families and screenshots' },
     money: { label: 'Money and work',
-        victorian: 'service and class decide everything: a servant can be dismissed without a reference over a look or a rumour',
         midcentury: 'a secretary can be fired for marrying, getting pregnant or saying no, and everyone knows whose job keeps the house',
         seventies: 'women are paid less and bosses take liberties, and there’s no word yet for harassment',
         eighties: 'greed is good: money buys silence and loyalty, and being poor is a personal failing',
@@ -76,42 +65,36 @@ const LENSES = {
         modern: 'money buys lawyers, silence and the benefit of the doubt' },
     // These show only when something on the cards touches them (LENS_TRIGGERS).
     vice: { label: 'Vices',
-        victorian: 'laudanum is sold over the counter, gin and absinthe ruin the poor and opium dens hide the rich; a lady never smokes in public and a gentleman never refuses port',
         midcentury: 'everyone smokes, everywhere: offices, hospitals, in bed; a drink at lunch is normal, pills for nerves come from the family doctor, and drugs belong to jazz clubs and beatniks',
         seventies: 'cigarettes everywhere, Quaaludes and cocaine at parties, pot in every dorm, and drink-driving is a joke',
         eighties: 'cocaine for the rich, crack in the papers, smoke in every bar and Just Say No on the television',
         nineties: 'smoking still allowed in bars and cars, raves and ecstasy, heroin chic in the magazines',
         modern: 'vapes instead of cigarettes, weed often legal, pills traded quietly, and everything ends up on someone’s phone' },
     secrets: { label: 'Being found out',
-        victorian: 'there is no privacy: servants listen at doors, letters get opened and every caller is noted; a secret survives on burnt letters and bribed maids',
         midcentury: 'party lines and operators listen in, motels want a married name, neighbours watch through the curtains, and a private eye costs a few dollars a day',
         seventies: 'phones can be tapped, photos are developed by a stranger at the chemist, and neighbours still talk',
         eighties: 'answering machines keep messages anyone can play back, and a credit card bill can give the game away',
         nineties: 'pagers, caller ID and call-back give people away, and an unlocked email account or a saved chat log is a confession',
         modern: 'phones keep everything: locations, messages and photos, and a screenshot travels fast' },
     affair: { label: 'Marriage and straying',
-        victorian: 'divorce is ruin and nearly impossible for a wife; a husband’s mistress is overlooked, while a wife’s lover can cost her her children and her name',
         midcentury: 'divorce means proving adultery or cruelty in court; a man’s affairs get a wink, a woman who strays is a tramp, and the motel register is the risk',
         seventies: 'no-fault divorce has arrived and swinging gets talked about, but the one who was cheated on still gets the sympathy and the house',
         eighties: 'affairs are a soap-opera staple, and alimony and custody make leaving expensive',
         nineties: 'talk shows air every betrayal; a caught affair means lawyers and splitting the CD collection',
         modern: 'affairs live and die in phones; one message thread can end a marriage' },
     faith: { label: 'Faith and sin',
-        victorian: 'church every Sunday, damnation is real to most people, and a fallen woman or a known sinner is shunned by the parish',
         midcentury: 'church is social standing: everyone goes, divorce and sex outside marriage are sins, and the priest or pastor knows every family’s business',
         seventies: 'faith is fading for some and turning loud for others, and guilt still runs the family',
         eighties: 'television evangelists and the satanic panic: sin is a public accusation',
         nineties: 'fewer people go to church, but the guilt they were raised with still runs the family',
         modern: 'faith is a choice now, though the guilt from an upbringing still bites' },
     law: { label: 'The law',
-        victorian: 'the police are new and easily bought, the gallows is real, and a gentleman’s word beats a servant’s or a woman’s',
         midcentury: 'police beat confessions out of people, there is no DNA testing and the chair waits; who you know decides how a case goes',
         seventies: 'police are corrupt as often as not, forensics means fingerprints and blood type, and a killer can move freely between states',
         eighties: 'forensics is young and there are no linked databases, so someone who moves around can stay unknown for years',
         nineties: 'DNA evidence is new and doesn’t always convince a jury, cameras are grainy and rare, and phone records need a warrant',
         modern: 'cameras, phones and DNA make hiding hard; money and good lawyers still buy time' },
     discipline: { label: 'Discipline',
-        victorian: 'the cane and the birch are ordinary in schools and homes; a thrashing is a respectable punishment, and liking it is unspeakable',
         midcentury: 'the belt, the paddle and the ruler are normal discipline at home and at school, so spanking a grown-up is half shame and half something remembered',
         seventies: 'corporal punishment is still everywhere in schools and homes, and adults who play with it keep it to mail-order magazines',
         eighties: 'schools argue over paddling and caning; for adults it is a private kink found through personal ads and specialist shops',
@@ -162,7 +145,7 @@ const POWER_TINTS = {
     stalking: 'a man watching and following a woman gets called persistence',
     contempt: 'his contempt for women is ordinary talk at work and at the bar',
 };
-const OLD = new Set(['victorian', 'midcentury', 'seventies', 'eighties']);
+const OLD = new Set(['midcentury', 'seventies', 'eighties']);
 // A woman over a man, with her looking openly: the one gendered tint that runs the other way.
 const WM_TINTS = { gaze: 'her open looking at a man gets her called fast, or worse' };
 const fillIn = (text, map) => text.replace(/\{(\w+)\}/g, (m, k) => map[k] ?? m);

@@ -1,14 +1,6 @@
 // Place-and-time locks. Each regional era is a full period cue plus a dialect.
 // Rows: [id, label, cue sent to the AI, note shown to you (searchable), placed after this generic era].
 const REGIONAL_ERAS = [
-    ['era_1890s_britain', '1890s Britain', 'late Victorian: gaslight, electric light only in rich homes, telegrams and several posts a day, hansom cabs, steam trains and the Underground; servants, calling cards, chaperones, corsets and rigid class lines; workhouses and asylums, the Wilde trials and fin-de-siècle decadence',
-        'Victorian London and country houses. Locks British English.', 'era_1890s'],
-    ['era_1890s_scotland', '1890s Scotland', 'late Victorian Scotland: Glasgow shipyards and tenements, Edinburgh gentry and Old Town slums; gaslight, trains and telegrams; the Kirk, the Sabbath and temperance; Highland estates cleared for sheep and deer, crofters, herring boats, whisky and ceilidhs; poorhouses and asylums',
-        'Victorian Glasgow, Edinburgh and the Highlands. Locks British spelling with Scots voices.', 'era_1890s'],
-    ['era_1900s_britain', '1900s Britain', 'Edwardian: Victoria dead, country-house weekends; first motorcars and telephones for the rich, telegrams, gramophones and the Tube for everyone else; servants, hats and gloves, suffragettes, music halls and the Boer War’s aftermath',
-        'Edwardian. Locks British English.', 'era_1900s'],
-    ['era_1900s_scotland', '1900s Scotland', 'Edwardian Scotland: Glasgow at its industrial peak, Clyde-built ships, trams and smoky tenements; Edinburgh respectability; motorcars for lairds, telephones in big houses, telegrams for the rest; the Kirk and the pub, emigrant ships, shooting-season gentry beside Highland poverty',
-        'Edwardian Glasgow, Edinburgh and the Highlands. Locks British spelling with Scots voices.', 'era_1900s'],
     ['era_1960s_america', '1960s America', 'Kennedy, then Vietnam, civil rights and the moon landing; rotary phones, typewriters and carbon paper, TV going color, no home computers; cigarettes everywhere, the Pill, LSD late in the decade; Cold War secrecy, state hospitals, ECT and new tranquilizers',
         'Kennedy to Woodstock, Cold War labs. Locks American English. Easterman, the Outlast Trials.', 'era_1960s'],
     ['era_1960s_britain', '1960s Britain', 'austerity giving way to Swinging London; red phone boxes, typewriters, black-and-white telly with two or three channels; the Beatles and the Stones, mods and rockers, the Profumo scandal, the Pill (married women first); grammar schools and pubs shut at eleven',

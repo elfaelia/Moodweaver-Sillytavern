@@ -1,5 +1,73 @@
 # Changelog
 
+## 1.55.0: facts that run their course, a profile, and the panel tidied
+
+### Facts move feelings and wear off
+
+- **Temporary facts run their course.** Drunk, bleeding, soaked, concussed, injured and about 50 others last a set time, fade, and turn into what comes after: drunk for about 6 hours, then hungover; bleeding, then bruised; concussed, then a headache. The time comes from the clock and date on the info board, so a time skip moves them on at once; without a clock each reply counts as about ten minutes, and a change of place as an hour or more.
+- **They stir the feelings that go with them.** Drunk pushes hazy and emboldened, hungover grumpy and sluggish, and so on (about 45 facts), never past 70, and only while the fact is on. Pinned feelings stay put.
+- **Undo, swipes and deletes take it all back**, for the main character and for you: the fact, its clock and the feelings it pushed.
+- Claude can now name a fact on the hidden line (a nosebleed, soaked through), and it's switched on.
+
+### A profile for both of you
+
+- **The Facts tab starts with a small profile:** Age, Height and Into (main interests), and up to three **core traits**. Star a trait (☆ on the Traits tab) to make it core: it's always sent first, "under any mood", and never dropped. Other traits stay as they were.
+- The note gets one short Profile line per person and a "Between them" line when it matters ("Easterman is 14 years older and much taller than Lamb"). Height and interests also light turn-ons: *tall people* for someone taller, a shared interest for "into guitar".
+
+### Feelings, traits and turn-ons work together
+
+- **Mood boosts turn-ons.** When he's horny a lit turn-on hits harder; when he's angry a lit turn-off bites harder and lingers.
+- **Traits set the pace of feelings.** Volatile, impulsive or hot-headed people swing faster, steady and stoic ones slower, brooding or grudge-holding ones let go more slowly. The Moods card says when this is happening.
+- **He learns your turn-ons from how you react.** The hidden line notes when he picked up on one of yours. Once makes it suspected, twice makes it known ("picked it up from how Lamb reacts"), and deleting those replies takes it back.
+
+### Era lines don't decide who leads
+
+- Who leads between them now comes from what you set and how they feel first: roles you set on Bonds, then the Control meter, then their moods (demanding, bratty, needy, yielding and so on). Only when none of those lean either way does the old default apply. So when Lamb is demanding her candies and soaps and he's soft and accommodating, he's not pushed into charge.
+- Period lines are now framed as the world around them: what other people expect, say and risk, and now and then a little tension when they don't fit it. They stay on as before; they just no longer change who either of them is.
+
+### Bonds and dynamics
+
+- **"Shaped by"** on the Bonds card shows what's steering the dynamic: the strongest ties between them and turn-ons in play.
+- **Your sliders** (Light, Balanced, Strong) sets how firmly the relationship sliders you set hold the meters and the dynamic, so the story and the moods can move it more or less. Pace is set once, on the Moods card.
+- Ties don't get set from the dynamic, so there's no loop that could get a dynamic stuck.
+- Pronouns fold away under the card.
+
+### The panel
+
+- **Tab order:** Moods, Needs, Bonds, Facts, Traits, Turn-ons, Intimacy, Skills, Wants. Intimacy now comes after Turn-ons, and Facts sits higher.
+- **The Facts tab is rebuilt:** profile, then a summary of what's on in two rows (Right now, Who they are), then the list under the same two headings, then what they carry.
+- **Your facts are on the You tab**, under your outfit and condition.
+- **Items are now "Carrying"**, at the bottom of Facts: a short list with a tick to carry or put away. Same items as before, no separate tab.
+- **Why is this on?** A faint "↳" line under a feeling says what put it there when it wasn't you: the story raised it, a fact brought it, or it's wearing off. ⚙ Settings › Panel › Show why turns it off.
+- **Hide the Wants tab** in ⚙ Settings › Panel. With it hidden nothing about wants is suggested, and Claude decides what they want on its own.
+
+## 1.54.0: turn-ons that react to who someone is
+
+### Turn-ons light up from the other person
+
+- **A turn-on now counts when the other person simply *is* it,** not only when a reply mentions it. If Easterman likes brattiness or dominance and your character is bratty or has princess dominance on, it's in play all the time: the note tells Claude "brattiness (in Lamb: bratty)", so it colours how he sees her from the start and builds over time. It works both ways, for his turn-ons and yours.
+- It reads what's already on the cards, so there's no extra request and only a few words per line: moods and traits (feelings once they're at 41 or more), Intimacy options, facts, skills at 5 or more (*doctors* lights for someone with Medicine, *musicians* for Guitar), and ties (*captors* for someone who's your captor, *teachers* for your teacher). About 190 turn-ons know what to look for.
+- **The Turn-ons tab shows them** under the chips: "In play from Ellie: ♡ Brattiness *bratty*".
+
+### Turn-offs bite, and their opposite helps
+
+- A turn-off the other person shows is marked the same way and keeps grating. For a few turn-offs with a clear opposite (prudishness and someone shameless, brattiness and someone obedient, shyness and someone outgoing, and so on), showing the opposite counts in their favour, marked ✓.
+- **They move the relationship now.** His turn-ons you show warm the romance baseline, his turn-offs cool it, and an opposite warms it a little (at most 20 points either way). And each reply where his hidden line says a turn-on lit nudges romance up a point or two, a turn-off down, whenever the line didn't move romance itself.
+
+### Age
+
+- **An Age box on the Facts tab** for the main character and for you. With both set, *older men*, *younger women* and the rest count whenever the other one fits (two years apart or more, and a man or a woman by the Pronouns on the Bonds tab).
+
+### Your turn-ons in the story
+
+- Claude is now asked to bring your turn-ons in one or two at a time, giving each a few replies to build before the next, rather than all at once. Ones he knows about he uses on purpose and knowingly: the right words, timing and touch, teasing with them, holding them back, rewarding with them, watching what they do to you. Ones he suspects he tests quietly and reads your reaction.
+- The last capital-letters marker in the note ("PRESSED last reply" on wants) is now plain lowercase, like the others.
+
+### No more 1890s
+
+- The 1890s and 1900s eras (with their Britain and Scotland versions), the Victorian drama, fantasy and erotica genres, and their period lines are gone. The 1910s era stays, without period lines. If a chat had one of them on, it's simply switched off.
+- Four turn-ons that only fit then are merged into modern ones, with saved values moving over: bloomers and petticoats → lingerie, dandies → sharp suits, gentry → rich people, governesses and tutors → teachers. Caning now reads as school style rather than Victorian.
+
 ## 1.53.0: turn-ons sorted, skills rebuilt, more 1960s, one pace from the Moods card
 
 Chats carry over: removed turn-ons and skills hand their saved values to the ones that replaced them.

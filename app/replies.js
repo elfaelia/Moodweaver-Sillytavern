@@ -1,10 +1,11 @@
 // Reading the chat's replies: the needs board, hidden weave lines, bond meters, and keeping
 // everything in line when replies are swiped, edited or deleted.
-import { getCast, getPair, getState, getStoryState, getUserState, members, pairId, persist, playerName, resolveRelationName, target } from './chat.js';
-import { lastDynamic, scenePace, syncPrompt, writingNow } from './note.js';
+import { getCast, getKnowledge, getPair, getState, getStoryState, getUserState, members, pairId, persist, playerName, resolveRelationName, target } from './chat.js';
+import { lastDynamic, movePace, syncPrompt, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
-import { NO_BOARD, boardKeyOf, cleanBoardMeta, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needWord, parseBoard, relationId, relationsFromBoard } from '../engine/board.js';
+import { knowledgeEntry } from '../engine/state.js';
+import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
@@ -12,14 +13,14 @@ import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
 import { MORE_METERS, computeMore, saidMeters } from '../engine/meters.js';
 import { withNudges } from '../engine/mood-meters.js';
-import { fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
+import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cloneRelationships } from '../engine/relationships.js';
 import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
-import { TURN_BY_ID } from '../engine/turns.js';
+import { TURN_BY_ID, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
 
 // ---- Needs board: read from the latest info board in the chat, plus the player's edits ----
@@ -219,29 +220,103 @@ function migrateBond(bond, ch) {
 }
 // One step per reply of this character's that has a weave line, oldest first, from the chat itself.
 // Hidden messages still count: hiding a reply isn't taking it back.
+// Romance points from what a reply lit: +1 per turn-on (+2 when it's strong), −1 per turn-off (−2 when strong),
+// at most 3 either way. Each phrase is matched once per chat read.
+function sparkRomance(prefs) {
+    const seen = new Map();
+    const one = sp => { const key = `${sp.off ? '-' : '+'}${sp.text}`;
+        if (!seen.has(key)) { const v = prefs[sparkTarget(sp.text, prefs).id] ?? 0; seen.set(key, v ? Math.sign(v) * (Math.abs(v) >= 61 ? 2 : 1) : sp.off ? -1 : 0); }
+        return seen.get(key); };
+    return (sparks = []) => clamp(sparks.reduce((sum, sp) => sum + one(sp), 0), -3, 3);
+}
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
+    const prefs = getState(ch)?.prefs ?? {}, sparkPull = sparkRomance(prefs);
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
-        const step = { f: w.f, r: w.r, t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
+        // A lit turn-on warms the romance a step and a lit turn-off cools it, when the line didn't move it itself.
+        const step = { f: w.f, r: w.r || sparkPull(w.sparked), t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         out.push({ pos, key: readOf(m).wkey, s: nudge ? withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale) : step });
     });
-    if (out.length) { const st = getState(ch), prefs = st?.prefs ?? {}, traits = bedroomTraits(st); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
+    if (out.length) { const traits = bedroomTraits(getState(ch)); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
+    return out;
+}
+// Your persona's own side toward this character (Has them on a string, Captor of…), or {}.
+function yourSide(ch) {
+    const name = String(ch?.name ?? '').toLowerCase();
+    const mine = (getUserState()?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === name);
+    return mine && mine.enabled !== false ? mine.moods ?? {} : {};
+}
+// What each of you shows of the other's turn-ons and turn-offs (engine/turns.js), read from what's set:
+// char: his turn-ons and turn-offs that you show; user: yours that he shows.
+export function chatSigns(ch, bond = bondData(ch)) {
+    const st = getState(ch), me = getUserState();
+    if (!st || !me) return { char: new Map(), user: new Map() };
+    const g = pronounsFor(ch, bond), rel = userRelation(st);
+    return { char: turnSigns({ state: st }, { state: me, he: g.u, ties: yourSide(ch) }),
+        user: turnSigns({ state: me }, { state: st, he: g.n, ties: rel && rel.enabled !== false ? rel.moods ?? {} : {} }) };
+}
+// Your turn-ons the character has picked up on from the story: the hidden line's "noticed" names them. Once
+// makes it a suspicion and twice means he knows (a suspected one becomes known the first time). Read from the
+// replies still in the chat, after the point you last set it by hand, so a swipe takes it back. Returns the
+// knowledge with those raised (marked learned), for the note and the panel; what you set stays as it was.
+export function knowledgeNow(ch, chat = liveChat()) {
+    const known = getKnowledge(ch), prefs = getUserState()?.prefs ?? {};
+    if (!ch || !bondData(ch).on || !Object.values(prefs).some(Boolean)) return known;
+    const mine = writes(ch), counts = new Map();
+    (chat ?? []).forEach((m, i) => {
+        if (!mine(m) || m.is_system) return;
+        for (const text of weaveOf(m)?.noticed ?? []) {
+            const id = sparkTarget(text, prefs).id, key = `turn:${id}`;
+            if (id && i >= (knowledgeEntry(known[key]).from ?? -1)) counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+    });
+    if (!counts.size) return known;
+    const out = { ...known }, u = shortName(playerName());
+    for (const [key, n] of counts) {
+        const e = knowledgeEntry(known[key]); if (e.mode === 'known') continue;
+        out[key] = { mode: e.mode === 'suspected' || n >= 2 ? 'known' : 'suspected', source: e.source || `picked it up from how ${u} reacts`, learned: true };
+    }
     return out;
 }
 // A new meter starts from the relationship sliders already set toward the player, so an existing
 // romance doesn't open at "no spark". Later replies move it from there.
-// The same reading of the sliders seeds new meters and shapes the named dynamic (bond.js).
-export function bondAxes(ch) {
+// The same reading of the sliders seeds new meters and shapes the named dynamic (bond.js). His turn-ons
+// that you show warm the romance a little, his turn-offs cool it, and their opposite helps.
+export function bondAxes(ch, bond = null) {
     const st = getState(ch), rel = st ? userRelation(st) : null;
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
-    // Your persona's own side toward this character counts too (Has them on a string, Captor of…).
-    const name = String(ch?.name ?? '').toLowerCase();
-    const mine = (getUserState()?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === name);
-    return sliderAxes(rel && rel.enabled !== false ? rel.moods ?? {} : {}, pair?.enabled !== false ? pair?.moods ?? {} : {}, mine && mine.enabled !== false ? mine.moods ?? {} : {});
+    const axes = sliderAxes(rel && rel.enabled !== false ? rel.moods ?? {} : {}, pair?.enabled !== false ? pair?.moods ?? {} : {}, yourSide(ch));
+    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char) };
+}
+// Why each mood or fact is where it is, from the replies still in the chat: raised by the story, brought by a
+// fact, wearing off, fading. who: 'char' or 'user' (yours only change when a fact runs its course). Anything you
+// changed by hand since gets no note. For the faint "why" lines in the panel (Settings › Show why).
+export function whyMap(ch, who = 'char') {
+    const list = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch?.avatar}`] ?? [], st = who === 'user' ? getUserState() : getState(ch), out = new Map(), seen = new Set();
+    for (let i = list.length - 1; i >= 0; i--) {
+        const rec = list[i], ago = list.length - 1 - i, when = ago === 0 ? 'last reply' : `${ago + 1} replies ago`;
+        for (const [id, [a, b]] of Object.entries((who === 'user' ? rec.um : rec.m) ?? {})) {
+            if (seen.has(id)) continue; seen.add(id);
+            if (!(st?.moods?.[id] > 0) || st.moods[id] !== b) continue;
+            const fx = who === 'user' ? rec.ufx : rec.fx;
+            out.set(id, `${fx?.[id] ?? (rec.f?.includes(id) ? 'fading, not mentioned lately' : b > a ? 'the story raised it' : 'the story eased it')}, ${when}`);
+        }
+    }
+    return out;
+}
+// What's shaping where they stand, for the Bonds card: the ties set between them at clear or above, strongest
+// first (n: his side toward you, u: yours toward him, both: both ways), and his turn-ons' pull on romance.
+export function bondDrivers(ch) {
+    const st = getState(ch), rel = st ? userRelation(st) : null;
+    const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
+    const from = (moods, side, byId) => Object.entries(moods ?? {}).filter(([id, v]) => v >= 41 && byId[id]).map(([id, value]) => ({ label: byId[id].label.replace(/\s*\{other\}\s*/g, ' ').trim(), side, value }));
+    const ties = [...from(rel && rel.enabled !== false ? rel.moods : {}, 'n', RELATIONSHIP_BY_ID), ...from(pair && pair.enabled !== false ? pair.moods : {}, 'both', SHARED_BY_ID), ...from(yourSide(ch), 'u', RELATIONSHIP_BY_ID)]
+        .sort((a, b) => b.value - a.value).slice(0, 4);
+    return { ties, warm: signsPull(chatSigns(ch).char) };
 }
 // The same idea switched on in more than one place (a meter, the dynamic, his slider toward you, a
 // both-ways tag, a story trope). Worked out from what the note would actually send; syncPrompt sends each
@@ -267,7 +342,8 @@ export function overlapNames(list, n, u) {
 // Sliders and both-ways tags that also move the meters (trusts, obsessed, captor of…). The note can skip them,
 // but Tidy leaves them on: turning them off would shift the meters and maybe the dynamic.
 export const feedsMeters = x => x.kind === 'rel' ? Object.values(sliderAxes({ [x.id]: 100 })).some(Boolean) : x.kind === 'shared' ? Object.values(sliderAxes({}, { [x.id]: 100 })).some(Boolean) : false;
-const seedBond = ch => Object.fromEntries(Object.entries(bondAxes(ch)).map(([k, v]) => [k, Math.round(v * 0.8)]));
+// A new bond has no pronoun choices yet, so it's seeded with the guessed ones.
+const seedBond = ch => Object.fromEntries(Object.entries(bondAxes(ch, cleanBond({}, false))).map(([k, v]) => [k, Math.round(v * 0.8)]));
 export const userRelation = (st, create = false) => {
     const you = playerName().toLowerCase();
     let relation = (st.relationships ??= []).find(r => r.target === '{{user}}' || resolveRelationName(r.target).toLowerCase() === you);
@@ -306,23 +382,42 @@ function forget(writer, id) {
     const pair = id && writer ? getPair(`char:${writer.avatar}`, 'user') : null;
     if (pair?.memories) pair.memories = pair.memories.filter(m => !(m.id === id && untouchedMemory(m)));
 }
+// Facts running their course for one person over one reply, and (feel: true) the feelings they bring
+// (engine/moodpace.js). Changes st in place. Returns { m: { id: [before, after] }, fx: { id: why }, fc: the
+// clock before }, for the reply's record, so a swipe or Undo puts it all back.
+function runFacts(st, hours, named, feel = false, hold = null) {
+    const fc = structuredClone(st.factClock ?? {}), before = { ...st.moods }, fx = {};
+    const step = factStep(st.moods, st.factClock ?? {}, hours, named, st.pins ?? {});
+    st.factClock = step.clock;
+    const after = new Map(step.ended.map(id => [FACTS[id].then, FACTS[id].label]));
+    for (const [id, v] of Object.entries(step.set)) { if (hold?.m?.has(id)) continue; st.moods[id] = v; fx[id] = after.has(id) ? `after ${after.get(id).toLowerCase()}` : v ? 'wearing off' : 'wore off'; }
+    if (feel) for (const [id, v, fact] of factFeelings(st.moods, id => !st.pins?.[id] && !hold?.m?.has(id))) { st.moods[id] = v; fx[id] = `from ${FACTS[fact].label.toLowerCase()}`; }
+    const m = Object.fromEntries(Object.keys(fx).filter(id => (before[id] ?? 0) !== st.moods[id]).map(id => [id, [before[id] ?? 0, st.moods[id]]]));
+    return { m, fx, fc };
+}
+const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(moved)) rec.m[id] = [rec.m[id]?.[0] ?? a, b]; };
 // hold: feelings you moved by hand after an earlier version of this same swipe (before it was continued
 // or its hidden line edited). They're yours now, so the new version leaves them alone.
 // asked: your message this reply answers, when it comes straight before it (so your skills count it once).
-function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
+function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = null) {
     const w = bondData(writer).on ? weaveOf(m) : null, boardKey = readOf(m).boardKey;
     const rec = { k: w ? readOf(m).wkey : boardKey ? `b|${boardKey}` : '', m: {}, r: {}, fed: null, mem: '' }, notes = [];
     if (!rec.k) return null;
     if (!st.enabled) return { rec, notes };
+    // Time this reply covers, and the facts the story names in it, for facts running their course.
+    const board = parseBoard(m.mes), hours = replyHours(prev ? parseBoard(prev.mes) : null, board, REPLY_HOURS);
+    const factsNamed = new Set([...factsIn(board?.physical), ...factsIn(board?.state)]);
+    const facts = feel => { if (!b.feed) return; const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc; if (Object.keys(r.fx).length) rec.fx = r.fx; };
     if (w) {
         if (b.feed) {
             // Feelings the story names are matched to the catalogue. "Only my list" keeps the story to the
             // feelings on the character's list.
             const listOnly = st.moodScope === 'list', listed = id => !listOnly || st.loadout?.includes(id) || (st.moods[id] ?? 0) > 0;
-            const resolve = name => { const id = feelingId(name); return id && listed(id) ? id : null; };
+            // Body facts that come and go (drunk, bleeding, sore) can be named there too.
+            const resolve = name => { const fact = factId(name); if (fact) { factsNamed.add(fact); return fact; } const id = feelingId(name); return id && listed(id) ? id : null; };
             // The character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
-            const pace = scenePace(writer), named = new Set();
+            const pace = movePace(writer), named = new Set();
             const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
@@ -336,14 +431,14 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
             }
             // The board's State words fill in feelings the hidden line didn't name. The line wins for
             // anything it names, and those stop being the board's to fade.
-            const board = settings().boardWithWeave ? parseBoard(m.mes) : null;
-            if (board?.state) {
+            if (settings().boardWithWeave && board?.state) {
                 const named = Object.fromEntries(w.moods.map(x => [feelingId(x.name), true]).filter(([id]) => id));
                 const fed = fedOf(meta, writer); rec.fed ??= structuredClone(fed);
                 const before = { ...st.moods };
                 feedValues(st.moods, { ...st.pins, ...named }, fed.moods, feelingsFromBoard(board).filter(x => !named[x.id]));
                 Object.assign(rec.m, diff(before, st.moods));
             }
+            facts(st.moodAuto !== false);
             // Feelings nobody mentioned for a while fade, on the character's pace. Pinned ones and
             // traits never do. Recorded with the reply, so a swipe or Undo puts them back.
             if (st.moodAuto !== false && st.moodFade !== false) {
@@ -352,18 +447,17 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
                 for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
                 rec.q = structuredClone(st.moodQuiet ?? {});
                 const keep = heldBy(lastDynamic.get(writer.avatar)), held = new Set(Object.keys(values).filter(id => keep.has(BY_ID[id].category)));
-                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer), held);
+                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, movePace(writer), held);
                 st.moodQuiet = quiet;
                 const target = moodTarget(st);
                 for (const [id, v] of Object.entries(faded)) { rec.m[id] = [values[id], v]; target.set(id, v); rec.f = [...(rec.f ?? []), id]; }
             }
-            notes.push(...Object.keys(rec.m).filter(id => !rec.f?.includes(id)).map(id => labelOf(st, id)), ...Object.keys(rec.r).map(id => labelOf(st, id)),
+            notes.push(...Object.keys(rec.m).filter(id => !rec.f?.includes(id) && rec.fx?.[id] !== 'wearing off').map(id => labelOf(st, id)), ...Object.keys(rec.r).map(id => labelOf(st, id)),
                 ...Object.entries(w.needs).map(([k, v]) => `${k} ${needWord(v).toLowerCase()}`));
         }
         if (settings().boardMemories) rec.mem = remember(writer, rec.k, w.remember);
     } else {
         // No weave line: the board's State and Toward words nudge feelings instead.
-        const board = parseBoard(m.mes);
         if (board && b.feed) {
             const fed = fedOf(meta, writer); rec.fed = structuredClone(fed);
             const before = { ...st.moods };
@@ -376,9 +470,13 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
             notes.push(...Object.keys(rec.m).filter(id => st.moods[id] > 0).slice(0, 4).map(id => labelOf(st, id)));
         }
         if (board && settings().boardMemories && board.remember !== undefined) rec.mem = remember(writer, rec.k, board.remember);
+        facts(st.moodAuto !== false);
     }
     for (const id of Object.keys(rec.m)) if (st.moods[id] > 0 && Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id);
     if (rec.mem) notes.push('remembered a moment');
+    // Your facts run their course on the same clock (the hidden line's "you" list keeps the ones it names going).
+    const me = getUserState();
+    if (me?.enabled && b.feed) { const r = runFacts(me, hours, new Set([...(w?.you ?? []).flatMap(x => [...factsIn(x)]), ...factsIn(board?.physical)])); if (Object.keys(r.m).length) { rec.um = r.m; rec.uc = r.fc; rec.ufx = r.fx; me.revision = (me.revision || 0) + 1; } else if (JSON.stringify(r.fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = r.fc; }
     // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
     // from the message it answers.
     rec.sk = growSkills(st, stripWeave(m.mes), (w?.used ?? []).join(', '));
@@ -391,6 +489,8 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
 function undoReply(meta, writer, st, rec) {
     const backM = untrack(moodTarget(st), rec.m);
     if (rec.q) st.moodQuiet = structuredClone(rec.q);
+    if (rec.fc) st.factClock = structuredClone(rec.fc);
+    if (rec.uc) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); me.factClock = structuredClone(rec.uc); me.revision = (me.revision || 0) + 1; } }
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);
@@ -454,7 +554,8 @@ export function reconcile(type = '') {
             const todo = recent.filter(([i, m]) => mine(m) && i > newestKnown && !keysOf(m).some(k => known.has(k)));
             // A character with nothing recorded yet starts from their newest reply only.
             for (const [i, m] of list.length ? todo : todo.slice(-1)) {
-                const done = applyReply(meta, writer, st, m, b, held.get(swipeOf(readOf(m).wkey)), chat[i - 1]?.is_user ? chat[i - 1] : null); if (!done) continue;
+                const prev = chat.slice(0, i).findLast(x => mine(x) && !x.is_system) ?? null;
+                const done = applyReply(meta, writer, st, m, b, held.get(swipeOf(readOf(m).wkey)), chat[i - 1]?.is_user ? chat[i - 1] : null, prev); if (!done) continue;
                 list.push(done.rec); moved.push(...done.notes); changed = true;
             }
         }

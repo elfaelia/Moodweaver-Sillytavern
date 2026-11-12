@@ -46,9 +46,12 @@ export function personCard(ch, state, live) {
     ${ui.castAction && ui.castAction !== 'adding' ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${ui.castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${ui.castAction}-confirm">${ui.castAction === 'load' ? 'Load saved cast' : 'Remove'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}`;
 }
 // One sticky row of icon tabs: fits a phone screen and stays reachable while scrolling long lists.
-// Needs is the live board; Facts is the old needs-and-facts list; personality types sit at the top of Traits.
-// Meters live at the top of Bonds, beside the relationship they measure.
-const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['skills', '✪', 'Skills', '#9fc0e8'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
-// On your own character the Needs tab becomes You: outfit, condition and the moodlets showing.
-export const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${TABS.map(row => ui.who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row).map(([k, icon, label, color]) =>
+// Needs is the live board; Facts holds the profile, what's going on with their body right now, who they are and
+// what they carry. Meters live at the top of Bonds, beside the relationship they measure. Turn-ons and Intimacy
+// sit side by side; Wants can be hidden in Settings.
+const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f']];
+// On your own character the Needs tab becomes You, and your facts live there too.
+export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'state' && who === 'user'))
+    .map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row);
+export const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${tabsFor(ui.who).map(([k, icon, label, color]) =>
     `<button type="button" role="tab" data-tab="${k}" aria-selected="${ui.tab === k}" aria-pressed="${ui.tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;

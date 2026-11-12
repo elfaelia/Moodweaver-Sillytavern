@@ -1,5 +1,5 @@
 // The hidden note sent to the model with each reply: every active setting in words, at its strength.
-import { CATEGORIES, MERGED_PROMPT_CUES, ON_PAGE, PROMPT_NAME, SCALED_MOOD_CUES, STYLE_CATEGORIES, analysed, isAuthor, lowerLabel, sectionOf } from '../data/catalogue.js';
+import { BY_ID, CATEGORIES, MERGED_PROMPT_CUES, ON_PAGE, PROMPT_NAME, SCALED_MOOD_CUES, STYLE_CATEGORIES, analysed, isAuthor, lowerLabel, sectionOf } from '../data/catalogue.js';
 import { activeMoods, cleanTargets, knowledgeEntry } from './state.js';
 import { TIERS, tierOf } from './strength.js';
 import { escapeHtml, shortName } from './util.js';
@@ -8,7 +8,7 @@ import { patternLines } from './patterns.js';
 import { activePersonalities, activePersonality, personalityCue } from './personality.js';
 import { pronounize } from './pronouns.js';
 import { TWO_ROLE_SHARED, activeSharedTags, compareText, relationshipKey, relationshipSets, relationshipText } from './relationships.js';
-import { TURN_BY_ID } from './turns.js';
+import { TURN_BY_ID, compareProfiles, profileText } from './turns.js';
 
 function directedCue(id, value, state, people) {
     if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
@@ -109,6 +109,13 @@ function listLines(state, list, other, people = {}, lit = null) {
         ...(feelings.length ? ['Feelings, strongest first:', ...feelings.map(line)] : []),
         ...groups.flatMap(g => [`${g === 'authors' ? 'Authors' : CATEGORY_NAME[g]}:`, ...rest.filter(m => groupOf(m) === g).sort((a, b) => state.moods[b.id] - state.moods[a.id]).map(line)])];
 }
+// Core traits: up to three, picked on the Traits tab, always true whatever the mood.
+const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
+function profileLines(st, core, other, people) {
+    const text = profileText(st);
+    return [...(text ? [`Profile: ${pt(text)}`] : []),
+        ...(core.length ? [`Core of who they are, under any mood: ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
+}
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
 function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character', people = {}) {
     const observer = pt(shortName(other));
@@ -122,14 +129,18 @@ function personaLines(state, list, other, knowledge = {}, subject = 'the player�
     return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
 }
 const live = s => s?.enabled ? activeMoods(s) : [];
+const AROUSED = new Set(['horny', 'heated', 'desperate_for_it', 'craving', 'insatiable', 'starved_for_them', 'sexually_frustrated', 'teased_to_breaking', 'dominant_hunger', 'submissive_longing', 'possessive_lust']);
 const causeOf = (state, id) => state?.causes?.[id] ? `, because ${pt(state.causes[id])}` : '';
 const liveWants = (state, done = null) => (state?.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !done?.has(w.id)).sort((a, b) => b.value - a.value);
 const WANT_WORD = { want: 'want', goal: 'goal', fear: 'fear', button: 'hot button' };
-const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply', touched: 'touched last reply', pressed: 'PRESSED last reply' };
+const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply', touched: 'touched last reply', pressed: 'pressed hard last reply' };
 const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
 // Turn-ons, wants, their own rows and inventory, for one person. Kinds pick which of their own rows belong here.
 // lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id → status), done: Set }.
-function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit = null, know = null) {
+// signs: { map: Map(turn id → { is, not }) from engine/turns.js turnSigns, who: the other person's name }.
+const signNote = (id, signs) => { const x = signs?.map?.get(id);
+    return !x ? '' : x.is.length ? ` (in ${signs.who}: ${x.is.map(pt).join(', ')})` : ` (in ${signs.who}, the opposite: ${x.not.map(pt).join(', ')})`; };
+function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit = null, know = null, signs = null) {
     if (!state?.enabled) return [];
     const out = [], person = kinds.includes('mood');
     const prefs = person ? livePrefs(state) : [];
@@ -137,13 +148,13 @@ function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit =
     // purpose; the rest are for the story to bring in without anyone meaning to.
     if (prefs.length && know) {
         const row = ([id, v]) => { const e = knowledgeEntry(know.knowledge?.[`turn:${id}`]);
-            return [e.mode, `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${e.source ? ` (how: ${pt(e.source)})` : ''}`]; };
+            return [e.mode, `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${signNote(id, signs)}${e.source ? ` (how: ${pt(e.source)})` : ''}`]; };
         const rows = prefs.map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
         const known = pick(['known']), suspected = pick(['suspected']), unknown = pick(['scene', 'private']);
         if (known.length) out.push(`Turn-ons and turn-offs ${know.observer} knows about:`, ...known);
         if (suspected.length) out.push(`Turn-ons and turn-offs ${know.observer} suspects:`, ...suspected);
         if (unknown.length) out.push(`Turn-ons and turn-offs ${know.observer} doesn't know about:`, ...unknown);
-    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${lit?.turns?.has(id) ? ' (lit last reply)' : lit?.craving?.has(id) ? ` (craving: not lit for ${lit.craving.get(id)} replies)` : ''}`));
+    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${signNote(id, signs)}${lit?.turns?.has(id) ? ' (lit last reply)' : lit?.craving?.has(id) ? ` (craving: not lit for ${lit.craving.get(id)} replies)` : ''}`));
     const free = person ? (lit?.free ?? []) : [];
     if (free.length) out.push(`Also set off last reply: ${free.map(x => `${pt(x.text)}${x.off ? ' (turn-off)' : ''}`).join(', ')}`);
     const wants = person ? liveWants(state, lit?.done) : [];
@@ -174,7 +185,7 @@ function personalityLines(state, knowledge, observer = '') {
 }
 const isDark = (m, set) => set.has(m.id) || m.dark === true;
 const LOCALE_MARK = '\u0000dialect\u0000';
-// extras: { player: { state, name, knowledge }, story, cast, pairs }.
+// extras: { player: { state, name, knowledge }, story, cast, pairs, signs: { char, user } (turn-ons each one shows of the other's) }.
 // The usual ways a dark scene gets dodged, named so the note can rule them out.
 const DODGES = 'someone knocking, calling or walking in; a guard, alarm or rescuer arriving; the victim slipping free by luck; the attacker hesitating, softening or having a change of heart; a milder act or a smaller injury swapped in; cutting to later, to the aftermath or to another scene; summing the act up in one line; fading out; the narration judging it; turning it into a dream, a bluff or a threat that never lands; stopping on the threshold to hand the decision to the player';
 function composePrompt(state, name, extras = {}) {
@@ -191,8 +202,9 @@ function composePrompt(state, name, extras = {}) {
     const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p), memories: (p.memories ?? []).filter(m => m.value >= 41 && m.text) }))
         .filter(p => p.tags.length || p.memories.length);
     const lit = extras.lit ?? null;
-    const mineExtra = extraLines(state, undefined, '', lit), storyExtra = extraLines(storyState, ['story']);
-    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n });
+    const signs = extras.signs ?? null, signed = Boolean(signs?.char?.size || signs?.user?.size);
+    const mineExtra = extraLines(state, undefined, '', lit, null, { map: signs?.char, who: u }), storyExtra = extraLines(storyState, ['story']);
+    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n }, { map: signs?.user, who: n });
     const prefKnown = mode => livePrefs(player?.state).some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
@@ -222,7 +234,9 @@ function composePrompt(state, name, extras = {}) {
         `For looks, body and facts, strength is how noticeable they are and how much weight they get. Facts stay as written, and age doesn't decide anyone's personality.`);
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) out.push('',
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
-    if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pa(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people, lit), ...mineExtra, `</character_state>`);
+    // Profile (age, height, interests) and up to three core traits lead the block; the core traits aren't listed twice.
+    const core = coreOf(state), profile = profileLines(state, core, U, people);
+    if (mine.length || mineExtra.length || hasType(state) || profile.length) out.push('', `<character_state name="${pa(N)}">`, ...profile, ...personalityLines(state), ...listLines(state, mine.filter(m => !core.includes(m)), U, people, lit), ...mineExtra, `</character_state>`);
     if (feelings.length) out.push('',
         `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
     // Standing settings get one plain line each, so they read as who someone is rather than as this reply's mood.
@@ -233,14 +247,17 @@ function composePrompt(state, name, extras = {}) {
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 61 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through on the page.${followOn ? '' : ` Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.`}` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     const condition = (player?.condition ?? []).filter(Boolean).slice(0, 6);
-    if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length) {
+    const theirProfile = player?.state?.enabled && profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : [];
+    const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
+    if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;
         out.push('', `<player_character name="${pa(U)}" written_by="player">`,
+            ...theirProfile, ...(between ? [`Between them: ${n} is ${between} than ${u}.`] : []),
             ...personalityLines(player.state, player.knowledge ?? {}, n),
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra,
             ...(condition.length ? [`${u}'s body right now, from earlier replies: ${condition.map(pt).join(', ')}. It stays until the story heals or changes it.`] : []), '',
             `The player writes what ${u} says, chooses and thinks; what happens to ${u}'s body and circumstances follows the story. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`,
-            ...(prefs ? [pronounize(`${u}'s turn-ons belong in the story whether or not ${n} knows them.${prefKnown('known') ? ` The ones ${n} knows about, ${n} uses on purpose and in character: plays to them, teases with them, holds them back or rewards with them.` : ''}${prefKnown('suspected') ? ` The ones ${n} suspects, ${n} tests to see what happens.` : ''}${livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) ? ` The ones ${n} doesn't know about still turn up, every few replies, through how ${n} and others already look, sound and act, by chance as far as anyone in the story can tell. Nobody changes to match, and ${n} only learns them from how ${u} reacts.` : ''} Let a turn-off crop up sometimes for friction.`, n, u)] : []),
+            ...(prefs ? [pronounize(`${u}'s turn-ons belong in the story whether or not ${n} knows them, one or two at a time, each given a few replies to build before the next comes in.${prefKnown('known') ? ` The ones ${n} knows about, ${n} uses on purpose and knowingly, in character: the right words, timing and touch, teasing with them, holding them back, rewarding with them, and watching what they do to ${u}.` : ''}${prefKnown('suspected') ? ` The ones ${n} suspects, ${n} tests quietly and reads ${u}'s reaction.` : ''}${livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) ? ` The ones ${n} doesn't know about still turn up, every few replies, through how ${n} and others already look, sound and act, by chance as far as anyone in the story can tell. Nobody changes to match, and ${n} only learns them from how ${u} reacts.` : ''} Let a turn-off crop up sometimes for friction.`, n, u)] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
@@ -282,13 +299,19 @@ function composePrompt(state, name, extras = {}) {
         out.push('', `"Both ways" lines are true for both; the rest is one side, and an opinion is a view, not a fact. They count when the other person is absent too, in thoughts, talk and memories. Intense or above keeps coming back; maximum drives what they do around that person, whatever it costs.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}${standing.length ? ` Where it stands and the dynamic built up over the chat; the other lines are what ${n} feels now, and where they disagree both are true. Friendship, romance and trust move separately, and so do control and pull: whoever holds the keys can still be the one who gives way.` : ''}${relationships.some(r => r.tags.some(t => t.category === 'How it shows')) ? ` Lines on how someone shows it decide what a feeling looks like on the page: it can be strong and still come out as an insult, a gift or a locked door.` : ''}`);
         out.push('</relationships>');
     }
-    if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
-        `Turn-ons and turn-offs are what draws someone in or puts them off in others, never what they're like themselves. One lands whenever the scene contains it, whoever brings it: attention snags, desire or disgust jumps, and it changes what they do next. At strong and above they steer toward their kinks when there's an opening.`);
-    if (lit && (lit.turns?.size || lit.traits?.size || lit.free?.length)) out.push(`Anything marked “lit last reply” was set off by that reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.`);
+    if (signed || [state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
+        `Turn-ons and turn-offs are what draws someone in or puts them off in others, never what they're like themselves. One lands whenever the scene contains it, whoever brings it: attention snags, desire or disgust jumps, and it changes what they do next. At strong and above they steer toward their kinks when there's an opening.${signed ? ` One marked “in [name]: …” is part of who that person is, so it's in play whenever they're together without anyone raising it: it colours how they're seen from the start and builds over time, and a turn-off keeps grating. “The opposite” of a turn-off counts in their favour.` : ''}`);
+    if (lit && (lit.turns?.size || lit.traits?.size || lit.free?.length)) {
+        // The mood they're in changes how hard it lands: aroused, a turn-on hits harder; angry, a turn-off does.
+        const strongest = test => live(state).filter(m => analysed(m) && test(m) && state.moods[m.id] >= 41).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
+        const heat = [...lit.turns ?? []].some(id => state.prefs?.[id] > 0) || lit.traits?.size ? strongest(m => AROUSED.has(m.id)) : null;
+        const temper = [...lit.turns ?? []].some(id => state.prefs?.[id] < 0) || lit.free?.some(x => x.off) ? strongest(m => m.category === 'angry') : null;
+        out.push(`Anything marked “lit last reply” was set off by that reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.${heat ? ` ${n} is ${pt(lowerLabel(heat.label))} right now, so a lit turn-on hits harder still.` : ''}${temper ? ` ${n} is ${pt(lowerLabel(temper.label))} right now, so a lit turn-off bites harder and is slow to let go.` : ''}`);
+    }
     // Cravings and combos.
     if (lit?.craving?.size) out.push(`A craving is a strong turn-on that hasn't come up in a while: ${n} starts steering toward it with hints, tests and small provocations, and gets restless when the scene won't give it.`);
     for (const c of lit?.combos ?? []) out.push(`Combo from what just lit up (${pt(c.name)}): ${pt(c.text)}. Let it shape the next beat.`);
-    if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer')) || pairs.some(p => p.moods.size_difference > 0)) out.push('',
+    if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer')) || pairs.some(p => p.moods.size_difference > 0) || between) out.push('',
         `Differences in height, size, age and so on get played up as much as their strength says: noticed, felt and used.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0,
         ...relationships.map(r => r.relation.moods.age_gap ?? 0), ...pairs.map(p => p.moods.age_gap ?? 0));
@@ -308,7 +331,7 @@ function composePrompt(state, name, extras = {}) {
     // The period as one plain instruction and a short line, then what it does to the things in play.
     const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
     if (eras.length) out.push('', ...[...eras].sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map((m, i) => `${i ? 'It also touches on' : 'Keep the story set in'} ${/^\d+s$/.test(m.label) ? 'the ' : ''}${m.label}${i ? '' : year}. ${m.cue[0].toUpperCase()}${m.cue.slice(1)}.`),
-        ...(extras.lenses?.length ? [`What the period does to what's in play. It's the world around them, not a script: how much ${n} goes along with it depends on mood, wants and nature, and it can be defied or ignored:`, ...extras.lenses.map(pt)] : []),
+        ...(extras.lenses?.length ? [`What the period does to what's in play. It's the world around them, not who they are: it shows up in what other people expect, say and risk, and now and then as tension when ${n} and ${u} don't fit it. It doesn't change how either of them acts or who leads between them; mood, wants and nature decide that, and the period can be defied, hidden or ignored:`, ...extras.lenses.map(pt)] : []),
         `Keep technology, money, slang, manners, laws, medicine and attitudes true to it, with no anachronisms. People talk like people of the time, casual and full of contractions, never stiff or archaic. Modern labels in these notes (trauma bond, gaslighting, narcissist) are shorthand: show them through period words and behaviour.`,
         ...(locales.length ? [LOCALE_MARK] : []));
     if (plot.length || storyExtra.length) out.push('', 'The story:', ...listLines(storyState, plot, U), ...storyExtra, '',

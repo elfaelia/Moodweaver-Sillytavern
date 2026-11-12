@@ -10,12 +10,6 @@
 
 export default [
     { id: "era", name: "Period & era", icon: "⌛", color: "#9fc3c9", kind: "story", order: 35, rows: [
-        { id: "era_1890s", label: "1890s", cue: "gaslight, telegrams and calling cards; strict class, chaperones and corsets; scandal ruins people and asylums take the inconvenient", note: "Gaslight, telegrams, corsets, calling cards, asylums and decadence. Victorian, fin de siècle." },
-        { id: "era_1890s_britain", label: "1890s Britain", cue: "late Victorian London: servants, hansom cabs and several posts a day; rigid class, chaperones and corsets; the Wilde trials and the workhouse", note: "Victorian London and country houses. Locks British English." },
-        { id: "era_1890s_scotland", label: "1890s Scotland", cue: "late Victorian Scotland: Glasgow shipyards and tenements, Edinburgh gentry, the Kirk and the Sabbath; poorhouses, cleared glens and whisky", note: "Victorian Glasgow, Edinburgh and the Highlands. Locks British spelling with Scots voices." },
-        { id: "era_1900s", label: "1900s", cue: "Edwardian: motorcars and telephones for the rich, telegrams for everyone else; servants, gloves and etiquette; suffragettes and music halls", note: "Edwardian. First motorcars and telephones, servants, music halls, suffragettes." },
-        { id: "era_1900s_britain", label: "1900s Britain", cue: "Edwardian Britain: country-house weekends, servants and the Tube; telephones for the rich; suffragettes and music halls", note: "Edwardian. Locks British English." },
-        { id: "era_1900s_scotland", label: "1900s Scotland", cue: "Edwardian Scotland: Clyde shipyards and smoky tenements, Edinburgh respectability, the Kirk and the pub, emigrant ships", note: "Edwardian Glasgow, Edinburgh and the Highlands. Locks British spelling with Scots voices." },
         { id: "era_1910s", label: "1910s", cue: "the Great War, telegrams of the dead and shell shock, then the 1918 flu; operator telephones, silent films and mourning dress", note: "The Great War, shell shock, the 1918 flu, silent films, ragtime, operator-connected phones." },
         { id: "era_1950s", label: "1950s", cue: "Cold War fear and conformity: rotary phones, black-and-white TV, rigid gender roles, segregation and McCarthy-era suspicion", note: "Atomic fear, rotary phones, diners, greasers, rigid roles, McCarthyism, shock treatment." },
         { id: "era_1960s", label: "1960s", cue: "buttoned-up early, counterculture later: typewriters, rotary phones, cigarettes everywhere, Cold War secrecy, asylums and ECT", note: "Mad Men to Woodstock. Typewriters, the Pill, Vietnam, LSD, Cold War labs and asylums. Easterman’s era." },
@@ -162,8 +156,6 @@ export default [
         { id: "erotic_horror", label: "Erotic horror", cue: "desire and terror happen in the same moment: the thing that frightens is also what they want" },
         { id: "slasher", label: "Slasher", cue: "a killer stalks and picks people off one by one; the kills are on the page and inventive" },
         { id: "gothic", label: "Gothic fiction", cue: "crumbling houses, family secrets, dread and a past that won’t stay buried", prompt: true },
-        { id: "victorian_drama", label: "Victorian drama", cue: "19th century manners, class and repressed passion" },
-        { id: "victorian_fantasy", label: "Victorian fantasy", cue: "a Victorian world with magic or the uncanny" },
         { id: "historical", label: "Historical", cue: "set in a real past era with its customs" },
         { id: "supernatural", label: "Supernatural", cue: "ghosts, spirits and forces beyond nature" },
         { id: "fantasy", label: "Fantasy", cue: "magic, other worlds and impossible things" },
@@ -413,7 +405,6 @@ export default [
         { id: "awkward_realist_intimacy", label: "Awkward / realistic", cue: "intimacy includes imperfect timing, mundane interruptions and people adjusting without polished choreography" },
         { id: "decadent_intimate_style", label: "Decadent", cue: "intimacy feels indulgent and excessive, with expensive tastes and appetite outrunning good judgment" },
         { id: "smut", label: "Smut", cue: "sex-focused and explicit; the sex scenes are the point", prompt: true },
-        { id: "victorian_erotica", label: "Victorian erotica", cue: "ornate period prose and prim manners wrapped around explicit sex", prompt: true },
         { id: "sloppy_smut", label: "Sloppy/messy smut", cue: "messy, unpolished and bodily, with the physical chaos left in", prompt: true },
         { id: "hentai_smut", label: "Hentai/manga-style smut", cue: "stylised visual beats, heightened reactions and manga-like pacing", prompt: true },
         { id: "character_driven_smut", label: "Character-driven smut", cue: "personality, emotion and relationship dynamics steer every intimate beat", prompt: true },

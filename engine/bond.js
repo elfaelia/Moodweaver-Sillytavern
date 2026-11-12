@@ -56,9 +56,15 @@ export function sliderAxes(moods = {}, shared = {}, theirs = {}) {
 // A pinned meter is the player's word, so it always wins.
 // Unless the last few replies have been pushing that meter the other way: then the story wins over
 // a slider set long ago (Easterman bathing Lamb and making the demands can't stay "worship" forever).
-const blend = (v, axes, pins = {}, trend = {}) => !axes ? v : Object.fromEntries(METERS.map(k => {
-    const against = Math.sign(trend[k] ?? 0) !== 0 && Math.sign(trend[k]) !== Math.sign(axes[k] ?? 0) && Math.abs(trend[k]) >= 6;
-    return [k, pins[k] === null && !against && Math.abs(axes[k] ?? 0) > Math.abs(v[k]) ? Math.round(v[k] * 0.25 + axes[k] * 0.75) : v[k]];
+// How much the sliders weigh is set per chat (TIES): light lets the story lead, strong holds to what you set.
+export const TIES = {
+    light: { label: 'Light', weight: 0.4, against: 3, hint: 'the story leads; your sliders are a starting point' },
+    balanced: { label: 'Balanced', weight: 0.6, against: 5, hint: 'the default' },
+    strong: { label: 'Strong', weight: 0.85, against: 9, hint: 'what you set holds unless the story keeps pushing' },
+};
+const blend = (v, axes, pins = {}, trend = {}, ties = TIES.balanced) => !axes ? v : Object.fromEntries(METERS.map(k => {
+    const against = Math.sign(trend[k] ?? 0) !== 0 && Math.sign(trend[k]) !== Math.sign(axes[k] ?? 0) && Math.abs(trend[k]) >= ties.against;
+    return [k, pins[k] === null && !against && Math.abs(axes[k] ?? 0) > Math.abs(v[k]) ? Math.round(v[k] * (1 - ties.weight) + axes[k] * ties.weight) : v[k]];
 }));
 // How fast things move in this chat. cap: the biggest step one reply can make. window and lean: how
 // many recent replies the named dynamic leans on, and how hard, so a turn in the scene shows up quickly
@@ -132,7 +138,7 @@ export function cleanBond(raw = {}, on = true) {
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
         // One pace for everything this character feels here: meters, feelings (MOOD_PACE) and desire.
-        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false,
+        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced',
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
@@ -193,7 +199,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const recentSteps = all.slice(-pace.window), sum = get => recentSteps.reduce((t, x) => t + clamp(get(x.s) ?? 0, -pace.cap, pace.cap), 0);
     const trend = Object.fromEntries(METERS.map(k => [k, sum(s => s?.[k])]));
     const lean = (k, val, lo = -100) => clamp(Math.round(val + clamp(trend[k] * pace.lean, -35, 35)), lo, 100);
-    const base = blend(v, axes, bond.pins, trend), eff = Object.fromEntries(METERS.map(k => [k, bond.pins[k] !== null ? base[k] : lean(k, base[k])]));
+    const base = blend(v, axes, bond.pins, trend, TIES[bond.ties] ?? TIES.balanced), eff = Object.fromEntries(METERS.map(k => [k, bond.pins[k] !== null ? base[k] : lean(k, base[k])]));
     const moreEff = Object.fromEntries(Object.entries(more).map(([k, val]) => {
         const def = MORE_METERS.find(m => m[0] === k), t = sum(s => s?.m?.[k]);
         return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + clamp(t * pace.lean, -35, 35)), def?.[2] ? -100 : 0, 100)];

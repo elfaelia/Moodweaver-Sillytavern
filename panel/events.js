@@ -10,7 +10,7 @@ import { EDIT_FIELDS, NO_BOARD, latestBoard, liveBoard, needWord } from '../engi
 import { cleanDesire, computeBond, dynamicRows, setDesire, setMeter } from '../engine/bond.js';
 import { addCastMember, castName, newCastId } from '../engine/cast.js';
 import { BY_ID, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
-import { WANT_KINDS, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
+import { CORE_MAX, WANT_KINDS, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
 import { clamp, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { effectiveChat, untrack } from '../engine/ledger.js';
@@ -28,7 +28,7 @@ import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, relationshipKey } from '../engine/relationships.js';
 import { cleanPins, cleanSkillPace, cleanSkills, skillWord } from '../engine/skills.js';
-import { TURN_BY_ID } from '../engine/turns.js';
+import { TURN_BY_ID, cleanAge, cleanHeight, cleanInterests } from '../engine/turns.js';
 
 export function onPanelInput(e) {
     if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
@@ -132,6 +132,8 @@ export async function onPanelChange(e) {
         await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
             if (v > 0) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
     }
+    // The profile card on Facts (and your You tab).
+    if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
     if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
     if (input.dataset.launch === 'show') { setLaunch({ show: input.checked }); return; }
@@ -156,6 +158,7 @@ export async function onPanelChange(e) {
     if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
     if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
     if (input.hasAttribute('data-dyn-nudge')) { await editBond(b => { b.nudge = input.checked; }); return; }
+    if (input.hasAttribute('data-bond-ties')) { await editBond(b => { b.ties = input.value; }); return; }
     if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
     if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
     if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
@@ -234,7 +237,9 @@ export async function onPanelChange(e) {
         const knowledge = getKnowledge(target(), true);
         const previous = knowledgeEntry(knowledge[knowledgeId]);
         const next = knowledgeEntry(input.dataset.knowledge ? { ...previous, mode: input.value } : { ...previous, source: input.value });
-        if (next.mode === 'scene') delete knowledge[knowledgeId]; else knowledge[knowledgeId] = next;
+        // A turn-on set by hand starts fresh: only what the story notices from here on can raise it again.
+        if (knowledgeId.startsWith('turn:') && input.dataset.knowledge) next.from = (ctx().chat ?? []).length;
+        if (next.mode === 'scene' && next.from === undefined) delete knowledge[knowledgeId]; else knowledge[knowledgeId] = next;
         await persist(); await syncPrompt(); render(); return;
     }
     if (input.dataset.invCarried !== undefined || input.dataset.invText !== undefined || input.dataset.invNote !== undefined) {
@@ -446,6 +451,12 @@ export async function onPanelClick(e) {
     if (button.dataset.wantNotyet) { const id = button.dataset.wantNotyet, at = Number(button.dataset.at); await changeState(s => { const w = s.wants.find(x => x.id === id); if (w) w.after = at; }); return; }
     if (button.dataset.tab) { ui.tab = button.dataset.tab; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render(); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
+    // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
+    if (button.dataset.core) {
+        const id = button.dataset.core, s0 = viewState(), core = cleanCore(s0?.core, s0?.moods);
+        if (!core.includes(id) && core.length >= CORE_MAX) { run.status = `Up to ${CORE_MAX} core traits: unstar one first.`; renderStatus(); return; }
+        await changeState(s => { const now = cleanCore(s.core, s.moods); if (now.includes(id)) s.core = now.filter(x => x !== id); else { if (!(s.moods[id] > 0)) s.moods[id] = 60; if (Array.isArray(s.loadout) && !s.loadout.includes(id)) s.loadout.push(id); s.core = [...now, id]; } }); return;
+    }
     if (button.dataset.jump) {
         clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render(); fillLazy(ui.panel);
         const row = ui.panel.querySelector(`[data-mood="${button.dataset.jump}"]`); if (!row) return;

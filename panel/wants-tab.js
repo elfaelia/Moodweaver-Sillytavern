@@ -1,6 +1,6 @@
 // The Wants tab and the You tab (your persona's condition).
-import { getKnowledge, playerName, subjectName } from '../app/chat.js';
-import { bondAxes, bondData, bondList, liveChat, liveFor, reactions } from '../app/replies.js';
+import { playerName, subjectName } from '../app/chat.js';
+import { bondAxes, bondData, bondList, knowledgeNow, liveChat, liveFor, reactions } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
 import { WANT_KINDS, activeMoods, knowledgeEntry } from '../engine/state.js';
@@ -84,11 +84,11 @@ export function youView(state, ch, live) {
     const bond = bondData(ch), d = bond.on ? computeBond(bond, liveChat().length, them, shortName(me), bondAxes(ch), bondList(ch)) : null;
     // What the character has to go on: tags they know or suspect, out of everything set on you.
     const tags = [...activeMoods(state).map(m => m.id), ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)];
-    const knowledge = getKnowledge(ch), aware = tags.filter(k => ['known', 'suspected'].includes(knowledgeEntry(knowledge[k]).mode)).length;
+    const knowledge = knowledgeNow(ch), aware = tags.filter(k => ['known', 'suspected'].includes(knowledgeEntry(knowledge[k]).mode)).length;
     const counts = [['trait', '❂', 'Traits', activeMoods(state).filter(m => sectionOf(m) === 'trait').length],
         ['intimacy', '⚘', 'Intimacy', activeMoods(state).filter(m => sectionOf(m) === 'intimacy').length],
         ['turn', '⇋', 'Turn-ons', Object.values(state.prefs ?? {}).filter(Boolean).length],
-        ['wants', '☆', 'Wants', (state.wants ?? []).filter(w => !w.done).length],
+        ...(settings().wantsTab !== false ? [['wants', '☆', 'Wants', (state.wants ?? []).filter(w => !w.done).length]] : []),
         ['mood', '◉', 'Known', tags.length ? `${aware}/${tags.length}` : '0']];
     const bar = (label, value, word) => `<div class="mw-you-bar"><span>${label}</span><i style="--mw-at:${Math.abs(value) / 2}%;--mw-side:${value < 0 ? 'right' : 'left'}" class="${value < 0 ? 'is-neg' : ''}"></i><b>${esc(word)}</b></div>`;
     return `<section class="mw-you" style="--mw-aura:${tone.lead};--mw-aura-2:${tone.shade}">

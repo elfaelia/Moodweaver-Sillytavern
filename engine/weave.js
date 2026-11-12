@@ -69,7 +69,7 @@ function desireOf(v) {
     }
     return ['a', 's', 'b', 't', 'x', 'h'].some(k => out[k]) || out.release ? out : null;
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters|used|skills|dynamic)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|desire|meters|used|skills|dynamic|noticed)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
@@ -93,7 +93,7 @@ function readLine(body) {
         desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
         you: 'you' in f ? (NONE.test(String(f.you).trim()) || /^(healed|fine|nothing|unhurt)\.?$/i.test(String(f.you).trim()) ? [] : list(f.you, 5, 60)) : null,
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
-        sparked: sparks(f.sparked),
+        sparked: sparks(f.sparked), noticed: list(f.noticed, 3, 60),
         remember: !remember || NONE.test(remember) ? '' : remember.slice(0, 160),
     };
 }
@@ -109,7 +109,7 @@ export function parseWeave(mes) {
         out.pRaw = [out.pRaw, x.pRaw].filter(Boolean).join(' ; '); out.lRaw = [out.lRaw, x.lRaw].filter(Boolean).join(' ; ');
         out.moods = [...out.moods, ...x.moods].slice(0, 14); out.toward = [...out.toward, ...x.toward].slice(0, 6);
         out.feels = [...out.feels, ...x.feels].slice(0, 6); out.needs = { ...out.needs, ...x.needs };
-        out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6);
+        out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6); out.noticed = [...out.noticed, ...x.noticed].slice(0, 4);
         if (x.remember) out.remember = x.remember;
         for (const [k, d] of Object.entries(x.needDeltas ?? {})) out.needDeltas[k] = clamp((out.needDeltas[k] ?? 0) + d, -100, 100);
         out.wants = [...out.wants, ...x.wants].slice(0, 8); out.fears = [...out.fears, ...x.fears].slice(0, 6); out.pressed = [...out.pressed, ...x.pressed].slice(0, 6);
@@ -152,7 +152,7 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     // The same instructions in about half the words. The line Moodweaver reads is unchanged.
@@ -171,7 +171,8 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
             ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
             ...(dynamic ? [`- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
             `- thinks: ${n} thinks ${u} is… (stubborn, his, a liar).`,
-            `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`] : []),
+            `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`,
+            ...(notice ? [`- noticed: any of ${u}'s turn-ons or turn-offs that ${n} picked up on this reply from how ${u} reacted, by name.`] : [])] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
         ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; release if they climaxed.`] : []),

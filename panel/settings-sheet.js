@@ -16,6 +16,10 @@ export function settingsView(state) {
     return `<section class="mw-settings">
         <div class="mw-settings-head"><button type="button" class="mw-back" data-action="settings-close">‹ Back</button><b>Settings</b><small>${esc(whose)}</small></div>
         <details class="mw-advanced" data-settings="launcher"><summary>◆ Moods button <small>this device</small></summary>${launchSettings()}</details>
+        <details class="mw-advanced" data-settings="panel"><summary>Panel</summary>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="whyOn" ${settings().whyOn !== false ? 'checked' : ''}> Show why: a faint line under moods and facts the story moved (raised by the story, from drunk, wearing off)</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
+            <p class="mw-fine">Hidden, wants you already set still reach the story, and it stops asking the story to suggest new ones, which saves a few tokens a reply.</p></details>
         <details class="mw-advanced" data-settings="sent" open><summary>What is sent to the model</summary>
             <p class="mw-fine">Moodweaver’s own note only. Your card, preset, lore and chat history get sent too.</p>
             <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Tell it to keep scenes moving</label>

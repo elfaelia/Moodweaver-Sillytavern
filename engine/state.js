@@ -1,11 +1,11 @@
 // One person's saved moods, traits, wants and notes: a fresh state, cleaning saved values, and
 // moving values saved by older versions to where they live now.
-import { BY_ID, MERGED_MOODS, MOODS, REMOVED_MOODS } from '../data/catalogue.js';
+import { BY_ID, MERGED_MOODS, MOODS, REMOVED_MOODS, sectionOf } from '../data/catalogue.js';
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
 import { cleanPins, cleanSkillPace, cleanSkills, cleanXp } from './skills.js';
-import { LIKES_TO_TURNS, OLD_KINKS, TURN_BY_ID, TURN_MERGED } from './turns.js';
+import { LIKES_TO_TURNS, OLD_KINKS, TURN_BY_ID, TURN_MERGED, cleanAge, cleanHeight, cleanInterests } from './turns.js';
 
 // Feelings about one particular person, and pair tropes, now live in relationships. '{{other}}' stands for
 // whoever that sheet used to point at; the panel resolves it for each person when the chat loads.
@@ -122,6 +122,11 @@ function canonical(obj, off) {
     if (!sameOrder) { for (const k of Object.keys(obj)) delete obj[k]; for (const [k, v] of entries) obj[k] = v; }
     return sparse(obj);
 }
+// Up to three core traits: ids from the Traits tab that are on. Always sent, first, whatever the mood.
+export const CORE_MAX = 3;
+export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && sectionOf(BY_ID[id]) === 'trait' && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
+// How long each fact that runs its course has run (engine/moodpace.js factStep).
+const cleanClock = c => Object.fromEntries(Object.entries(c && typeof c === 'object' ? c : {}).filter(([id, v]) => BY_ID[id] && v && Number.isFinite(v.h) && Number.isFinite(v.v) && Number.isFinite(v.at)));
 export function extendCatalogue(state) {
     if (!state || extended.has(state)) return state;
     migrateCatalogue(state);
@@ -130,7 +135,8 @@ export function extendCatalogue(state) {
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
     state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
-    state.inventory = cleanInventory(state.inventory);
+    state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests);
+    state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
     state.wants = cleanWants(state.wants); state.readScope = cleanScope(state.readScope);
     state.follow = clamp(state.follow ?? 90, 10, 100);
     state.loadout = cleanLoadout(state.loadout, state);
@@ -198,7 +204,7 @@ export function freshState(base = {}) {
         personality: cleanPersonality(base.personality),
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
-        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory),
+        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), core: cleanCore(base.core, base.moods ?? {}),
         skills: cleanSkills(base.skills), skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),
@@ -216,5 +222,6 @@ export function activeMoods(state) {
 export const KNOWLEDGE_MODES = ['scene', 'private', 'suspected', 'known'];
 export function knowledgeEntry(entry) {
     const mode = KNOWLEDGE_MODES.includes(entry?.mode) ? entry.mode : 'scene';
-    return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '' };
+    // from: for a turn-on set by hand, the chat position it was set at; the story's notices before it don't count.
+    return { mode, source: ['known', 'suspected'].includes(mode) ? String(entry?.source ?? '').replace(/\s+/g, ' ').trim().slice(0, 120) : '', ...(Number.isInteger(entry?.from) ? { from: entry.from } : {}) };
 }

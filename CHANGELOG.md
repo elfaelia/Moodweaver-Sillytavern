@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.53.0: turn-ons sorted, skills rebuilt, more 1960s, one pace from the Moods card
+
+Chats carry over: removed turn-ons and skills hand their saved values to the ones that replaced them.
+
+### Turn-ons, sorted out
+
+- **No more doubles.** About 70 turn-ons that repeated another or bundled two sides together are gone, and their saved values move over (the stronger value wins). "Hair pulling", "biting", "bondage", "choking", "CNC", "oral", "anal", "face sitting", "chastity", "breeding", "tickling", "hypnosis", "pet play", "fear play" and the like are now always a pair: doing it, and having it done (for example *pulling someone's hair* and *having their hair pulled*). A combined one you'd set goes to both sides; set either back to 0 if it only fits one.
+- **31 new ones,** mostly the missing halves of pairs, plus a few like *being marked*, *drinking someone's blood* and *ravishing someone*.
+- **Regrouped like the moods:** Looks & body, Voices, sounds & scents, Personality, Types of people, How they're treated, In bed, Kinks and Fetishes, each with small sub-headings (Face, Build, Hair & skin…; Pain and impact, Restraint and control, Mind and fear…). Pairs sit side by side. 573 in all.
+
+### Setting things to 0
+
+- **Tap the level word or number** on any row (a mood's "40%", a turn-on's "Neutral", a skill's "3/10", a Bonds meter's number) to put its slider at 0, the middle on a two-way slider. No more trying to hit the centre on a phone. × still takes it off the list.
+- A mood set to 0 by hand in dynamic mode is no longer pinned at 0, so the story can bring it back.
+
+### One pace, set from the Moods card
+
+- **Speed on the Moods card now sets the pace for everything:** feelings, Bonds meters and desire. The Pace select on the Bonds tab is the same setting. The ⚙ Settings › Pace section and the Desire card's own pace are gone.
+
+### More 1960s
+
+- **13 new period lines for 1950s–60s America:** home and marriage, dating, pregnancy, what nobody says about sex, dressing, pictures, the war, appearances, suspicion (the Red Scare), guns, cars and roads, teenagers, and experiments. Each shows only when something on the cards touches it, and where the pair is a man and a woman it names them (who's expected to keep house, who asks and pays). Kept to the era in general, not to any one story.
+- Skills can now bring on period lines too (a good shot brings Guns, a driver Cars and roads, hypnosis or psychiatry Experiments), and medical turn-ons bring Medicine.
+- **Period lines per reply goes up to 6.** They still take turns from reply to reply when more apply than fit; Power always comes first.
+
+### Skills, rebuilt
+
+- **The Sims skills are gone.** 95 new ones in nine groups: Charm & people, Mind games, Power & bed, Violence, Crime, Body, Learning & trades, Arts & music, and Home & care. Your list is all there (seduction, manipulation, gaslighting, hypnosis, interrogation, mental and physical torture, lockpicking, gun use, guitar, bass, drums, etiquette, parkour and the rest), plus gritty and period ones: bribery, bugging and wiretaps, disguise, holding their liquor, typing and shorthand, electronics, psychiatry, surgery, first aid, hair and makeup, bartending. Levels you'd set on skills that carried over (medicine, hypnosis, lying…) are kept; the ones that merged go to their replacement.
+- **Skills grow on their own, slowly.** Only the skills picked for someone: each time their words come up in that person's own message (or the hidden line says it was used), it counts as practice, and enough practice raises the level. Higher levels take longer. A skill left unused for a long stretch slips a level, never below 1. Growth has its own pace on the Skills tab (Off, Slow, Steady, Quick; Slow by default), separate from mood pace. Nothing extra is sent: it reads text that's already there, and a swipe takes it back.
+- **◆ now pins a skill's level** so it doesn't grow or slip. Skills are only sent when the scene calls for them; "always send" is gone.
+
+### Written for Opus 5.5
+
+- The all-caps markers (LIT, CRAVING, COMBO) are now plain words. Anthropic's guidance for current models is that capitals and forceful wording make them overreact; plain statements with the reason attached work better. A combo now reads "Combo from what just lit up (Punishment): … Let it shape the next beat."
+
 ## 1.52.0: moods drive the dynamics, an Intimacy tab, and one pace
 
 Builds on 1.51 without undoing any of its cleanup. Chats and settings carry over; no option id changed, so everything you'd set stays set.

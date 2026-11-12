@@ -1,12 +1,12 @@
 // Turn-ons and turn-offs: one two-way slider per thing someone likes or dislikes IN OTHER PEOPLE.
 // Right is a turn-on, left a turn-off. Each row: id, noun, panel description, optional short wording for the prompt.
 import { TURN_GROUPS } from '../data/catalogue/turns.js';
-// [group, icon, colour, rows]; rows are [id, noun, cue, prompt, keys].
-export const TURN_CATEGORIES = TURN_GROUPS.map(g => [g.name, g.icon, g.color, g.rows.map(r => [r.id, r.noun, r.cue, r.prompt ?? r.noun, r.keys ?? ''])]);
-export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt = noun, keys = '']) => ({ id, noun, cue, prompt: prompt || noun, keys, group, color,
+// [group, icon, colour, rows]; rows are [id, noun, cue, prompt, keys, sub-group].
+export const TURN_CATEGORIES = TURN_GROUPS.map(g => [g.name, g.icon, g.color, g.subs.flatMap(sub => sub.rows.map(r => [r.id, r.noun, r.cue, r.prompt ?? r.noun, r.keys ?? '', sub.name]))]);
+export const TURN_TAGS = TURN_CATEGORIES.flatMap(([group, , color, rows]) => rows.map(([id, noun, cue, prompt, keys, sub]) => ({ id, noun, cue, prompt, keys, group, sub, color,
     label: noun[0].toUpperCase() + noun.slice(1) })));
-// The old Kinks traits (state.moods) become turn-ons (state.prefs) at the same strength.
-export { KINKS_TO_TURNS } from '../data/catalogue/turns.js';
+// The old Kinks traits (state.moods) become turn-ons (state.prefs) at the same strength; removed turn-ons merge into newer ones.
+export { OLD_KINKS, TURN_MERGED } from '../data/catalogue/turns.js';
 // The panel's key for a turn-on group, e.g. turn-kinks.
 export const turnGroupKey = name => `turn-${String(name).toLowerCase().replace(/\W+/g, '-')}`;
 export const TURN_BY_ID = Object.fromEntries(TURN_TAGS.map(t => [t.id, t]));

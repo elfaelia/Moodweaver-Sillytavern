@@ -131,9 +131,8 @@ export function cleanBond(raw = {}, on = true) {
         // Who names the dynamic (story: the reply's hidden line; meters: the numbers), your picks for
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
+        // One pace for everything this character feels here: meters, feelings (MOOD_PACE) and desire.
         mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false,
-        // One pace for the whole scene: feelings and desire move at the Bonds pace unless this is switched off.
-        onePace: b.onePace !== false,
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
@@ -272,7 +271,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
 // Arousal toward the player right now, plus scales for how it shows: boldness, tender ↔ rough, fixation on
 // them, shame, and holding back. Frustration builds without release. Read from the hidden line reply by
 // reply like the other meters, so swipes undo it. Pace caps how fast arousal climbs; a cap stops it at a stage.
-// Its pace is the Bonds pace, unless one pace is switched off and the Desire card picks its own.
+// Its pace is the character's one pace (set on the Moods card).
 export const DESIRE_CAPS = [[100, 'No limit'], [94, 'Desperate'], [80, 'Aching'], [60, 'Warm'], [40, 'Interested']];
 const DESIRE_STAGES = [[95, 'Past thinking'], [81, 'Desperate'], [61, 'Aching'], [41, 'Warm'], [26, 'Interested'], [11, 'Noticing'], [0, 'Not in the mood']];
 // key, label, starting value, words by strength.
@@ -295,13 +294,12 @@ export function cleanDesire(raw) {
     const pin = v => v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : n(v, 0);
     const anchor = x.anchor && typeof x.anchor === 'object' ? { ...Object.fromEntries(KEYS.map(k => [k, n(x.anchor[k], START[k])])),
         key: String(x.anchor.key ?? '').slice(0, 120), pos: Number.isFinite(Number(x.anchor.pos)) ? Math.round(Number(x.anchor.pos)) : -1 } : null;
-    return { on: x.on === true, speed: PACE[x.speed] ? x.speed : 'same', cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
+    return { on: x.on === true, cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
         anchor, pins: Object.fromEntries(KEYS.map(k => [k, pin(x.pins?.[k])])), scales: Object.fromEntries(DESIRE_SCALES.map(([k]) => [k, x.scales?.[k] !== false])) };
 }
-export const desirePace = bond => bond?.onePace === false && PACE[bond?.desire?.speed] ? bond.desire.speed : PACE[bond?.pace] ? bond.pace : 'steady';
 // list: [{ pos, key, s: { d: { a, s, b, t, x, h, release } | null } }] oldest first.
 export function computeDesire(bond, list = []) {
-    const d = cleanDesire(bond?.desire), pace = desirePace(bond), up = PACE[pace].cap, side = Math.max(up, 10), v = { ...START };
+    const d = cleanDesire(bond?.desire), pace = PACE[bond?.pace] ? bond.pace : 'steady', up = PACE[pace].cap, side = Math.max(up, 10), v = { ...START };
     let after = 0, start = 0;
     if (d.anchor) {
         let at = d.anchor.key ? list.findIndex(x => x.key === d.anchor.key) : -1;
@@ -319,7 +317,7 @@ export function computeDesire(bond, list = []) {
     for (const k of KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];
     v.a = Math.min(v.a, d.cap);
     const glow = after > 0 && d.pins.a === null;
-    return { ...v, after: glow, stage: desireStage(v.a, glow), cap: d.cap, pace, speed: d.speed, pins: d.pins, scales: d.scales };
+    return { ...v, after: glow, stage: desireStage(v.a, glow), cap: d.cap, pace, pins: d.pins, scales: d.scales };
 }
 // Dragging a bar sets them all where they stand now; later replies move them from there.
 export function setDesire(bond, key, value, list = []) {
@@ -354,7 +352,7 @@ function desireLines(bond, list, n, u) {
         on('x') && live ? (x.x <= 20 ? `It isn't about ${u} in particular.` : x.x >= 81 ? `Only ${u} will do; anyone else is invisible.` : x.x >= 61 ? `It's all aimed at ${u}.` : '') : '',
         on('h') && live && x.h >= 41 ? (x.h >= 61 ? `${n} hates wanting it, and it comes out as anger, coldness or self-punishment.` : `${n} is ashamed of wanting it.`) : '',
         x.f >= 61 && !x.after ? `Pent-up frustration sharpens ${n}'s temper and makes small touches land hard.` : '',
-        x.pace === 'slow' ? 'It builds slowly in this chat: a small step a reply at most.' : x.pace === 'fast' ? 'It can build fast.' : '',
+        x.pace === 'slow' ? 'It builds slowly in this chat: a small step a reply at most.' : x.pace === 'quick' || x.pace === 'volatile' ? 'It can build fast.' : '',
         x.cap < 100 ? `For now it tops out at ${cap.toLowerCase()}; don't take it past that.` : '',
     ].filter(Boolean);
     return [`desire for ${u}: ${tags.join('; ')}. ${how[0].toUpperCase()}${how.slice(1)}.${extra.map(e => ` ${e}`).join('')}`];

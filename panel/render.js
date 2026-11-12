@@ -174,6 +174,7 @@ export function filterRows() {
         d.querySelectorAll('[data-mood]').forEach(row => {
             row.hidden = !searchText(row).includes(term); if (!row.hidden) count++;
         });
+        d.querySelectorAll('.mw-sub').forEach(sub => { sub.hidden = !sub.querySelector('[data-mood]:not([hidden])'); });
         const waiting = d.querySelector('[data-lazy]'); if (waiting) count = Number(waiting.dataset.count) || 0;
         const inTab = ui.who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === ui.tab;
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;

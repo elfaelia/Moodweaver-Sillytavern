@@ -18,8 +18,9 @@ import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cloneRelationships } from '../engine/relationships.js';
+import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
 import { TURN_BY_ID } from '../engine/turns.js';
-import { hasWeave, parseWeave, powerChange } from '../engine/weave.js';
+import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
 
 // ---- Needs board: read from the latest info board in the chat, plus the player's edits ----
 export const boardMeta = () => ctx().chatMetadata?.[KEY]?.board;
@@ -307,7 +308,8 @@ function forget(writer, id) {
 }
 // hold: feelings you moved by hand after an earlier version of this same swipe (before it was continued
 // or its hidden line edited). They're yours now, so the new version leaves them alone.
-function applyReply(meta, writer, st, m, b, hold = null) {
+// asked: your message this reply answers, when it comes straight before it (so your skills count it once).
+function applyReply(meta, writer, st, m, b, hold = null, asked = null) {
     const w = bondData(writer).on ? weaveOf(m) : null, boardKey = readOf(m).boardKey;
     const rec = { k: w ? readOf(m).wkey : boardKey ? `b|${boardKey}` : '', m: {}, r: {}, fed: null, mem: '' }, notes = [];
     if (!rec.k) return null;
@@ -320,7 +322,7 @@ function applyReply(meta, writer, st, m, b, hold = null) {
             const resolve = name => { const id = feelingId(name); return id && listed(id) ? id : null; };
             // The character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
-            const pace = scenePace(writer, st), named = new Set();
+            const pace = scenePace(writer), named = new Set();
             const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
@@ -350,7 +352,7 @@ function applyReply(meta, writer, st, m, b, hold = null) {
                 for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
                 rec.q = structuredClone(st.moodQuiet ?? {});
                 const keep = heldBy(lastDynamic.get(writer.avatar)), held = new Set(Object.keys(values).filter(id => keep.has(BY_ID[id].category)));
-                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer, st), held);
+                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer), held);
                 st.moodQuiet = quiet;
                 const target = moodTarget(st);
                 for (const [id, v] of Object.entries(faded)) { rec.m[id] = [values[id], v]; target.set(id, v); rec.f = [...(rec.f ?? []), id]; }
@@ -377,6 +379,12 @@ function applyReply(meta, writer, st, m, b, hold = null) {
     }
     for (const id of Object.keys(rec.m)) if (st.moods[id] > 0 && Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id);
     if (rec.mem) notes.push('remembered a moment');
+    // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
+    // from the message it answers.
+    rec.sk = growSkills(st, stripWeave(m.mes), (w?.used ?? []).join(', '));
+    const you = asked ? getUserState() : null;
+    if (you?.enabled) rec.su = growSkills(you, stripWeave(asked.mes));
+    for (const [who, r] of [[shortName(writer.name), rec.sk], [playerName(), rec.su]]) for (const [id, [a, z]] of Object.entries(r?.levels ?? {})) notes.push(`${who}'s ${SKILL_BY_ID[id].label.toLowerCase()} ${z > a ? 'up' : 'down'} to ${z}`);
     if (Object.keys(rec.m).length || Object.keys(rec.r).length || rec.mem) st.revision = (st.revision || 0) + 1;
     return { rec, notes: [...new Set(notes)] };
 }
@@ -387,6 +395,7 @@ function undoReply(meta, writer, st, rec) {
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);
     if (rec.mem) forget(writer, rec.mem);
+    ungrowSkills(st, rec.sk); if (rec.su) ungrowSkills(getUserState(), rec.su);
     st.revision = (st.revision || 0) + 1;
     return kept;
 }
@@ -444,8 +453,8 @@ export function reconcile(type = '') {
             const newestKnown = Math.max(-1, ...recent.filter(([, m]) => mine(m) && keysOf(m).some(k => known.has(k))).map(([i]) => i));
             const todo = recent.filter(([i, m]) => mine(m) && i > newestKnown && !keysOf(m).some(k => known.has(k)));
             // A character with nothing recorded yet starts from their newest reply only.
-            for (const [, m] of list.length ? todo : todo.slice(-1)) {
-                const done = applyReply(meta, writer, st, m, b, held.get(swipeOf(readOf(m).wkey))); if (!done) continue;
+            for (const [i, m] of list.length ? todo : todo.slice(-1)) {
+                const done = applyReply(meta, writer, st, m, b, held.get(swipeOf(readOf(m).wkey)), chat[i - 1]?.is_user ? chat[i - 1] : null); if (!done) continue;
                 list.push(done.rec); moved.push(...done.notes); changed = true;
             }
         }

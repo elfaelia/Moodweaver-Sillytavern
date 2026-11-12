@@ -27,7 +27,7 @@ import { filterPersonality } from './personality-tab.js';
 import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, relationshipKey } from '../engine/relationships.js';
-import { cleanAlways, cleanSkills, skillWord } from '../engine/skills.js';
+import { cleanPins, cleanSkillPace, cleanSkills, skillWord } from '../engine/skills.js';
 import { TURN_BY_ID } from '../engine/turns.js';
 
 export function onPanelInput(e) {
@@ -126,7 +126,13 @@ export function onPanelKeydown(e) {
 }
 export async function onPanelChange(e) {
     const input = e.target;
-    if (input.dataset.skill !== undefined) { const id = input.dataset.skill, v = Number(input.value); await changeState(s => { s.skills = cleanSkills(s.skills); if (v > 0) s.skills[id] = v; else delete s.skills[id]; }); return; }
+    if (input.dataset.skill !== undefined) {
+        // A level set by hand starts fresh progress toward the next; 0 takes the skill off them entirely.
+        const id = input.dataset.skill, v = Number(input.value);
+        await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
+            if (v > 0) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
+    }
+    if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
     if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
     if (input.dataset.launch === 'show') { setLaunch({ show: input.checked }); return; }
     if (input.dataset.launch === 'small') { setLaunch({ small: input.checked }); return; }
@@ -138,12 +144,10 @@ export async function onPanelChange(e) {
     // The desire card.
     if (input.hasAttribute('data-mood-auto')) { await changeState(s => { s.moodAuto = input.checked; }); return; }
     if (input.hasAttribute('data-mood-fade')) { await changeState(s => { s.moodFade = input.checked; }); return; }
-    // One pace off: the Moods card starts from the Bonds pace, so nothing jumps until you change it.
-    if (input.hasAttribute('data-one-pace')) { const pace = bondData(target()).pace; if (!input.checked) await changeState(s => { s.moodPace = MOOD_PACE[pace] ? pace : s.moodPace; }); await editBond(b => { b.onePace = input.checked; }); return; }
     if (input.hasAttribute('data-mood-scope')) { await changeState(s => { s.moodScope = input.value === 'list' ? 'list' : 'any'; }); return; }
-    if (input.hasAttribute('data-mood-pace')) { await changeState(s => { s.moodPace = MOOD_PACE[input.value] ? input.value : 'steady'; }); return; }
+    // One pace per character (Moods card or Bonds tab): feelings, meters and desire all follow it.
+    if (input.hasAttribute('data-pace')) { await editBond(b => { b.pace = MOOD_PACE[input.value] ? input.value : 'steady'; }); return; }
     if (input.hasAttribute('data-desire-on')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), on: input.checked }; }); return; }
-    if (input.hasAttribute('data-desire-pace')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), speed: input.value }; }); return; }
     if (input.hasAttribute('data-desire-cap')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), cap: Number(input.value) }; }); return; }
     if (input.dataset.moreOn) { const key = input.dataset.moreOn; await editBond(b => { const d = cleanMore(b.more); d.on = input.checked ? [...d.on, key] : d.on.filter(k => k !== key); b.more = d; }); return; }
     if (input.dataset.moreMeter) { const key = input.dataset.moreMeter, v = Number(input.value); await editBond((b, list) => setMore(b, key, v, list)); return; }
@@ -151,7 +155,6 @@ export async function onPanelChange(e) {
     if (input.dataset.desireBar) { const key = input.dataset.desireBar, v = Number(input.value); await editBond((b, list) => setDesire(b, key, v, list)); return; }
     if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
     if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
-    if (input.hasAttribute('data-dyn-pace')) { await editBond(b => { b.pace = input.value; }); return; }
     if (input.hasAttribute('data-dyn-nudge')) { await editBond(b => { b.nudge = input.checked; }); return; }
     if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
     if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
@@ -256,7 +259,9 @@ export async function onPanelChange(e) {
         await persist(); await syncPrompt(); render(); return;
     }
     if (input.dataset.slider) {
-        await changeState(s => { s.moods[input.dataset.slider] = Number(input.value); if (!s.loadout.includes(input.dataset.slider)) s.loadout.push(input.dataset.slider); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[input.dataset.slider] = true; }); return;
+        // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
+        const id = input.dataset.slider, v = Number(input.value);
+        await changeState(s => { s.moods[id] = v; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = v > 0; }); return;
     }
     if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
     const field = input.dataset.field;
@@ -294,6 +299,14 @@ export async function onPanelChange(e) {
 export async function onPanelClick(e) {
     const summary = e.target.closest('summary');
     if (summary?.parentElement.matches('details')) rememberGroupChoice(ui.panel, summary.parentElement);
+    // Tapping a row's level word or number sets its slider to 0 (the middle of a two-way one): far easier
+    // than dragging to an exact spot on a phone. The slider's own handlers then save it as usual.
+    const readout = e.target.closest('.mw-row-head > span, .mw-row-head > output, .mw-bond-head > span, .mw-bond-scale > output');
+    const range = readout?.closest('.mw-mood, .mw-bond-meter, .mw-desire-row')?.querySelector('input[type="range"]');
+    if (range && !range.disabled) {
+        range.value = String(Math.max(Number(range.min), Math.min(Number(range.max), 0)));
+        range.dispatchEvent(new Event('input', { bubbles: true })); range.dispatchEvent(new Event('change', { bubbles: true })); return;
+    }
     const button = e.target.closest('button'); if (!button) return;
     if (button.dataset.who) {
         if (button.closest('.mw-board')) ui.tab = 'mood';
@@ -374,8 +387,8 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
-    if (button.dataset.skillAlways) { const id = button.dataset.skillAlways; await changeState(s => { const a = cleanAlways(s.skillAlways); if (a[id]) delete a[id]; else a[id] = true; s.skillAlways = a; }); return; }
-    if (button.dataset.skillJump) { const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+    if (button.dataset.skillPin) { const id = button.dataset.skillPin; await changeState(s => { const p = cleanPins(s.skillPins); if (p[id]) delete p[id]; else p[id] = true; s.skillPins = p; }); return; }
+    if (button.dataset.skillJump) { fillLazy(ui.panel); const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
     if (button.dataset.bondMute) {
         const text = button.dataset.bondMute;
         await editBond(b => { b.own = b.own.filter(t => t.toLowerCase() !== text.toLowerCase()); b.muted.push(text.toLowerCase()); }); return;

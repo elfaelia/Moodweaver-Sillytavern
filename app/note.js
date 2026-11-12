@@ -5,7 +5,7 @@ import { settings } from './settings.js';
 import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta } from '../engine/board.js';
-import { bondStanding, cleanDesire, computeBond, desirePace } from '../engine/bond.js';
+import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
 import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
@@ -14,7 +14,7 @@ import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MON
 import { effectiveChat } from '../engine/ledger.js';
 import { moodLink, roleLink } from '../engine/links.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
-import { MOOD_PACE, moodPaceOf } from '../engine/moodpace.js';
+import { MOOD_PACE } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
@@ -57,8 +57,8 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const zero = (moods, ids) => Object.fromEntries(Object.entries(moods ?? {}).map(([id, v]) => [id, ids.has(id) ? 0 : v]));
         const youRel = dropped.rel.size ? userRelation(state) : null;
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
-        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: scenePace(ch, state), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, desirePace: desirePace(bond), meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
+        const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: scenePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
         // Skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
         // Pattern breaker: the character's last five replies, read here, no extra request.
@@ -107,11 +107,8 @@ export function stopGenerating() {
 export const FEELINGS_COUNT = MOODS.filter(analysed).length;
 // The dynamic group each character's last note was sent with, so the next reply's fading can follow it.
 export const lastDynamic = new Map();
-// One pace for the whole scene: unless switched off in ⚙ Settings › Pace, feelings move at the Bonds pace.
-export function scenePace(ch, st) {
-    const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`];
-    return stored && stored.on !== false && stored.onePace !== false && MOOD_PACE[stored.pace] ? MOOD_PACE[stored.pace] : moodPaceOf(st);
-}
+// One pace per character and chat, set on the Moods card (or the Bonds tab): feelings, meters and desire all move at it.
+export const scenePace = ch => MOOD_PACE[ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`]?.pace] ?? MOOD_PACE.steady;
 // What the period does to what's switched on, and how the dynamic meets roles and the strongest feeling.
 const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);
 // "Doctor Easterman is he/him; Lamb is she/her." Only the ones that are known.
@@ -158,13 +155,13 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     // Harsh only when whoever holds power is in that kind of mood right now.
     const harshIn = st => MOODS.some(m => (st?.moods?.[m.id] ?? 0) >= 41 && (['angry', 'cruel', 'cold'].includes(m.category) || HARSH_MOODS.includes(m.id)));
     const harsh = top === 'n' ? harshIn(state) : top === 'u' ? harshIn(mine) : false;
-    // The 1.51 lenses: a turn-on of either person at clear or above, a feeling of the character's, or a tie.
-    const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => t.turns.some(id => (st?.prefs?.[id] ?? 0) > 40))
-        || strongIn(state.moods, t.moods) || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? []))]));
+    // A lens shows when something on either person's cards, between them or on the Story tab touches it.
+    const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
+        || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
     const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched,
         cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0,
-        medicine: strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
-        money: strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
+        medicine: touched.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
+        money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
     const links = [];
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));

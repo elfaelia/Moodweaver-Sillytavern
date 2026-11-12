@@ -18,6 +18,7 @@ import { reactiveBlock } from './wants-tab.js';
 import { personalityView } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
 import { TURN_BY_ID, TURN_CATEGORIES, turnGroupKey } from '../engine/turns.js';
+import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
 
 function knowledgePanel(state, ch) {
     const active = activeMoods(state).filter(m => m.kind !== 'story');
@@ -61,7 +62,10 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
         const list = rows.filter(([id]) => show(`turn:${id}`) && TURN_BY_ID[id]), key = turnGroupKey(group);
         if (!list.length) return '';
         const n = list.filter(([id]) => state.prefs?.[id]).length;
-        return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary>${body(key, list.length, () => list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join(''))}</details>`;
+        // Long lists get a small heading per sub-group (Face, Build…); a short personal list doesn't need them.
+        const rowsHtml = () => list.length <= 8 ? list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')
+            : Object.entries(Object.groupBy(list, r => r[5])).map(([sub, subRows]) => `<div class="mw-sub"><h5 class="mw-subhead">${esc(sub)}</h5>${subRows.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div>`).join('');
+        return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary>${body(key, list.length, rowsHtml)}</details>`;
     }).join('');
     const label = SECTION_LABEL[kind];
     return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${ui.browsing ? 'Search all ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(ui.search)}">${ui.browsing ? `<button data-action="browse-done" class="mw-primary">✓ Done</button>`
@@ -142,7 +146,7 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
-    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${['1', '2', '3', '4'].map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">With an era set, short lines say how the period shapes what’s in play: power, vices, faith, the law, being found out. When more apply than fit, they take turns from reply to reply, so a long story keeps meeting new sides of its period.</p>` : ''}
+    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">With an era set, short lines say how the period shapes what’s in play: power, marriage, dating, vices, faith, the law, being found out. When more apply than fit, they take turns from reply to reply, so a long story keeps meeting new sides of its period.</p>` : ''}
     ${['mood', 'trait', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, getKnowledge(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
@@ -151,7 +155,7 @@ export function lastMoodRec(ch) {
     return list.at(-1) ?? null;
 }
 function storyMoodBlock(state, ch) {
-    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch, state), linked = bond.on && bond.onePace !== false;
+    const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch);
     const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => BY_ID[id]);
     const name = id => BY_ID[id].label;
     const step = ([id, [a, b]]) => `<span class="mw-moodstep ${rec.f?.includes(id) ? 'is-fade' : b > a ? 'is-up' : 'is-down'}">${esc(name(id))} ${b === 0 ? 'off' : `${b > a ? '+' : '−'}${Math.abs(b - a)}`}${rec.f?.includes(id) ? ' · fading' : ''}</span>`;
@@ -159,9 +163,9 @@ function storyMoodBlock(state, ch) {
     return `<details class="mw-storymood" data-anchor="story-moods" ${on ? 'open' : ''}><summary><span>☾ The story moves moods</span><small>${on ? `${esc(pace.label)}${fade ? ', fading' : ''}` : 'off'}</small></summary>
         <label class="mw-toggle"><input type="checkbox" data-mood-auto ${on ? 'checked' : ''}> Each reply moves ${esc(ch.name)}’s feelings (free, no extra request)</label>
         ${blocked ? `<p class="mw-fine mw-scope-none">${blocked}</p>` : ''}
-        ${on ? `<div class="mw-storymood-row"><label>Speed<select data-mood-pace aria-label="How fast feelings change" ${linked ? 'disabled' : ''}>${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${(linked ? MOOD_PACE[k] === pace : state.moodPace === k || (!MOOD_PACE[state.moodPace] && k === 'steady')) ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
+        ${on ? `<div class="mw-storymood-row"><label>Speed<select data-pace aria-label="How fast everything moves: feelings, Bonds meters and desire">${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${MOOD_PACE[k] === pace ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
             <label class="mw-toggle"><input type="checkbox" data-mood-fade ${fade ? 'checked' : ''}> Fade</label></div>
-        ${linked ? '<p class="mw-fine mw-storymood-link">Same pace as Bonds. To set it here instead, switch off one pace in ⚙ Settings › Pace.</p>' : ''}
+        ${on ? '<p class="mw-fine mw-storymood-link">Speed sets the pace for everything: feelings, Bonds meters and desire.</p>' : ''}
         <label class="mw-storymood-which">Which feelings<select data-mood-scope aria-label="Which feelings the story can set">
             <option value="any" ${state.moodScope !== 'list' ? 'selected' : ''}>Any of the ${FEELINGS_COUNT} moods</option>
             <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}’s list (${listedFeelings(state).length})</option></select></label>

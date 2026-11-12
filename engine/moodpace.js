@@ -7,7 +7,6 @@ export const MOOD_PACE = {
     quick: { label: 'Quick', step: 30, ordinary: '10 to 15', turn: '20 to 30', after: 2, fade: 8, hint: 'for short scenes of around 10 replies' },
     volatile: { label: 'Volatile', step: 40, ordinary: '15 to 25', turn: '30 to 40', after: 1, fade: 12, hint: 'mood swings, every reply' },
 };
-export const moodPaceOf = st => MOOD_PACE[st?.moodPace] ?? MOOD_PACE.steady;
 // The pace cap on one change ("off" still ends a feeling outright).
 export const paceDelta = (delta, pace) => delta <= -100 ? delta : Math.max(-pace.step, Math.min(pace.step, delta));
 // The dynamic in play keeps the feelings that belong to it going: those wait twice as long before fading.

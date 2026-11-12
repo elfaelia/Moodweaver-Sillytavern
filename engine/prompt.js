@@ -96,7 +96,7 @@ function listLines(state, list, other, people = {}, lit = null) {
     // "how it shows" wording, which cost more tokens than it changed. Wording the player wrote still goes with it.
     const quiet = m => !analysed(m) || m.kind !== 'mood' || state.moods[m.id] > 20 || state.shows?.[m.id] || SHOWS === 'off' ? null
         : SCALED_MOOD_CUES[m.id]?.find(([min]) => state.moods[m.id] >= min)?.[1] ?? MERGED_PROMPT_CUES[m.id] ?? (PROMPT_NAME[m.id] ?? lowerLabel(m.label)).split(':')[0].replaceAll('{other}', other);
-    const line = m => `- ${tierWord(state.moods[m.id])}: ${quiet(m) ?? moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}${lit?.traits?.has(m.id) ? ' (LIT last reply)' : ''}`;
+    const line = m => `- ${tierWord(state.moods[m.id])}: ${quiet(m) ?? moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}${lit?.traits?.has(m.id) ? ' (lit last reply)' : ''}`;
     // Feelings come first, in one list, strongest first, so priority is plain whatever their category.
     const feelings = list.filter(m => analysed(m) && m.kind === 'mood').sort((a, b) => state.moods[b.id] - state.moods[a.id] || ORDER[a.category] - ORDER[b.category]);
     const rest = list.filter(m => !feelings.includes(m)), peak = Object.create(null);
@@ -143,7 +143,7 @@ function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit =
         if (known.length) out.push(`Turn-ons and turn-offs ${know.observer} knows about:`, ...known);
         if (suspected.length) out.push(`Turn-ons and turn-offs ${know.observer} suspects:`, ...suspected);
         if (unknown.length) out.push(`Turn-ons and turn-offs ${know.observer} doesn't know about:`, ...unknown);
-    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${lit?.turns?.has(id) ? ' (LIT last reply)' : lit?.craving?.has(id) ? ` (CRAVING: not lit for ${lit.craving.get(id)} replies)` : ''}`));
+    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${lit?.turns?.has(id) ? ' (lit last reply)' : lit?.craving?.has(id) ? ` (craving: not lit for ${lit.craving.get(id)} replies)` : ''}`));
     const free = person ? (lit?.free ?? []) : [];
     if (free.length) out.push(`Also set off last reply: ${free.map(x => `${pt(x.text)}${x.off ? ' (turn-off)' : ''}`).join(', ')}`);
     const wants = person ? liveWants(state, lit?.done) : [];
@@ -284,10 +284,10 @@ function composePrompt(state, name, extras = {}) {
     }
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
         `Turn-ons and turn-offs are what draws someone in or puts them off in others, never what they're like themselves. One lands whenever the scene contains it, whoever brings it: attention snags, desire or disgust jumps, and it changes what they do next. At strong and above they steer toward their kinks when there's an opening.`);
-    if (lit && (lit.turns?.size || lit.traits?.size || lit.free?.length)) out.push(`Anything marked LIT was set off last reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.`);
+    if (lit && (lit.turns?.size || lit.traits?.size || lit.free?.length)) out.push(`Anything marked “lit last reply” was set off by that reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.`);
     // Cravings and combos.
-    if (lit?.craving?.size) out.push(`A CRAVING is a strong turn-on that hasn't come up in a while: ${n} starts steering toward it with hints, tests and small provocations, and gets restless when the scene won't give it.`);
-    for (const c of lit?.combos ?? []) out.push(`COMBO, from what just lit up: ${pt(c.name)}. ${pt(c.text)[0].toUpperCase()}${pt(c.text).slice(1)}. Let it drive the next beat.`);
+    if (lit?.craving?.size) out.push(`A craving is a strong turn-on that hasn't come up in a while: ${n} starts steering toward it with hints, tests and small provocations, and gets restless when the scene won't give it.`);
+    for (const c of lit?.combos ?? []) out.push(`Combo from what just lit up (${pt(c.name)}): ${pt(c.text)}. Let it shape the next beat.`);
     if ([...mine, ...theirs].some(m => COMPARISONS.has(m.id)) || relationships.some(r => r.tags.some(t => COMPARISONS.has(t.id) || t.id === 'richer')) || pairs.some(p => p.moods.size_difference > 0)) out.push('',
         `Differences in height, size, age and so on get played up as much as their strength says: noticed, felt and used.`);
     const ageGapStrength = Math.max(mine.some(m => m.id === 'age_gap') ? state.moods.age_gap : 0, theirs.some(m => m.id === 'age_gap') ? player.state.moods.age_gap : 0,

@@ -1,6 +1,7 @@
 // Moodweaver's global settings: defaults, and upgrading settings saved by older versions.
 import { KEY, ctx } from './state.js';
 import { clamp } from '../engine/util.js';
+import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
 
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3' };
 export function settings() {
@@ -47,6 +48,6 @@ export function settings() {
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.
-        eraLines: ['1', '2', '3', '4'].includes(String(saved.eraLines)) ? String(saved.eraLines) : '3',
+        eraLines: ERA_LINE_CHOICES.includes(Number(saved.eraLines)) ? String(saved.eraLines) : '3',
     });
 }

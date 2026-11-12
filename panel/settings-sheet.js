@@ -2,11 +2,11 @@
 import { persist, personKeyOfSubject, playerName, subjectName, target } from '../app/chat.js';
 import { launchSettings } from '../app/launcher.js';
 import { syncPrompt } from '../app/note.js';
-import { bondData, bondList } from '../app/replies.js';
+import { bondList } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { KEY, ctx, ui } from '../app/state.js';
 import { cleanBoardMeta } from '../engine/board.js';
-import { METERS, PACE, cleanBond, setMeter } from '../engine/bond.js';
+import { METERS, cleanBond, setMeter } from '../engine/bond.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { freshState } from '../engine/state.js';
 import { changeState, render } from './render.js';
@@ -26,7 +26,6 @@ export function settingsView(state) {
             <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><pre data-audit></pre>
             <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
             <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
-        ${paceSettings()}
         <details class="mw-advanced" data-settings="board"><summary>Info board</summary>
             <p class="mw-fine">Every chat follows these until you flip its own switch on the Needs tab.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardSend" ${settings().boardSend ? 'checked' : ''}> Send the board prompt</label>
@@ -98,7 +97,7 @@ export async function clearEverything(keepTypes) {
         s.lastCleared = { at: Date.now(), state: structuredClone({ ...s, history: [], lastCleared: null }), pairs: structuredClone(pairs) };
         const blank = freshState({});
         for (const id of Object.keys(s.moods)) { s.moods[id] = 0; s.pins[id] = false; }
-        Object.assign(s, { causes: {}, shows: {}, prefs: {}, inventory: [], wants: [], relationships: [], skills: {}, skillAlways: {}, reason: '', targets: blank.targets, loadout: [] });
+        Object.assign(s, { causes: {}, shows: {}, prefs: {}, inventory: [], wants: [], relationships: [], skills: {}, skillPins: {}, skillXp: {}, reason: '', targets: blank.targets, loadout: [] });
         if (!keepTypes) Object.assign(s, { personality: blank.personality, enneagram: blank.enneagram });
         for (const id of Object.keys(pairs)) delete meta.pairs[id];
     });
@@ -110,13 +109,4 @@ export async function undoClear() {
         const history = s.history; Object.assign(s, saved.state, { history, lastCleared: null });
         for (const [id, p] of Object.entries(saved.pairs ?? {})) (meta.pairs ??= {})[id] = p;
     });
-}
-// One pace for the whole scene, per character and chat. Needs drain on their own clock, set on the Needs tab.
-function paceSettings() {
-    const ch = target(), bond = ui.who === 'char' && ch ? bondData(ch) : null, one = bond?.onePace !== false, label = PACE[bond?.pace]?.label ?? 'Steady';
-    return `<details class="mw-advanced" data-settings="pace"><summary>Pace <small>${bond ? (one ? `one pace: ${esc(label)}` : 'set separately') : 'per character'}</small></summary>
-        ${bond ? `<label class="mw-toggle"><input type="checkbox" data-one-pace ${one ? 'checked' : ''}> One pace for the whole scene</label>
-        <p class="mw-fine">On: ${esc(ch.name)}’s feelings, Bonds meters and Desire all move at the pace picked on the Bonds tab (now ${esc(label)}), and the nudges feelings give the meters scale with it. Off: the Moods card and the Desire card each pick their own pace.</p>`
-        : '<p class="mw-fine">Pace is set per character: open a character’s settings to choose one pace or separate ones.</p>'}
-        <p class="mw-fine">Needs drain on their own clock (Needs tab), since that’s time passing rather than how fast the story moves.</p></details>`;
 }

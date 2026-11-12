@@ -24,15 +24,17 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 | ♥ Bonds | Relationships, meters (friendship, romance, trust, control, pull and more), the named dynamic (over 250) and the desire card. Feelings in each reply push the meters, so the dynamic follows the mood |
 | ❂ Traits | Who they are: temperament, manner, morals, mind, archetype, personality type |
 | ⚘ Intimacy | How they want and have sex: roles in bed, sexual temperament, what draws them, and the psychosexual side |
-| ⇋ Turn-ons | What draws them in or puts them off, with combos and cravings |
-| ✪ Skills | Levels out of 10, sent only when the scene calls for them |
+| ⇋ Turn-ons | What draws them in or puts them off, in eight groups with sub-headings (giving and receiving side by side), with combos and cravings |
+| ✪ Skills | Levels out of 10 for the skills you pick, sent only when the scene calls for them, growing slowly with use |
 | ⌂ Facts | Looks, background, job, status |
 | ☆ Wants | Wants, goals and fears |
 | ◐ You | On your own character, Needs becomes You: outfit, condition and the moodlets showing. The Moods, Traits and Intimacy tabs there also set what the character knows about you |
 
-**Pace.** Pick Slow burn, Steady, Quick or Volatile on the Bonds tab and feelings, meters and desire all move at it. To give the Moods card and the Desire card their own pace, switch off **One pace for the whole scene** in ⚙ Settings › Pace. Needs drain on their own clock.
+**Pace.** Pick Slow burn, Steady, Quick or Volatile under Speed on the Moods card (or Pace on the Bonds tab, the same setting) and feelings, meters and desire all move at it. Needs drain on their own clock, and skills grow at their own pace (Skills tab).
 
-The story (era, genre, tropes, stakes, authors and writing style) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, medicine, vices, faith, the law, being found out). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
+**Setting something back to 0.** Tap the level word or number on a row ("Clear", "40%", "Neutral", "3/10") and its slider goes to 0, the middle on a two-way one. × still takes it off the list.
+
+The story (era, genre, tropes, stakes, authors and writing style) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
 
 Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, overwhelming, maximum. Only what's switched on is sent.
 

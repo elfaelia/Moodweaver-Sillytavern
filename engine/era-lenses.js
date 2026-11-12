@@ -74,7 +74,7 @@ const LENSES = {
         eighties: 'greed is good: money buys silence and loyalty, and being poor is a personal failing',
         nineties: 'money buys lawyers, silence and the benefit of the doubt',
         modern: 'money buys lawyers, silence and the benefit of the doubt' },
-    // 1.51: six more, each shown only when something on the cards touches it.
+    // These show only when something on the cards touches them (LENS_TRIGGERS).
     vice: { label: 'Vices',
         victorian: 'laudanum is sold over the counter, gin and absinthe ruin the poor and opium dens hide the rich; a lady never smokes in public and a gentleman never refuses port',
         midcentury: 'everyone smokes, everywhere: offices, hospitals, in bed; a drink at lunch is normal, pills for nerves come from the family doctor, and drugs belong to jazz clubs and beatniks',
@@ -118,6 +118,39 @@ const LENSES = {
         nineties: 'school canings are banned or dying out; adults who want it find each other through personal ads and early internet forums',
         modern: 'it is a known kink with its own toys and forums, though most still keep it secret' },
 };
+// America in the 1950s and 60s only (not Britain), each shown only when something on the cards touches
+// it. mw is used when the pair is a man and a woman, with {man} and {woman} as their names; any otherwise.
+const SIXTIES = {
+    home: { label: 'Home and marriage',
+        mw: 'a woman like {woman} is expected to marry, keep house, cook and look pretty when her husband gets home; a wife’s money is an allowance, and no state will charge a husband for forcing his wife',
+        any: 'marriage is for life and the home is a wife’s whole job; what a husband does behind his own front door is nobody else’s business' },
+    courting: { label: 'Dating',
+        mw: '{man} asks, pays, drives and decides; going steady means {woman} wears his ring or his jacket, and if she goes all the way before marriage it is her name that gets ruined',
+        any: 'dating has rules: the man asks, pays and drives, going steady means wearing his ring, and petting in a parked car is as far as nice people admit to' },
+    babies: { label: 'Pregnancy',
+        any: 'the Pill is brand new and only for wives whose doctor agrees; abortion is a crime done in back rooms, and an unmarried girl who is expecting gets sent away and made to give the baby up' },
+    bedroom: { label: 'What nobody says',
+        any: 'nobody talks about sex: brides learn on the wedding night, men learned from buddies and magazines, and oral or anal sex counts as a perversion and a crime in nearly every state' },
+    dress: { label: 'Dressing',
+        mw: '{man} goes out in a hat, a pressed suit and Brylcreem, {woman} in a girdle, stockings, gloves and set hair, so seeing each other undressed or undone is a real intimacy',
+        any: 'everyone dresses: men in hats, pressed suits and Brylcreem, women in girdles, stockings, gloves and set hair, so being seen undressed or undone is a real intimacy' },
+    pictures: { label: 'Pictures',
+        any: 'dirty pictures come by mail in plain envelopes and the man at the camera shop sees every print, so a Polaroid that develops in a minute, unseen, is worth a great deal' },
+    war: { label: 'The war',
+        any: 'most men over thirty fought in the war or in Korea and don’t talk about it; drinking, temper and nightmares are just how fathers are' },
+    appearances: { label: 'Appearances',
+        any: 'what the neighbours think rules everything: the lawn, the church pew, the right club; a scandal follows a family for years, so trouble is hushed up rather than fixed' },
+    suspicion: { label: 'Suspicion',
+        any: 'the Red Scare taught people to report each other: the FBI keeps files, a man can lose his job over who he drank with, and anyone different can be called a communist or a pervert' },
+    guns: { label: 'Guns',
+        any: 'guns are ordinary: a revolver in the nightstand, a rifle in the truck, a war pistol in a drawer, and no licence needed to buy one' },
+    road: { label: 'Cars and roads',
+        any: 'the car means freedom and privacy: lovers’ lanes, drive-ins and motels that ask no questions, no seatbelts, and hitchhikers that people still pick up' },
+    youth: { label: 'Teenagers',
+        any: 'teenagers have money, cars and rock and roll for the first time; parents and newspapers fear delinquents, and a girl seen with a bad boy gets talked about' },
+    experiments: { label: 'Experiments',
+        any: 'doctors and the government quietly test LSD, shock treatment and hypnosis on patients, prisoners and paid volunteers, and the subjects are rarely told the truth' },
+};
 // What the darker, gendered tags mean in an older period, folded into the one Power line so the
 // sexism is specific to what's on instead of repeated. Up to two, for a man over a woman before the 1990s.
 // [key, text]; index.js says which keys are on.
@@ -146,7 +179,8 @@ function seededOrder(list, seed) {
     for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
     return out;
 }
-export const ERA_LINE_CHOICES = [1, 2, 3, 4];
+export const ERA_LINE_CHOICES = [1, 2, 3, 4, 5, 6];
+const AMERICAN = id => !/britain|scotland/.test(id);
 // manSub / womanDom: the name of the person, or ''. cap: how many lines at most (default 3). seed: the reply
 // number, which picks which lines show when more apply than fit. Power, when it applies, always comes first.
 export function eraLenses(ctx) {
@@ -166,6 +200,10 @@ export function eraLenses(ctx) {
     if (ctx.romance && new Set([gender.n, gender.u]).size === 2 && [gender.n, gender.u].includes('she') && [gender.n, gender.u].includes('he')) out.push([LENSES.sex.label, LENSES.sex[group]]);
     if (ctx.money) out.push([LENSES.money.label, LENSES.money[group]]);
     for (const key of ['affair', 'secrets', 'discipline', 'vice', 'faith', 'law']) if (ctx[key]) out.push([LENSES[key].label, LENSES[key][group]]);
+    if (group === 'midcentury' && AMERICAN(ctx.era)) {
+        const man = ['n', 'u'].find(k => gender[k] === 'he'), woman = ['n', 'u'].find(k => gender[k] === 'she');
+        for (const [key, lens] of Object.entries(SIXTIES)) if (ctx[key]) out.push([lens.label, man && woman && lens.mw ? fillIn(lens.mw, { man: name[man], woman: name[woman] }) : lens.any]);
+    }
     const cap = ERA_LINE_CHOICES.includes(Number(ctx.cap)) ? Number(ctx.cap) : 3, room = cap - (power ? 1 : 0);
     // More than fit: a different handful each reply, so a long period story keeps meeting new sides of it.
     const rest = out.length > room ? seededOrder(out, ctx.seed).slice(0, room) : out;
@@ -185,17 +223,36 @@ export const SUB_TRAITS = ['soft_sub', 'slave_role', 'living_statue_role', 'huma
 export const SUB_TURNS = ['being_humiliated', 'being_dressed', 'masochist', 'crossdressing_play', 'degradation_in_bed', 'spanking_receiving', 'caning_receiving', 'whipping_receiving', 'being_made_dumb', 'being_dehumanised'];
 export const DOM_TRAITS = ['pleasure_dom', 'courtly_dom', 'disciplinarian', 'princess_dominance', 'dominant', 'top', 'mistress', 'mommy', 'gentle_dominant', 'owner', 'brat_tamer', 'doll_keeper', 'ravishing', 'role_reversal_dom', 'rigger'];
 export const DOM_TURNS = ['sadist', 'humiliating_others', 'degrading', 'spanking_giving', 'caning_giving', 'whipping_giving', 'dumbification', 'dehumanising_others'];
-// The six 1.51 lenses: turn-ons (either person's, clear or stronger), feelings and ties that switch each on.
+// What switches on a lens: a turn-on of either person at clear or stronger (turns), a mood, trait or state of
+// either person at clear or stronger (moods), a skill of either at 5 or more (skills), a tie between them
+// (ties) or something on the Story tab (story).
 export const LENS_TRIGGERS = {
-    vice: { turns: ['smoking', 'drunkenness', 'someone_high', 'shotgunning', 'smoke_breath', 'cigarettes_fetish', 'smoke_scent'],
+    money: { skills: ['typing', 'negotiation', 'gambling'] },
+    medicine: { skills: ['medicine', 'surgery', 'psychiatry'], turns: ['doctors', 'hospital_gowns', 'gurneys', 'straitjackets', 'clinical_voice', 'medplay_giving', 'medplay_receiving'],
+        moods: ['sedated', 'hospital_ward', 'hysterical'], story: ['asylum_horror'] },
+    vice: { skills: ['holding_liquor', 'bartending', 'drug_dealing'], turns: ['smoking', 'drunkenness', 'someone_high', 'shotgunning', 'smoke_breath', 'smoke_scent'],
         moods: ['party_brain', 'drinking_to_forget', 'strung_out', 'comedown', 'hazy_drunk', 'blackout_drunk', 'euphoric_high'] },
-    secrets: { turns: ['almost_caught', 'risky_places', 'being_followed', 'being_watched_over', 'polaroids', 'tape_recordings', 'cassette_polaroid', 'love_letters'],
+    secrets: { skills: ['wiretapping', 'stalking', 'blackmail', 'disguise'], turns: ['almost_caught', 'risky_places', 'being_followed', 'polaroids', 'tape_recordings', 'filming_someone', 'being_filmed', 'love_letters'],
         moods: ['fear_of_being_found_out', 'hiding_evidence', 'false_persona', 'keeping_tabs', 'hiding_it_from_family', 'covering_for_them'], ties: ['stalks', 'secret_relationship'] },
-    affair: { turns: ['taken_people', 'infidelity_vibe', 'infidelity_in_bed', 'being_cheated_on', 'being_the_other_woman', 'cuckolding', 'wedding_rings'],
+    affair: { turns: ['taken_people', 'being_the_other_woman', 'being_cheated_on', 'cuckolding', 'wedding_rings'],
         moods: ['forbidden_want', 'jilted', 'betrayed'], ties: ['affair'] },
-    faith: { turns: ['piety', 'hierophilia', 'sinfulness', 'clergy', 'penance', 'crosses_rosaries'], moods: ['guilt_sick', 'forsaken', 'righteous', 'guilty_lust'] },
-    law: { turns: ['killers', 'criminals', 'mobsters', 'detectives', 'con_artists', 'erotophonophilia', 'hybristophilia'],
+    faith: { turns: ['piety', 'hierophilia', 'sinfulness', 'clergy', 'penance'], moods: ['guilt_sick', 'forsaken', 'righteous', 'guilty_lust'] },
+    law: { skills: ['murder', 'burglary', 'safecracking', 'forgery', 'con_artistry', 'bribery', 'body_disposal'], turns: ['killers', 'criminals', 'mobsters', 'detectives', 'con_artists', 'erotophonophilia', 'hybristophilia'],
         moods: ['murderous', 'hiding_evidence', 'calm_after_violence', 'bloodthirsty', 'blackmailing'] },
-    discipline: { turns: ['spanking_giving', 'spanking_receiving', 'caning_giving', 'caning_receiving', 'whipping_giving', 'whipping_receiving', 'impact_play', 'crop_play', 'being_punished', 'being_scolded', 'canes'],
+    discipline: { turns: ['spanking_giving', 'spanking_receiving', 'caning_giving', 'caning_receiving', 'whipping_giving', 'whipping_receiving', 'crop_play', 'being_punished', 'being_scolded', 'canes'],
         moods: ['punitive', 'dreading_punishment'] },
+    // America in the 1950s and 60s only.
+    home: { skills: ['housekeeping', 'cooking', 'parenting'], turns: ['housewives', 'domesticity', 'wedding_rings'], moods: ['married_status', 'domestic_tyrant', 'domestic'], ties: ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience'], story: ['domestic_thriller'] },
+    courting: { turns: ['being_courted', 'being_taken_out', 'girl_boy_next_door', 'first_times'], ties: ['dating', 'courting_pair', 'courting', 'slow_burn', 'mutual_pining'] },
+    babies: { turns: ['breeding_giving', 'breeding_receiving', 'pregnant_bellies', 'lactation'] },
+    bedroom: { turns: ['giving_oral', 'receiving_oral', 'anal_giving', 'anal_receiving', 'inexperienced_partners', 'innocence', 'corruption_kink'], moods: ['innocent'] },
+    dress: { skills: ['fashion_sense', 'hairdressing', 'sewing'], turns: ['set_hair_pearls', 'stocking_fetish', 'glove_fetish', 'corsetry_fetish', 'lipstick', 'sharp_suits', 'undone_ties', 'waistcoats_braces', 'greased_hair', 'slow_undressing', 'lingerie'], moods: ['well_dressed', 'vain'] },
+    pictures: { skills: ['photography'], turns: ['polaroids', 'filming_someone', 'being_filmed', 'exhibitionist', 'voyeur', 'burlesque_attraction', 'posing_someone'] },
+    war: { turns: ['scars', 'uniformed_people', 'dog_tags'], moods: ['traumatised', 'scarred'] },
+    appearances: { turns: ['social_climbing', 'meticulous_presentation', 'rule_followers', 'preppy_types', 'rich_people'], moods: ['keeps_up_appearances', 'respectability_obsessed', 'gossipy', 'hiding_it_from_family'], ties: ['neighbours'] },
+    suspicion: { skills: ['wiretapping'], turns: ['being_followed', 'detectives'], moods: ['paranoid', 'suspicious', 'false_persona', 'keeping_tabs'], ties: ['suspicious_of'], story: ['cold_war_horror'] },
+    guns: { skills: ['marksmanship'], turns: ['gun_play', 'hoplophilia', 'gun_oil_smell'] },
+    road: { skills: ['driving'], turns: ['backseat', 'bikers', 'strangers', 'being_kidnapped'], moods: ['in_a_car'] },
+    youth: { skills: ['guitar', 'bass', 'drums', 'dancing'], turns: ['greasers', 'beatniks', 'cheerleaders_jocks', 'rock_stars', 'bad_boy_girl', 'rebelliousness'], moods: ['rebellious'] },
+    experiments: { skills: ['hypnosis', 'psychiatry', 'chemistry'], turns: ['being_experimented_on', 'hypnotising', 'being_hypnotised', 'conditioning_kink', 'scientists'], moods: ['test_subject', 'experimenter_role', 'lab_subject'], ties: ['scientist_and_subject'], story: ['unethical_experiments', 'experiment', 'subject_and_scientist'] },
 };

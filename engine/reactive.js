@@ -1,4 +1,5 @@
 import { pronounize } from './pronouns.js';
+import { TURN_MERGED } from './turns.js';
 // Cravings and combos, built on Lit.
 // Craving: a strong turn-on that hasn't been lit for a while starts pulling the character toward it.
 // Combo: two things at once (something lit, a feeling, a pressed button, a meter) fire a bigger effect.
@@ -26,9 +27,9 @@ export const COMBOS = [
     ['Craving met', c => c.cravingMet.size > 0, (n, u) => `something ${n} has been craving finally happened: relief and greed at once, and ${n} wants more of it right now`],
     ['Claim', c => any(c.lit, ['defiance', 'rebelliousness', 'stubbornness', 'a_struggle', 'being_ignored']) && feel(c.moods, ['possessive', 'controlling', 'jealous', 'power_drunk', 'reasserting']),
         (n, u) => `${n} needs to put ${u} back in ${u}'s place, right now: closer, firmer, final`],
-    ['Undone', c => any(c.lit, ['crying', 'vulnerability', 'helplessness', 'trembling_people', 'begging', 'choked_sobs']) && feel(c.moods, ['guilty', 'contrite', 'affectionate', 'devoted', 'lovesick', 'worshipful', 'soft', 'indulgent']),
+    ['Undone', c => any(c.lit, ['crying', 'vulnerability', 'helplessness', 'trembling_people', 'begging']) && feel(c.moods, ['guilty', 'contrite', 'affectionate', 'devoted', 'lovesick', 'worshipful', 'soft', 'indulgent']),
         (n, u) => `every resolve breaks: ${n} gives ${u} whatever makes it stop`],
-    ['Feeding on it', c => any(c.lit, ['crying', 'screams', 'being_feared', 'begging', 'trembling_people', 'watching_break', 'whimpering', 'choked_sobs']) && feel(c.moods, ['sadistic_glee', 'cruel', 'toying', 'predatory', 'bloodthirsty', 'power_drunk', 'breaking_them']),
+    ['Feeding on it', c => any(c.lit, ['crying', 'screams', 'being_feared', 'begging', 'trembling_people', 'watching_break', 'whimpering']) && feel(c.moods, ['sadistic_glee', 'cruel', 'toying', 'predatory', 'bloodthirsty', 'power_drunk', 'breaking_them']),
         (n, u) => `${u}'s fear and pain feed it: ${n} leans in, slows down, makes it last`],
     ['Mine', c => c.lit.size > 0 && feel(c.moods, ['jealous', 'possessive', 'jealous_fury', 'staking_a_claim'], 61), (n, u) => `want and jealousy fuse: ${n} needs to mark ${u} so nobody could mistake whose ${u} is`],
     ['Hate-heat', c => (c.desire?.a ?? 0) >= 61 && feel(c.moods, ['angry', 'resentful', 'contemptuous', 'seething', 'icy_contempt']),
@@ -45,25 +46,25 @@ export const COMBOS = [
         (n, u) => `being thwarted lands as a personal wound: ${n} sulks, lashes out or begs`],
     ['Breaking point', c => c.needsLow.size > 0 && (c.pressed || feel(c.moods, ['angry', 'desperate'], 61)), (n, u) => `${n}'s body and temper give out together: whatever ${n} was holding back comes out`],
     ['Into the obsession', c => c.lit.size > 0 && ((c.more?.ob ?? 0) >= 61 || (c.more?.fa ?? 0) >= 61), (n, u) => `it goes straight into the obsession: ${n} stops to study it and will replay it for days`],
-    // Three for the newer turn-ons.
+    // Clinic, provocation and keepsakes.
     ['Clinical heat', c => any(c.lit, ['hospital_gowns', 'clinical_voice', 'gurneys', 'being_experimented_on', 'being_studied', 'medplay_giving', 'clinical_scent', 'paperwork', 'glazed_eyes', 'sickliness']) && ((c.desire?.a ?? 0) >= 41 || feel(c.moods, ['horny', 'heated', 'curious'])),
         (n, u) => `the clinic and the want run together: ${n} keeps the professional voice and lets ${n}'s hands say the rest`],
     ['Taking the bait', c => any(c.lit, ['brattiness', 'defiance', 'rebelliousness', 'being_teased']) && feel(c.moods, ['playful', 'indulgent', 'fond_exasperation', 'smug', 'flirty', 'toying']),
         (n, u) => `${n} takes the bait on purpose: lets ${u} push, then settles it in a way ${u} will remember`],
-    ['Something to keep', c => any(c.lit, ['keepsakes', 'polaroids', 'tape_recordings', 'shutter_clicks', 'writing_on_skin', 'posing_someone']) && (feel(c.moods, ['possessive', 'obsessed', 'predatory']) || (c.more?.ob ?? 0) >= 41),
+    ['Something to keep', c => any(c.lit, ['keepsakes', 'polaroids', 'tape_recordings', 'writing_on_skin', 'posing_someone']) && (feel(c.moods, ['possessive', 'obsessed', 'predatory']) || (c.more?.ob ?? 0) >= 41),
         (n, u) => `${n} wants something to keep from this: a picture, a recording, a mark, a small thing slipped into a pocket`],
-    // Seven for the 1.51 turn-ons.
-    ['Punishment', c => any(c.lit, ['spanking_receiving', 'caning_receiving', 'whipping_receiving', 'being_punished', 'impact_play', 'crop_play', 'being_scolded']) && feel(c.moods, ['punitive', 'commanding', 'stern', 'controlling', 'disappointed_in_them']),
+    // Punishment, risk, cruelty, the mind, mouths, captivity and fighting.
+    ['Punishment', c => any(c.lit, ['spanking_receiving', 'caning_receiving', 'whipping_receiving', 'being_punished', 'crop_play', 'being_scolded']) && feel(c.moods, ['punitive', 'commanding', 'stern', 'controlling', 'disappointed_in_them']),
         (n, u) => `${n} makes it a proper punishment: a count, a position to hold, a lecture between strokes`],
-    ['Near miss', c => any(c.lit, ['almost_caught', 'risky_places', 'infidelity_in_bed', 'being_the_other_woman', 'backseat']) && feel(c.moods, ['fear_of_being_found_out', 'jumpy', 'paranoid', 'anxious', 'butterflies', 'hiding_arousal', 'daring']),
+    ['Near miss', c => any(c.lit, ['almost_caught', 'risky_places', 'being_the_other_woman', 'backseat']) && feel(c.moods, ['fear_of_being_found_out', 'jumpy', 'paranoid', 'anxious', 'butterflies', 'hiding_arousal', 'daring']),
         (n, u) => `how close they came makes it sharper: ${n} freezes, listens, then wants it more for the risk`],
-    ['Cooing cruelty', c => any(c.lit, ['faux_sympathy', 'faux_sympathy_kink', 'crying', 'begging', 'whimpering']) && feel(c.moods, ['sadistic_glee', 'toying', 'mocking', 'weaponised_kindness', 'teasing_cruelly']),
+    ['Cooing cruelty', c => any(c.lit, ['being_mock_pitied', 'faux_sympathy_kink', 'crying', 'begging', 'whimpering']) && feel(c.moods, ['sadistic_glee', 'toying', 'mocking', 'weaponised_kindness', 'teasing_cruelly']),
         (n, u) => `${n}'s voice goes soft and pitying while ${n} keeps doing exactly what's making ${u} cry`],
     ['Mind going', c => any(c.lit, ['dumbification', 'mind_break_giving', 'mind_break_receiving', 'being_made_dumb', 'drool_mess', 'overstimulation', 'fucked_out']) && ((c.desire?.a ?? 0) >= 61 || feel(c.moods, ['subspace', 'broken_mind', 'hypnotised', 'dazed', 'domspace'])),
         (n, u) => `thinking gives out: sentences shrink to a few words, and whoever can still think keeps pushing past that point`],
-    ['Smoke and mouths', c => any(c.lit, ['smoking', 'shotgunning', 'smoke_breath', 'oral_fixation_sound', 'cigarettes_fetish', 'lips', 'lipstick']) && ((c.desire?.a ?? 0) >= 41 || feel(c.moods, ['flirty', 'heated', 'horny', 'seductive', 'kiss_hungry'])),
+    ['Smoke and mouths', c => any(c.lit, ['smoking', 'shotgunning', 'smoke_breath', 'oral_fixation_sound', 'lips', 'lipstick']) && ((c.desire?.a ?? 0) >= 41 || feel(c.moods, ['flirty', 'heated', 'horny', 'seductive', 'kiss_hungry'])),
         (n, u) => `${n} makes a slow show of the mouth: smoke passed between lips, a long look while ${n} does it`],
-    ['Captive heart', c => any(c.lit, ['lima_syndrome', 'stockholm_captive', 'captives', 'captors', 'lima_softness', 'being_kidnapped']) && feel(c.moods, ['soft_spot', 'tender_after_cruelty', 'grudging_fondness', 'conflicted_attraction', 'possessive_tenderness', 'trauma_bonded']),
+    ['Captive heart', c => any(c.lit, ['lima_syndrome', 'stockholm_captive', 'captives', 'captors', 'being_kidnapped']) && feel(c.moods, ['soft_spot', 'tender_after_cruelty', 'grudging_fondness', 'conflicted_attraction', 'possessive_tenderness', 'trauma_bonded']),
         (n, u) => `the locked door and the softening pull against each other: ${n} is gentle in a way that makes leaving harder, not easier`],
     ['Brawl', c => any(c.lit, ['fighting_foreplay', 'wrestling_for_top', 'being_cornered', 'beating_giving', 'beating_receiving']) && ((c.desire?.a ?? 0) >= 41 || feel(c.moods, ['spoiling_for_fight', 'provoked', 'feral_energy', 'primal'])),
         (n, u) => `the fight and the want blur: grabbing turns into holding, pinning turns into something else, and neither will name it`],
@@ -85,6 +86,8 @@ export function findCombos(ctx, custom = [], n = 'they', u = 'them') {
 export function cleanCombos(list = []) {
     const t = (v, max) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
     const ok = v => /^(turn|trait|mood|need):[a-z0-9_]+$/.test(v) || v === 'button';
-    return (Array.isArray(list) ? list : []).map(x => ({ id: t(x?.id, 40) || Math.random().toString(36).slice(2, 10), a: t(x?.a, 60), b: t(x?.b, 60), name: t(x?.name, 40), text: t(x?.text, 160) }))
+    // A removed turn-on points at the first one that replaced it.
+    const token = v => { const s = t(v, 60), to = s.startsWith('turn:') && TURN_MERGED[s.slice(5)]; return to ? `turn:${to[0]}` : s; };
+    return (Array.isArray(list) ? list : []).map(x => ({ id: t(x?.id, 40) || Math.random().toString(36).slice(2, 10), a: token(x?.a), b: token(x?.b), name: t(x?.name, 40), text: t(x?.text, 160) }))
         .filter(x => ok(x.a) && ok(x.b) && x.name).slice(0, 20);
 }

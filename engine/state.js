@@ -4,8 +4,8 @@ import { BY_ID, MERGED_MOODS, MOODS, REMOVED_MOODS } from '../data/catalogue.js'
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
-import { cleanAlways, cleanSkills } from './skills.js';
-import { KINKS_TO_TURNS, LIKES_TO_TURNS, TURN_BY_ID } from './turns.js';
+import { cleanPins, cleanSkillPace, cleanSkills, cleanXp } from './skills.js';
+import { LIKES_TO_TURNS, OLD_KINKS, TURN_BY_ID, TURN_MERGED } from './turns.js';
 
 // Feelings about one particular person, and pair tropes, now live in relationships. '{{other}}' stands for
 // whoever that sheet used to point at; the panel resolves it for each person when the chat loads.
@@ -34,6 +34,27 @@ function moveToRelationships(state, knowledgeMaps = [], snapshot = false) {
         relation.compare = { with: state.targets.compareB || '{{user}}', favours: 'neither', value: compare };
     }
     if (!BY_ID.comparing_people) { delete state.moods.comparing_people; delete state.pins?.comparing_people; }
+}
+// Set a turn-on unless a stronger value is already saved, and show it on the person's list.
+function addTurn(state, id, value) {
+    state.prefs ??= {};
+    if (Math.abs(value) > Math.abs(state.prefs[id] ?? 0)) state.prefs[id] = value;
+    if (Array.isArray(state.loadout) && !state.loadout.includes(`turn:${id}`)) state.loadout.push(`turn:${id}`);
+}
+// Removed turn-ons hand their value, list place and knowledge to the ones that replaced them.
+function mergeTurns(state, knowledgeMaps) {
+    for (const [id, targets] of Object.entries(TURN_MERGED)) {
+        const key = `turn:${id}`, value = state.prefs?.[id] ?? 0, listed = state.loadout?.includes?.(key);
+        if (!value && !listed && !knowledgeMaps.some(map => Object.hasOwn(map, key))) continue;
+        for (const to of targets) {
+            if (value) addTurn(state, to, value);
+            else if (listed && !state.loadout.includes(`turn:${to}`)) state.loadout.push(`turn:${to}`);
+            for (const map of knowledgeMaps) if (map[key] && !map[`turn:${to}`]) map[`turn:${to}`] = map[key];
+        }
+        if (state.prefs) delete state.prefs[id];
+        if (listed) state.loadout = state.loadout.filter(x => x !== key);
+        for (const map of knowledgeMaps) delete map[key];
+    }
 }
 export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
     state.moods ??= {};
@@ -68,27 +89,18 @@ export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
     for (const [id, to] of Object.entries(LIKES_TO_TURNS)) {
         if (BY_ID[id]) continue;
         const value = clamp(state.moods[id] ?? 0);
-        if (value > 0 && !snapshot) {
-            const turn = to.replace('-', ''), signed = to.startsWith('-') ? -value : value;
-            state.prefs ??= {};
-            if (Math.abs(signed) > Math.abs(state.prefs[turn] ?? 0)) state.prefs[turn] = signed;
-            if (Array.isArray(state.loadout) && !state.loadout.includes(`turn:${turn}`)) state.loadout.push(`turn:${turn}`);
-        }
+        if (value > 0 && !snapshot) addTurn(state, to.replace('-', ''), to.startsWith('-') ? -value : value);
         delete state.moods[id]; delete state.pins?.[id];
         for (const map of knowledgeMaps) delete map[id];
     }
     // Kinks became turn-ons, at the same strength.
-    const kinkIds = Object.keys(KINKS_TO_TURNS);
-    for (const id of kinkIds) {
-        if (BY_ID[id]) continue;
-        const to = KINKS_TO_TURNS[id] ?? id, value = clamp(state.moods[id] ?? 0);
-        if (value > 0 && !snapshot && TURN_BY_ID[to]) {
-            state.prefs ??= {};
-            if (value > Math.abs(state.prefs[to] ?? 0)) state.prefs[to] = value;
-            if (Array.isArray(state.loadout) && !state.loadout.includes(`turn:${to}`)) state.loadout.push(`turn:${to}`);
-        }
-        if (Object.hasOwn(state.moods, id)) { delete state.moods[id]; delete state.pins?.[id]; for (const map of knowledgeMaps) delete map[id]; }
+    for (const id of OLD_KINKS) {
+        if (BY_ID[id] || !Object.hasOwn(state.moods, id)) continue;
+        const value = clamp(state.moods[id] ?? 0);
+        if (value > 0 && !snapshot) addTurn(state, id, value);
+        delete state.moods[id]; delete state.pins?.[id]; for (const map of knowledgeMaps) delete map[id];
     }
+    mergeTurns(state, knowledgeMaps);
     for (const old of state.history ?? []) migrateCatalogue(old, [], true);
     return state;
 }
@@ -114,8 +126,10 @@ export function extendCatalogue(state) {
     if (!state || extended.has(state)) return state;
     migrateCatalogue(state);
     state.causes = cleanCauses(state.causes); state.shows = cleanShows(state.shows); state.prefs = cleanPrefs(state.prefs);
-    // Own options were retired in 1.50.
-    delete state.custom; delete state.ownSkills;
+    // Retired: own options (1.50); "always send" skills and a separate feelings pace (1.53: skills go only when
+    // the scene calls for them, and one pace per chat is kept with the bond).
+    delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
+    state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
     state.inventory = cleanInventory(state.inventory);
     state.wants = cleanWants(state.wants); state.readScope = cleanScope(state.readScope);
     state.follow = clamp(state.follow ?? 90, 10, 100);
@@ -185,13 +199,13 @@ export function freshState(base = {}) {
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
         causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory),
-        skills: cleanSkills(base.skills), skillAlways: cleanAlways(base.skillAlways),
+        skills: cleanSkills(base.skills), skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         // Feelings moved by the story's hidden line: on/off, fading on/off, and how fast.
-        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
+        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any',
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
         reason: '', updatedAt: 0, history: [], revision: 0,
     };

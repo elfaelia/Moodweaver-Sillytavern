@@ -247,7 +247,7 @@ export const TURN_GROUPS = [
             { id: "neediness", noun: "needy people", cue: "someone who needs them", keys: "needy clingy", signs: "dependent anxious_attachment", opposite: "hyper_independent" },
             { id: "helplessness", noun: "helplessness", cue: "someone who can’t manage alone or get themselves out of trouble", keys: "helpless powerless defenceless defenseless", signs: "learned_helplessness damsel helpless" },
             { id: "vulnerability", noun: "vulnerability", cue: "someone open, fragile or exposed", keys: "vulnerable fragile exposed", signs: "sensitive vulnerable" },
-            { id: "drunkenness", noun: "drunkenness", cue: "someone drunk: loose, slurring, flushed", keys: "drunk tipsy wasted slurring liquor", signs: "drunk tipsy blackout_drunk alcoholic", opposite: "newly_sober" },
+            { id: "drunkenness", noun: "drunkenness", cue: "someone drunk: loose, slurring, flushed", keys: "drunk tipsy wasted slurring liquor whiskey flask", signs: "drunk tipsy blackout_drunk alcoholic", opposite: "newly_sober" },
             { id: "someone_high", noun: "someone high", cue: "someone high: blown pupils, slack smile, nothing behind the eyes", keys: "high stoned pupils nodding junkie", signs: "high stoned coked_up tripping" },
             { id: "smoking", noun: "smoking", cue: "a cigarette between someone’s lips, smoke breathed out", keys: "cigarette smoke smokes joint lighter cigar ash", signs: "smoker" },
         ] },
@@ -661,7 +661,7 @@ export const TURN_GROUPS = [
             { id: "gurneys", noun: "gurneys and restraint chairs", cue: "padded straps, steel frames, wheels on linoleum", keys: "gurney chair straps strapped restraints buckled trolley stirrups" },
             { id: "riding_crops", noun: "riding gear", cue: "jodhpurs, boots, crops and saddles", keys: "jodhpurs riding boots saddle crop stirrups" },
             { id: "canes", noun: "canes and walking sticks", cue: "a silver-topped cane, polished wood", keys: "cane walking stick silver" },
-            { id: "hoplophilia", noun: "weapons (hoplophilia)", cue: "guns and blades themselves, and someone who handles them well", keys: "gun guns weapon knife rifle blade firearm" },
+            { id: "hoplophilia", noun: "weapons (hoplophilia)", cue: "guns and blades themselves, and someone who handles them well", keys: "gun guns weapon knife rifle blade firearm revolver pistol switchblade" },
         ] },
         { name: "Things and places", rows: [
             { id: "hierophilia", noun: "sacred things (hierophilia)", cue: "rosaries, altars, vestments and clergy; holy things made filthy", keys: "rosary altar church holy priest nun cross crucifix" },

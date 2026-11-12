@@ -52,7 +52,7 @@ export function heightCm(text) {
 }
 // "38", "6'1" and "guitar, chess" → "38, 6'1, into guitar, chess". Empty when nothing's filled in.
 export const profileText = st => { const parts = [cleanAge(st?.age), cleanHeight(st?.height)].filter(Boolean).join(', '), into = cleanInterests(st?.interests);
-    return [parts, into ? `into ${into}` : ''].filter(Boolean).join('; '); };
+    return [parts, into ? `into ${into} (when the scene gives it room)` : ''].filter(Boolean).join('; '); };
 // How two people compare: "14 years older and about a head taller". Only gaps worth saying.
 export function compareProfiles(a, b) {
     const ages = cleanAge(a?.age) && cleanAge(b?.age) ? cleanAge(a.age) - cleanAge(b.age) : 0, cm = heightCm(a?.height) && heightCm(b?.height) ? heightCm(a.height) - heightCm(b.height) : 0;
@@ -66,7 +66,7 @@ const AGE_GAP = 2, HEIGHT_GAP = 5;
 // Ages, heights and interests come from each state's profile.
 // Returns Map(turn id → { v, is: [labels], not: [labels] }) for the person's turn-ons and turn-offs that
 // the other person shows. For turn-offs, `not` is the opposite showing instead, which counts in their favour.
-const NO_SIGNS = { is: [], not: [] }, STOP = new Set(['with', 'about', 'other', 'people', 'things', 'their', 'being', 'someone']);
+const NO_SIGNS = { is: [], not: [] }, STOP = new Set(['with', 'about', 'other', 'people', 'things', 'their', 'being', 'someone', 'the', 'and', 'her', 'his', 'for', 'old', 'new', 'small', 'little']);
 export function turnSigns(self, other) {
     const prefs = self?.state?.prefs ?? {}, st = other?.state;
     if (!self?.state?.enabled || !st?.enabled) return new Map();
@@ -86,12 +86,16 @@ export function turnSigns(self, other) {
     const words = cleanInterests(st.interests).toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 4 && !STOP.has(w));
     const intoIt = id => { if (!words.length) return ''; const t = TURN_BY_ID[id], names = `${t.noun} ${t.keys}`.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 4);
         const hit = words.find(w => names.some(n => n.startsWith(w.slice(0, 5)) || w.startsWith(n.slice(0, 5)))); return hit ? `into ${hit}` : ''; };
+    // What they carry: a revolver counts toward gun turn-ons, a flask toward drinkers, the same way.
+    const carried = (st.inventory ?? []).filter(i => i?.carried && i.text).map(i => ({ text: String(i.text).toLowerCase().slice(0, 40), words: String(i.text).toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 3 && !STOP.has(w)) }));
+    const carries = id => { if (!carried.length) return ''; const t = TURN_BY_ID[id], names = `${t.noun} ${t.keys}`.toLowerCase().split(/[^a-z]+/).filter(w => w.length >= 3);
+        const hit = carried.find(c => c.words.some(w => names.some(n => n === w || (w.length >= 5 && n.startsWith(w.slice(0, 5)))))); return hit ? `carries ${hit.text}` : ''; };
     const fits = id => !/_(men|women)$/.test(id) || (id.endsWith('_women') ? other.he === 'she' : other.he === 'he');
     const out = new Map();
     for (const [id, v] of Object.entries(prefs)) {
         const sign = v && (SIGNS[id] ?? NO_SIGNS); if (!sign || !fits(id)) continue;
-        const into = intoIt(id);
-        const is = [...new Set([...sign.is.map(label), into].filter(Boolean))].slice(0, 2), not = v < 0 ? [...new Set(sign.not.map(label).filter(Boolean))].slice(0, 2) : [];
+        const into = intoIt(id), carry = carries(id);
+        const is = [...new Set([...sign.is.map(label), into, carry].filter(Boolean))].slice(0, 2), not = v < 0 ? [...new Set(sign.not.map(label).filter(Boolean))].slice(0, 2) : [];
         if (is.length || not.length) out.set(id, { v, is, not });
     }
     return out;

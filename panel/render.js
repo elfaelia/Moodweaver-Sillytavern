@@ -13,7 +13,7 @@ import { escapeHtml as esc, shortName } from '../engine/util.js';
 import { BY_ID, sectionOf } from '../data/catalogue.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { capturePanel, restorePanelFields, restorePanelPosition, savedPanel } from './scroll-memory.js';
-import { PLUMBOB, peopleBar, personCard, tabBar } from './header.js';
+import { PLUMBOB, dockBar, peopleBar, personCard, tabBar, tabsFor } from './header.js';
 import { TONES, moodTone } from '../engine/tone.js';
 import { factsContent, sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
@@ -110,29 +110,31 @@ function drawPanel() {
     let plumbob = moodTone(state?.moods);
     if (!plumbob.strength) { const boardMood = live?.state.map(t => matchMood(t.text)).find(m => m && TONES[m.category]); if (boardMood) plumbob = { lead: TONES[boardMood.category], shade: TONES[boardMood.category], strength: 40, id: boardMood.id }; }
     ui.panel.style.setProperty('--mw-mood', plumbob.lead); tintLauncher(plumbob.lead);
+    // A new tab slides in from the side it lives on (swiping left brings the next one in from the right).
+    const order = [...tabsFor(ui.who).map(([k]) => k), 'story'], at = ui.who === 'story' ? 'story' : ui.tab, was = ui.drawnTab ?? at;
+    const anim = at === was ? '' : order.indexOf(at) > order.indexOf(was) ? 'next' : 'prev'; ui.drawnTab = at;
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
         : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
-        ${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live) + factsContent(state, ch, active)
+        <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
             peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation })
-        : sectionContent(state, kind, ch, active)}`;
+        : sectionContent(state, kind, ch, active)}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
         <div class="mw-top-actions"><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
-    ${peopleBar(ch)}
-    ${state ? body : ''}`}
+    ${peopleBar(ch, charState)}
+    ${state ? body : ''}
+    ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
     restorePanelFields(ui.panel, snapshot);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
-    // Ten tabs don't fit a phone: keep the open one in view after a redraw.
-    const tab = ui.panel.querySelector('.mw-tabbar [aria-selected="true"]'); if (tab) tab.parentElement.scrollLeft = tab.offsetLeft - (tab.parentElement.clientWidth - tab.offsetWidth) / 2;
 }
 // Draw the rows of folded groups that were left empty (all of them in scope, or the one just opened).
 export function fillLazy(scope) {

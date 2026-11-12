@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.56.0: the moon-phase panel, ties that talk to the dynamic, and a 1960s that reads him and her differently
+
+### A new panel
+
+- **Two matching cards at the top** for you and the main character, each with the feeling in front, and the cast as small chips under them.
+- **A dock at the bottom** with five places: Heart (Moods), Between (Bonds, Turn-ons, Intimacy), Body (Needs and Facts, or You on your own character), Self (Traits, Skills, Wants) and Story. The tabs inside a place show as chips at the top. Each place remembers the tab you last used.
+- **Swipe sideways** to move to the next or previous tab. A new tab slides in from the side it lives on.
+- **Moons instead of sliders** on feelings, traits and facts: eight phases from faint to maximum, and a dark new moon for off. Tap to set; tap the moon it's already on, the new moon or the level word to clear it. No dragging.
+- Animations are soft and switch off if your phone asks for reduced motion.
+
+### Ties and the dynamic
+
+- **The note now gives each its job:** ties are who they are to each other and change slowly; the dynamic is how it's going lately. Where they pull apart, Claude is asked to write the strain rather than drop one.
+- **Clash lines.** When a tie and the dynamic pull against each other, one short line says how both are true. For example, "whoever holds the power between them, Easterman gives way to Lamb where it counts to Lamb: her wants, her comforts, her small demands", or "the fight between them is fought by someone in love". About 25 of these.
+- **A suggested tie.** Once a dynamic has held for 12 replies, the Bonds card can offer the tie it implies ("＋ Has them on a string?"). Nothing changes unless you tap it, and × stops it being offered again. That keeps the dynamic from feeding itself.
+
+### More linking
+
+- **Core traits bend the dynamic.** A proud man who's giving way does it without looking like it; a soft-hearted one holds power gently; a disciplined one stays measured even in a heated dynamic. Core traits are now "under any mood or dynamic".
+- **Facts move meters.** When a hurt fact comes on for you (bleeding, concussed, sick), his Care and Protectiveness rise; when he's drunk or high, his Openness does.
+- **Carrying counts.** A revolver he carries counts toward gun turn-ons and wakes the period line on guns; a flask, cigarettes, a camera or a rosary do the same for theirs.
+- **Lit turn-ons warm his desire,** and so do yours he sees land, when the line didn't move the Desire card itself.
+- **Hungry, tired or uncomfortable** makes feelings quicker to flare. There's a switch under Needs › Needs over time.
+- **What they're into comes up lightly.** When a reply touches one of his interests, he gets a little "in his element" (never past strong), and the profile line says the interest comes up when the scene gives it room.
+
+### The 1960s, open both ways
+
+- **22 new lines on how the same thing reads on a man and on a woman** in 1950s–60s America: taking charge, giving way, sass, ambition, drinking, temper, tears, wanting it, being alone, brains, coldness, looks, crude talk, caring, violence, rebelling, faith, nerves, pride, jealousy, money and work. They follow the Pronouns on the Bonds tab, whoever has the trait, so "Lamb giving orders gets her called bossy" and "a man who gives way to a woman is called henpecked".
+- **An age-gap line** both ways, when ages are set and they're romantic.
+- They join the rotation under **Period lines per reply**, so a reply still gets only that many.
+
+### Story panel
+
+- **Cleaner writing and Writing style come first**, then Smut style, Period, Genre, Stakes, Dark story pressure, the tropes, Combat and the authors.
+
 ## 1.55.0: facts that run their course, a profile, and the panel tidied
 
 ### Facts move feelings and wear off

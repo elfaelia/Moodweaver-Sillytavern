@@ -138,7 +138,7 @@ export function cleanBond(raw = {}, on = true) {
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
         // One pace for everything this character feels here: meters, feelings (MOOD_PACE) and desire.
-        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced',
+        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced', offered: Array.isArray(b.offered) ? b.offered.filter(x => typeof x === 'string').slice(-40) : [],
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own

@@ -13,9 +13,10 @@ import { knowledgeEntry } from '../engine/state.js';
 import { fill as fillDynamic } from '../engine/dynamics.js';
 import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, LENS_TRIGGERS, eraLenses } from '../engine/era-lenses.js';
 import { effectiveChat } from '../engine/ledger.js';
-import { moodLink, roleLink } from '../engine/links.js';
+import { coreLink, moodLink, roleLink, tieLink } from '../engine/links.js';
+import { cleanAge } from '../engine/turns.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
-import { MOOD_PACE, temperPace } from '../engine/moodpace.js';
+import { MOOD_PACE, SHORT_FUSE, temperPace } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
@@ -113,7 +114,9 @@ export const lastDynamic = new Map();
 export const scenePace = ch => MOOD_PACE[ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`]?.pace] ?? MOOD_PACE.steady;
 // The pace this character's feelings actually move at: the chat's pace, shifted by their temper (volatile swings
 // harder, stoic holds steadier; engine/moodpace.js).
-export const movePace = ch => temperPace(scenePace(ch), getState(ch)?.moods);
+// Low hunger, energy or comfort on the info board make feelings quicker to flare (⚙ Settings › Panel can turn it off).
+const lowNeeds = ch => settings().needsMood === false ? [] : (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35 && SHORT_FUSE.includes(nd.id)).map(nd => nd.label.toLowerCase());
+export const movePace = ch => temperPace(scenePace(ch), getState(ch)?.moods, lowNeeds(ch));
 // What the period does to what's switched on, and how the dynamic meets roles and the strongest feeling.
 const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);
 // "Doctor Easterman is he/him; Lamb is she/her." Only the ones that are known.
@@ -172,18 +175,23 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const harshIn = st => MOODS.some(m => (st?.moods?.[m.id] ?? 0) >= 41 && (['angry', 'cruel', 'cold'].includes(m.category) || HARSH_MOODS.includes(m.id)));
     const harsh = top === 'n' ? harshIn(state) : top === 'u' ? harshIn(mine) : false;
     // A lens shows when something on either person's cards, between them or on the Story tab touches it.
+    const carried = new Set(people.flatMap(([, , st]) => (st?.inventory ?? []).filter(i => i?.carried).flatMap(i => String(i.text ?? '').toLowerCase().split(/[^a-z]+/))));
     const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
+        || (t.items ?? '').split(' ').some(w => carried.has(w))
         || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
     const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched,
-        cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0,
+        cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0, moods: { n: state.moods ?? {}, u: mine?.enabled ? mine.moods ?? {} : {} },
+        ages: cleanAge(state.age) && cleanAge(mine?.age) ? { n: cleanAge(state.age), u: cleanAge(mine.age) } : null,
         medicine: touched.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
     const links = [];
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));
+        const tie = tieLink({ ...pairMoods, ...relMoods }, { ...pairMoods, ...yourSide }, bd.dynamic, n, u); if (tie) links.push(pronounize(tie, n, u));
+        const core = coreLink((state.core ?? []).filter(id => (state.moods?.[id] ?? 0) > 0), bd.dynamic, top, n, u); if (core) links.push(pronounize(core, n, u));
         const topMood = MOODS.filter(m => analysed(m) && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
         const mood = topMood ? moodLink({ label: topMood.label, family: topMood.category, value: state.moods[topMood.id] }, bd.dynamic, n) : '';
-        if (mood) links.push(pronounize(mood, n, u));
+        if (mood && links.length < 3) links.push(pronounize(mood, n, u));
     }
     return { lenses, links };
 }

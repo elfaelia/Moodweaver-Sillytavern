@@ -122,9 +122,10 @@ const groupRows = () => DYNAMIC_GROUPS.map(([id, label, icon]) => [id, label, ic
 // player shows warm (or cool) the romance. Shown under the dynamic so the meters don't look like they come
 // from nowhere.
 function driversLine(drivers, n, u) {
-    if (!drivers || (!drivers.ties.length && !drivers.warm)) return '';
+    if (!drivers || (!drivers.ties.length && !drivers.warm && !drivers.offer)) return '';
+    const o = drivers.offer, offer = o ? `<span class="mw-dyn-offer"><button type="button" class="mw-dyn-driver is-offer" data-tie-offer="${esc(o.id)}" title="${esc(`${o.dynamic} has held a while. Tap to add this on ${n}’s side at 50; it isn’t set unless you do`)}">＋ ${esc(o.label.replace(/\s*\{other\}\s*/g, ' ').trim())}?</button><button type="button" class="mw-dyn-offer-x" data-tie-skip="${esc(o.id)}" aria-label="Don’t suggest this again">×</button></span>` : '';
     const side = { n: `${n}’s side`, u: `${u}’s side`, both: 'both ways' };
-    return `<div class="mw-dyn-drivers"><small>Shaped by</small>${drivers.ties.map(t => `<span class="mw-dyn-driver">${esc(t.label)} <i>${esc(side[t.side])} · ${t.value}</i></span>`).join('')}${drivers.warm ? `<span class="mw-dyn-driver ${drivers.warm < 0 ? 'is-off' : ''}">${drivers.warm > 0 ? '♡' : '✕'} turn-ons in play <i>romance ${drivers.warm > 0 ? '+' : ''}${drivers.warm}</i></span>` : ''}</div>`;
+    return `<div class="mw-dyn-drivers"><small>Shaped by</small>${drivers.ties.map(t => `<span class="mw-dyn-driver">${esc(t.label)} <i>${esc(side[t.side])} · ${t.value}</i></span>`).join('')}${drivers.warm ? `<span class="mw-dyn-driver ${drivers.warm < 0 ? 'is-off' : ''}">${drivers.warm > 0 ? '♡' : '✕'} turn-ons in play <i>romance ${drivers.warm > 0 ? '+' : ''}${drivers.warm}</i></span>` : ''}${offer}</div>`;
 }
 function dynCard(bond, d, n, u, { canRead, pending, savedPool, drivers }) {
     const mode = bond.fixed ? 'pick' : bond.mode, pool = new Set(bond.pool), pace = PACE[bond.pace] ? bond.pace : 'steady';

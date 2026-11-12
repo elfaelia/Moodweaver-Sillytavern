@@ -12,7 +12,8 @@ import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
 import { MORE_METERS, computeMore, saidMeters } from '../engine/meters.js';
-import { withNudges } from '../engine/mood-meters.js';
+import { withFacts, withNudges } from '../engine/mood-meters.js';
+import { OFFER_AFTER, tieOffer } from '../engine/links.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
@@ -20,7 +21,7 @@ import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cloneRelationships } from '../engine/relationships.js';
 import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
-import { TURN_BY_ID, signsPull, turnSigns } from '../engine/turns.js';
+import { TURN_BY_ID, cleanInterests, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
 
 // ---- Needs board: read from the latest info board in the chat, plus the player's edits ----
@@ -229,17 +230,29 @@ function sparkRomance(prefs) {
         return seen.get(key); };
     return (sparks = []) => clamp(sparks.reduce((sum, sp) => sum + one(sp), 0), -3, 3);
 }
+// Whether a reply mentions one of the things someone is into (words of five letters or more, plurals and endings allowed).
+function touchesInterest(st, text) {
+    const into = cleanInterests(st?.interests).toLowerCase().split(/[^a-z]+/).filter(x => x.length >= 5).map(x => x.slice(0, Math.max(5, x.length - 1))); if (!into.length) return false;
+    return stripWeave(String(text ?? '')).toLowerCase().split(/[^a-z]+/).some(x => into.some(stem => x.startsWith(stem)));
+}
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
-    const prefs = getState(ch)?.prefs ?? {}, sparkPull = sparkRomance(prefs);
+    const prefs = getState(ch)?.prefs ?? {}, sparkPull = sparkRomance(prefs), yourPrefs = getUserState()?.prefs ?? {};
+    let youBefore = [];
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
         // A lit turn-on warms the romance a step and a lit turn-off cools it, when the line didn't move it itself.
         const step = { f: w.f, r: w.r || sparkPull(w.sparked), t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
-        out.push({ pos, key: readOf(m).wkey, s: nudge ? withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale) : step });
+        // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
+        const you = w.you ? w.you.map(factId).filter(Boolean) : youBefore, hisFacts = w.moods.filter(x => x.delta > 0).map(x => factId(x.name)).filter(Boolean);
+        const newYou = you.filter(id => !youBefore.includes(id)); youBefore = you;
+        // His own lit turn-ons, and yours he saw land, warm his desire a little when the line gave it no step.
+        const lit = (w.sparked ?? []).filter(sp => !sp.off).length + (w.noticed ?? []).filter(x => (yourPrefs[sparkTarget(x, yourPrefs).id] ?? 0) > 0).length;
+        if (lit && !step.d?.a && !step.d?.release) step.d = { ...(step.d ?? {}), a: Math.min(6, 2 * lit) };
+        out.push({ pos, key: readOf(m).wkey, s: nudge ? withFacts(withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale), hisFacts, newYou, scale) : step });
     });
     if (out.length) { const traits = bedroomTraits(getState(ch)); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
@@ -316,7 +329,17 @@ export function bondDrivers(ch) {
     const from = (moods, side, byId) => Object.entries(moods ?? {}).filter(([id, v]) => v >= 41 && byId[id]).map(([id, value]) => ({ label: byId[id].label.replace(/\s*\{other\}\s*/g, ' ').trim(), side, value }));
     const ties = [...from(rel && rel.enabled !== false ? rel.moods : {}, 'n', RELATIONSHIP_BY_ID), ...from(pair && pair.enabled !== false ? pair.moods : {}, 'both', SHARED_BY_ID), ...from(yourSide(ch), 'u', RELATIONSHIP_BY_ID)]
         .sort((a, b) => b.value - a.value).slice(0, 4);
-    return { ties, warm: signsPull(chatSigns(ch).char) };
+    return { ties, warm: signsPull(chatSigns(ch).char), offer: offerTie(ch, rel) };
+}
+// A tie the dynamic implies, once it has held for OFFER_AFTER replies (checked then and halfway). Only offered.
+function offerTie(ch, rel) {
+    const bond = bondData(ch); if (!bond?.on || !bond.extra || bond.fixed) return null;
+    const list = bondList(ch); if (list.length < OFFER_AFTER) return null;
+    const n = shortName(ch.name), u = shortName(playerName()), axes = bondAxes(ch, bond);
+    const now = computeBond(bond, Infinity, n, u, axes, list), key = now.dynamic.key;
+    const held = [OFFER_AFTER, OFFER_AFTER / 2].every(k => computeBond(bond, Infinity, n, u, axes, list.slice(0, -k), true).byMeters.key === key);
+    const offer = held ? tieOffer(now, rel && rel.enabled !== false ? rel.moods : {}, bond.offered) : null;
+    return offer && { ...offer, label: RELATIONSHIP_BY_ID[offer.id].label, dynamic: now.dynamic.name };
 }
 // The same idea switched on in more than one place (a meter, the dynamic, his slider toward you, a
 // both-ways tag, a story trope). Worked out from what the note would actually send; syncPrompt sends each
@@ -420,6 +443,8 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             const pace = movePace(writer), named = new Set();
             const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
+            // The scene touching what they're into (Facts › Into) puts them a little in their element, never past strong.
+            if (st.moodAuto !== false && (st.moods.in_their_element ?? 0) < 41 && !list.some(x => feelingId(x.name) === 'in_their_element') && touchesInterest(st, m.mes)) list.push({ name: 'in their element', delta: paceDelta(8, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
             const relation = userRelation(st, Boolean(w.toward.length || w.feels.length));
             if (relation) {

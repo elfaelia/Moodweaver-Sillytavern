@@ -6,7 +6,7 @@ import { queueBoard, reconcile } from './app/replies.js';
 import { settings } from './app/settings.js';
 import { PROMPT_KEY, SELF, VERSION, ctx, generationSnapshots, run, ui } from './app/state.js';
 import { hasBoard, stripBoard } from './engine/board.js';
-import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown } from './panel/events.js';
+import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
 import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
 
@@ -71,6 +71,9 @@ function setup() {
     ui.panel.addEventListener('keydown', onPanelKeydown);
     ui.panel.addEventListener('change', onPanelChange);
     ui.panel.addEventListener('click', onPanelClick);
+    let touch = null;
+    ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target } : null; }, { passive: true });
+    ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe(touch, { x: t.clientX, y: t.clientY }); touch = null; }, { passive: true });
     ui.panel.addEventListener('toggle', onGroupToggle, true);
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {

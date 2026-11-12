@@ -86,10 +86,13 @@ const TEMPERS = {
 };
 const temperOf = (moods, ids) => Math.min(1, ids.reduce((sum, id) => sum + (moods?.[id] ?? 0) / 100, 0));
 // Returns the pace adjusted for this person, with `temper`: the traits behind it, strongest first, for the panel.
-export function temperPace(pace, moods = {}) {
-    const s = temperOf(moods, TEMPERS.swings), d = temperOf(moods, TEMPERS.steady), l = temperOf(moods, TEMPERS.lingers);
+// low: needs that are running low (hungry, tired, uncomfortable): each makes feelings a little quicker to flare.
+export const SHORT_FUSE = ['hunger', 'energy', 'comfort'];
+export function temperPace(pace, moods = {}, low = []) {
+    const worn = Math.min(0.6, 0.3 * low.length);
+    const s = Math.min(1, temperOf(moods, TEMPERS.swings) + worn), d = temperOf(moods, TEMPERS.steady), l = temperOf(moods, TEMPERS.lingers);
     if (!s && !d && !l) return pace;
     const temper = Object.values(TEMPERS).flat().filter(id => (moods?.[id] ?? 0) > 0).sort((a, b) => moods[b] - moods[a]);
     return { ...pace, step: Math.max(5, Math.round(pace.step * (1 + 0.3 * s - 0.3 * d))), after: Math.max(1, Math.round(pace.after * (1 - 0.4 * s + 0.6 * d + 0.8 * l))),
-        fade: Math.max(1, Math.round(pace.fade * (1 + 0.4 * s - 0.4 * d - 0.4 * l))), temper, swings: s - d };
+        fade: Math.max(1, Math.round(pace.fade * (1 + 0.4 * s - 0.4 * d - 0.4 * l))), temper, swings: s - d, low };
 }

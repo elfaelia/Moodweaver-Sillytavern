@@ -135,5 +135,26 @@ export function withNudges(step, ids, scale = 1) {
     if (n.a && !step.d?.a && !step.d?.release) out.d = { ...(step.d ?? {}), a: n.a };
     return out;
 }
+// Facts that newly come on move meters too, when the line didn't: someone hurt draws Care and
+// Protectiveness from the other, someone drunk lowers their own guard. his: facts that came on for the
+// character this reply; yours: facts that came on for the player. Optional meters that are off ignore it.
+const HURT = ['injured', 'bleeding', 'concussed', 'burned', 'sick', 'weak', 'nosebleed', 'post_seizure', 'withdrawal', 'drugged', 'sedated'];
+const UNDER = ['tipsy', 'drunk', 'blackout_drunk', 'high', 'stoned', 'rolling', 'tripping', 'crossfaded', 'on_shrooms'];
+export function factNudges(his = [], yours = [], scale = 1) {
+    const has = (list, ids) => list.some(id => ids.includes(id)), out = { m: {} }, step = v => Math.max(1, Math.round(v * scale));
+    if (has(yours, HURT)) { out.m.ca = step(2); out.m.pr = step(2); }
+    if (has(yours, UNDER)) out.m.pr = Math.max(out.m.pr ?? 0, step(1));
+    if (has(his, HURT)) out.m.de = step(1);
+    if (has(his, UNDER)) out.m.op = step(2);
+    return out;
+}
+// Folds fact nudges into a step the same way: whatever the line (or the feelings) said wins.
+export function withFacts(step, his, yours, scale = 1) {
+    const n = factNudges(his, yours, scale); if (!Object.keys(n.m).length) return step;
+    const out = { ...step }, m = { ...(step.m ?? {}) };
+    for (const [k, v] of Object.entries(n.m)) if (!m[k]) m[k] = v;
+    out.m = Object.keys(m).length ? m : step.m ?? null;
+    return out;
+}
 // How many feelings move a meter (for DEVELOPING and the checks).
 export const nudgedMoods = () => BY_MOOD;

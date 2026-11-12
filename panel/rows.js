@@ -4,7 +4,7 @@ import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
 import { BY_ID, MERGED_SEARCH_NAMES, analysed, sectionOf } from '../data/catalogue.js';
 import { escapeHtml as esc } from '../engine/util.js';
-import { level } from '../engine/strength.js';
+import { TIERS, level, tierOf } from '../engine/strength.js';
 import { FACTS } from '../engine/moodpace.js';
 import { ON_PAGE } from '../data/catalogue.js';
 
@@ -32,13 +32,21 @@ function whyLine(m, state) {
 // Traits get a star: up to three core traits, always sent first.
 const coreButton = (m, state) => { if (sectionOf(m) !== 'trait') return ''; const on = state.core?.includes(m.id) && state.moods[m.id] > 0;
     return `<button type="button" class="mw-core ${on ? 'is-core' : ''}" data-core="${m.id}" aria-pressed="${on}" aria-label="${on ? 'Not a core trait' : 'Make it a core trait'}: ${esc(tagLabel(m))}" title="Core trait: always sent, whatever the mood (up to three)">${on ? '★' : '☆'}</button>`; };
+// Strength as eight moons, faint to maximum, filling like the phases, with a dark new moon for 0. A tap sets
+// that strength; tapping the one it's already at (or the new moon) clears it. No dragging.
+const MOON_AT = [5, 15, 30, 50, 70, 85, 95, 100];
+export function moons(m, value) {
+    const now = tierOf(value);
+    const phases = [...TIERS].reverse().map((t, i) => { const lit = value >= t.min, here = now === t;
+        return `<button type="button" class="mw-moon ${lit ? 'is-lit' : ''} ${here ? 'is-now' : ''}" data-moon="${m.id}" data-v="${MOON_AT[i]}" aria-pressed="${here}" aria-label="${t.name}" title="${t.name}" style="--mw-phase:${Math.round((i + 1) / 8 * 100)}%"><span></span></button>`; });
+    return `<div class="mw-moons" role="group" aria-labelledby="mw-${m.id}"><button type="button" class="mw-moon is-new ${value ? '' : 'is-now'}" data-moon="${m.id}" data-v="0" aria-pressed="${!value}" aria-label="Off" title="Off"><span></span></button>${phases.join('')}</div>`;
+}
 export function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
-        <div class="mw-row-head"><label for="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
-        <output for="mw-${m.id}" data-value="${m.id}">${value}%</output>
+        <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${coreButton(m, state)}${listButton(m.id, state)}</div>
-        <input id="mw-${m.id}" type="range" min="0" max="100" step="1" value="${value}" data-slider="${m.id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
+        ${moons(m, value)}
         ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
 }
 // On an active feeling, how it shows on this person. Empty uses the default wording (the placeholder).

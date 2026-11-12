@@ -1,4 +1,5 @@
 // Sims-style needs board: the latest info board, tidied into a scene card, moodlet tiles and need bars.
+import { settings } from '../app/settings.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { CATEGORIES } from '../data/catalogue.js';
@@ -103,6 +104,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
                 <label class="mw-field">How fast<select data-setting-choice="needsSpeed" aria-label="How fast needs drain">${[['gentle', 'Gentle'], ['normal', 'Normal'], ['harsh', 'Harsh']].map(([v, l]) => `<option value="${v}" ${needOpts.speed === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSkips" ${needOpts.skips ? 'checked' : ''}> Time jumps of more than 4 hours top needs back up (they ate, slept and washed off-screen)</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsFloor" ${needOpts.floor ? 'checked' : ''}> Time alone never makes a need critical; only the story can</label>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsMood" ${settings().needsMood !== false ? 'checked' : ''}> Hungry, tired or uncomfortable makes feelings quicker to flare</label>
                 <p class="mw-fine">Normal: a few on-screen hours makes them peckish, a long scene with no toilet makes the bladder nag. Flashbacks and boards without a time change nothing. Comfort and health only move when the story moves them.</p></details>` : ''}</div>
         ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny"${pinsOn ? '' : ' disabled'}>

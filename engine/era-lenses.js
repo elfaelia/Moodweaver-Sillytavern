@@ -2,8 +2,11 @@
 // one clear instruction ("Set in 1960s America") and a short line than with a long list of period props. A
 // lens is one line about how the period shapes something already in play (power, medicine, queer desire,
 // secret kinks, sex and reputation, money and work), and only shows when that thing is on. Gender comes from
-// the Pronouns picker on the Bonds tab: he is a man, she is a woman. Pure data and functions; index.js decides
-// what's on and core.js places the lines.
+// the Pronouns picker on the Bonds tab: he is a man, she is a woman. Pure data and functions (it reads the mood
+// families from the catalogue); app/note.js decides what's on and engine/prompt.js places the lines.
+
+import { MOODS } from '../data/catalogue.js';
+const MOOD_CAT = new Map(MOODS.filter(m => m.kind === 'mood').map(m => [m.id, m.category]));
 
 // Era → period group, for the lenses.
 function eraGroup(id = '') {
@@ -134,6 +137,78 @@ const SIXTIES = {
     experiments: { label: 'Experiments',
         any: 'doctors and the government quietly test LSD, shock treatment and hypnosis on patients, prisoners and paid volunteers, and the subjects are rarely told the truth' },
 };
+// The same trait reads differently on a man and a woman in 1950s–60s America. One line per person and
+// lens, when that person has one of these (or any feeling in one of the families in `cats`) at clear or above.
+// {who} is their name; he / she is from the Pronouns picker, so it works whichever of them it is. Someone
+// set to they gets none. Like the rest, these join the rotation under the lines-per-reply cap.
+const PEOPLE = [
+    { key: 'leads', label: 'Taking charge', ids: ['demanding', 'commanding', 'taking_charge', 'controlling', 'assertive', 'in_control', 'dominant', 'boss'],
+        he: '{who} taking charge is simply what a man is for; nobody questions it, which makes it easy to go too far without anyone saying so',
+        she: '{who} giving orders gets her called bossy or a battle-axe; men obey and resent it, or find it thrilling and would never admit it' },
+    { key: 'yields', label: 'Giving way', ids: ['fawning', 'submissive', 'obedient', 'people_pleaser', 'soft'],
+        he: 'a man who gives way to a woman, as {who} does, is called henpecked by other men, so he does it in private and shrugs it off in public',
+        she: '{who} deferring is what a good girl is praised for, and nobody stops to ask whether she means it' },
+    { key: 'brat', label: 'Sass', ids: ['sassy', 'bratty_defiance', 'spoiled_brat', 'princess'],
+        he: '{who} mouthing off is a boy who never grew up; charming in a bar, trouble at work',
+        she: '{who}’s sass is cute in a girl and a problem in a wife: men laugh at it, then expect it to stop at the altar' },
+    { key: 'ambition', label: 'Ambition', ids: ['ambitious', 'workaholic', 'cunning'],
+        he: '{who}’s ambition is a man’s duty: long hours, the right handshake, a wife who entertains the boss',
+        she: '{who} wanting a career is tolerated until she marries; after that she’s meant to quit, and one who doesn’t is pitied or suspected' },
+    { key: 'drink', label: 'Drinking', ids: ['hazy_drunk', 'drunk', 'alcoholic', 'tipsy', 'blackout_drunk', 'weepy_drunk'],
+        he: '{who} drinking hard is one of the boys, right up until it costs him his job or his licence',
+        she: 'ladies sip; {who} seen drunk loses her good name, and a woman who drinks alone is talked about at church' },
+    { key: 'anger', label: 'Temper', cats: ['angry'], ids: ['hot_headed'],
+        he: '{who}’s temper is a man’s prerogative: slammed doors and raised voices are how husbands and fathers are',
+        she: '{who}’s anger gets called nerves or that time of the month, and a doctor may write her something to calm her down' },
+    { key: 'tears', label: 'Tears', cats: ['sad'], ids: ['teary', 'crying_alone'],
+        he: 'men don’t cry, so {who}’s grief goes into drink, work or silence, and showing it would shame him',
+        she: '{who}’s tears are expected and dismissed in the same breath: she’s just emotional' },
+    { key: 'wanting', label: 'Wanting it', cats: ['desire'], ids: ['horny', 'flirty', 'slutty', 'loose', 'swaggering_flirt', 'seductive_act', 'provocative'],
+        he: '{who} chasing women gets a wink and a slap on the back; what he wants is just a man’s nature',
+        she: '{who} wanting it openly makes her a tramp: it can cost her a job, her family’s welcome and any decent marriage' },
+    { key: 'alone', label: 'On their own', ids: ['independent', 'hyper_independent', 'lone_wolf', 'widowed', 'newly_single'],
+        he: 'a man alone like {who} is a free bachelor, or a little suspect once he’s past thirty-five',
+        she: 'a woman alone like {who} is pitied as an old maid or watched as a divorcee; landlords, banks and neighbours all want to know where her man is' },
+    { key: 'brains', label: 'Brains', ids: ['genius', 'bookish', 'nerdy'],
+        he: '{who}’s brains are an asset: a degree, a profession, a man people consult',
+        she: '{who}’s brains are something to hide on a date; girls are told not to seem smarter than the man' },
+    { key: 'cold', label: 'Coldness', cats: ['cold'], ids: ['emotionless', 'stoic', 'cold_blooded'],
+        he: '{who}’s coldness reads as strength and self-control, the way a man is supposed to be',
+        she: '{who}’s coldness makes her frigid or unwomanly in other people’s eyes: a cold fish, a career girl, a shrew' },
+    { key: 'looks', label: 'Looks', ids: ['vain', 'glamouring', 'preening'],
+        he: 'a man too careful of his looks, like {who}, gets called a dandy, or something worse said lower',
+        she: '{who}’s looks are her currency and her duty, checked by every woman she meets and every man who passes' },
+    { key: 'crude', label: 'Crude talk', ids: ['crude', 'vulgar', 'trashy'],
+        he: '{who}’s crude talk is fine among men and gets bitten back around ladies',
+        she: '{who} swearing shocks the room: nice women aren’t meant to know those words' },
+    { key: 'care', label: 'Caring', cats: ['closeness'], ids: ['protective', 'protector_role'],
+        he: '{who} tending someone is unusual enough to be noticed: doctors and soldiers may, husbands seldom do',
+        she: '{who} caring for others is simply expected of a woman, so nobody thanks her for it' },
+    { key: 'violence', label: 'Violence', cats: ['cruel'], ids: ['sadistic_personality', 'bloodthirsty', 'murderous'],
+        he: '{who}’s violence is easily excused: a man keeping his house in order or settling a score',
+        she: 'nobody believes a woman like {who} could be violent, which is its own kind of cover' },
+    { key: 'rebel', label: 'Rebelling', ids: ['rebellious', 'anti_authoritarian', 'feminist', 'reckless', 'thrill_seeker'],
+        he: '{who} kicking against the rules is a rebel without a cause: a phase, a leather jacket, a warning to other parents',
+        she: '{who} breaking the rules is a girl going bad: people worry about her reputation before her safety' },
+    { key: 'faith', label: 'Faith', ids: ['devout', 'guilty_lust', 'ashamed'],
+        he: '{who}’s sins are a man’s to confess and be forgiven',
+        she: '{who}’s sins stick to her: the priest forgives, the parish doesn’t' },
+    { key: 'nerves', label: 'Nerves', cats: ['scared'], ids: ['hysterical', 'nervous_wreck'],
+        he: '{who} cracking under nerves is a weakness he has to hide; they called it shell shock in the war and stopped asking',
+        she: '{who}’s nerves get her a prescription, a rest cure or a husband’s signature on a form' },
+    { key: 'pride', label: 'Pride', ids: ['proud', 'confident', 'cocky'],
+        he: '{who}’s pride is respected, even admired, so long as he can back it up',
+        she: '{who} being proud of herself is called stuck-up; a woman is meant to wait to be praised' },
+    { key: 'jealousy', label: 'Jealousy', ids: ['jealous', 'possessive'],
+        he: '{who}’s jealousy passes for love: a man protecting what’s his, and the law tends to agree',
+        she: '{who}’s jealousy is a nag’s or a madwoman’s; her husband’s friends make jokes about it' },
+    { key: 'money', label: 'Money', ids: ['wealth', 'poor', 'pampered'],
+        he: '{who}’s money, or lack of it, is his measure as a man and a provider',
+        she: '{who}’s money is really her father’s or her husband’s; a woman can’t easily get credit, a loan or a lease in her own name' },
+    { key: 'job', label: 'Work', ids: ['doctor', 'surgeon', 'lawyer', 'psychiatrist', 'scientist', 'teacher', 'nurse', 'assistant', 'artist', 'musician'],
+        he: '{who}’s profession is his rank: people stand when he enters, defer to his word and use his title',
+        she: 'a working woman like {who} is in a few allowed jobs, nurse, teacher or secretary; anything higher, people test and doubt her at every turn' },
+];
 // What the darker, gendered tags mean in an older period, folded into the one Power line so the
 // sexism is specific to what's on instead of repeated. Up to two, for a man over a woman before the 1990s.
 // [key, text]; index.js says which keys are on.
@@ -148,6 +223,7 @@ const POWER_TINTS = {
 const OLD = new Set(['midcentury', 'seventies', 'eighties']);
 // A woman over a man, with her looking openly: the one gendered tint that runs the other way.
 const WM_TINTS = { gaze: 'her open looking at a man gets her called fast, or worse' };
+const personHas = (moods, lens) => Object.entries(moods).some(([id, v]) => v >= 41 && ((lens.ids ?? []).includes(id) || (lens.cats ?? []).includes(MOOD_CAT.get(id))));
 const fillIn = (text, map) => text.replace(/\{(\w+)\}/g, (m, k) => map[k] ?? m);
 // The harshest clause of a Power line ("called hysterical and committed") only goes in when the one holding
 // power is in a cold, cruel, angry or controlling mood (ctx.harsh). Otherwise it's the world, not how he treats her.
@@ -186,6 +262,12 @@ export function eraLenses(ctx) {
     if (group === 'midcentury' && AMERICAN(ctx.era)) {
         const man = ['n', 'u'].find(k => gender[k] === 'he'), woman = ['n', 'u'].find(k => gender[k] === 'she');
         for (const [key, lens] of Object.entries(SIXTIES)) if (ctx[key]) out.push([lens.label, man && woman && lens.mw ? fillIn(lens.mw, { man: name[man], woman: name[woman] }) : lens.any]);
+        for (const k of ['n', 'u']) {
+            const g = gender[k], who = name[k], st = ctx.moods?.[k] ?? {}; if (!['he', 'she'].includes(g)) continue;
+            for (const lens of PEOPLE) if (personHas(st, lens)) out.push([lens.label, fillIn(lens[g], { who })]);
+        }
+        const older = ctx.ages ? ctx.ages.n - ctx.ages.u : 0, elder = older >= 8 ? 'n' : older <= -8 ? 'u' : '';
+        if (elder && ctx.romance && man && woman) out.push(['Age gap', elder === man ? `an older man like ${name[man]} with a much younger woman raises few eyebrows and some envy; people assume he chose and she was lucky` : `an older woman like ${name[woman]} with a younger man is a scandal and a joke: people call her desperate and him a kept boy`]);
     }
     const cap = ERA_LINE_CHOICES.includes(Number(ctx.cap)) ? Number(ctx.cap) : 3, room = cap - (power ? 1 : 0);
     // More than fit: a different handful each reply, so a long period story keeps meeting new sides of it.
@@ -209,18 +291,19 @@ export const DOM_TURNS = ['sadist', 'humiliating_others', 'degrading', 'spanking
 // What switches on a lens: a turn-on of either person at clear or stronger (turns), a mood, trait or state of
 // either person at clear or stronger (moods), a skill of either at 5 or more (skills), a tie between them
 // (ties) or something on the Story tab (story).
+// items: words in what someone carries (Facts › Carrying) that also wake the line.
 export const LENS_TRIGGERS = {
-    money: { skills: ['typing', 'negotiation', 'gambling'] },
-    medicine: { skills: ['medicine', 'surgery', 'psychiatry'], turns: ['doctors', 'hospital_gowns', 'gurneys', 'straitjackets', 'clinical_voice', 'medplay_giving', 'medplay_receiving'],
+    money: { items: 'cash money wallet checkbook chequebook', skills: ['typing', 'negotiation', 'gambling'] },
+    medicine: { items: 'syringe pills stethoscope scalpel morphine', skills: ['medicine', 'surgery', 'psychiatry'], turns: ['doctors', 'hospital_gowns', 'gurneys', 'straitjackets', 'clinical_voice', 'medplay_giving', 'medplay_receiving'],
         moods: ['sedated', 'hospital_ward', 'hysterical'], story: ['asylum_horror'] },
-    vice: { skills: ['holding_liquor', 'bartending', 'drug_dealing'], turns: ['smoking', 'drunkenness', 'someone_high', 'shotgunning', 'smoke_breath', 'smoke_scent'],
+    vice: { items: 'flask whiskey cigarettes cigarette cigar lighter bottle pills reefer', skills: ['holding_liquor', 'bartending', 'drug_dealing'], turns: ['smoking', 'drunkenness', 'someone_high', 'shotgunning', 'smoke_breath', 'smoke_scent'],
         moods: ['party_brain', 'drinking_to_forget', 'strung_out', 'comedown', 'hazy_drunk', 'blackout_drunk', 'euphoric_high'] },
-    secrets: { skills: ['wiretapping', 'stalking', 'blackmail', 'disguise'], turns: ['almost_caught', 'risky_places', 'being_followed', 'polaroids', 'tape_recordings', 'filming_someone', 'being_filmed', 'love_letters'],
+    secrets: { items: 'letter letters photograph photo key keys recorder diary', skills: ['wiretapping', 'stalking', 'blackmail', 'disguise'], turns: ['almost_caught', 'risky_places', 'being_followed', 'polaroids', 'tape_recordings', 'filming_someone', 'being_filmed', 'love_letters'],
         moods: ['fear_of_being_found_out', 'hiding_evidence', 'false_persona', 'keeping_tabs', 'hiding_it_from_family', 'covering_for_them'], ties: ['stalks', 'secret_relationship'] },
-    affair: { turns: ['taken_people', 'being_the_other_woman', 'being_cheated_on', 'cuckolding', 'wedding_rings'],
+    affair: { items: 'ring lipstick', turns: ['taken_people', 'being_the_other_woman', 'being_cheated_on', 'cuckolding', 'wedding_rings'],
         moods: ['forbidden_want', 'jilted', 'betrayed'], ties: ['affair'] },
-    faith: { turns: ['piety', 'hierophilia', 'sinfulness', 'clergy', 'penance'], moods: ['guilt_sick', 'forsaken', 'righteous', 'guilty_lust'] },
-    law: { skills: ['murder', 'burglary', 'safecracking', 'forgery', 'con_artistry', 'bribery', 'body_disposal'], turns: ['killers', 'criminals', 'mobsters', 'detectives', 'con_artists', 'erotophonophilia', 'hybristophilia'],
+    faith: { items: 'rosary bible cross crucifix', turns: ['piety', 'hierophilia', 'sinfulness', 'clergy', 'penance'], moods: ['guilt_sick', 'forsaken', 'righteous', 'guilty_lust'] },
+    law: { items: 'knife switchblade badge handcuffs', skills: ['murder', 'burglary', 'safecracking', 'forgery', 'con_artistry', 'bribery', 'body_disposal'], turns: ['killers', 'criminals', 'mobsters', 'detectives', 'con_artists', 'erotophonophilia', 'hybristophilia'],
         moods: ['murderous', 'hiding_evidence', 'calm_after_violence', 'bloodthirsty', 'blackmailing'] },
     discipline: { turns: ['spanking_giving', 'spanking_receiving', 'caning_giving', 'caning_receiving', 'whipping_giving', 'whipping_receiving', 'crop_play', 'being_punished', 'being_scolded', 'canes'],
         moods: ['punitive', 'dreading_punishment'] },
@@ -230,12 +313,12 @@ export const LENS_TRIGGERS = {
     babies: { turns: ['breeding_giving', 'breeding_receiving', 'pregnant_bellies', 'lactation'] },
     bedroom: { turns: ['giving_oral', 'receiving_oral', 'anal_giving', 'anal_receiving', 'inexperienced_partners', 'innocence', 'corruption_kink'], moods: ['innocent'] },
     dress: { skills: ['fashion_sense', 'hairdressing', 'sewing'], turns: ['set_hair_pearls', 'stocking_fetish', 'glove_fetish', 'corsetry_fetish', 'lipstick', 'sharp_suits', 'undone_ties', 'waistcoats_braces', 'greased_hair', 'slow_undressing', 'lingerie'], moods: ['well_dressed', 'vain'] },
-    pictures: { skills: ['photography'], turns: ['polaroids', 'filming_someone', 'being_filmed', 'exhibitionist', 'voyeur', 'burlesque_attraction', 'posing_someone'] },
-    war: { turns: ['scars', 'uniformed_people', 'dog_tags'], moods: ['traumatised', 'scarred'] },
+    pictures: { items: 'camera polaroid film', skills: ['photography'], turns: ['polaroids', 'filming_someone', 'being_filmed', 'exhibitionist', 'voyeur', 'burlesque_attraction', 'posing_someone'] },
+    war: { items: 'tags medal', turns: ['scars', 'uniformed_people', 'dog_tags'], moods: ['traumatised', 'scarred'] },
     appearances: { turns: ['social_climbing', 'meticulous_presentation', 'rule_followers', 'preppy_types', 'rich_people'], moods: ['keeps_up_appearances', 'respectability_obsessed', 'gossipy', 'hiding_it_from_family'], ties: ['neighbours'] },
     suspicion: { skills: ['wiretapping'], turns: ['being_followed', 'detectives'], moods: ['paranoid', 'suspicious', 'false_persona', 'keeping_tabs'], ties: ['suspicious_of'], story: ['cold_war_horror'] },
-    guns: { skills: ['marksmanship'], turns: ['gun_play', 'hoplophilia', 'gun_oil_smell'] },
-    road: { skills: ['driving'], turns: ['backseat', 'bikers', 'strangers', 'being_kidnapped'], moods: ['in_a_car'] },
+    guns: { items: 'gun revolver pistol rifle shotgun bullets', skills: ['marksmanship'], turns: ['gun_play', 'hoplophilia', 'gun_oil_smell'] },
+    road: { items: 'keys car', skills: ['driving'], turns: ['backseat', 'bikers', 'strangers', 'being_kidnapped'], moods: ['in_a_car'] },
     youth: { skills: ['guitar', 'bass', 'drums', 'dancing'], turns: ['greasers', 'beatniks', 'cheerleaders_jocks', 'rock_stars', 'bad_boy_girl', 'rebelliousness'], moods: ['rebellious'] },
     experiments: { skills: ['hypnosis', 'psychiatry', 'chemistry'], turns: ['being_experimented_on', 'hypnotising', 'being_hypnotised', 'conditioning_kink', 'scientists'], moods: ['test_subject', 'experimenter_role', 'lab_subject'], ties: ['scientist_and_subject'], story: ['unethical_experiments', 'experiment', 'subject_and_scientist'] },
 };

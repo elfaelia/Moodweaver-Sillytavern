@@ -17,18 +17,17 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 
 ## The panel
 
-| Tab | What it holds |
-|---|---|
-| ✦ Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
-| ◔ Needs | The info board and needs (hunger, energy and the rest) |
-| ♥ Bonds | Relationships, meters (friendship, romance, trust, control, pull and more), the named dynamic (over 250) and the desire card. Feelings in each reply push the meters, so the dynamic follows the mood. "Shaped by" shows what's steering it, and **Your sliders** sets how firmly your relationship sliders hold it |
-| ⌂ Facts | A small profile (age, height, what they're into, up to three core traits), then what's true right now (body, bedroom, substances), who they are (looks, background, job, status), and what they carry |
-| ❂ Traits | Who they are: temperament, manner, morals, mind, archetype, personality type. ★ makes a trait core: always sent, whatever the mood (up to three) |
-| ⇋ Turn-ons | What draws them in or puts them off, in eight groups with sub-headings (giving and receiving side by side), with combos and cravings. The ones the other person fits by who they are (their traits, moods, skills, ties, age, height or interests) show under **In play** and count without being mentioned |
-| ⚘ Intimacy | How they want and have sex: roles in bed, sexual temperament, what draws them, and the psychosexual side |
-| ✪ Skills | Levels out of 10 for the skills you pick, sent only when the scene calls for them, growing slowly with use |
-| ☆ Wants | Wants, goals and fears. ⚙ Settings › Panel can hide it, and Claude then decides what they want on its own |
-| ◐ You | On your own character, Needs becomes You: outfit, condition, the moodlets showing, then your profile and facts. The Moods, Traits and Intimacy tabs there also set what the character knows about you |
+You and the main character sit at the top as two matching cards (tap one to switch), with the cast as small chips under them. Five places sit on the dock at the bottom, and each holds one to three tabs, shown as chips at the top of the section. Swipe sideways to move from tab to tab.
+
+| Dock | Tabs | What they hold |
+|---|---|---|
+| ☾ Heart | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
+| ♥ Between | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 250) and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
+| ◔ Body | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts |
+| ❂ Self | Traits, Skills, Wants | Who they are (★ makes a trait core, up to three), skill levels out of 10, and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
+| ✦ Story | | Era, genre, tropes, stakes, writing style and authors, shared by everyone in the chat |
+
+**Moons.** Feelings, traits and facts are set by tapping a moon: eight phases from faint to maximum, and a dark new moon for off. Tapping the moon it's already on (or the level word) clears it. No dragging.
 
 **Facts run their course.** Being drunk, bleeding, soaked or concussed wears off by the clock on the info board (or about ten minutes a reply without one), turns into what comes after (drunk into hungover), and stirs the feelings that go with it. A time skip moves it on; undoing or swiping a reply puts it back.
 
@@ -36,9 +35,9 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 
 **Pace.** Pick Slow burn, Steady, Quick or Volatile under Speed on the Moods card and feelings, meters and desire all move at it. Needs drain on their own clock, and skills grow at their own pace (Skills tab). Traits shift it a little per character: volatile, impulsive people swing faster, steady ones slower, brooding ones hold on longer.
 
-**Setting something back to 0.** Tap the level word or number on a row ("Clear", "40%", "Neutral", "3/10") and its slider goes to 0, the middle on a two-way one. × still takes it off the list.
+**Setting something back to 0.** Tap the level word or number on a row ("Clear", "Neutral", "3/10") and it goes to 0, the middle on a two-way slider. × still takes it off the list.
 
-The story (era, genre, tropes, stakes, authors and writing style) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
+The story (writing style first, then era, genre, tropes, stakes and authors) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America, including how the same trait reads on a man and on a woman: a woman taking charge, a man giving way, a woman drinking, a man crying). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
 
 Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, overwhelming, maximum. Only what's switched on is sent.
 

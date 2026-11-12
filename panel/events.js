@@ -21,6 +21,7 @@ import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
 import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderStatus } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
+import { dockOf, tabStep, tabsFor } from './header.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
 import { filterPersonality } from './personality-tab.js';
@@ -111,12 +112,6 @@ export function onPanelInput(e) {
         knowledge[sourceId] = knowledgeEntry({ ...knowledgeEntry(knowledge[sourceId]), source: e.target.value });
         // Keep the draft in metadata before any other control can redraw the panel.
         void persist(); void syncPrompt(); return;
-    }
-    if (e.target.dataset.slider) {
-        const id = e.target.dataset.slider, value = Number(e.target.value);
-        put(ui.panel, `[data-value="${id}"]`, `${value}%`);
-        put(ui.panel, `[data-level="${id}"]`, level(value));
-        e.target.style.setProperty('--mw-fill', `${value}%`); e.target.setAttribute('aria-valuetext', `${value} percent, ${level(value)}`);
     }
 }
 export function onPanelKeydown(e) {
@@ -263,11 +258,6 @@ export async function onPanelChange(e) {
         else memory.who = input.value;
         await persist(); await syncPrompt(); render(); return;
     }
-    if (input.dataset.slider) {
-        // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
-        const id = input.dataset.slider, v = Number(input.value);
-        await changeState(s => { s.moods[id] = v; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = v > 0; }); return;
-    }
     if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
     const field = input.dataset.field;
     if (field === 'character') { ui.selectedAvatar = input.value; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; render(); await syncPrompt(); return; }
@@ -301,12 +291,25 @@ export async function onPanelChange(e) {
         if (field === 'follow') s[field] = clamp(s[field], 10, 100);
     });
 }
+function openTab(tab) {
+    if (!tab) return;
+    ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render();
+}
+// Swiping sideways on the panel walks through the tabs (not on sliders, text or lists that scroll sideways).
+export function onPanelSwipe(start, end) {
+    const dx = end.x - start.x, dy = end.y - start.y;
+    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6 || ui.settingsOpen || ui.who === 'story') return;
+    if (start.target?.closest?.('input, textarea, select, .mw-tabbar, .mw-people, .mw-cast-row, .mw-moons, [data-noswipe]')) return;
+    const next = tabStep(dx < 0 ? 1 : -1); if (next && next !== ui.tab) openTab(next);
+}
 export async function onPanelClick(e) {
     const summary = e.target.closest('summary');
     if (summary?.parentElement.matches('details')) rememberGroupChoice(ui.panel, summary.parentElement);
     // Tapping a row's level word or number sets its slider to 0 (the middle of a two-way one): far easier
     // than dragging to an exact spot on a phone. The slider's own handlers then save it as usual.
     const readout = e.target.closest('.mw-row-head > span, .mw-row-head > output, .mw-bond-head > span, .mw-bond-scale > output');
+    const newMoon = readout?.closest('.mw-mood')?.querySelector('.mw-moon.is-new');
+    if (newMoon) { newMoon.click(); return; }
     const range = readout?.closest('.mw-mood, .mw-bond-meter, .mw-desire-row')?.querySelector('input[type="range"]');
     if (range && !range.disabled) {
         range.value = String(Math.max(Number(range.min), Math.min(Number(range.max), 0)));
@@ -353,6 +356,12 @@ export async function onPanelClick(e) {
         run.status = count ? `Turned off ${count} extra cop${count === 1 ? 'y' : 'ies'}. Each idea now lives in one place.` : 'Nothing doubled up to tidy.';
         if (ids.story.size && story) story.revision = (story.revision || 0) + 1;
         await persist(ids.rel.size ? st : null); await syncPrompt(); render(); renderStatus(); return;
+    }
+    // A tie the dynamic suggests: take it (set at 50 on his side toward you) or let it go. Either way it isn't offered again.
+    if (button.dataset.tieOffer || button.dataset.tieSkip) {
+        const ch = target(), id = button.dataset.tieOffer || button.dataset.tieSkip, st = getState(ch); if (!ch || !RELATIONSHIP_BY_ID[id]) return;
+        if (button.dataset.tieOffer && st) { const rel = userRelation(st, true); rel.moods ??= {}; rel.moods[id] = 50; await persist(st); }
+        await editBond(b => { b.offered = [...(b.offered ?? []), id]; }); return;
     }
     if (['dyn-pool-save', 'dyn-pool-load', 'dyn-pool-clear', 'bond-reread'].includes(button.dataset.action)) {
         const ch = target(), key = `char:${ch?.avatar}`, act = button.dataset.action;
@@ -449,7 +458,21 @@ export async function onPanelClick(e) {
     if (button.dataset.wantSuggest) { const t = button.dataset.wantSuggest; await changeState(s => { s.wants = cleanWants([...s.wants, { id: newId(), kind: 'want', text: t, value: 55 }]); }); return; }
     if (button.dataset.wantDismiss) { const t = button.dataset.wantDismiss; await changeState(s => { s.wantsDismissed = [...new Set([...(s.wantsDismissed ?? []), t.toLowerCase()])].slice(-40); }); return; }
     if (button.dataset.wantNotyet) { const id = button.dataset.wantNotyet, at = Number(button.dataset.at); await changeState(s => { const w = s.wants.find(x => x.id === id); if (w) w.after = at; }); return; }
-    if (button.dataset.tab) { ui.tab = button.dataset.tab; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render(); return; }
+    if (button.dataset.tab) { openTab(button.dataset.tab); return; }
+    // The dock: Story switches to the story's settings; the others open the tab last used in that section.
+    if (button.dataset.dock) {
+        const key = button.dataset.dock;
+        if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; ui.settingsOpen = false; render(); return; }
+        if (ui.who === 'story') ui.who = ui.lastWho && ui.lastWho !== 'story' ? ui.lastWho : 'char';
+        const tabs = tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === key);
+        openTab(tabs.includes(ui.lastTab?.[key]) ? ui.lastTab[key] : tabs[0]); return;
+    }
+    // A moon on a row: its strength, or the dark new moon (and the brightest lit one tapped again) for 0.
+    // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
+    if (button.dataset.moon) {
+        const id = button.dataset.moon, now = viewState()?.moods?.[id] ?? 0, v = Number(button.dataset.v) || 0, next = v && level(now) === level(v) ? 0 : v;
+        await changeState(s => { s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; }); return;
+    }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
     if (button.dataset.core) {

@@ -39,7 +39,7 @@ export const run = {
 export const KEY = 'moodweaver';
 export const PROMPT_KEY = 'moodweaver-state';
 export const ctx = () => SillyTavern.getContext();
-export const VERSION = '1.55.0';
+export const VERSION = '1.56.0';
 // Which folder this copy runs from, so a second installed copy can be spotted and named.
 export const SELF = new URL('../index.js', import.meta.url).href;
 export const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };

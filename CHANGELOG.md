@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.52.0: moods drive the dynamics, an Intimacy tab, and one pace
+
+Builds on 1.51 without undoing any of its cleanup. Chats and settings carry over; no option id changed, so everything you'd set stays set.
+
+### Moods and dynamics work together
+
+- **Most moods now move the Bonds meters.** 472 of the 603 moods push something when they rise in a reply, up from about 110. Each family has a sensible default (happy warms Friendship, cruel raises Urge to hurt and Control, masks lower Openness, attachment raises Dependence and Obsession), and about 360 moods have their own (staking a claim raises Possessiveness, betrayed drops Trust, forgiving eases Resentment). The ones left out are about the character's own state (tired, grieving, zoned out), not about you. Since the meters pick the dynamic, the dynamic now follows the mood.
+- **It's free.** The nudges read feelings the reply already reports; nothing extra is sent, and whatever the hidden line said about a meter itself still wins.
+- **108 new dynamics,** at least 12 in every group, 262 in all. Captor & prey gets Taming, Sweet captivity, Escape artist and Cat and mouse; Obsession gets If not me, no one and Wearing their things; Power gets Gentle command, Leash and treat and Kingmaker; Romance gets Domestic bliss, Courtly love and Love despite everything; Lust gets Stolen moments, Claiming in bed and Rough and tender; Toxic gets Apology tour, Walking on eggshells and Scorekeepers; Friends & rivals gets Co-conspirators and Sworn enemies; Roles & family, which was empty, gets Surrogate parent, Head of the house, Black sheep and Chaperone; Distance gets Polite strangers, Frozen out and Drifting apart.
+- Every new dynamic was checked to be reachable: each one actually comes up for some of the meter values it's written for, and the older ones keep most of theirs (the broad catch-alls like Falling, Friends and Hostile give some ground to the new, more specific ones, which is the point).
+
+### An Intimacy tab
+
+- **Roles & dynamics and Psychosexual have left Traits** for their own ⚘ Intimacy tab, in four groups:
+  - **Roles in bed:** D/s, pet play, roleplay roles and kink practices (conditioning, camera control and the like moved here from Psychosexual).
+  - **Sexual temperament:** vanilla, sex-positive, late bloomer, dirty minded, covert pervert, deviant, repressed, the gazes.
+  - **What draws them:** responsive or spontaneous desire, distance, banter, being pursued, fear or obedience as arousal.
+  - **Psychosexual,** now only what the word means: the psychology under someone's sex life (sex as comfort, as punishment or as currency, shame, the Madonna-whore complex, transference, parent issues, devouring desire).
+- Six roles that weren't sexual (Fatherly, Big-sibling energy, Protector, Handler, Jester, Royal favourite) moved to Traits › Manner & presence.
+- Intimacy options light up ✧ like turn-ons, and work in combos, exactly as before.
+
+### The prompt for traits
+
+- The line "These feelings are what make this reply different…" used to go out even when only traits were set. It now only goes with real feelings.
+- Traits get one plain line of their own: who someone is underneath, shaping how each feeling comes out.
+- Intimacy gets one too: it leads in intimate or charged moments and stays in the background otherwise. Both are written for Opus 5.5 (plain statements, nothing to override).
+
+### One pace
+
+- **Desire now runs at the Bonds pace.** It had its own Slow / Normal / Fast setting that defaulted to slow, which is why it read "normal" while everything else was Volatile. Its steps now match: up to 5, 10, 20 or 25 a reply, and the hidden line asks for steps that size.
+- **⚙ Settings › Pace › One pace for the whole scene** (on by default): feelings, meters and desire all follow the pace on the Bonds tab, and the mood nudges scale with it. Switch it off to give the Moods card and the Desire card their own pace. This replaces the "same speed as Bonds" box on the Moods card.
+- Needs drain on their own clock (Needs tab), since that's time passing rather than how fast the story moves.
+
+### Free links between meters and moods
+
+- Desire-family moods rising (horny, kiss-hungry, dominant hunger…) warm the Desire card's arousal when the line didn't move it.
+- The dynamic in play keeps its own feelings going: under a romance, warm feelings wait twice as long before they fade; under a captor dynamic, cruelty, nerve and fear do; toxic ones keep anger and clinging alive. Nothing extra is sent.
+
+### Smaller things
+
+- The Bonds tab only draws its full list of dynamics when you open it, so it opens a little faster than 1.51 despite the longer list.
+- With ten tabs, the open tab now stays in view in the tab bar after the panel redraws.
+
+### Speed
+
+Checked against 1.51 on the same 1,500-message chat with the CPU slowed 4× (two runs each; differences under about 40 ms are noise):
+
+| | 1.51.0 | 1.52.0 |
+|---|---|---|
+| Opening the panel | about 320 to 420 ms | about 310 to 390 ms |
+| Opening the Bonds tab | about 250 ms | about 235 ms |
+| A reply arriving with the panel open | about 110 ms | about 85 ms |
+
 ## 1.51.0: more of everything, and a better look
 
 Builds on 1.50 without undoing any of its cleanup. Chats and settings carry over; nothing is renamed.

@@ -16,7 +16,7 @@ import { capturePanel, restorePanelFields, restorePanelPosition, savedPanel } fr
 import { PLUMBOB, peopleBar, personCard, tabBar } from './header.js';
 import { TONES, moodTone } from '../engine/tone.js';
 import { inventoryView } from './rows.js';
-import { sectionContent } from './sections.js';
+import { sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
 import { filterSkills, skillsView } from './skills-tab.js';
 import { wantsView, youView } from './wants-tab.js';
@@ -82,11 +82,11 @@ function drawPanel() {
     if (ui.who === 'story') ui.tab = 'mood';
     if (ui.tab === 'personality') ui.tab = 'trait';
     if (ui.tab === 'bond') ui.tab = 'rel';
-    const kind = ui.who === 'story' ? 'story' : ['state', 'trait', 'turn'].includes(ui.tab) ? ui.tab : 'mood';
+    const kind = tabKind();
     const active = state ? activeMoods(state) : [];
     const live = charState ? liveFor(ch) : null;
     const relationshipCount = state && ui.who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + activePersonalities(state).length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
+    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + activePersonalities(state).length, intimacy: active.filter(m => sectionOf(m) === 'intimacy').length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
         rel: relationshipCount, state: active.filter(m => m.kind === 'state' && sectionOf(m) === 'state').length,
         needs: ui.who === 'user' ? (settings().youTrack && ch ? reactions(ch).condition.length : 0) : live?.needs.filter(n => n.known && n.value <= 35).length ?? 0,
         inv: (state?.inventory ?? []).filter(i => i.carried).length, wants: (state?.wants ?? []).filter(w => !w.done && w.value > 0).length, skills: state ? skillsOf(state).length : 0 };
@@ -128,13 +128,15 @@ function drawPanel() {
     restorePanelFields(ui.panel, snapshot);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
+    // Ten tabs don't fit a phone: keep the open one in view after a redraw.
+    const tab = ui.panel.querySelector('.mw-tabbar [aria-selected="true"]'); if (tab) tab.parentElement.scrollLeft = tab.offsetLeft - (tab.parentElement.clientWidth - tab.offsetWidth) / 2;
 }
 // Draw the rows of folded groups that were left empty (all of them in scope, or the one just opened).
 export function fillLazy(scope) {
     const bodies = scope?.matches?.('[data-lazy]') ? [scope] : [...(scope?.querySelectorAll('[data-lazy]') ?? [])];
     for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) el.innerHTML = rows(); }
 }
-export function onGroupToggle(e) { if (e.target.matches?.('details[data-category]') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
+export function onGroupToggle(e) { if (e.target.matches?.('details') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
 export function toggleTop() { const b = ui.panel?.querySelector('.mw-to-top'); if (b) b.hidden = ui.panel.scrollTop < 500; }
 function showGroupMatches(group, count, term) {
     const badge = group.querySelector('summary small');

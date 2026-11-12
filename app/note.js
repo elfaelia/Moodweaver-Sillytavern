@@ -5,7 +5,7 @@ import { settings } from './settings.js';
 import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta } from '../engine/board.js';
-import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
+import { bondStanding, cleanDesire, computeBond, desirePace } from '../engine/bond.js';
 import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
@@ -46,6 +46,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         // The current dynamic, worked out once. The story is asked to rename it when it shifts, and
         // both-ways or story lines it already says are left out of this note.
         const bondList0 = bond.on ? bondList(ch, history) : [], bd = bond.on && bond.extra ? computeBond(bond, history.length, n, u, bondAxes(ch), bondList0) : null;
+        lastDynamic.set(ch.avatar, bd?.dynamic.group ?? '');
         // Picks are listed in the hidden line only up to 25 (about 3 tokens each). Past that the line names it in a
         // few words and the closest of your picks is used, so a big pick list costs nothing extra.
         const storyNames = bd && bond.mode === 'story' && !bond.fixed ? { now: bd.dynamic.name.toLowerCase(), pool: bond.pool.length <= 25 ? bond.pool.map(name => fillDynamic(name, n, u)) : [] } : null;
@@ -57,7 +58,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const youRel = dropped.rel.size ? userRelation(state) : null;
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
         const weave = bond.on ? weavePrompt({ n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: scenePace(ch, state), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, desirePace: desirePace(bond), meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
         // Skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
         // Pattern breaker: the character's last five replies, read here, no extra request.
@@ -104,10 +105,12 @@ export function stopGenerating() {
 // The hidden line at the end of each reply moves feelings for free. This card switches it on or off per
 // character, sets how fast it moves and fades, and shows (and can undo) what the last reply did.
 export const FEELINGS_COUNT = MOODS.filter(analysed).length;
-// One speed for the whole scene. Unless unlinked on the mood card, feelings move at the Bonds pace.
+// The dynamic group each character's last note was sent with, so the next reply's fading can follow it.
+export const lastDynamic = new Map();
+// One pace for the whole scene: unless switched off in ⚙ Settings › Pace, feelings move at the Bonds pace.
 export function scenePace(ch, st) {
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`];
-    return st?.moodPaceLinked !== false && stored && stored.on !== false && MOOD_PACE[stored.pace] ? MOOD_PACE[stored.pace] : moodPaceOf(st);
+    return stored && stored.on !== false && stored.onePace !== false && MOOD_PACE[stored.pace] ? MOOD_PACE[stored.pace] : moodPaceOf(st);
 }
 // What the period does to what's switched on, and how the dynamic meets roles and the strongest feeling.
 const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);

@@ -146,13 +146,13 @@ const desireNames = d => { const names = [d.b !== false && 'bold', d.t !== false
     return names.length ? `, and any of ${names.join(', ')} that moved` : ''; };
 // Step sizes follow the chat's pace, so long scenes drift and short ones turn.
 const SIZES = {
-    slow: { range: 5, ordinary: '1', turn: '3 to 5' },
-    steady: { range: 10, ordinary: '1 to 3', turn: 'more' },
-    quick: { range: 20, ordinary: '3 to 6', turn: '10 to 20' },
-    volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25' },
+    slow: { range: 5, ordinary: '1', turn: '3 to 5', step: 1 },
+    steady: { range: 10, ordinary: '1 to 3', turn: 'more', step: 3 },
+    quick: { range: 20, ordinary: '3 to 6', turn: '10 to 20', step: 6 },
+    volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, desirePace = null, meters = [], skills = false, pace = 'steady', dynamic = null }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     // The same instructions in about half the words. The line Moodweaver reads is unchanged.
@@ -174,7 +174,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
             `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
         ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
-        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u}, in small steps (arousal +3)${desireNames(desire)}; release if they climaxed.`] : []),
+        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${(SIZES[desirePace] ?? size).step}, at most +${(SIZES[desirePace] ?? size).range})${desireNames(desire)}; release if they climaxed.`] : []),
         ...(you ? [`- you: lasting things done to ${u}'s body (injured, drugged, tied): the full current list, or none once healed.`] : []),
         ...(skills ? [`- used: skills someone used or was tested on, a word or two each.`] : []),
         ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),

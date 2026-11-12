@@ -1,5 +1,5 @@
 // The hidden note sent to the model with each reply: every active setting in words, at its strength.
-import { CATEGORIES, MERGED_PROMPT_CUES, ON_PAGE, PROMPT_NAME, SCALED_MOOD_CUES, STYLE_CATEGORIES, analysed, isAuthor, lowerLabel } from '../data/catalogue.js';
+import { CATEGORIES, MERGED_PROMPT_CUES, ON_PAGE, PROMPT_NAME, SCALED_MOOD_CUES, STYLE_CATEGORIES, analysed, isAuthor, lowerLabel, sectionOf } from '../data/catalogue.js';
 import { activeMoods, cleanTargets, knowledgeEntry } from './state.js';
 import { TIERS, tierOf } from './strength.js';
 import { escapeHtml, shortName } from './util.js';
@@ -201,7 +201,7 @@ function composePrompt(state, name, extras = {}) {
     if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
         && ![state, player?.state].some(hasType) && !boardLines.length && !standing.length && !weaveLines.length && !(player?.condition ?? []).length && !(extras.skills ?? []).length && !(storyState?.enabled && storyState.moods?.world_leads)) return '';
     const people = { focus: N, player: U, subject: N };
-    const feelings = mine.filter(m => m.kind === 'mood');
+    const feelings = mine.filter(analysed), everyone = [...mine, ...theirs, ...castSets.flatMap(([, list]) => list)];
     const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
         ...castSets.flatMap(([st, list]) => list.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => st.moods[m.id])));
     const darkStoryPeak = Math.max(0, ...story.filter(m => isDark(m, DARK_STORY_IDS)).map(m => storyState.moods[m.id]));
@@ -224,8 +224,12 @@ function composePrompt(state, name, extras = {}) {
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
     if (mine.length || mineExtra.length || hasType(state)) out.push('', `<character_state name="${pa(N)}">`, ...personalityLines(state), ...listLines(state, mine, U, people, lit), ...mineExtra, `</character_state>`);
     if (feelings.length) out.push('',
-        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`,
-        ...(feelings.some(m => m.category === 'love') ? [`Love languages are how ${n} shows love and what makes them feel loved; their mood decides how openly.`] : []));
+        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
+    // Standing settings get one plain line each, so they read as who someone is rather than as this reply's mood.
+    if (everyone.some(m => sectionOf(m) === 'trait')) out.push('',
+        `Traits are who someone is underneath, whatever their mood: they shape how each feeling comes out and what that person notices and chooses.${everyone.some(m => m.category === 'love') ? ' Love languages are how someone shows love and what makes them feel loved; their mood decides how openly.' : ''}`);
+    if (everyone.some(m => sectionOf(m) === 'intimacy')) out.push('',
+        `Intimacy settings (roles in bed, sexual temperament, what draws someone, psychosexual) are how someone wants and has sex. They lead in intimate or charged moments and otherwise stay in the background: a look, a thought, a small choice.`);
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 61 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through on the page.${followOn ? '' : ` Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.`}` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     const condition = (player?.condition ?? []).filter(Boolean).slice(0, 6);

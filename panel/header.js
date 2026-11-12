@@ -48,7 +48,7 @@ export function personCard(ch, state, live) {
 // One sticky row of icon tabs: fits a phone screen and stays reachable while scrolling long lists.
 // Needs is the live board; Facts is the old needs-and-facts list; personality types sit at the top of Traits.
 // Meters live at the top of Bonds, beside the relationship they measure.
-const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['skills', '✪', 'Skills', '#9fc0e8'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
+const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['needs', '◔', 'Needs', '#9fd3b4'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['trait', '❂', 'Traits', '#e3c38f'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['skills', '✪', 'Skills', '#9fc0e8'], ['state', '⌂', 'Facts', '#9fc6c0'], ['inv', '❒', 'Items', '#c9b37e'], ['wants', '☆', 'Wants', '#e5ca7f']];
 // On your own character the Needs tab becomes You: outfit, condition and the moodlets showing.
 export const tabBar = counts => `<nav class="mw-tabbar" role="tablist" aria-label="Section">${TABS.map(row => ui.who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row).map(([k, icon, label, color]) =>
     `<button type="button" role="tab" data-tab="${k}" aria-selected="${ui.tab === k}" aria-pressed="${ui.tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;

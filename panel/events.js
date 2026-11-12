@@ -20,7 +20,7 @@ import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
 import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderStatus } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
-import { clearSection, lastMoodRec } from './sections.js';
+import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
 import { filterPersonality } from './personality-tab.js';
@@ -138,11 +138,12 @@ export async function onPanelChange(e) {
     // The desire card.
     if (input.hasAttribute('data-mood-auto')) { await changeState(s => { s.moodAuto = input.checked; }); return; }
     if (input.hasAttribute('data-mood-fade')) { await changeState(s => { s.moodFade = input.checked; }); return; }
-    if (input.hasAttribute('data-mood-pace-link')) { await changeState(s => { s.moodPaceLinked = input.checked; if (!input.checked) s.moodPace = MOOD_PACE[bondData(target()).pace] ? bondData(target()).pace : s.moodPace; }); return; }
+    // One pace off: the Moods card starts from the Bonds pace, so nothing jumps until you change it.
+    if (input.hasAttribute('data-one-pace')) { const pace = bondData(target()).pace; if (!input.checked) await changeState(s => { s.moodPace = MOOD_PACE[pace] ? pace : s.moodPace; }); await editBond(b => { b.onePace = input.checked; }); return; }
     if (input.hasAttribute('data-mood-scope')) { await changeState(s => { s.moodScope = input.value === 'list' ? 'list' : 'any'; }); return; }
     if (input.hasAttribute('data-mood-pace')) { await changeState(s => { s.moodPace = MOOD_PACE[input.value] ? input.value : 'steady'; }); return; }
     if (input.hasAttribute('data-desire-on')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), on: input.checked }; }); return; }
-    if (input.hasAttribute('data-desire-pace')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), pace: input.value }; }); return; }
+    if (input.hasAttribute('data-desire-pace')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), speed: input.value }; }); return; }
     if (input.hasAttribute('data-desire-cap')) { await editBond(b => { b.desire = { ...cleanDesire(b.desire), cap: Number(input.value) }; }); return; }
     if (input.dataset.moreOn) { const key = input.dataset.moreOn; await editBond(b => { const d = cleanMore(b.more); d.on = input.checked ? [...d.on, key] : d.on.filter(k => k !== key); b.more = d; }); return; }
     if (input.dataset.moreMeter) { const key = input.dataset.moreMeter, v = Number(input.value); await editBond((b, list) => setMore(b, key, v, list)); return; }
@@ -556,8 +557,8 @@ export async function onPanelClick(e) {
         case 'analyse': await analyse(true); break;
         case 'clear': {
             const whose = ui.who === 'user' ? `${playerName()}’s` : ui.who === 'story' ? 'the story’s' : `${ui.who === 'cast' ? selectedCast()?.name : target()?.name}’s`;
-            const kind = ui.who === 'story' ? 'story' : ['trait', 'turn', 'state'].includes(ui.tab) ? ui.tab : 'mood';
-            const what = { mood: 'moodlets', trait: 'traits', turn: 'turn-ons and turn-offs', state: 'facts', story: 'story settings' }[kind];
+            const kind = tabKind();
+            const what = { mood: 'moodlets', trait: 'traits', intimacy: 'intimacy settings', turn: 'turn-ons and turn-offs', state: 'facts', story: 'story settings' }[kind];
             if (!confirm(`Clear ${whose} ${what}? Their sliders go to 0 and pins come off. Everything in the other tabs stays, and the list stays so you can set a new scene quickly.`)) break;
             await changeState(s => clearSection(s, kind)); break;
         }

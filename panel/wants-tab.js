@@ -58,7 +58,7 @@ export function reactiveBlock(state, ch) {
     const r = reactions(ch, liveChat(), liveFor(ch)), name = esc(shortName(ch.name));
     const things = [...Object.entries(state.prefs ?? {}).filter(([id, v]) => v > 0 && TURN_BY_ID[id]).map(([id]) => [`turn:${id}`, `✧ ${TURN_BY_ID[id].label} lights up`]),
         ...activeMoods(state).filter(m => sectionOf(m) === 'mood').map(m => [`mood:${m.id}`, `◇ ${m.label} (clear or above)`]),
-        ...activeMoods(state).filter(m => ['dynamics', 'psychosexual'].includes(m.category)).map(m => [`trait:${m.id}`, `❂ ${m.label} lights up`]),
+        ...activeMoods(state).filter(m => sectionOf(m) === 'intimacy').map(m => [`trait:${m.id}`, `❂ ${m.label} lights up`]),
         ['button', '⚡ a hot button goes off'], ...['hunger', 'energy', 'bladder', 'hygiene', 'comfort', 'social', 'fun', 'health'].map(id => [`need:${id}`, `◔ ${id} is low`])];
     const opts = attr => `<select ${attr}><option value="">Choose…</option>${things.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`;
     const label = token => things.find(([v]) => v === token)?.[1] ?? token;
@@ -86,6 +86,7 @@ export function youView(state, ch, live) {
     const tags = [...activeMoods(state).map(m => m.id), ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)];
     const knowledge = getKnowledge(ch), aware = tags.filter(k => ['known', 'suspected'].includes(knowledgeEntry(knowledge[k]).mode)).length;
     const counts = [['trait', '❂', 'Traits', activeMoods(state).filter(m => sectionOf(m) === 'trait').length],
+        ['intimacy', '⚘', 'Intimacy', activeMoods(state).filter(m => sectionOf(m) === 'intimacy').length],
         ['turn', '⇋', 'Turn-ons', Object.values(state.prefs ?? {}).filter(Boolean).length],
         ['wants', '☆', 'Wants', (state.wants ?? []).filter(w => !w.done).length],
         ['mood', '◉', 'Known', tags.length ? `${aware}/${tags.length}` : '0']];

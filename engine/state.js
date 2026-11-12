@@ -191,7 +191,7 @@ export function freshState(base = {}) {
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         // Feelings moved by the story's hidden line: on/off, fading on/off, and how fast.
-        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPaceLinked: base.moodPaceLinked !== false, moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
+        moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any', moodPace: ['slow', 'steady', 'quick', 'volatile'].includes(base.moodPace) ? base.moodPace : 'steady',
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
         reason: '', updatedAt: 0, history: [], revision: 0,
     };

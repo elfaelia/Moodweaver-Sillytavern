@@ -10,16 +10,25 @@ export const MOOD_PACE = {
 export const moodPaceOf = st => MOOD_PACE[st?.moodPace] ?? MOOD_PACE.steady;
 // The pace cap on one change ("off" still ends a feeling outright).
 export const paceDelta = (delta, pace) => delta <= -100 ? delta : Math.max(-pace.step, Math.min(pace.step, delta));
+// The dynamic in play keeps the feelings that belong to it going: those wait twice as long before fading.
+// A captor's cruelty and nerve, a romance's warmth, an on-off couple's anger and clinging. Free: nothing is sent.
+const DYNAMIC_HOLDS = {
+    captor: ['cruel', 'bold', 'scared'], obsess: ['attachment', 'desire'], power: ['bold', 'closeness', 'cruel'],
+    romance: ['closeness', 'happy', 'desire'], heat: ['desire'], toxic: ['angry', 'attachment', 'sad', 'masks'],
+    allies: ['happy', 'bold'], roles: ['closeness', 'calm'], distance: ['cold', 'masks'],
+};
+export const heldBy = group => new Set(DYNAMIC_HOLDS[group] ?? []);
 // One reply's fading. values: { id: value } for feelings that can fade; named: ids this reply mentioned;
 // quiet: { id: { n, v } } replies unmentioned and the value when last counted (a value that changed since,
-// by hand or by the story, starts the count again). Returns the new values for ids that fade, and the new quiet.
-export function fadeStep(values, named, quiet = {}, pace = MOOD_PACE.steady) {
+// by hand or by the story, starts the count again). held: ids the current dynamic keeps going (wait twice as long).
+// Returns the new values for ids that fade, and the new quiet.
+export function fadeStep(values, named, quiet = {}, pace = MOOD_PACE.steady, held = new Set()) {
     const next = {}, out = {};
     for (const [id, v] of Object.entries(values)) {
         if (!(v > 0)) continue;
         if (named.has(id)) { next[id] = { n: 0, v }; continue; }
         const q = quiet[id], n = q && q.v === v ? q.n + 1 : 1;
-        if (n > pace.after) { const nv = Math.max(0, v - pace.fade); out[id] = nv; if (nv > 0) next[id] = { n, v: nv }; }
+        if (n > pace.after * (held.has(id) ? 2 : 1)) { const nv = Math.max(0, v - pace.fade); out[id] = nv; if (nv > 0) next[id] = { n, v: nv }; }
         else next[id] = { n, v };
     }
     return { faded: out, quiet: next };

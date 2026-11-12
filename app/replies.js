@@ -1,18 +1,18 @@
 // Reading the chat's replies: the needs board, hidden weave lines, bond meters, and keeping
 // everything in line when replies are swiped, edited or deleted.
 import { getCast, getPair, getState, getStoryState, getUserState, members, pairId, persist, playerName, resolveRelationName, target } from './chat.js';
-import { scenePace, syncPrompt, writingNow } from './note.js';
+import { lastDynamic, scenePace, syncPrompt, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { NO_BOARD, boardKeyOf, cleanBoardMeta, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needWord, parseBoard, relationId, relationsFromBoard } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
-import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
+import { BY_ID, INTIMACY_CATEGORIES, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
 import { MORE_METERS, computeMore, saidMeters } from '../engine/meters.js';
-import { PACE_SCALE, withNudges } from '../engine/mood-meters.js';
-import { fadeStep, paceDelta } from '../engine/moodpace.js';
+import { withNudges } from '../engine/mood-meters.js';
+import { fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
@@ -61,8 +61,8 @@ function needTimeline(ch, chat = liveChat()) {
     return out.slice(-40);
 }
 export const needOpts = () => ({ drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
-// Roles and psychosexual entries that are on can light up like turn-ons.
-const bedroomTraits = st => MOODS.filter(m => ['dynamics', 'psychosexual'].includes(m.category) && (st?.moods?.[m.id] ?? 0) > 0).map(m => ({ id: m.id, label: m.label }));
+// Intimacy entries that are on can light up like turn-ons.
+const bedroomTraits = st => MOODS.filter(m => INTIMACY_CATEGORIES.has(m.category) && (st?.moods?.[m.id] ?? 0) > 0).map(m => ({ id: m.id, label: m.label }));
 const WANT_STOP = new Set(['the', 'and', 'her', 'his', 'them', 'their', 'she', 'him', 'get', 'make', 'for', 'with', 'from', 'being']);
 function wantMatch(text, wants) {
     const raw = String(text).toLowerCase().trim(), ws = raw.replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !WANT_STOP.has(w));
@@ -111,7 +111,7 @@ export function reactions(ch, chat = liveChat(), live = null) {
     if (settings().combosOn && newest) {
         const list = bondList(ch, chat), bond = bondData(ch), statuses = [...out.wants.values()];
         out.combos = findCombos({ lit: litPer.at(-1) ?? new Set(), litTraits: out.traits, moods: st.moods, pressed: statuses.includes('pressed'), blocked: statuses.includes('-'),
-            desire: bond.desire?.on ? computeDesire(bond.desire, list) : null, more: computeMore(bond.more, list, paceOf(bond).cap).values, cravingMet: out.cravingMet,
+            desire: bond.desire?.on ? computeDesire(bond, list) : null, more: computeMore(bond.more, list, paceOf(bond).cap).values, cravingMet: out.cravingMet,
             needsLow: new Set((live?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id)) }, cleanCombos(st.combos), shortName(ch.name), shortName(playerName()));
     }
     return out;
@@ -199,7 +199,7 @@ function moveRoles(ch, names) {
         const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} → ${label}`); };
         if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}’s side)`); }
         else if (kind === 'shared') { const pair = getPair(`char:${ch.avatar}`, 'user', true); if (pair) { pair.moods ??= {}; raise(pair.moods, `${SHARED_BY_ID[id].label} (both ways)`); } }
-        else { raise(st.moods, `${BY_ID[id].label} (${kind === 'trait' ? 'Traits' : 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
+        else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
     }
     for (const [k, list] of Object.entries(settings().dynamicPools ?? {})) settings().dynamicPools[k] = (list ?? []).filter(name => !ROLE_HOMES[name]);
     return out;
@@ -220,7 +220,7 @@ function migrateBond(bond, ch) {
 // Hidden messages still count: hiding a reply isn't taking it back.
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
-    const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = PACE_SCALE[stored?.pace] ?? 1;
+    const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
@@ -349,7 +349,8 @@ function applyReply(meta, writer, st, m, b, hold = null) {
                 const values = {};
                 for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
                 rec.q = structuredClone(st.moodQuiet ?? {});
-                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer, st));
+                const keep = heldBy(lastDynamic.get(writer.avatar)), held = new Set(Object.keys(values).filter(id => keep.has(BY_ID[id].category)));
+                const { faded, quiet } = fadeStep(values, named, st.moodQuiet ?? {}, scenePace(writer, st), held);
                 st.moodQuiet = quiet;
                 const target = moodTarget(st);
                 for (const [id, v] of Object.entries(faded)) { rec.m[id] = [values[id], v]; target.set(id, v); rec.f = [...(rec.f ?? []), id]; }

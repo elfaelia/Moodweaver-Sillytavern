@@ -2,13 +2,14 @@
 // section file it belongs to; nothing else needs touching.
 import moodSection from './catalogue/mood.js';
 import traitSection from './catalogue/trait.js';
+import intimacySection from './catalogue/intimacy.js';
 import stateSection from './catalogue/state.js';
 import storySection from './catalogue/story.js';
 export { SCALED_MOOD_CUES, MERGED_PROMPT_CUES } from './catalogue/scaled.js';
 export { MERGED_MOODS, MERGED_SEARCH_NAMES, REMOVED_MOODS } from './catalogue/merged.js';
 export { RECIPES, STORY_RECIPES } from './catalogue/recipes.js';
 
-const SECTIONS = [...moodSection, ...traitSection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
+const SECTIONS = [...moodSection, ...traitSection, ...intimacySection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
 
 // words: "seething, white-hot, out for blood" → ['seething', 'white-hot', 'out for blood'].
 const wordsOf = text => String(text).toLowerCase().split(',').map(w => w.trim()).filter(Boolean);
@@ -27,11 +28,15 @@ for (const c of SECTIONS) for (const r of c.rows) {
     if (r.onPage !== undefined) ON_PAGE[r.id] = r.onPage;
 }
 
-// Traits tab: who someone is, rather than how they feel right now. The scene reader never changes them.
-export const TRAIT_CATEGORIES = new Set(['love', 'dynamics', 'appetites', 'sims', 'psychosexual', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
-export const sectionOf = m => m.kind === 'story' ? 'story' : TRAIT_CATEGORIES.has(m.category) ? 'trait' : m.kind;
-// The scene reader only reads feelings; traits (love languages included) are standing, so it leaves them alone.
-export const analysed = m => m?.kind === 'mood' && !TRAIT_CATEGORIES.has(m.category)
+// Traits tab: who someone is, rather than how they feel right now. Intimacy tab: how they want and have sex
+// (catalogue/intimacy.js). Both are standing: they don't fade, and the scene reader only changes them when its
+// ❂ Traits scope is on.
+export const TRAIT_CATEGORIES = new Set(['love', 'sims', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
+export const INTIMACY_CATEGORIES = new Set(intimacySection.map(c => c.id));
+export const isStanding = m => TRAIT_CATEGORIES.has(m?.category) || INTIMACY_CATEGORIES.has(m?.category);
+export const sectionOf = m => m.kind === 'story' ? 'story' : TRAIT_CATEGORIES.has(m.category) ? 'trait' : INTIMACY_CATEGORIES.has(m.category) ? 'intimacy' : m.kind;
+// The scene reader only reads feelings; traits (love languages included) and intimacy are standing, so it leaves them alone.
+export const analysed = m => m?.kind === 'mood' && !isStanding(m)
     && !['hates_user', 'hates_char', 'hates_other', 'comparing_people'].includes(m.id);
 export const FEELINGS = MOODS.filter(analysed);
 

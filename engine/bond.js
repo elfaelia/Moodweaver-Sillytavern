@@ -132,6 +132,8 @@ export function cleanBond(raw = {}, on = true) {
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
         mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false,
+        // One pace for the whole scene: feelings and desire move at the Bonds pace unless this is switched off.
+        onePace: b.onePace !== false,
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
@@ -197,7 +199,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         const def = MORE_METERS.find(m => m[0] === k), t = sum(s => s?.m?.[k]);
         return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + clamp(t * pace.lean, -35, 35)), def?.[2] ? -100 : 0, 100)];
     }));
-    const ds = bond.desire?.on ? computeDesire(bond.desire, all).a : undefined;
+    const ds = bond.desire?.on ? computeDesire(bond, all).a : undefined;
     const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
     const meters = dynamicOf(axesNow, n, u, '', bond.pool);
     const call = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, called = call ? resolveCall(call.text, n, u, bond.pool) : null;
@@ -242,8 +244,8 @@ const turnItem = id => { const t = TURN_BY_ID[id]; const names = [t.noun, t.labe
 function turnIdFor(text, prefs = {}) {
     return bestMatch(text, Object.keys(prefs).filter(id => prefs[id] && TURN_BY_ID[id]).map(turnItem));
 }
-// A sparked phrase matched to a turn-on first, then to one of their active bedroom traits (roles and
-// psychosexual entries: traits = [{ id, label }]). Returns { id } for a turn-on or { trait } for a trait.
+// A sparked phrase matched to a turn-on first, then to one of their active Intimacy options
+// (traits = [{ id, label }]). Returns { id } for a turn-on or { trait } for a trait.
 export function sparkTarget(text, prefs = {}, traits = []) {
     const id = turnIdFor(text, prefs);
     if (id) return { id, trait: '' };
@@ -270,7 +272,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
 // Arousal toward the player right now, plus scales for how it shows: boldness, tender ↔ rough, fixation on
 // them, shame, and holding back. Frustration builds without release. Read from the hidden line reply by
 // reply like the other meters, so swipes undo it. Pace caps how fast arousal climbs; a cap stops it at a stage.
-const DESIRE_PACE = { slow: 5, normal: 10, fast: 20 };
+// Its pace is the Bonds pace, unless one pace is switched off and the Desire card picks its own.
 export const DESIRE_CAPS = [[100, 'No limit'], [94, 'Desperate'], [80, 'Aching'], [60, 'Warm'], [40, 'Interested']];
 const DESIRE_STAGES = [[95, 'Past thinking'], [81, 'Desperate'], [61, 'Aching'], [41, 'Warm'], [26, 'Interested'], [11, 'Noticing'], [0, 'Not in the mood']];
 // key, label, starting value, words by strength.
@@ -293,12 +295,13 @@ export function cleanDesire(raw) {
     const pin = v => v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : n(v, 0);
     const anchor = x.anchor && typeof x.anchor === 'object' ? { ...Object.fromEntries(KEYS.map(k => [k, n(x.anchor[k], START[k])])),
         key: String(x.anchor.key ?? '').slice(0, 120), pos: Number.isFinite(Number(x.anchor.pos)) ? Math.round(Number(x.anchor.pos)) : -1 } : null;
-    return { on: x.on === true, pace: DESIRE_PACE[x.pace] ? x.pace : 'slow', cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
+    return { on: x.on === true, speed: PACE[x.speed] ? x.speed : 'same', cap: DESIRE_CAPS.some(([c]) => c === Number(x.cap)) ? Number(x.cap) : 100,
         anchor, pins: Object.fromEntries(KEYS.map(k => [k, pin(x.pins?.[k])])), scales: Object.fromEntries(DESIRE_SCALES.map(([k]) => [k, x.scales?.[k] !== false])) };
 }
+export const desirePace = bond => bond?.onePace === false && PACE[bond?.desire?.speed] ? bond.desire.speed : PACE[bond?.pace] ? bond.pace : 'steady';
 // list: [{ pos, key, s: { d: { a, s, b, t, x, h, release } | null } }] oldest first.
-export function computeDesire(desire, list = []) {
-    const d = cleanDesire(desire), up = DESIRE_PACE[d.pace], side = Math.max(up, 10), v = { ...START };
+export function computeDesire(bond, list = []) {
+    const d = cleanDesire(bond?.desire), pace = desirePace(bond), up = PACE[pace].cap, side = Math.max(up, 10), v = { ...START };
     let after = 0, start = 0;
     if (d.anchor) {
         let at = d.anchor.key ? list.findIndex(x => x.key === d.anchor.key) : -1;
@@ -316,11 +319,11 @@ export function computeDesire(desire, list = []) {
     for (const k of KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];
     v.a = Math.min(v.a, d.cap);
     const glow = after > 0 && d.pins.a === null;
-    return { ...v, after: glow, stage: desireStage(v.a, glow), cap: d.cap, pace: d.pace, pins: d.pins, scales: d.scales };
+    return { ...v, after: glow, stage: desireStage(v.a, glow), cap: d.cap, pace, speed: d.speed, pins: d.pins, scales: d.scales };
 }
 // Dragging a bar sets them all where they stand now; later replies move them from there.
 export function setDesire(bond, key, value, list = []) {
-    const d = bond.desire = cleanDesire(bond.desire), now = computeDesire(d, list), last = list[list.length - 1];
+    const d = bond.desire = cleanDesire(bond.desire), now = computeDesire(bond, list), last = list[list.length - 1];
     if (!KEYS.includes(key)) return;
     const val = clamp(Math.round(Number(value) || 0), 0, 100);
     d.anchor = { ...Object.fromEntries(KEYS.map(k => [k, now[k]])), [key]: val, key: last?.key ?? '', pos: last?.pos ?? -1 };
@@ -332,7 +335,7 @@ const TOUCH_HOW = { tender: 'Touches are slow and gentle.', sweet: 'Warm and aff
 // The rows Claude reads under "[character] toward [player]". Only scales that say something get a word.
 function desireLines(bond, list, n, u) {
     if (!bond?.desire?.on) return [];
-    const x = computeDesire(bond.desire, list), on = k => x.scales[k], live = x.a > 10 && !x.after;
+    const x = computeDesire(bond, list), on = k => x.scales[k], live = x.a > 10 && !x.after;
     const cap = DESIRE_CAPS.find(([c]) => c === x.cap)?.[1];
     const tags = [x.stage.toLowerCase()];
     if (on('b') && live) tags.push(scaleWord('b', x.b));

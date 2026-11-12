@@ -1,9 +1,11 @@
 // The Wants tab and the You tab (your persona's condition).
-import { playerName, subjectName } from '../app/chat.js';
-import { bondData, liveChat, liveFor, reactions } from '../app/replies.js';
+import { getKnowledge, playerName, subjectName } from '../app/chat.js';
+import { bondAxes, bondData, bondList, liveChat, liveFor, reactions } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
-import { WANT_KINDS, activeMoods } from '../engine/state.js';
+import { WANT_KINDS, activeMoods, knowledgeEntry } from '../engine/state.js';
+import { computeBond } from '../engine/bond.js';
+import { moodTone } from '../engine/tone.js';
 import { escapeHtml as esc, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { sectionOf } from '../data/catalogue.js';
@@ -75,15 +77,43 @@ export function reactiveBlock(state, ch) {
         </details>`;
 }
 export function youView(state, ch, live) {
-    const react = settings().youTrack ? reactions(ch) : null, moods = activeMoods(state).filter(m => sectionOf(m) === 'mood').slice(0, 10);
+    const me = playerName(), them = shortName(ch.name), track = settings().youTrack;
+    const react = track ? reactions(ch) : null, tone = moodTone(state.moods);
+    const moods = activeMoods(state).filter(m => sectionOf(m) === 'mood'), lead = moods[0];
     const where = live?.found ? [live.time, live.location].filter(Boolean).join(' · ') : '';
-    return `<section class="mw-you">
-        <div class="mw-board-block mw-outfits"><h4>${esc(playerName())}’s outfit</h4><div class="mw-outfit"><p>${esc(live?.userOutfit) || '<i>Not on the board yet</i>'}</p></div>${where ? `<small class="mw-fine">${esc(where)}</small>` : ''}</div>
-        <div class="mw-board-block"><h4>Condition <small>what the story has done to you</small></h4>
-            ${!settings().youTrack ? '<p class="mw-fine">Off. Switch it on below.</p>' : react.condition.length ? `<div class="mw-tiles">${react.condition.map(t => `<span class="mw-tile">${esc(t)}</span>`).join('')}</div>` : `<p class="mw-fine">Nothing lasting yet. Injuries, being drugged, soaked or tied show up here from the hidden line.</p>`}
-            <p class="mw-fine">Sent each reply so a split lip or rope burns don’t vanish between messages. It clears when the story says you’ve healed.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="youTrack" ${settings().youTrack ? 'checked' : ''}> Track ${esc(playerName())}’s condition (all chats)</label></div>
-        <div class="mw-board-block"><h4>Moodlets showing</h4>
-            ${moods.length ? `<div class="mw-chips">${moods.map(m => `<button type="button" class="mw-chip" data-tab="mood" style="--mw-accent:${m.color}"><span>${esc(m.label)}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('')}</div>` : '<p class="mw-fine">None set. Add them on the Moods tab.</p>'}</div>
+    const bond = bondData(ch), d = bond.on ? computeBond(bond, liveChat().length, them, shortName(me), bondAxes(ch), bondList(ch)) : null;
+    // What the character has to go on: tags they know or suspect, out of everything set on you.
+    const tags = [...activeMoods(state).map(m => m.id), ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)];
+    const knowledge = getKnowledge(ch), aware = tags.filter(k => ['known', 'suspected'].includes(knowledgeEntry(knowledge[k]).mode)).length;
+    const counts = [['trait', '❂', 'Traits', activeMoods(state).filter(m => sectionOf(m) === 'trait').length],
+        ['turn', '⇋', 'Turn-ons', Object.values(state.prefs ?? {}).filter(Boolean).length],
+        ['wants', '☆', 'Wants', (state.wants ?? []).filter(w => !w.done).length],
+        ['mood', '◉', 'Known', tags.length ? `${aware}/${tags.length}` : '0']];
+    const bar = (label, value, word) => `<div class="mw-you-bar"><span>${label}</span><i style="--mw-at:${Math.abs(value) / 2}%;--mw-side:${value < 0 ? 'right' : 'left'}" class="${value < 0 ? 'is-neg' : ''}"></i><b>${esc(word)}</b></div>`;
+    return `<section class="mw-you" style="--mw-aura:${tone.lead};--mw-aura-2:${tone.shade}">
+        <div class="mw-you-hero">
+            <div class="mw-you-orb" aria-hidden="true"><span>${esc(me.charAt(0).toUpperCase())}</span></div>
+            <div class="mw-you-id"><small class="mw-you-kicker">Right now</small><b>${lead ? esc(lead.label) : 'Even keel'}</b><small>${where ? esc(where) : 'No info board yet'}</small>
+                ${lead ? `<button type="button" class="mw-you-mood" data-tab="mood" style="--mw-accent:${tone.lead}">${esc(level(state.moods[lead.id]))} · change</button>`
+                : '<button type="button" class="mw-you-mood is-empty" data-tab="mood">＋ Set a mood</button>'}</div>
+        </div>
+        ${moods.length > 1 ? `<div class="mw-you-also">${moods.slice(1, 6).map(m => `<span style="--mw-accent:${m.color}">${esc(m.label)}</span>`).join('')}${moods.length > 6 ? `<span class="is-more">+${moods.length - 6}</span>` : ''}</div>` : ''}
+        <div class="mw-you-glance">${counts.map(([tab, icon, label, n]) => `<button type="button" data-tab="${tab}"><b>${n}</b><span><i aria-hidden="true">${icon}</i>${label}</span></button>`).join('')}</div>
+        ${d ? `<div class="mw-you-card mw-you-seen">
+            <h4>How ${esc(them)} sees you${bond.extra ? `<small>${esc(d.dynamic.name)}</small>` : ''}<button type="button" class="mw-you-link" data-tab="rel">Bonds ›</button></h4>
+            ${bar('Friendship', d.f, d.friend)}${bar('Romance', d.r, d.romance)}${bond.extra ? bar('Trust', d.t, d.trust) : ''}
+            ${d.thinks.length ? `<p class="mw-you-thinks">${esc(them)} thinks you’re ${d.thinks.slice(0, 4).map(t => `<span>${esc(t.text)}</span>`).join('')}</p>` : ''}
+        </div>` : ''}
+        <div class="mw-you-card">
+            <h4><span aria-hidden="true">🧥</span> Wearing</h4>
+            <p class="${live?.userOutfit ? '' : 'is-empty'}">${esc(live?.userOutfit) || 'Nothing on the board yet. The next info board fills this in.'}</p>
+        </div>
+        <div class="mw-you-card">
+            <h4><span aria-hidden="true">✚</span> Condition<small>${track ? 'what the story has done to you' : 'not tracked'}</small></h4>
+            ${!track ? '<p class="is-empty">Off. Switch it on below to keep injuries and the like between replies.</p>'
+            : react.condition.length ? `<div class="mw-you-tags">${react.condition.map(t => `<span>${esc(t)}</span>`).join('')}</div>`
+            : '<p class="is-empty">Unhurt. Injuries, drugs, soaked clothes or rope burns land here from the hidden line and stay until you heal.</p>'}
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="youTrack" ${track ? 'checked' : ''}> Track ${esc(me)}’s condition (all chats)</label>
+        </div>
     </section>`;
 }

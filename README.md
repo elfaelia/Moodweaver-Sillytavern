@@ -19,7 +19,7 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 
 | Tab | What it holds |
 |---|---|
-| ✦ Moods | Feelings and moodlets, the scene reader, and how fast the story moves them |
+| ✦ Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
 | ◔ Needs | The info board, needs (hunger, energy and the rest) and physical state |
 | ♥ Bonds | Relationships, meters (friendship, romance, trust, control, pull and more), the named dynamic and the desire card |
 | ❂ Traits | Who they are: temperament, voice, morals, kinks, roles, personality type |
@@ -29,7 +29,7 @@ Open a chat and press **◆ Moods** (bottom right), or use **Open mood panel** i
 | ☆ Wants | Wants, goals and fears |
 | ◐ You | On your own character, Needs becomes You: outfit, condition and the moodlets showing. The Moods and Traits tabs there also set what the character knows about you |
 
-The story (era, genre, tropes, stakes, authors and writing style) lives on its own panel, shared by everyone in the chat.
+The story (era, genre, tropes, stakes, authors and writing style) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, medicine, vices, faith, the law, being found out). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
 
 Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, overwhelming, maximum. Only what's switched on is sent.
 

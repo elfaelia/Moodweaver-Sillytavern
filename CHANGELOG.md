@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.51.0: more of everything, and a better look
+
+Builds on 1.50 without undoing any of its cleanup. Chats and settings carry over; nothing is renamed.
+
+### Looks
+
+- **Padding fixed** on the You tab and the Skills tab, where text ran edge to edge. Every tab was screenshotted at phone width and checked for anything touching the sides.
+- **You tab redone.** An orb in your mood's colours with what's showing right now, a row of counts that open their tabs (traits, turn-ons, wants, what they know about you), how the character sees you, what you're wearing and what's happened to you.
+- **The diamond follows the mood.** Its top takes the colour of the strongest feeling's family, the lower facets the next one, and it glows brighter and bobs faster as the feeling gets stronger. The ◆ Moods button and the panel's header pick up the same colour.
+- **A quiet galaxy** behind the panel: dim stars and two faint blue and violet clouds, kept dark enough for the text on top. The stars are six tiny repeating patterns of odd sizes, which costs about the same to draw as 1.50's handful.
+- A soft fade at the end of the tab bar shows there are more tabs to scroll to.
+
+### Speed
+
+The lists are much longer now, so drawing was checked against 1.50 on the same 1,500-message chat with the CPU slowed 4×:
+
+| | 1.50.0 | 1.51.0 |
+|---|---|---|
+| Opening the panel | about 415 ms | about 395 ms |
+| Pressing ＋ Add to browse everything | about 280 ms | about 115 ms |
+| Moving a slider while browsing | about 290 ms | about 310 ms |
+| A reply arriving with the panel open | about 130 ms | about 130 ms |
+
+How: while browsing everything, a folded group's rows are only drawn when you open it, and searching draws them all first so nothing is missed. The new word lists are looked up from the catalogue rather than written into every row.
+
+### More moods
+
+- **134 new moods**, about ten in each of the 14 families, from Smitten and In stitches to Frosty politeness, Sweetly unhinged, False mercy, Mind breaking and Teased to breaking.
+- **Every mood (all 603) has a list of everyday words.** When Claude writes "fuming", "white-hot" or "out for blood" on the hidden line or the info board, it now lands on the right mood instead of being dropped. The words are only used for reading; they are never sent, so the note doesn't grow.
+- Desire & attraction now sits right after Love & closeness.
+
+### More turn-ons
+
+- **187 new turn-ons, at least 20 in every group**, with the 1890s, the 1950s and 60s and the 1990s to 2000s in mind: pin-up curves, slicked-back hair, crooners, seamed nylons, greasers and housewives; petticoats, waistcoats, gentry, governesses and love letters sealed with wax; low-rise jeans, chokers, band tees, mixtapes and camcorders.
+- **Both sides of the kinks**, as separate turn-ons: spanking someone and being spanked, and the same for caning, whipping, beating, torture, choking, spitting, milking and mind break, plus giving and receiving oral, being hand-fed, having hair pulled, being bitten and being tied up.
+- Your list: bladder desperation, drool, riding crops, dehumanising (both sides), Lima and Stockholm syndrome, wrestling and fighting as foreplay, grinding, infidelity (cheating, being cheated on, being the other one), an oral fixation, shotgunning, smoke on the breath, almost getting caught, making someone dumb and being made dumb, and fake sympathy (giving it, getting it, and cooing over pain you're causing).
+- They light up, crave and combo like the old ones. Matching what sparked is sharper: a word that is exactly one of a turn-on's words now beats one that only looks similar, so "spanked" finds Being spanked, and "scared" no longer lights Scars.
+
+### Combos and period lines
+
+- **Seven new combos** for the new turn-ons: Punishment, Near miss, Cooing cruelty, Mind going, Smoke and mouths, Captive heart and Brawl.
+- **Six new period lines**, each shown only when something on the cards touches it: Vices, Being found out, Marriage and straying, Faith and sin, The law and Discipline, written for every period from the 1890s to now.
+- **Period lines take turns.** Power always shows when it applies; when more lines apply than fit, a different handful shows each reply, so a long 1960s story keeps meeting new sides of its period. The same reply always gets the same lines, so swipes stay consistent. **Period lines per reply** (1 to 4, default 3) on the Story panel sets the cap.
+- A combo that pointed at a mood merged away in 1.50 was cleaned up.
+
 ## 1.50.0: a clean base
 
 Under-the-hood rework before new features. Your chats, settings, pins and character defaults carry over.

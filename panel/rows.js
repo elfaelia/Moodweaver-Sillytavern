@@ -48,7 +48,7 @@ export function inventoryView(state, ch) {
     const intro = ui.who === 'user' ? `Things ${esc(playerName())} has. You decide when you use them; ${esc(ch.name)} only knows about what they could see or already know of.`
         : `Things ${esc(name)} has. The AI can use them when the moment fits, never just to show them off.`;
     return `<section class="mw-inventory">
-        <div class="mw-summary"><div class="mw-section-label">${items.length ? 'INVENTORY' : 'EMPTY POCKETS'}<span>${carried} carried${items.length > carried ? ` · ${items.length - carried} stored` : ''}</span></div>
+        <div class="mw-summary"><div class="mw-section-label">${items.length ? 'Inventory' : 'Empty pockets'}<span>${carried} carried${items.length > carried ? ` · ${items.length - carried} stored` : ''}</span></div>
         <p class="mw-fine">${intro} Untick an item to keep it saved without sending it.</p></div>
         <div class="mw-inv-list">${items.map(i => `<div class="mw-inv-item ${i.carried ? '' : 'is-stored'}" data-inv-row="${esc(i.id)}">
             <label class="mw-inv-check" title="${i.carried ? 'Carried: sent to the AI' : 'Stored: not sent'}"><input type="checkbox" data-inv-carried="${esc(i.id)}" ${i.carried ? 'checked' : ''} aria-label="Carry ${esc(i.text)}"><span></span></label>

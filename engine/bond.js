@@ -232,7 +232,8 @@ function bestMatch(text, items) {
     const whole = n => raw === n || (n.length > 3 && new RegExp(`(^|[^a-z])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(raw));
     const exact = items.map(x => [x.id, Math.max(0, ...x.names.filter(n => n && whole(n)).map(n => n.length))]).filter(([, len]) => len > 0).sort((a, b) => b[1] - a[1])[0];
     if (exact) return exact[0];
-    const score = x => words.filter(w => x.keys.some(k => k === w || (w.length > 4 && stem(k) === stem(w)))).length;
+    // A word that is one of its keys outright counts double, so "spanked" finds Being spanked over Spanking someone.
+    const score = x => words.reduce((n, w) => n + (x.keys.includes(w) ? 2 : w.length > 4 && x.keys.some(k => stem(k) === stem(w)) ? 1 : 0), 0);
     const best = items.map(x => [x.id, score(x)]).filter(([, s]) => s > 0).sort((a, b) => b[1] - a[1])[0];
     return best?.[0] ?? '';
 }

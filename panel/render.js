@@ -4,16 +4,17 @@ import { syncPrompt } from '../app/note.js';
 import { readerProfile } from '../app/reader.js';
 import { boardMemoryCount, boardPeople, boardSend, bondAxes, bondData, bondList, bondOverlaps, liveFor, needOpts, overlapNames, reactionTally, reactions } from '../app/replies.js';
 import { settings } from '../app/settings.js';
-import { SELF, VERSION, ctx, folderOf, generationSnapshots, run, ui } from '../app/state.js';
+import { SELF, VERSION, ctx, folderOf, generationSnapshots, run, tintLauncher, ui } from '../app/state.js';
 import { boardView } from './needs-tab.js';
 import { matchMood } from '../engine/board.js';
 import { bondMini, bondView } from './bonds-tab.js';
 import { activeMoods } from '../engine/state.js';
 import { escapeHtml as esc, shortName } from '../engine/util.js';
-import { sectionOf } from '../data/catalogue.js';
+import { BY_ID, sectionOf } from '../data/catalogue.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { capturePanel, restorePanelFields, restorePanelPosition, savedPanel } from './scroll-memory.js';
 import { PLUMBOB, peopleBar, personCard, tabBar } from './header.js';
+import { TONES, moodTone } from '../engine/tone.js';
 import { inventoryView } from './rows.js';
 import { sectionContent } from './sections.js';
 import { settingsView } from './settings-sheet.js';
@@ -99,11 +100,12 @@ function drawPanel() {
     const snapshot = savedPanel(keepPlace ? oldView : view), sameView = keepPlace || ui.panel.dataset.view === view;
     ui.panel.dataset.coarse = coarse; ui.drawnPeer = ui.selectedPeer; ui.drawnPairView = ui.pairView;
     ui.search = snapshot?.searches['#mw-catalogue-search'] ?? '';
+    ui.openGroups = snapshot?.details ?? {}; ui.lazyBodies = new Map();
     ui.panel.dataset.view = view;
-    // The plumbob takes the lead moodlet's colour, or the board's mood when nothing is set by hand.
-    const lead = active.find(m => sectionOf(m) === 'mood');
-    const boardMood = live?.state.map(t => matchMood(t.text)).find(m => m && m.kind === 'mood');
-    const plumbob = lead?.color ?? boardMood?.color ?? '#b5d9a6';
+    // The plumbob shows the leading feelings, or the board's mood when nothing is set by hand.
+    let plumbob = moodTone(state?.moods);
+    if (!plumbob.strength) { const boardMood = live?.state.map(t => matchMood(t.text)).find(m => m && TONES[m.category]); if (boardMood) plumbob = { lead: TONES[boardMood.category], shade: TONES[boardMood.category], strength: 40, id: boardMood.id }; }
+    ui.panel.style.setProperty('--mw-mood', plumbob.lead); tintLauncher(plumbob.lead);
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
         : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
@@ -127,6 +129,12 @@ function drawPanel() {
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
 }
+// Draw the rows of folded groups that were left empty (all of them in scope, or the one just opened).
+export function fillLazy(scope) {
+    const bodies = scope?.matches?.('[data-lazy]') ? [scope] : [...(scope?.querySelectorAll('[data-lazy]') ?? [])];
+    for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) el.innerHTML = rows(); }
+}
+export function onGroupToggle(e) { if (e.target.matches?.('details[data-category]') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
 export function toggleTop() { const b = ui.panel?.querySelector('.mw-to-top'); if (b) b.hidden = ui.panel.scrollTop < 500; }
 function showGroupMatches(group, count, term) {
     const badge = group.querySelector('summary small');
@@ -145,7 +153,8 @@ export function filterRelationships(value) {
     });
     const none = ui.panel.querySelector('[data-relation-empty]'); if (none) none.hidden = shown > 0;
 }
-export const searchText = row => [row.textContent, row.dataset.aliases ?? '', row.dataset.search ?? '', ...[...row.querySelectorAll('input[type="text"]')].map(i => i.value)].join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+// A mood's everyday words come from the catalogue rather than the page, so the rows stay small.
+export const searchText = row => [row.textContent, row.dataset.aliases ?? '', ...(BY_ID[row.dataset.mood]?.words ?? []), row.dataset.search ?? '', ...[...row.querySelectorAll('input[type="text"]')].map(i => i.value)].join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export function filterLocalLists() {
     ui.panel.querySelectorAll('[data-filter-list]').forEach(input => {
         const key = input.dataset.filterList, term = input.value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -156,12 +165,14 @@ export function filterLocalLists() {
 }
 export function filterRows() {
     const term = ui.search.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (term) fillLazy(ui.panel);
     let shown = 0;
     ui.panel.querySelectorAll('[data-category]').forEach(d => {
         let count = 0;
         d.querySelectorAll('[data-mood]').forEach(row => {
             row.hidden = !searchText(row).includes(term); if (!row.hidden) count++;
         });
+        const waiting = d.querySelector('[data-lazy]'); if (waiting) count = Number(waiting.dataset.count) || 0;
         const inTab = ui.who === 'story' ? d.dataset.kind === 'story' : d.dataset.kind !== 'story' && d.dataset.kind === ui.tab;
         d.hidden = count === 0 || !inTab; if (inTab) shown += count;
         // While searching, open groups with matches so results are one tap away; fold them back after.

@@ -12,7 +12,8 @@
   position:fixed;inset:60px 18px auto auto;margin:0;padding:0;width:min(460px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 88px);
   box-sizing:border-box;overflow:auto;overscroll-behavior:contain;overflow-anchor:none;
   border:1px solid #c9b8f033;border-radius:22px;color:var(--mw-text);color-scheme:dark;text-align:left;z-index:3100;
-  background:radial-gradient(1px 1px at 12% 8%,#fff6 50%,transparent),radial-gradient(1px 1px at 78% 14%,#fff5 50%,transparent),radial-gradient(1px 1px at 44% 31%,#fff3 50%,transparent),radial-gradient(1px 1px at 90% 47%,#fff3 50%,transparent),radial-gradient(1px 1px at 22% 62%,#fff2 50%,transparent),radial-gradient(1px 1px at 63% 84%,#fff2 50%,transparent),linear-gradient(180deg,#1b1528,var(--mw-night) 240px);
+  /* A quiet galaxy: dim stars (six small repeating tiles of odd sizes, so they never line up) and two faint nebula clouds, blue and violet. Kept small and dim so text on top stays easy to read. */
+  background:radial-gradient(1px 1px at 37px 61px,#dfe6ff8c 50%,transparent) 0 0/137px 173px,radial-gradient(0.9px 0.9px at 101px 23px,#cfe0ff72 50%,transparent) 0 0/211px 157px,radial-gradient(1.2px 1.2px at 19px 140px,#ffffff59 50%,transparent) 0 0/97px 241px,radial-gradient(1.5px 1.5px at 150px 90px,#e8dcff4c 50%,transparent) 0 0/263px 199px,radial-gradient(1px 1px at 70px 30px,#ffffff42 50%,transparent) 0 0/181px 131px,radial-gradient(0.8px 0.8px at 5px 5px,#cfe0ff59 50%,transparent) 0 0/149px 113px,radial-gradient(60% 38% at 88% 18%,#4b5dff1f,transparent 70%),radial-gradient(70% 45% at 6% 78%,#9a4dff1a,transparent 70%),radial-gradient(50% 30% at 50% 50%,#2d3a9a12,transparent 70%),linear-gradient(180deg,#1a1630,#131026 240px,#100d20);
   box-shadow:0 30px 90px #05030cd0,0 0 0 1px #00000040;font:14px/1.5 var(--mw-sans);scrollbar-width:thin;scrollbar-color:#4b4262 transparent
 }
 .mw-panel *{box-sizing:border-box}
@@ -51,7 +52,7 @@
 /* Anchored from the top. On phones SillyTavern fixes the body and transforms <html>, so in Safari "bottom:0"
    means the top edge of the screen. 100dvh is always the real bottom; translateY(-100%) sits the element on it. */
 #moodweaver-launcher{position:fixed;right:16px;bottom:auto;top:calc(100vh - 84px);top:calc(100dvh - 84px);transform:translateY(-100%);z-index:2999;display:flex;align-items:center;gap:8px;border:1px solid #c9b8f055;border-radius:999px;background:#1d1729e6;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#ede7f7;padding:9px 15px;font:600 13px -apple-system,system-ui,sans-serif;box-shadow:0 6px 24px #0007;cursor:pointer}
-#moodweaver-launcher span{color:var(--mw-lilac,#c9b8f0);font-size:18px;text-shadow:0 0 12px #c9b8f088}
+#moodweaver-launcher span{color:var(--mw-mood,#c9b8f0);font-size:18px;text-shadow:0 0 12px color-mix(in srgb,var(--mw-mood,#c9b8f0) 60%,transparent);transition:color .6s,text-shadow .6s}
 /* Drag it anywhere (saved per device), or make it just the ◆. Touch-action keeps the page still while dragging. */
 #moodweaver-launcher{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 #moodweaver-launcher.is-small{padding:0;width:44px;height:44px;justify-content:center}
@@ -71,7 +72,11 @@
 .mw-brand-text{display:flex;flex-direction:column;min-width:0}
 .mw-panel h2{margin:0;font:500 21px/1.15 var(--mw-serif);letter-spacing:.2px;color:#f6f1ff}
 .mw-where-now{font-size:11.5px;line-height:1.3;color:#d8cff0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
-.mw-panel .mw-plumbob{width:15px;height:25px;flex:none;fill:var(--mw-plumbob);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--mw-plumbob) 70%,transparent));animation:mw-bob 4.5s ease-in-out infinite;transition:fill .6s}
+.mw-panel .mw-plumbob{width:15px;height:25px;flex:none;fill:var(--mw-plumbob);filter:drop-shadow(0 0 var(--mw-glow,8px) color-mix(in srgb,var(--mw-plumbob) 75%,transparent));animation:mw-bob var(--mw-bob,4.5s) ease-in-out infinite;transition:fill .6s}
+.mw-panel .mw-plumbob .mw-facet-low{fill:var(--mw-shade,var(--mw-plumbob));transition:fill .6s}
+/* The header and the active tab pick up the leading feeling's tone, faintly. */
+.mw-panel .mw-top::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(140px 90px at 28px 50%,color-mix(in srgb,var(--mw-mood,#7fd18a) 22%,transparent),transparent 75%);transition:background .6s}
+.mw-panel .mw-top>*{position:relative;z-index:1}
 @keyframes mw-bob{50%{transform:translateY(-2px)}}
 .mw-top-actions{display:flex;align-items:center;gap:2px}
 .mw-panel .mw-icon-btn,.mw-panel .mw-close{width:38px;height:38px;padding:0;border:0;border-radius:50%;background:none;color:#d8cff0;font-size:19px;line-height:1}
@@ -106,6 +111,8 @@
 .mw-tabbar{position:sticky;top:0;z-index:8;display:flex;gap:4px;overflow-x:auto;margin:12px 0 12px;padding:7px 10px;scrollbar-width:none;
   background:color-mix(in srgb,var(--mw-night) 88%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-block:1px solid var(--mw-line)}
 .mw-tabbar::-webkit-scrollbar{display:none}
+/* A soft fade at the right edge says there are more tabs to scroll to. */
+.mw-tabbar::after{content:'';position:sticky;right:-10px;flex:0 0 26px;margin-left:-26px;pointer-events:none;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--mw-night) 92%,transparent))}
 .mw-panel .mw-tabbar button{position:relative;flex:0 0 auto;display:flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid transparent;border-radius:999px;background:none;color:var(--mw-muted);font-size:12.5px;white-space:nowrap}
 .mw-tab-icon{font-size:14px;color:color-mix(in srgb,var(--mw-tab) 65%,#7d7594)}
 .mw-panel .mw-tabbar button[aria-pressed=true]{background:color-mix(in srgb,var(--mw-tab) 16%,transparent);border-color:color-mix(in srgb,var(--mw-tab) 40%,transparent);color:var(--mw-text)}
@@ -387,7 +394,7 @@
   .mw-panel .mw-pin,.mw-panel .mw-list{width:34px;height:34px}
   .mw-panel .mw-categories summary{padding:15px 8px}
 }
-@media (prefers-reduced-motion:reduce){.mw-panel *,.mw-panel .mw-plumbob,.mw-sky-fx,.mw-sky::after{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){.mw-panel *,.mw-panel *::before,.mw-panel .mw-plumbob,.mw-sky-fx,.mw-sky::after{animation:none!important;transition:none!important}}
 /* Reactive wants, hot buttons, the You tab and needs-over-time settings */
 .mw-want.mw-want-lit{box-shadow:0 0 0 1px #efd59c55,0 0 16px #efd59c22}
 .mw-want.mw-want-lit.is-down{box-shadow:0 0 0 1px #e26d7a55,0 0 16px #e26d7a22}
@@ -395,8 +402,55 @@
 .mw-want-status{display:block;margin-top:4px;font-size:11px;color:#f5e6c4;opacity:.9}
 .mw-want-lit.is-down .mw-want-status{color:#f0c2c8}
 .mw-want-story,.mw-want-suggest{border-style:dashed}
-.mw-you{display:flex;flex-direction:column;gap:12px}
-.mw-you .mw-chips{display:flex;flex-wrap:wrap;gap:6px}
+/* You: your own character at a glance. An orb in your mood's colours, what's showing, a row of counts
+   that open their tabs, how the character sees you, then what you're wearing and what's been done to you. */
+.mw-you{display:flex;flex-direction:column;gap:12px;padding:0 var(--mw-pad) 8px}
+.mw-you-hero{display:flex;align-items:center;gap:14px;padding:4px 2px 0}
+.mw-you-orb{position:relative;flex:none;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--mw-aura) 38%,#2a2240),#16122a 72%);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--mw-aura) 55%,transparent),0 0 22px color-mix(in srgb,var(--mw-aura) 35%,transparent)}
+.mw-you-orb::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid transparent;
+  background:conic-gradient(from 0deg,var(--mw-aura),var(--mw-aura-2),transparent 60%,var(--mw-aura)) border-box;
+  -webkit-mask:linear-gradient(#000 0 0) padding-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.75;animation:mw-orbit 14s linear infinite}
+@keyframes mw-orbit{to{transform:rotate(1turn)}}
+.mw-you-orb span{font:500 26px/1 var(--mw-serif);color:#f6f1ff;text-shadow:0 0 12px color-mix(in srgb,var(--mw-aura) 60%,transparent)}
+.mw-you-id{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.mw-you-id>b{font:500 21px/1.15 var(--mw-serif);color:#f6f1ff;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-you-id>small{font-size:11.5px;color:var(--mw-muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-panel .mw-you-mood{margin-top:4px;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:550;
+  background:color-mix(in srgb,var(--mw-accent) 16%,transparent);border-color:color-mix(in srgb,var(--mw-accent) 50%,transparent);color:#f6f1ff}
+.mw-panel .mw-you-mood.is-empty{background:none;border-style:dashed;color:var(--mw-muted);font-weight:400}
+.mw-you-also{display:flex;flex-wrap:wrap;gap:6px}
+.mw-you-also span{padding:3px 10px;border-radius:999px;font-size:11.5px;color:var(--mw-text);background:#ffffff08;border:1px solid color-mix(in srgb,var(--mw-accent) 35%,transparent)}
+.mw-you-also .is-more{border-color:var(--mw-line-2);color:var(--mw-muted)}
+.mw-you-glance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.mw-panel .mw-you-glance button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 8px;border-radius:12px;background:#ffffff07;border-color:var(--mw-line)}
+.mw-you-glance b{font:600 17px/1.1 var(--mw-round);font-variant-numeric:tabular-nums;color:#f6f1ff}
+.mw-you-glance span{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--mw-muted);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.mw-you-glance i{font-style:normal;font-variant-emoji:text;color:var(--mw-lilac)}
+.mw-you-card{padding:12px 14px;border-radius:var(--mw-r);background:#ffffff07;border:1px solid var(--mw-line);display:grid;gap:8px}
+.mw-panel .mw-you-card h4{display:flex;align-items:baseline;gap:8px;margin:0;font:500 15px/1.3 var(--mw-serif);color:var(--mw-text)}
+.mw-you-card h4>span{font-variant-emoji:text;color:var(--mw-lilac);font-size:13px}
+.mw-you-card h4 small{font:400 11px var(--mw-sans);color:var(--mw-muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-panel .mw-you-link{margin-left:auto;padding:2px 9px;border-radius:999px;font:500 11.5px var(--mw-sans);color:var(--mw-lilac);background:none;border-color:#c9b8f040}
+.mw-you-card>p{font-size:13px;line-height:1.5;color:var(--mw-text)}
+.mw-you-card>p.is-empty{font-size:12px;color:var(--mw-muted)}
+.mw-you-bar{display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;gap:10px;font-size:12px;color:var(--mw-muted)}
+.mw-you-bar b{font-weight:500;color:var(--mw-text);font-size:12px;text-align:right}
+.mw-you-bar i{position:relative;height:5px;border-radius:3px;background:#ffffff14;overflow:hidden}
+.mw-you-bar i::before{content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#ffffff30}
+.mw-you-bar i::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:var(--mw-at);border-radius:3px;background:var(--mw-mint)}
+.mw-you-bar i.is-neg::after{left:auto;right:50%;background:var(--mw-blood)}
+.mw-you-bar:nth-of-type(2) i:not(.is-neg)::after{background:var(--mw-rose)}
+.mw-you-bar:nth-of-type(3) i:not(.is-neg)::after{background:var(--mw-moon)}
+.mw-you-thinks{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font-size:12px;color:var(--mw-muted)}
+.mw-you-thinks span,.mw-you-tags span{padding:3px 9px;border-radius:999px;font-size:12px;color:var(--mw-text);background:#ffffff0a;border:1px solid var(--mw-line-2)}
+.mw-you-tags{display:flex;flex-wrap:wrap;gap:6px}
+.mw-you-tags span{border-color:#e26d7a55;background:#e26d7a14}
+.mw-you .mw-toggle{color:var(--mw-muted)}
+/* Skills tab controls sit inside the same side margins as everything else. */
+.mw-skill-opts,.mw-panel input[data-skill-search]{margin-left:var(--mw-pad);margin-right:var(--mw-pad);width:calc(100% - 2 * var(--mw-pad))}
+.mw-you-kicker{text-transform:uppercase;letter-spacing:.08em;font-size:10px!important;color:var(--mw-faint)!important}
 .mw-need-settings{margin-top:8px}
 .mw-need-settings summary{cursor:pointer;font-size:12px;opacity:.85}
 .mw-need-settings .mw-field{display:flex;align-items:center;gap:8px;font-size:12px;margin:6px 0}
@@ -439,7 +493,7 @@
 .mw-skill-row.is-lit{box-shadow:inset 3px 0 0 #9fc0e8}
 .mw-skill-row .mw-row-head output{min-width:3.2em;text-align:right}
 .mw-skill-now{margin:8px 0 0;font-size:12px;color:var(--mw-muted)}
-.mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;margin-bottom:8px}
 
 /* Who names the dynamic, pace, re-read and the dynamics picked for a pair */
 .mw-dyn-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:12px;padding:3px;border-radius:12px;background:#0e0b17aa;border:1px solid #ffffff14}
@@ -503,3 +557,5 @@
 .mw-moodstep.is-up{background:#7fd1a01f;color:#a7e3bf}.mw-moodstep.is-down{background:#e8a0a01a;color:#efb9b9}.mw-moodstep.is-fade{opacity:.6;font-style:italic}
 .mw-moodlast button{justify-self:start;min-height:34px;padding:4px 14px;border-radius:999px}
 .mw-storymood-which{display:grid;gap:3px;margin-top:8px;font-size:.86em}.mw-storymood-which select{width:100%}
+.mw-panel .mw-era-lines,.mw-panel p.mw-era-note{margin-left:var(--mw-pad);margin-right:var(--mw-pad)}
+.mw-panel label.mw-era-lines{display:flex;align-items:center;justify-content:space-between;gap:12px}.mw-panel .mw-era-lines select{width:auto;min-width:64px;flex:none}

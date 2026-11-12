@@ -2,14 +2,15 @@
 import { getCast, getKnowledge, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
 import { boardMeta, boardSend, bondAxes, bondData, bondList, bondOverlaps, liveChat, liveFor, pronounsFor, reactions, userRelation, weaveOf, writes } from './replies.js';
 import { settings } from './settings.js';
-import { KEY, PROMPT_KEY, ctx, run } from './state.js';
+import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
+import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta } from '../engine/board.js';
 import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
 import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
 import { fill as fillDynamic } from '../engine/dynamics.js';
-import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, eraLenses } from '../engine/era-lenses.js';
+import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, LENS_TRIGGERS, eraLenses } from '../engine/era-lenses.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { moodLink, roleLink } from '../engine/links.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
@@ -30,6 +31,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
         run.promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
+    if (!forGeneration) tintLauncher(moodTone(state.moods).lead);
     try {
         migratePairs(ch);
         const name = String(ch.name).slice(0, 100), player = playerName().slice(0, 100);
@@ -153,7 +155,11 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     // Harsh only when whoever holds power is in that kind of mood right now.
     const harshIn = st => MOODS.some(m => (st?.moods?.[m.id] ?? 0) >= 41 && (['angry', 'cruel', 'cold'].includes(m.category) || HARSH_MOODS.includes(m.id)));
     const harsh = top === 'n' ? harshIn(state) : top === 'u' ? harshIn(mine) : false;
-    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints,
+    // The 1.51 lenses: a turn-on of either person at clear or above, a feeling of the character's, or a tie.
+    const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => t.turns.some(id => (st?.prefs?.[id] ?? 0) > 40))
+        || strongIn(state.moods, t.moods) || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? []))]));
+    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched,
+        cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0,
         medicine: strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         money: strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
     const links = [];

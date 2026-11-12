@@ -496,6 +496,8 @@ function buildFeelIndex() {
     }
     for (const [word, id] of Object.entries(FEELING_SYNONYMS)) add(word, id, 60);
     for (const [word, [id, value]] of Object.entries(FEELING_WORDS)) add(word, id, value);
+    // Each option's own everyday words (the words field in the catalogue), after everything above.
+    for (const m of MOODS) for (const w of m.words ?? []) { if (w.includes(' ')) phrase(w, m.id, 60); else add(w, m.id, 60); }
     feelSize = MOODS.length; feelIndex = map;
     feelPhrases = [...phrases.entries()].sort((a, b) => b[0].length - a[0].length);
     return map;
@@ -570,6 +572,9 @@ export function feelingId(name) {
         for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), m.label.toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' '), m.id.replace(/_/g, ' ')]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
         for (const m of MOODS) if (analysed(m)) for (const key of [...m.label.toLowerCase().split(/\s*\/\s*/), ...(MERGED_SEARCH_NAMES[m.id] ?? []).map(x => x.toLowerCase())]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
         for (const [word, id] of Object.entries({ ...PLAIN_FEELINGS, ...MOVED_WORDS })) if (BY_ID[id] && analysed(BY_ID[id]) && !labelIndex.has(word)) labelIndex.set(word, id);
+        // Its own everyday words last, where the scene words don't already give the feeling another way.
+        const index = buildFeelIndex(), phrases = new Set(feelPhrases.map(([k]) => k));
+        for (const m of MOODS) if (analysed(m)) for (const w of m.words ?? []) if (!labelIndex.has(w) && !index.has(w) && !(phrases.has(w) && feelPhrases.find(([k]) => k === w)[1].id !== m.id)) labelIndex.set(w, m.id);
     }
     if (labelIndex.has(text)) return labelIndex.get(text);
     const bare = text.replace(/\b(with|for|by|at|about|toward|towards|of|on|her|him|his|them|their|lamb|it)\b/g, ' ').replace(/\s+/g, ' ').trim();

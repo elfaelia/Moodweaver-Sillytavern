@@ -39,7 +39,7 @@ export const run = {
 export const KEY = 'moodweaver';
 export const PROMPT_KEY = 'moodweaver-state';
 export const ctx = () => SillyTavern.getContext();
-export const VERSION = '1.50.0';
+export const VERSION = '1.51.0';
 // Which folder this copy runs from, so a second installed copy can be spotted and named.
 export const SELF = new URL('../index.js', import.meta.url).href;
 export const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -53,3 +53,10 @@ export const generationSnapshots = new Map();
 export const newId = () => Math.random().toString(36).slice(2, 10);
 // Live slider readouts: if a redraw has replaced the row, there's simply nothing to update.
 export const put = (scope, selector, text) => { const el = scope?.querySelector(selector); if (el) el.textContent = text; };
+// The ◆ Moods button glows in the leading feeling's tone. Only touches the DOM when the colour changes.
+let launcherTone = '';
+export function tintLauncher(colour) {
+    if (!colour || colour === launcherTone) return;
+    const el = document.getElementById('moodweaver-launcher'); if (!el) return;
+    launcherTone = colour; el.style.setProperty('--mw-mood', colour);
+}

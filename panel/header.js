@@ -21,8 +21,9 @@ export function peopleBar(ch) {
     </div>
     ${ui.castAction === 'adding' ? `<div class="mw-cast-add mw-new-cast"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Name, e.g. Chloe"><button data-action="cast-add">Add to cast</button></div>` : ''}`;
 }
-// Sims plumbob: two facets lit, two in shade.
-export const PLUMBOB = colour => `<svg class="mw-plumbob" style="--mw-plumbob:${colour}" viewBox="0 0 24 40" aria-hidden="true"><path d="M12 1 2 15h9z" opacity=".95"/><path d="M12 1l10 14h-11z" opacity=".7"/><path d="M2 15h9l1 24z" opacity=".55"/><path d="M11 15h11L12 39z" opacity=".35"/></svg>`;
+// Sims plumbob: the top facets in the leading feeling's tone, the lower ones in the next feeling's.
+// tone: { lead, shade, strength } from engine/tone.js. Stronger feelings glow brighter and bob faster.
+export const PLUMBOB = tone => `<svg class="mw-plumbob" style="--mw-plumbob:${tone.lead};--mw-shade:${tone.shade};--mw-glow:${Math.round(6 + tone.strength / 8)}px;--mw-bob:${(5.5 - tone.strength / 40).toFixed(1)}s" viewBox="0 0 24 40" aria-hidden="true"><path d="M12 1 2 15h9z" opacity=".95"/><path d="M12 1l10 14h-11z" opacity=".7"/><path class="mw-facet-low" d="M2 15h9l1 24z" opacity=".75"/><path class="mw-facet-low" d="M11 15h11L12 39z" opacity=".5"/></svg>`;
 export function personCard(ch, state, live) {
     const person = ui.who === 'cast' ? selectedCast() : null;
     const name = ui.who === 'story' ? 'The story' : subjectName();

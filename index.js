@@ -7,7 +7,7 @@ import { settings } from './app/settings.js';
 import { PROMPT_KEY, SELF, VERSION, ctx, generationSnapshots, run, ui } from './app/state.js';
 import { hasBoard, stripBoard } from './engine/board.js';
 import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown } from './panel/events.js';
-import { openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
+import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
 
 globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type) => {
@@ -71,6 +71,7 @@ function setup() {
     ui.panel.addEventListener('keydown', onPanelKeydown);
     ui.panel.addEventListener('change', onPanelChange);
     ui.panel.addEventListener('click', onPanelClick);
+    ui.panel.addEventListener('toggle', onGroupToggle, true);
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
         cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';

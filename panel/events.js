@@ -18,7 +18,7 @@ import { MORE_PRESETS, cleanMore, setMore } from '../engine/meters.js';
 import { MOOD_PACE } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
-import { changeState, filterLocalLists, filterRelationships, filterRows, render, renderStatus } from './render.js';
+import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderStatus } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec } from './sections.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
@@ -433,7 +433,7 @@ export async function onPanelClick(e) {
     if (button.dataset.tab) { ui.tab = button.dataset.tab; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render(); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     if (button.dataset.jump) {
-        clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render();
+        clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render(); fillLazy(ui.panel);
         const row = ui.panel.querySelector(`[data-mood="${button.dataset.jump}"]`); if (!row) return;
         const category = row.closest('details'); if (category) category.open = true;
         row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input')?.focus({ preventScroll: true }); return;

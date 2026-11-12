@@ -10,11 +10,13 @@ export { RECIPES, STORY_RECIPES } from './catalogue/recipes.js';
 
 const SECTIONS = [...moodSection, ...traitSection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
 
+// words: "seething, white-hot, out for blood" → ['seething', 'white-hot', 'out for blood'].
+const wordsOf = text => String(text).toLowerCase().split(',').map(w => w.trim()).filter(Boolean);
 export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase());
 
 // [id, name, icon, colour, rows, kind]; rows are [id, label, cue, note].
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
-export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), category: c.id, color: c.color, kind: c.kind })));
+export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 
 // The wording sent for each option, where it has one, and how each feeling shows on the page.

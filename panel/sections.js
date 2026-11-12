@@ -45,16 +45,22 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
     const show = id => ui.browsing || listed.has(id);
     const sectionOfCategory = (id, k) => k === 'story' ? 'story' : TRAIT_CATEGORIES.has(id) ? 'trait' : k;
     const hideBody = kind === 'state' && boardCoversBody();
+    // Browsing everything: a folded group's rows are only drawn when it's opened (see fillLazy), which keeps
+    // a slider move in the full list quick now that the lists are long.
+    const body = (key, count, rows) => {
+        if (ui.browsing && !ui.search && !ui.openGroups?.[`details[data-category="${key}"]`]) { ui.lazyBodies.set(key, rows); return `<div class="mw-category-body" data-lazy="${key}" data-count="${count}"></div>`; }
+        return `<div class="mw-category-body">${rows()}</div>`;
+    };
     const cats = kind === 'turn' ? '' : CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOfCategory(id, k) === kind).map(([id, name, icon, color, , k = 'mood']) => {
         const list = MOODS.filter(m => m.category === id && show(m.id) && !(hideBody && id === 'body' && !state.moods[m.id])), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
-        return `<details data-category="${id}" data-kind="${sectionOfCategory(id, k)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary><div class="mw-category-body">${list.map(m => row(m, state)).join('')}</div></details>`;
+        return `<details data-category="${id}" data-kind="${sectionOfCategory(id, k)}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary>${body(id, list.length, () => list.map(m => row(m, state)).join(''))}</details>`;
     }).join('');
     const turns = kind !== 'turn' ? '' : TURN_CATEGORIES.map(([group, icon, color, rows]) => {
         const list = rows.filter(([id]) => show(`turn:${id}`) && TURN_BY_ID[id]), key = turnGroupKey(group);
         if (!list.length) return '';
         const n = list.filter(([id]) => state.prefs?.[id]).length;
-        return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary><div class="mw-category-body">${list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join('')}</div></details>`;
+        return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary>${body(key, list.length, () => list.map(([id]) => turnRow(TURN_BY_ID[id], state)).join(''))}</details>`;
     }).join('');
     const label = SECTION_LABEL[kind];
     return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${ui.browsing ? 'Search all ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(ui.search)}">${ui.browsing ? `<button data-action="browse-done" class="mw-primary">✓ Done</button>`
@@ -134,6 +140,7 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
+    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${['1', '2', '3', '4'].map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">With an era set, short lines say how the period shapes what’s in play: power, vices, faith, the law, being found out. When more apply than fit, they take turns from reply to reply, so a long story keeps meeting new sides of its period.</p>` : ''}
     ${['mood', 'trait'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, getKnowledge(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }

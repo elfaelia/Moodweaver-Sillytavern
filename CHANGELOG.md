@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.56.1: many more 1960s lines
+
+The 1960s America lines now read almost everything on the cards, still under the same lines-per-reply cap, so each reply gets a different handful.
+
+- **About 75 new he/she lines** for each person, covering body and health (hurt, ill, her monthly, scars and ink, figure, looks, grime, pills, drugs, hangovers, smoking, madness, low spells, grief, old wounds), background and work (service, a record, church upbringing, no family, foreign, selling it, a trade, waiting tables, college, dealing, married, in the papers, a secret life, missing), the bedroom (giving herself over, taking her, holding back, particular tastes, inexperience, two kinds of women), beliefs and manner (a woman's place, family first, disillusion, speaking out, wanting more, sacrifice, idleness, appetite, quiet ones, the life of the party, scatterbrained, exacting, scheming, mannish, soft ways, manners, a sharp tongue, leaning on someone, keeping face, showing love).
+- **Needs:** low hunger, energy, hygiene, health, company, fun and bladder bring their own lines.
+- **Roles:** each person's own ties toward the other (boss, working for, doctor, patient, teacher, parent, protecting, pursuing, rivalry, keeping someone) read differently for a man and a woman.
+- **The dynamic:** romance, heat, toxic, allies, family roles, distance and obsession each get a line about how the period sees it.
+- **Age and height** on their own: an unmarried woman at 27, a man of draft age, a woman past 45, a tall woman, a short man.
+- **Places:** bars, hotel rooms, the all-night diner, the office, mourning, out of reach, dining out, in public, the police, after dark and the beach, from the setting facts.
+
 ## 1.56.0: the moon-phase panel, ties that talk to the dynamic, and a 1960s that reads him and her differently
 
 ### A new panel

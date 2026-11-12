@@ -14,7 +14,7 @@ import { fill as fillDynamic } from '../engine/dynamics.js';
 import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, LENS_TRIGGERS, eraLenses } from '../engine/era-lenses.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { coreLink, moodLink, roleLink, tieLink } from '../engine/links.js';
-import { cleanAge } from '../engine/turns.js';
+import { cleanAge, heightCm } from '../engine/turns.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
 import { MOOD_PACE, SHORT_FUSE, temperPace } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
@@ -181,7 +181,9 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
     const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched,
         cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0, moods: { n: state.moods ?? {}, u: mine?.enabled ? mine.moods ?? {} : {} },
-        ages: cleanAge(state.age) && cleanAge(mine?.age) ? { n: cleanAge(state.age), u: cleanAge(mine.age) } : null,
+        ages: { n: cleanAge(state.age), u: mine?.enabled ? cleanAge(mine.age) : '' }, heights: { n: heightCm(state.height), u: mine?.enabled ? heightCm(mine.height) : 0 },
+        ties: { n: relMoods, u: yourSide }, needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
+        dynGroup: bd?.dynamic.group ?? '', wed: strongIn(pairMoods, ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience']),
         medicine: touched.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
     const links = [];

@@ -13,7 +13,7 @@ import { knowledgeEntry } from '../engine/state.js';
 import { fill as fillDynamic } from '../engine/dynamics.js';
 import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, LENS_TRIGGERS, eraLenses } from '../engine/era-lenses.js';
 import { effectiveChat } from '../engine/ledger.js';
-import { coreLink, moodLink, roleLink, tieLink } from '../engine/links.js';
+import { coreLink, moodClash, moodLink, roleLink, tieLink } from '../engine/links.js';
 import { cleanAge, heightCm } from '../engine/turns.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
 import { MOOD_PACE, SHORT_FUSE, temperPace } from '../engine/moodpace.js';
@@ -73,7 +73,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
         const links = sceneLinks({ ch, state, mine, story, bond, bd, n, u });
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond) });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -195,6 +195,10 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         const mood = topMood ? moodLink({ label: topMood.label, family: topMood.category, value: state.moods[topMood.id] }, bd.dynamic, n) : '';
         if (mood && links.length < 3) links.push(pronounize(mood, n, u));
     }
+    // Where their moods don't match right now: one line at most, and only on some replies.
+    const word = id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase();
+    const clash = mine?.enabled ? moodClash({ n: state.moods, u: mine.moods }, { n, u }, word, settings().moodClash, ctx().chat?.length ?? 0) : '';
+    if (clash) links.push(pronounize(clash, n, u));
     return { lenses, links };
 }
 // The feelings on a character's list, as the plain names the hidden line uses (first part of the label).

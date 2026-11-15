@@ -2,8 +2,9 @@
 import { KEY, ctx } from './state.js';
 import { clamp } from '../engine/util.js';
 import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
+import { CLASH_CHOICES } from '../engine/links.js';
 
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, needsMood: true };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes' };
 export function settings() {
     const c = ctx();
     c.extensionSettings[KEY] ??= structuredClone(defaults);
@@ -45,11 +46,12 @@ export function settings() {
         needsDrift: saved.needsDrift !== false, needsSpeed: ['gentle', 'normal', 'harsh'].includes(saved.needsSpeed) ? saved.needsSpeed : 'normal',
         needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
         showsMode: ['all', 'mine', 'off'].includes(saved.showsMode) ? saved.showsMode : 'all',
+        moodClash: CLASH_CHOICES.includes(saved.moodClash) ? saved.moodClash : 'sometimes',
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.
         eraLines: ERA_LINE_CHOICES.includes(Number(saved.eraLines)) ? String(saved.eraLines) : '3',
         // The Wants tab can be hidden (wants you already set still go to the story), and the faint "why" lines too.
-        wantsTab: saved.wantsTab !== false, whyOn: saved.whyOn !== false, needsMood: saved.needsMood !== false,
+        wantsTab: saved.wantsTab !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,
     });
 }

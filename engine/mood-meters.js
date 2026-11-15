@@ -97,6 +97,19 @@ const NUDGES = [
     [['icy', 'icy_contempt', 'contemptuous', 'dismissive', 'unmoved', 'bored_of_them', 'disgusted', 'creeped_out'], { f: -1, r: -1 }],
     [['grateful', 'grateful_joy', 'platonic_love', 'grudging_fondness', 'fond_exasperation', 'welcoming', 'tender_teasing', 'reunited', 'inseparable', 'chosen_belonging', 'contagious_possibility', 'naughty_fun'], { f: 1 }],
     [['ghosting', 'avoidant', 'withdrawn', 'closed_off', 'distant', 'detached', 'frosty_politeness', 'stonewalling', 'indifferent'], { f: -1, op: -1 }],
+    // conditioning, the clinical eye, secrecy, appearances, fear, rivalry, shame and devotion
+    [['conditioning', 'mindfuck', 'playing_god', 'breaking_will', 'gaslighting', 'paternalistic_control'], { cd: 1 }],
+    [['clinical', 'clinical_cruelty', 'taking_notes', 'bedside_manner', 'experimenter_role', 'detective_mind'], { cl: 2 }],
+    [['curious', 'morbid_curiosity', 'observant', 'focused', 'businesslike'], { cl: 1 }],
+    [['lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'plausible_deniability', 'confessing_to_no_one'], { se: 2, op: -1 }],
+    [['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'performative', 'playing_nice', 'forced_cheer'], { ap: 2, op: -1 }],
+    [['status_panic', 'embarrassed'], { ap: 1 }],
+    [['dread_of_them', 'cowed', 'eggshells', 'jumpy', 'spooked', 'prey_instinct', 'terrified_awe', 'dreading_punishment', 'skin_crawling'], { fe: 2, p: -1 }],
+    [['afraid', 'uneasy', 'creeped_out', 'cornered', 'trapped'], { fe: 1 }],
+    [['competitive_streak', 'out_to_win', 'competing_for_them', 'gloating', 'dared', 'proud', 'smug'], { ri: 1 }],
+    [['ashamed', 'guilty_lust', 'hiding_arousal', 'sexual_shame', 'sinful_desire', 'self_directed_rage'], { sh: 2 }],
+    [['embarrassed', 'feeling_small', 'guilt_sick'], { sh: 1 }],
+    [['worshipful', 'devoted', 'wants_praise', 'desperate_for_approval', 'performing_obedience', 'devotion_quiet', 'fawning', 'helpful', 'service_giving'], { dv: 1 }],
     // feelings with a family default that aren't really about the player
     [['unbothered', 'dead_eyed', 'empty', 'numbed_out', 'emotionally_starved_cold', 'caught_out', 'devoted_to_a_ghost', 'status_panic', 'fear_of_owing', 'out_of_place', 'squeamish', 'waiting_for_bad_news', 'disoriented', 'spooked', 'stage_fright', 'second_guessing', 'hangry', 'angry_at_the_dead', 'hiding_it_from_family', 'partying_it_off', 'confessing_to_no_one', 'hiding_evidence', 'righteous', 'vindicated'], {}],
 ];

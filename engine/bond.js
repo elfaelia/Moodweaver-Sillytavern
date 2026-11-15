@@ -9,6 +9,8 @@ import { cleanMore, computeMore, moreLines, MORE_METERS } from './meters.js';
 import { pronounize } from './pronouns.js';
 import { DYNAMICS, DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
 import { matchDynamic, fill } from './dynamics.js';
+import { MOODS } from '../data/catalogue.js';
+const MOOD_CATEGORY = new Map(MOODS.map(m => [m.id, m.category]));
 export const stripBond = stripWeave;
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 // f friendship, r romance, t trust, p control (who really holds it; + is the character), l pull (who is
@@ -86,13 +88,82 @@ const freeDynamic = (text, n, u) => {
     const t = String(text).replace(/\s+/g, ' ').trim().slice(0, 40), name = t.charAt(0).toUpperCase() + t.slice(1);
     return { name, key: name, cue: `${n} and ${u}: ${t.toLowerCase()}. It decides how they act together: who gives way, what gets said and how close they stand`, group: 'own', tone: 'rose', covers: [] };
 };
+// What's on the cards right now that suits some kinds of dynamic more than others: { groups: { group: 0..1 },
+// ties: Set of tie ids }. Built in replies.js (bondAxes) from both people's moods, their ties and a mood clash.
+// A mood family leans toward these kinds of dynamic.
+const FAMILY_LEAN = {
+    desire: ['heat'], closeness: ['romance'], love: ['romance'], attachment: ['obsess'], cold: ['distance', 'secret'], cruel: ['toxic', 'captor', 'mind'],
+    angry: ['toxic', 'allies'], scared: ['captor', 'mind'], bold: ['power', 'allies'], happy: ['romance', 'allies'], masks: ['secret', 'society'], sad: ['distance', 'toxic'],
+    headspace: ['mind'], bed_roles: ['power', 'heat'], psychosexual: ['heat', 'toxic'],
+};
+// Single feelings that point somewhere their family doesn't.
+const MOOD_LEAN = {
+    clinic: ['clinical', 'taking_notes', 'clinical_cruelty', 'curious', 'morbid_curiosity', 'bedside_manner', 'experimenter_role', 'test_subject', 'medicated', 'sedated', 'hospital_ward', 'playing_god'],
+    mind: ['gaslighting', 'manipulative', 'hypnotised', 'brainwashed', 'conditioned', 'conditioning', 'dissociating', 'in_denial', 'mindfuck', 'confused', 'disoriented', 'performing_obedience'],
+    secret: ['lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'secretive', 'plausible_deniability', 'blackmailing'],
+    society: ['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'gossipy', 'traditional', 'status_panic', 'married_status', 'engaged_status'],
+};
+const MOOD_LEAN_BY_ID = new Map();
+for (const [g, ids] of Object.entries(MOOD_LEAN)) for (const id of ids) MOOD_LEAN_BY_ID.set(id, [...(MOOD_LEAN_BY_ID.get(id) ?? []), g]);
+// Ties (either side, or both ways) that lean toward a kind of dynamic.
+const TIE_LEAN = {
+    captor: ['captor_of', 'captive_of', 'keeps_them', 'captor_captive', 'gilded_cage', 'spoiled_captive', 'held_by_threat', 'stockholm'],
+    power: ['has_power_over', 'under_power', 'boss_of', 'works_for', 'dominates', 'submits_to', 'controls', 'power_imbalance', 'employs_in_house', 'in_service_to'],
+    obsess: ['obsessed', 'theyre_mine', 'cant_let_go', 'idolises', 'stalks', 'wants_to_capture', 'obsessive_love', 'mutually_possessive', 'worship_and_ruin', 'folie_a_deux'],
+    romance: ['in_love', 'loves', 'smitten', 'crush', 'courting', 'dating', 'engaged', 'married', 'lovers', 'slow_burn', 'mutual_pining', 'soulmates'],
+    heat: ['lusts_after', 'finds_hot', 'turned_on_by', 'friends_with_benefits', 'fast_chemistry_slow_trust', 'casual', 'addicted_to_each_other'],
+    toxic: ['toxic', 'on_off', 'love_hate', 'trauma_bond', 'hate_need', 'push_and_pull', 'love_bomb_cycle', 'bad_blood', 'codependent_pair', 'resents', 'hurt_by'],
+    allies: ['rival', 'rivals', 'enemies', 'frenemies', 'partners_in_crime', 'ride_or_die', 'comrades', 'teammates', 'reluctant_allies', 'bonnie_and_clyde'],
+    roles: ['parent_of', 'child_of', 'guardian_of', 'ward_of', 'siblings', 'family', 'mentor', 'student_of', 'teacher_of', 'in_laws', 'co_parents'],
+    distance: ['strangers', 'acquaintances', 'avoids', 'cold_shoulder', 'estranged_family', 'exes', 'growing_apart', 'long_distance'],
+    clinic: ['doctor_of', 'patient_of', 'scientist_and_subject', 'studies', 'creator_of', 'creation_of', 'nurses', 'nurse_and_wreck'],
+    mind: ['manipulates', 'wants_to_mould', 'wants_to_break', 'wants_to_corrupt', 'made_to_need', 'brings_out_worst'],
+    secret: ['affair', 'secret_relationship', 'hides_life_from', 'never_told', 'mutual_blackmail', 'shared_alibi', 'pretend_strangers', 'covers_for', 'killer_couple', 'knows_what_they_are'],
+    society: ['arranged_marriage', 'marriage_of_convenience', 'class_divide', 'neighbours', 'office_romance', 'fake_dating', 'forbidden_love', 'courting_pair'],
+};
+// moods: [his, yours]; ties: { id: value } from every side; clash: a group the current mood clash leans to;
+// text: the latest replies, whose words lift dynamics with matching keywords.
+export function dynamicLean(moods = [], ties = {}, clash = '', text = '') {
+    const score = {}, add = (g, w) => { score[g] = (score[g] ?? 0) + w; };
+    for (const st of moods) for (const [id, v] of Object.entries(st ?? {})) {
+        if (v < 41) continue;
+        const w = v >= 61 ? 1 : 0.6;
+        for (const g of FAMILY_LEAN[MOOD_CATEGORY.get(id)] ?? []) add(g, w);
+        for (const g of MOOD_LEAN_BY_ID.get(id) ?? []) add(g, w * 1.5);
+    }
+    const tieSet = new Set(Object.entries(ties).filter(([, v]) => v >= 41).map(([id]) => id));
+    for (const [g, ids] of Object.entries(TIE_LEAN)) for (const id of ids) if (tieSet.has(id)) add(g, 2);
+    if (clash) add(clash, 2);
+    // Spread out to 0..1 against the strongest, so one busy card can't swamp the meters.
+    const top = Math.max(1, ...Object.values(score));
+    const words = new Set(String(text).toLowerCase().replace(/<[^>]*>/g, ' ').split(/[^a-z']+/).filter(w => w.length > 3).map(keyStem));
+    return { groups: Object.fromEntries(Object.entries(score).map(([g, v]) => [g, v / top])), ties: tieSet, words };
+}
+const keyStem = w => w.replace(/(ing|ed|es|s)$/, '');
+// Each row's keywords, stemmed, read once.
+const ROW_WORDS = new Map();
+const rowWords = row => { let w = ROW_WORDS.get(row); if (!w) ROW_WORDS.set(row, w = new Set(String(row[4] ?? '').toLowerCase().split(/[^a-z']+/).filter(x => x.length > 3).map(keyStem))); return w; };
+// How far context can lift a row: a fully favoured kind can beat rows up to this share of the list ahead of it,
+// at Steady pace. Quicker paces let the moods of the moment steer more, slower ones less (lean.weight).
+const LEAN_WEIGHT = 0.45, TIE_WEIGHT = 0.3, PICK_WEIGHT = 2, WORD_WEIGHT = 0.05;
 // fixed: a dynamic the player chose; it replaces the automatic reading. pool: names the player picked for
-// this pair; the meters try those first.
-function dynamicOf(d, n = 'one', u = 'the other', fixed = '', pool = []) {
+// this pair; those come first. lean: dynamicLean(). skip: a group to leave out (the secondary dynamic).
+// Every row whose test passes is scored: earlier (more specific) rows score higher, and lean lifts the kinds
+// that fit what's on the cards. "Strangers" always passes, so there's always an answer.
+function dynamicOf(d, n = 'one', u = 'the other', fixed = '', pool = [], lean = null, skip = '') {
     const rows = dynamicRows();
     if (fixed) { const row = rows.find(([dn]) => dn === fixed); return row ? asDynamic(row, n, u) : freeDynamic(fixed, n, u); }
-    const picked = new Set(pool), ordered = picked.size ? [...rows.filter(r => picked.has(r[0])), ...rows.filter(r => !picked.has(r[0]))] : rows;
-    return asDynamic(ordered.find(([, test]) => test && test(d)), n, u);
+    const picked = new Set(pool), len = rows.length;
+    let best = null, bestScore = -Infinity;
+    rows.forEach((row, i) => {
+        const [name, test, , group, , covers] = row;
+        if (!test || (skip && group === skip && name !== 'Strangers') || !test(d)) return;
+        const score = (picked.has(name) ? PICK_WEIGHT : 0) + (1 - i / len) + (lean?.groups?.[group] ?? 0) * LEAN_WEIGHT * (lean?.weight ?? 1)
+            + ((covers ?? []).some(id => lean?.ties?.has(id)) ? TIE_WEIGHT : 0)
+            + (lean?.words?.size ? Math.min(3, [...rowWords(row)].filter(w => lean.words.has(w)).length) * WORD_WEIGHT : 0);
+        if (score > bestScore) { best = row; bestScore = score; }
+    });
+    return asDynamic(best, n, u);
 }
 // The story's newest call on the dynamic (a hidden line's "dynamic:"), or the scene reader's if that's newer.
 // Read from the replies still in the chat, so a swipe takes its call with it.
@@ -138,7 +209,7 @@ export function cleanBond(raw = {}, on = true) {
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
         // One pace for everything this character feels here: meters, feelings (MOOD_PACE) and desire.
-        mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced', offered: Array.isArray(b.offered) ? b.offered.filter(x => typeof x === 'string').slice(-40) : [],
+        under: b.under !== false, mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced', offered: Array.isArray(b.offered) ? b.offered.filter(x => typeof x === 'string').slice(-40) : [],
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
         pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
@@ -206,7 +277,11 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     }));
     const ds = bond.desire?.on ? computeDesire(bond, all).a : undefined;
     const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
-    const meters = dynamicOf(axesNow, n, u, '', bond.pool);
+    const ctxLean = axes?.lean ? { ...axes.lean, weight: 0.6 + 0.4 * pace.lean } : null, meters = dynamicOf(axesNow, n, u, '', bond.pool, ctxLean);
+    // The secondary dynamic: read from where the meters have settled (no lean on the last few replies), from
+    // a different kind than the main one, and slower to change. It's what runs under the main one.
+    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}) };
+    const underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean, meters.group) : null;
     const call = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, called = call ? resolveCall(call.text, n, u, bond.pool) : null;
     // No flicker. A dynamic read from the meters takes over once it has won two replies running; until
     // then the last one holds and the card says what it's moving toward. Volatile switches straight away.
@@ -216,10 +291,17 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         if (before.key !== meters.key) shown = { ...before, toward: meters.name };
     }
     const dynamic = bond.fixed ? dynamicOf(axesNow, n, u, bond.fixed) : called ?? shown;
+    // It changes only when the new one has also held two and four replies back; until then the older one stays.
+    let under = underRaw;
+    if (under && !raw && all.length >= 4) {
+        const back = [2, 4].map(k => computeBond(bond, chatLength, n, u, axes, all.slice(0, -k), true).underRaw);
+        if (back.some(b => b?.key !== underRaw.key)) under = back[1] ?? underRaw;
+    }
+    if (under && (under.group === dynamic.group || under.key === 'Strangers')) under = null;
     const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic, auto: meters.name, byMeters: meters, source, call: called ? { ...call, name: called.name } : null, trend };
+        dynamic, auto: meters.name, byMeters: meters, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.
@@ -267,6 +349,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
     return [
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
+        ...(bond.extra && d.under ? [`underneath it, slower to change, ${low(d.under.name)}: ${pt(d.under.cue)}. It colours the main dynamic rather than replacing it`] : []),
         ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(t.text)).join(', ')}`] : []),
         ...moreLines(bond.more, list ?? [], pt(n), pt(u), paceOf(bond).cap),
         ...desireLines(bond, list ?? [], pt(n), pt(u)),

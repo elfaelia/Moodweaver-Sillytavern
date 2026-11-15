@@ -34,14 +34,14 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
     const memories = pair?.memories ?? [];
     const whoOptions = [['both', 'Both remember'], [selfKey, `Only ${subject} remembers`], [otherKey, `Only ${selected.name} remembers`]];
     const body = view === 'mem' ? `
-        <p class="mw-fine">Moments that really happened between them. Memories at clear or above are sent, and the stronger one is, the more it comes back.</p>
+        <p class="mw-fine">Moments that happened between them.</p>
         <input type="search" data-filter-list="memories" placeholder="Find a saved memory…" aria-label="Search memories">
         ${memories.map(m => `<div class="mw-mood mw-own" data-memory-row="${esc(m.id)}" data-filter-item="memories" data-search="${esc(m.text)}"><div class="mw-row-head"><input type="text" class="mw-own-text" data-mem-text="${esc(m.id)}" maxlength="160" value="${esc(m.text)}" aria-label="Memory">${m.boardText && m.text === m.boardText ? '<small class="mw-fine" title="Saved from the info board. Edit it or move its slider to keep it for good.">📌</small>' : ''}<span data-lvl>${level(m.value)}</span><output>${m.value}%</output><button type="button" class="mw-list" data-mem-remove="${esc(m.id)}" title="Forget this" aria-label="Forget this">×</button></div>
             <input type="range" min="0" max="100" step="1" value="${m.value}" data-mem="${esc(m.id)}" style="--mw-fill:${m.value}%" aria-label="How often it comes back">
             <select data-mem-who="${esc(m.id)}" aria-label="Who remembers">${whoOptions.map(([v, l]) => `<option value="${esc(v)}" ${m.who === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></div>`).join('')}
         <p class="mw-fine" data-filter-empty="memories" hidden>No matching memories.</p>
         <div class="mw-cast-add"><input type="text" data-mem-new maxlength="160" placeholder="e.g. they met at the gallery opening" aria-label="New memory"><button data-action="mem-add">＋ Remember</button></div>` : view === 'both' ? `
-        <p class="mw-fine">True for both of them and sent once. Use ${esc(subject)}’s side for anything one-way.</p>
+        <p class="mw-fine">True for both of them.</p>
         ${pair ? `<div class="mw-cast-presence"><label class="mw-toggle"><input type="checkbox" data-pair-enabled ${pair.enabled !== false ? 'checked' : ''}> Send this</label><button data-action="pair-clear">Clear</button></div>` : ''}
         <input type="search" data-relation-search placeholder="Find a status or trope…" aria-label="Search">
         <div class="mw-categories mw-relation-groups">${groupsHtml(SHARED_CATEGORIES, shared, openGroups, ([id, label, cue]) => sliderRow('pair-slider', id, label, cue, shared[id] ?? 0))}</div>` : `

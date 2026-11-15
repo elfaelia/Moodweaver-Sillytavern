@@ -21,17 +21,21 @@ You and the main character sit at the top as two matching cards (tap one to swit
 
 | Dock | Tabs | What they hold |
 |---|---|---|
-| ☾ Heart | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
-| ♥ Between | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 250) and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
-| ◔ Body | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts |
+| ☾ Mood | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
+| ♥ Relations | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 440, in 13 groups) with a slower second one underneath, and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
+| ◔ Info | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts |
 | ❂ Self | Traits, Skills, Wants | Who they are (★ makes a trait core, up to three), skill levels out of 10, and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
 | ✦ Story | | Era, genre, tropes, stakes, writing style and authors, shared by everyone in the chat |
 
 **Moons.** Feelings, traits and facts are set by tapping a moon: eight phases from faint to maximum, and a dark new moon for off. Tapping the moon it's already on (or the level word) clears it. No dragging.
 
-**Facts run their course.** Being drunk, bleeding, soaked or concussed wears off by the clock on the info board (or about ten minutes a reply without one), turns into what comes after (drunk into hungover), and stirs the feelings that go with it. A time skip moves it on; undoing or swiping a reply puts it back.
+**Facts run their course.** Every "right now" fact (body, bedroom, substances) wears off by the clock on the info board (or about ten minutes a reply without one) unless the story keeps naming it, turns into what comes after (drunk into hungover), and stirs the feelings that go with it. The story puts facts on by itself: the character's from the board's Physical State, yours from the hidden line's list of what's true of you, which also takes yours off again once it stops listing them. Pin a fact to keep it. A time skip moves it on; undoing or swiping a reply puts it back.
+
+**Authors.** Each author shows their best-known books and, unless ⚙ Settings › Panel › Show how each author writes is off, a plain description of how they write. Claude gets the name, the books and a short line of technique, never their plots.
 
 **Why is this on?** A faint line under a feeling says what put it there when it wasn't you (the story raised it, a fact brought it, it's wearing off). ⚙ Settings › Panel › Show why turns it off.
+
+**When their moods clash.** If your feelings and theirs don't match right now (happy and angry, wanting it and tired, romantic without the heat, both wanting the lead), one line can tell the story it may rub, or not. Only the strongest mismatch, at most one line, and only on some replies. Traits never clash, so opposites can still attract; bed roles only snag when one of you is in the mood. ⚙ Settings › What is sent › When their moods clash: Off, Now and then (about one reply in three, the default) or Often (about two in three).
 
 **Pace.** Pick Slow burn, Steady, Quick or Volatile under Speed on the Moods card and feelings, meters and desire all move at it. Needs drain on their own clock, and skills grow at their own pace (Skills tab). Traits shift it a little per character: volatile, impulsive people swing faster, steady ones slower, brooding ones hold on longer.
 

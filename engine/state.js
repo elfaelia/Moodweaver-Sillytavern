@@ -125,7 +125,8 @@ function canonical(obj, off) {
 // Up to three core traits: ids from the Traits tab that are on. Always sent, first, whatever the mood.
 export const CORE_MAX = 3;
 export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && sectionOf(BY_ID[id]) === 'trait' && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
-// How long each fact that runs its course has run (engine/moodpace.js factStep).
+// How long each fact that runs its course has run (engine/moodpace.js factStep). storyFacts: your facts the
+// story put on, which it takes off again when its list leaves them out (app/replies.js).
 const cleanClock = c => Object.fromEntries(Object.entries(c && typeof c === 'object' ? c : {}).filter(([id, v]) => BY_ID[id] && v && Number.isFinite(v.h) && Number.isFinite(v.v) && Number.isFinite(v.at)));
 export function extendCatalogue(state) {
     if (!state || extended.has(state)) return state;
@@ -137,6 +138,7 @@ export function extendCatalogue(state) {
     state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
     state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests);
     state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
+    state.storyFacts = [...new Set(Array.isArray(state.storyFacts) ? state.storyFacts : [])].filter(id => BY_ID[id]);
     state.wants = cleanWants(state.wants); state.readScope = cleanScope(state.readScope);
     state.follow = clamp(state.follow ?? 90, 10, 100);
     state.loadout = cleanLoadout(state.loadout, state);

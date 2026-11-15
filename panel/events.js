@@ -153,6 +153,7 @@ export async function onPanelChange(e) {
     if (input.hasAttribute('data-bond-extra')) { await editBond(b => { b.extra = input.checked; }); return; }
     if (input.hasAttribute('data-bond-dynamic')) { await editBond(b => { b.fixed = input.value; }); return; }
     if (input.hasAttribute('data-dyn-nudge')) { await editBond(b => { b.nudge = input.checked; }); return; }
+    if (input.hasAttribute('data-dyn-under')) { await editBond(b => { b.under = input.checked; }); return; }
     if (input.hasAttribute('data-bond-ties')) { await editBond(b => { b.ties = input.value; }); return; }
     if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
     if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }

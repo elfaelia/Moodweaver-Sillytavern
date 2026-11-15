@@ -31,8 +31,8 @@ function wantRow(w, status = '') {
 export function wantsView(state, ch) {
     const items = state.wants ?? [], name = subjectName(), done = items.filter(w => w.done);
     const react = ui.who === 'char' ? reactions(ch) : null, storyDone = react ? items.filter(w => !w.done && react.done.has(w.id)) : [];
-    const intro = ui.who === 'user' ? `What ${esc(name)} is after and afraid of. ${esc(ch.name)} doesn’t know these unless you show them, but the story gives you openings now and then and brushes up against your fears.`
-        : `What drives ${esc(name)}. Each reply they take a step toward the strongest want when the scene allows, and the hidden line reports what moved: these light up when the story pushes them closer, blocks them, touches a fear or presses a hot button.`;
+    const intro = ui.who === 'user' ? `${esc(ch.name)} doesn’t know these unless you show them.`
+        : 'They light up when the story moves them closer, blocks them or touches a fear.';
     return `<section class="mw-wants"><p class="mw-explainer">${intro}</p>
         ${storyDone.length ? `<div class="mw-want-card mw-want-story" style="--mw-accent:#8fd18a"><div class="mw-want-head"><span class="mw-want-icon">✓</span><div><b>The story says these came true</b><small>No longer sent. Swiping that reply brings them back.</small></div></div>
             ${storyDone.map(w => `<div class="mw-done-row"><span>${WANT_META[w.kind][0]} ${esc(w.text)}</span><button type="button" class="mw-list" data-want-done="${esc(w.id)}" title="Keep it done">✓</button><button type="button" class="mw-list" data-want-notyet="${esc(w.id)}" data-at="${react.doneAt.get(w.id) ?? -1}" title="Not yet: keep sending it">↺</button></div>`).join('')}</div>` : ''}
@@ -47,7 +47,7 @@ export function wantsView(state, ch) {
         }).join('')}
         ${done.length ? `<details class="mw-want-done" data-want-done-list><summary>Came true or let go <small>${done.length}</small></summary>${done.map(w => `<div class="mw-done-row"><span>${WANT_META[w.kind][0]} ${esc(w.text)}</span><button type="button" class="mw-list" data-want-restore="${esc(w.id)}" title="Bring back">↺</button><button type="button" class="mw-list" data-want-remove="${esc(w.id)}" title="Delete">×</button></div>`).join('')}</details>` : ''}
         ${ui.who === 'char' ? `<label class="mw-toggle mw-wants-tip"><input type="checkbox" data-setting-bool="wantSuggest" ${settings().wantSuggest ? 'checked' : ''}> Let the story suggest new wants (when there are fewer than three)</label>` : ''}
-        <p class="mw-fine mw-wants-tip">Needs the hidden weave line (Bonds tab). The scene reader’s ☆ Wants switch still works too.</p>
+        <p class="mw-fine mw-wants-tip">Needs the hidden line, which comes with Bonds.</p>
     </section>`;
 }
 // Your own character's tab. No needs (you play them): what you're wearing, what the story has done

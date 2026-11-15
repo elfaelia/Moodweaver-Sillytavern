@@ -41,13 +41,15 @@ export function moons(m, value) {
         return `<button type="button" class="mw-moon ${lit ? 'is-lit' : ''} ${here ? 'is-now' : ''}" data-moon="${m.id}" data-v="${MOON_AT[i]}" aria-pressed="${here}" aria-label="${t.name}" title="${t.name}" style="--mw-phase:${Math.round((i + 1) / 8 * 100)}%"><span></span></button>`; });
     return `<div class="mw-moons" role="group" aria-labelledby="mw-${m.id}"><button type="button" class="mw-moon is-new ${value ? '' : 'is-now'}" data-moon="${m.id}" data-v="0" aria-pressed="${!value}" aria-label="Off" title="Off"><span></span></button>${phases.join('')}</div>`;
 }
+// An author's books, and (Settings › Panel) how they write, under the row.
+const authorLines = m => m.books ? `<small class="mw-books">${esc(m.books.replaceAll("; ", " · "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
 export function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
         <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${coreButton(m, state)}${listButton(m.id, state)}</div>
         ${moons(m, value)}
-        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
+        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
 }
 // On an active feeling, how it shows on this person. Empty uses the default wording (the placeholder).
 const showsBox = (m, state) => analysed(m) && ON_PAGE[m.id] && settings().showsMode !== 'off' ? `<input type="text" class="mw-cause mw-shows" data-shows="${m.id}" maxlength="120" value="${esc(state.shows?.[m.id] ?? '')}" placeholder="${settings().showsMode === 'mine' ? 'your wording (default is off): ' : 'shows as: '}${esc(ON_PAGE[m.id])}" title="How it shows on ${esc(subjectName())}. Leave empty for: ${esc(ON_PAGE[m.id])}" aria-label="How it shows on them">` : '';
@@ -69,8 +71,7 @@ export function turnRow(t, state) {
 // What they carry, at the bottom of Facts (and your You tab). Ticked items are sent; unticked ones stay saved.
 export function inventoryView(state, ch) {
     const items = state.inventory ?? [], carried = items.filter(i => i.carried).length;
-    const intro = ui.who === 'user' ? `You decide when ${esc(playerName())} uses them; ${esc(ch.name)} only knows what they could see.`
-        : 'Claude reaches for them when the moment fits, never just to show them off.';
+    const intro = ui.who === 'user' ? `${esc(ch.name)} only knows what they could see.` : 'Used when the moment fits.';
     return `<section class="mw-inventory" data-anchor="carrying">
         <h5 class="mw-fact-head">Carrying <small>${items.length ? `${carried} sent${items.length > carried ? ` · ${items.length - carried} put away` : ''}` : 'a gun, a key, a letter'}</small></h5>
         ${items.length ? `<div class="mw-inv-list">${items.map(i => `<div class="mw-inv-item ${i.carried ? '' : 'is-stored'}" data-inv-row="${esc(i.id)}">
@@ -79,6 +80,6 @@ export function inventoryView(state, ch) {
             <input type="text" class="mw-inv-note" data-inv-note="${esc(i.id)}" maxlength="80" value="${esc(i.note)}" placeholder="where / details (optional)" aria-label="Where or details"></div>
             <button type="button" class="mw-list" data-inv-remove="${esc(i.id)}" title="Delete" aria-label="Delete ${esc(i.text)}">×</button></div>`).join('')}</div>` : ''}
         <div class="mw-cast-add mw-inv-add"><input type="text" data-inv-new maxlength="60" enterkeyhint="done" placeholder="Add something they carry…" aria-label="New item"><button data-action="inv-add">＋ Add</button></div>
-        <p class="mw-fine">${intro} Untick to put something away without deleting it.</p>
+        <p class="mw-fine">${intro} Untick to put something away.</p>
     </section>`;
 }

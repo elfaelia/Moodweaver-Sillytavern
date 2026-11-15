@@ -6,14 +6,14 @@ import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry } from '../engine/state.js';
 import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
-import { METERS, cleanBond, computeBond, computeDesire, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
+import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
 import { MORE_METERS, computeMore, saidMeters } from '../engine/meters.js';
 import { withFacts, withNudges } from '../engine/mood-meters.js';
-import { OFFER_AFTER, tieOffer } from '../engine/links.js';
+import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
@@ -302,8 +302,13 @@ export function knowledgeNow(ch, chat = liveChat()) {
 export function bondAxes(ch, bond = null) {
     const st = getState(ch), rel = st ? userRelation(st) : null;
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')];
-    const axes = sliderAxes(rel && rel.enabled !== false ? rel.moods ?? {} : {}, pair?.enabled !== false ? pair?.moods ?? {} : {}, yourSide(ch));
-    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char) };
+    const his = rel && rel.enabled !== false ? rel.moods ?? {} : {}, shared = pair?.enabled !== false ? pair?.moods ?? {} : {}, yours = yourSide(ch);
+    const axes = sliderAxes(his, shared, yours), me = getUserState(), myMoods = me?.enabled ? me.moods ?? {} : {};
+    // What's on the cards leans the dynamic toward the kinds that fit it (moods, ties, a clash between their moods).
+    const clash = clashOf({ n: st?.moods ?? {}, u: myMoods }, { n: 'n', u: 'u' }, id => id);
+    const recent = (ctx().chat ?? []).slice(-4).filter(m => m && !m.is_system).slice(-2).map(m => m.mes ?? '').join(' ');
+    const lean = dynamicLean([st?.moods, myMoods], { ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
+    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean };
 }
 // Why each mood or fact is where it is, from the replies still in the chat: raised by the story, brought by a
 // fact, wearing off, fading. who: 'char' or 'user' (yours only change when a fact runs its course). Anything you
@@ -419,6 +424,21 @@ function runFacts(st, hours, named, feel = false, hold = null) {
     return { m, fx, fc };
 }
 const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(moved)) rec.m[id] = [rec.m[id]?.[0] ?? a, b]; };
+// A fact the story names that isn't on yet comes on at this strength, then runs its course like any other.
+const FACT_ON = 50;
+// Facts the story says are true now: the character's from the board's Physical State, yours from the hidden
+// line's "you" list. Those come on; yours the story put on and has since left off the list come off (it gives
+// the full list each reply, so leaving one off means it's over: full). Pinned facts and ones you set yourself
+// stay; the character's come off by running their course. Returns { id: [before, after] } and notes why in fx.
+function storyFacts(st, named, fx, hold = null, full = false) {
+    const moved = {}, set = (id, v, why) => { moved[id] = [st.moods[id] ?? 0, v]; st.moods[id] = v; fx[id] = why; };
+    const added = new Set(st.storyFacts ?? []);
+    for (const id of named) if (!(st.moods[id] > 0) && !st.pins?.[id] && !hold?.m?.has(id)) { set(id, FACT_ON, 'the story put it on'); added.add(id); }
+    if (!full) return moved;
+    for (const id of added) if (!named.has(id)) { if (st.moods[id] > 0 && !st.pins?.[id]) set(id, 0, 'the story took it off'); added.delete(id); }
+    st.storyFacts = [...added];
+    return moved;
+}
 // hold: feelings you moved by hand after an earlier version of this same swipe (before it was continued
 // or its hidden line edited). They're yours now, so the new version leaves them alone.
 // asked: your message this reply answers, when it comes straight before it (so your skills count it once).
@@ -430,7 +450,14 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     // Time this reply covers, and the facts the story names in it, for facts running their course.
     const board = parseBoard(m.mes), hours = replyHours(prev ? parseBoard(prev.mes) : null, board, REPLY_HOURS);
     const factsNamed = new Set([...factsIn(board?.physical), ...factsIn(board?.state)]);
-    const facts = feel => { if (!b.feed) return; const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc; if (Object.keys(r.fx).length) rec.fx = r.fx; };
+    const facts = feel => {
+        if (!b.feed) return;
+        // What the board's Physical State names comes on first (the hidden line has had its say by now).
+        const fx = {};
+        if (st.moodAuto !== false) mergeMoved(rec, storyFacts(st, factsIn(board?.physical), fx, hold));
+        const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc;
+        Object.assign(fx, r.fx); if (Object.keys(fx).length) rec.fx = fx;
+    };
     if (w) {
         if (b.feed) {
             // Feelings the story names are matched to the catalogue. "Only my list" keeps the story to the
@@ -499,9 +526,19 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     }
     for (const id of Object.keys(rec.m)) if (st.moods[id] > 0 && Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id);
     if (rec.mem) notes.push('remembered a moment');
-    // Your facts run their course on the same clock (the hidden line's "you" list keeps the ones it names going).
+    // Your facts: what the hidden line's "you" list names comes on (and what it put on and then leaves off comes
+    // off), then they run their course on the same clock. The list keeps the ones it names going.
     const me = getUserState();
-    if (me?.enabled && b.feed) { const r = runFacts(me, hours, new Set([...(w?.you ?? []).flatMap(x => [...factsIn(x)]), ...factsIn(board?.physical)])); if (Object.keys(r.m).length) { rec.um = r.m; rec.uc = r.fc; rec.ufx = r.fx; me.revision = (me.revision || 0) + 1; } else if (JSON.stringify(r.fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = r.fc; }
+    if (me?.enabled && b.feed) {
+        const listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x)])), ufx = {}, sf = structuredClone(me.storyFacts ?? []), fc = structuredClone(me.factClock ?? {});
+        const um = w?.you ? storyFacts(me, listed, ufx, null, true) : {};
+        const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical)]));
+        for (const [id, [a, z]] of Object.entries(r.m)) um[id] = [um[id]?.[0] ?? a, z];
+        Object.assign(ufx, r.fx);
+        if (Object.keys(um).length) { rec.um = um; rec.ufx = ufx; me.revision = (me.revision || 0) + 1; notes.push(...Object.keys(um).filter(id => ufx[id]?.startsWith('the story')).map(id => `${playerName()}: ${labelOf(me, id).toLowerCase()}${me.moods[id] ? '' : ' off'}`)); }
+        if (rec.um || JSON.stringify(fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = fc;
+        if (JSON.stringify(sf) !== JSON.stringify(me.storyFacts ?? [])) rec.usf = sf;
+    }
     // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
     // from the message it answers.
     rec.sk = growSkills(st, stripWeave(m.mes), (w?.used ?? []).join(', '));
@@ -515,7 +552,7 @@ function undoReply(meta, writer, st, rec) {
     const backM = untrack(moodTarget(st), rec.m);
     if (rec.q) st.moodQuiet = structuredClone(rec.q);
     if (rec.fc) st.factClock = structuredClone(rec.fc);
-    if (rec.uc) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); me.factClock = structuredClone(rec.uc); me.revision = (me.revision || 0) + 1; } }
+    if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.storyFacts = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);

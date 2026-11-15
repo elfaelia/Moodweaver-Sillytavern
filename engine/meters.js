@@ -48,21 +48,40 @@ export const MORE_METERS = [
         (n, u) => `${n} stands by ${u} whatever it costs: covering for ${u}, staying when anyone sane would leave`, null, 'How bound they feel to you, even when they don’t like you.'],
     ['gd', 'Guidance', false, 0, 'guidance', [[81, 'shaping who they become'], [61, 'teaching them'], [41, 'guides them'], [21, 'gives advice'], [0, 'not teaching']],
         (n, u) => `${n} is teaching ${u} and steering who ${u} becomes: lessons, corrections, standards, and pride or disappointment in the result`, null, 'How much they teach and steer you, for better or worse.'],
+    // Eight for the clinic, the mind, secrets and society groups, and for fear, rivalry, shame and devotion anywhere.
+    ['cd', 'Conditioning', false, 0, 'conditioning', [[81, 'rewiring them'], [61, 'conditioning them'], [41, 'training habits'], [21, 'testing responses'], [0, 'not conditioning']],
+        (n, u) => `${n} is reshaping how ${u} thinks and reacts: cues, rewards and repetition, until ${u}'s responses start to look like ${n}'s design`, null, 'How far they’re reshaping your habits and mind.'],
+    ['cl', 'Clinical eye', false, 0, 'clinical', [[81, 'sees only a subject'], [61, 'studies them coldly'], [41, 'takes notes'], [21, 'professional interest'], [0, 'sees a person']],
+        (n, u) => `${n} looks at ${u} as a case: symptoms, measurements and responses, with the person behind them easy to forget`, null, 'How much they see you as a case or a subject.'],
+    ['se', 'Secrecy', false, 0, 'secrecy', [[81, 'a whole hidden life'], [61, 'keeps big secrets'], [41, 'hides things'], [21, 'holds a little back'], [0, 'nothing hidden']],
+        (n, u) => `${n} is hiding something real, from ${u} or with ${u} from everyone else: cover stories, lowered voices, things kept out of sight`, null, 'What’s kept hidden, from you or with you.'],
+    ['ap', 'Appearances', false, 0, 'appearances', [[81, 'ruled by what people think'], [61, 'keeps up a front'], [41, 'minds who’s watching'], [21, 'aware of eyes'], [0, 'doesn’t care who sees']],
+        (n, u) => `what other people would think shapes how ${n} treats ${u}: one face in public, another behind the door`, null, 'How much what other people think shapes it.'],
+    ['fe', 'Fear', false, 0, 'fear', [[81, 'terrified of them'], [61, 'afraid of them'], [41, 'wary of them'], [21, 'uneasy around them'], [0, 'not afraid']],
+        (n, u) => `${n} is afraid of ${u}: watches ${u}'s moods, picks words carefully, flinches or freezes`, null, 'How afraid they are of you.'],
+    ['ri', 'Rivalry', false, 0, 'rivalry', [[81, 'has to beat them'], [61, 'competing hard'], [41, 'keeping score'], [21, 'a little competitive'], [0, 'no contest']],
+        (n, u) => `${n} has to win against ${u}: every exchange is a contest, and losing stings more than it should`, null, 'How much it’s a contest.'],
+    ['sh', 'Shame', false, 0, 'shame', [[81, 'ashamed of wanting them'], [61, 'ashamed'], [41, 'embarrassed by it'], [21, 'self-conscious'], [0, 'unashamed']],
+        (n, u) => `${n} is ashamed of what ${n} feels or does with ${u}: hides it, punishes ${n}self or ${u} for it, and comes back anyway`, null, 'Shame about what’s between you.'],
+    ['dv', 'Devotion', false, 0, 'devotion', [[81, 'lives to serve them'], [61, 'devoted'], [41, 'eager to please'], [21, 'attentive'], [0, 'goes their own way']],
+        (n, u) => `${n} wants to please ${u} and serve ${u}'s wishes, and measures ${n}self by ${u}'s approval`, null, 'How much they live to please you.'],
 ];
 const MORE_KEYS = MORE_METERS.map(([k]) => k);
 const DEF = Object.fromEntries(MORE_METERS.map(m => [m[0], m]));
 export const moreWord = (k, v) => DEF[k][5].find(([min]) => v >= min)[1];
 // Quick picks for the characters you play most. They only switch meters on; you can change any of them.
 export const MORE_PRESETS = [
-    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn', 'ca', 'di']],
+    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn', 'ca', 'di', 'cd', 'cl']],
     ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op', 'gd', 'lu']],
     ['Joe', ['ob', 'pe', 'je', 'pr', 'kn', 'hu', 'gu']],
     ['Bateman', ['re', 'hu', 'op', 'fa', 'je', 'lu']],
     ['Rick', ['re', 'de', 'op', 'pr', 'gu', 'rs', 'ly']],
     // By kind of relationship rather than by character.
-    ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu']],
-    ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je']],
-    ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly']],
+    ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu', 'fe']],
+    ['Experiment', ['cl', 'cd', 'fa', 'kn', 'ca', 'di', 'co']],
+    ['Secret affair', ['se', 'ap', 'sh', 'lu', 'je', 'gu']],
+    ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je', 'ri']],
+    ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly', 'dv']],
     ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co']],
 ];
 export function cleanMore(raw) {

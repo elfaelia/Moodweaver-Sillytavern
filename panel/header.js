@@ -54,7 +54,7 @@ export function personCard(ch, state, live) {
     ${person ? `<details class="mw-cast-edit mw-manage"><summary>Manage ${esc(person.name)} and the cast</summary>
         <div class="mw-cast-add"><input type="text" data-field="castName" maxlength="80" aria-label="Supporting character name" value="${esc(person.name)}"><button data-action="cast-remove">Remove</button></div>
         <div class="mw-actions"><button data-action="cast-default">Save cast for ${esc(ch.name)}</button>${settings().castDefaults[`char:${ch.avatar}`]?.length ? '<button data-action="cast-load">Load saved cast</button>' : ''}</div>
-        <p class="mw-fine">The cast belongs to ${esc(ch.name)}’s chats. Saving it gives new ${esc(ch.name)} chats the same people, starting off scene. Rename by editing the name; relationships follow.</p></details>` : ''}
+        <p class="mw-fine">Saved casts carry over to ${esc(ch.name)}’s new chats.</p></details>` : ''}
     ${ui.castAction && ui.castAction !== 'adding' ? `<div class="mw-cast-confirm" role="group" aria-label="Confirm cast change"><p class="mw-fine">${ui.castAction === 'load' ? 'Replace this chat’s cast and its sliders with the saved version? Everyone will start off scene.' : `Remove ${esc(person?.name ?? '')} from this chat’s cast? The saved default will stay as it is.`}</p><div class="mw-actions"><button data-action="cast-${ui.castAction}-confirm">${ui.castAction === 'load' ? 'Load saved cast' : 'Remove'}</button><button data-action="cast-cancel">Cancel</button></div></div>` : ''}`;
 }
 // Five places on the dock at the bottom, each holding one to three tabs that show as chips at the top of
@@ -62,7 +62,7 @@ export function personCard(ch, state, live) {
 // Facts; on your own character Needs becomes You and your facts live there. Wants can be hidden in Settings.
 const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'],
     ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f']];
-export const DOCK = [['heart', '☾', 'Heart', ['mood']], ['between', '♥', 'Between', ['rel', 'turn', 'intimacy']], ['body', '◔', 'Body', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'skills', 'wants']], ['story', '✦', 'Story', []]];
+export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['body', '◔', 'Info', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'skills', 'wants']], ['story', '✦', 'Story', []]];
 export const dockOf = tab => DOCK.find(([, , , tabs]) => tabs.includes(tab))?.[0] ?? 'heart';
 export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'state' && who === 'user'))
     .map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row);

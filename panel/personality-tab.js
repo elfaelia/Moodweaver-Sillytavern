@@ -5,7 +5,7 @@ import { KNOWLEDGE_MODES, knowledgeEntry } from '../engine/state.js';
 
 export function personalityView(options) {
     return `<p class="mw-explainer">${options.isPlayer ? `Your persona’s types, never ${esc(options.focus)}’s. Strength is how plainly they come across to ${esc(options.focus)}.`
-        : 'Types show through choices, habits, how they argue and how they cope when things go wrong. They never get named in the story. Strength is how much they drive things.'} Use one system or both; they’re sent together.</p>`
+        : 'They show through choices and habits and are never named in the story.'} Use one system or both; they’re sent together.</p>`
         + typeView(options, 'personality') + typeView(options, 'enneagram');
 }
 function typeView({ state, isPlayer, focus, knowledge }, system) {
@@ -29,7 +29,7 @@ function typeView({ state, isPlayer, focus, knowledge }, system) {
             <input id="${key}-strength" type="range" min="0" max="100" value="${p.strength}" data-personality-system="${system}" data-personality="strength" style="--mw-fill:${p.strength}%" aria-valuetext="${p.strength} percent, ${level(p.strength)}"></div>
         ${isPlayer ? `<div class="mw-knowledge-row"><label for="${key}-knowledge">What ${esc(focus)} knows</label><select id="${key}-knowledge" data-knowledge="${system}">${KNOWLEDGE_MODES.map((v, i) => `<option value="${v}" ${v === entry.mode ? 'selected' : ''}>${['Scene only', 'Private', 'Suspected', 'Known'][i]}</option>`).join('')}</select>
             ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" data-knowledge-source="${system}" maxlength="120" value="${esc(entry.source)}" placeholder="How they learned it (optional)" aria-label="How they learned about this personality">` : ''}</div>` : ''}` : ''}
-        <details id="${key}-help"><summary>${en ? 'How Enneagram works' : 'What the letters mean'}</summary><p class="mw-fine">${en ? 'Nine core drives. Good and bad side are how that drive comes out, not whether someone is a good or bad person.' : 'E / I: outgoing or introverted. S / N: detail-focused or big-picture. T / F: logic-led or values-led. J / P: likes structure or goes with the flow.'}</p><p class="mw-fine">${en ? 'A wing is a neighbouring type that adds its flavour: 3w4 is an Achiever with an Individualist streak. ' : ''}Writing lenses, not diagnoses. Off or 0 sends nothing. Each type is sent inside its owner’s notes, so it can’t be read as anyone else’s.</p></details>
+        <details id="${key}-help"><summary>${en ? 'How Enneagram works' : 'What the letters mean'}</summary><p class="mw-fine">${en ? 'Nine core drives. Good or bad side is how the drive comes out.' : 'E / I: outgoing or introverted. S / N: detail-focused or big-picture. T / F: logic-led or values-led. J / P: likes structure or goes with the flow.'}</p><p class="mw-fine">${en ? 'A wing adds a neighbouring type’s flavour. ' : ''}Writing lenses, not diagnoses. Off or 0 sends nothing. Each type is sent inside its owner’s notes, so it can’t be read as anyone else’s.</p></details>
     </section>`;
 }
 

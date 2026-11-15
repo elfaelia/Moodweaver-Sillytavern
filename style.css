@@ -204,6 +204,8 @@
 .mw-row-head>span,.mw-row-head>output,.mw-bond-head>span,.mw-bond-scale>output{cursor:pointer;padding:6px 2px;margin:-6px -2px;text-decoration:underline dotted #ffffff30;text-underline-offset:3px;-webkit-tap-highlight-color:transparent}
 .mw-row-head output,.mw-row-head o{min-width:34px;text-align:right;font:600 12px var(--mw-round);color:var(--mw-accent);font-variant-numeric:tabular-nums}
 .mw-mood>small{display:block;margin-top:2px;font-size:11px;line-height:1.45;color:var(--mw-faint)}
+.mw-mood>small.mw-books{font-style:italic}
+.mw-mood>.mw-style{margin:4px 0 0;font-size:12px;line-height:1.5;color:var(--mw-muted)}
 .mw-panel .mw-pin,.mw-panel .mw-list{flex:none;width:30px;height:30px;padding:0;border-radius:50%;font-size:14px;line-height:1}
 .mw-panel .mw-pin{border:0;background:none;color:var(--mw-faint);font-size:18px}.mw-panel .mw-pin.is-pinned{color:var(--mw-moon)}
 .mw-panel .mw-list{background:#ffffff08;border:1px solid var(--mw-line-2);color:var(--mw-muted)}.mw-panel .mw-list.is-in{background:#c9b8f02a;border-color:var(--mw-lilac);color:#fff}
@@ -559,6 +561,10 @@
 .mw-dyn-card:where([data-tone=amber]){border-color:#e3b07a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e3b07a29,transparent 60%),linear-gradient(160deg,#2a1f22,#17121a)}
 .mw-dyn-card:where([data-tone=parchment]){border-color:#d9c79a55;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#d9c79a26,transparent 60%),linear-gradient(160deg,#25211c,#16130f)}
 .mw-dyn-card:where([data-tone=ash]){border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
+.mw-dyn-card:where([data-tone=chem]){border-color:#8fcf9a55;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#8fcf9a29,transparent 60%),linear-gradient(160deg,#142621,#0d1715)}
+.mw-dyn-card:where([data-tone=mist]){border-color:#8fa6e855;background:radial-gradient(1px 1px at 82% 22%,#fff8 50%,transparent),radial-gradient(120% 90% at 100% 0%,#8fa6e82e,transparent 60%),linear-gradient(160deg,#181c34,#0f111f)}
+.mw-dyn-card:where([data-tone=smoke]){border-color:#b8a98f55;background:radial-gradient(1px 1px at 82% 22%,#fff7 50%,transparent),radial-gradient(120% 90% at 100% 0%,#b8a98f24,transparent 60%),linear-gradient(160deg,#211e1c,#141213)}
+.mw-dyn-card:where([data-tone=pearl]){border-color:#e8c2d455;background:radial-gradient(1px 1px at 82% 22%,#fff9 50%,transparent),radial-gradient(120% 90% at 100% 0%,#e8c2d429,transparent 60%),linear-gradient(160deg,#2a1e27,#171117)}
 /* Doubled up */
 .mw-overlap{margin:10px 0;padding:8px 12px;border-radius:14px;background:#7a8cc410;border:1px dashed #7a8cc455}
 .mw-overlap summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600}
@@ -609,6 +615,7 @@
 .mw-panel .mw-why{display:block;margin:2px 0 1px;font-size:10.5px;color:var(--mw-faint);font-style:italic}
 .mw-panel .mw-core{flex:none;width:30px;height:30px;padding:0;border:0;background:none;color:var(--mw-faint);font-size:16px;line-height:1}.mw-panel .mw-core.is-core{color:#e3c38f}
 .mw-inventory{margin-bottom:6px}.mw-inventory .mw-fine{margin:0 var(--mw-pad) 14px}.mw-panel .mw-inventory .mw-inv-add{margin:10px var(--mw-pad) 6px}
+.mw-dyn-under{display:grid;gap:2px;margin:10px 0 0;padding:8px 10px;border-radius:12px;background:#ffffff0a;border-left:3px solid #ffffff2e}.mw-dyn-under small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#b5aacb}.mw-dyn-under b{font-size:14px}.mw-dyn-under span{font-size:12.5px;color:#d7cfe8;line-height:1.4}
 .mw-dyn-drivers{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:10px 0 2px}.mw-dyn-drivers>small{font-size:10.5px;color:#b5aacb;margin-right:2px}
 .mw-dyn-driver{padding:3px 9px;border-radius:999px;font-size:11.5px;color:#f1e6f6;background:#ffffff0d;border:1px solid #ffffff1c}.mw-dyn-driver i{font-style:normal;font-size:10px;color:#b5aacb;margin-left:3px}
 .mw-dyn-offer{display:inline-flex;align-items:center;gap:2px}

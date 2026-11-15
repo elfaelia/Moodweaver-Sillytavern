@@ -497,7 +497,8 @@ function buildFeelIndex() {
     for (const [word, id] of Object.entries(FEELING_SYNONYMS)) add(word, id, 60);
     for (const [word, [id, value]] of Object.entries(FEELING_WORDS)) add(word, id, value);
     // Each option's own everyday words (the words field in the catalogue), after everything above.
-    for (const m of MOODS) for (const w of m.words ?? []) { if (w.includes(' ')) phrase(w, m.id, 60); else add(w, m.id, 60); }
+    // Facts' words are for spotting the fact itself (factId below), not feelings.
+    for (const m of MOODS) if (m.kind !== 'state') for (const w of m.words ?? []) { if (w.includes(' ')) phrase(w, m.id, 60); else add(w, m.id, 60); }
     feelSize = MOODS.length; feelIndex = map;
     feelPhrases = [...phrases.entries()].sort((a, b) => b[0].length - a[0].length);
     return map;
@@ -627,14 +628,16 @@ export function feedValues(moods, pins, fed, readings, fade = 15) {
 }
 export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?a|no|—|-|\[.*\])\.?$/i.test(String(text).trim());
 // ---- Facts and time, for facts that run their course (engine/moodpace.js) ----
-// A fact named outright: "drunk", "nosebleed", "wet" (its label, the label before any bracket, or its id).
+// A fact named outright: "drunk", "nosebleed", "wet" (its label, the label before any bracket, or its id), or
+// one of its words when it has them (those replace the label: "erection" for Hard, never "hard").
 // Only the facts that run a course or bring feelings, and only exact names, so a feeling word never lands here.
 let factIndex = null;
 const factKey = s => String(s ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\s+/g, ' ').trim();
+const factNames = m => m.words ? [m.id.replace(/_/g, ' '), ...m.words] : [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')];
 export function factId(name) {
     if (!factIndex) {
         factIndex = new Map();
-        for (const m of MOODS) if (m.kind === 'state' && (m.lasts || m.feels)) for (const key of [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')].map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
+        for (const m of MOODS) if (m.kind === 'state' && (m.lasts || m.feels)) for (const key of factNames(m).map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
     }
     return factIndex.get(factKey(name)) ?? null;
 }

@@ -86,7 +86,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         </div>` : `
         <div class="mw-sky-empty"><b>No board yet</b><p>${send ? 'The next reply starts with your info board, and it lands here.' : 'Turn on “Send the board prompt” below, or keep INFO BOARD in your preset. Either way the next board lands here.'}</p></div>`;
     const edit = editing ? `<section class="mw-board-edit">
-        <p class="mw-fine">Anything you change here corrects this board (✎). The next reply uses it and carries it on, and from then on the story can change it again. Swiping that reply keeps your correction. Clear a box to undo it.</p>
+        <p class="mw-fine">Edits here correct the board ✎ for the next reply. Clear a box to undo.</p>
         ${editField('date', 'Date', pins.date || live.day, 80)}${editField('time', 'Time', pins.time || live.time, 40)}${editField('location', 'Location', live.location)}${editField('activity', 'Activity', live.activity)}
         ${editField('charOutfit', `${esc(charName)}’s outfit`, live.charOutfit)}${editField('userOutfit', `${esc(userName)}’s outfit`, live.userOutfit)}${live.meta.includeHorny ? editField('horny', 'Horny', live.horny) : ''}
         <div class="mw-actions"><button class="mw-primary" data-action="board-edit-done">✓ Done</button></div></section>` : '';
@@ -95,7 +95,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         <div class="mw-sky" data-sky="${sky.time}" data-weather="${sky.weather}"><i class="mw-sky-fx" aria-hidden="true"></i>${scene}</div>
         ${edit}
         <div class="mw-board-block"><h4>${icon('mind')} State <small>${esc(owner)}</small></h4>
-            ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : '<p class="mw-fine">The board’s State line shows up here as moodlets.</p>'}</div>
+            ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : ''}</div>
         <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · drag to set</small></h4>
             <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
             <p class="mw-fine">Read from the board’s words${weaveOn ? ' and the hidden line' : ''}${needOpts?.drift ? ', and the board’s clock: needs drain a little as in-world time passes and come back up after a time jump' : ''}. Faded bars haven’t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does; nothing extra is printed on your board.</p>
@@ -105,7 +105,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSkips" ${needOpts.skips ? 'checked' : ''}> Time jumps of more than 4 hours top needs back up (they ate, slept and washed off-screen)</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsFloor" ${needOpts.floor ? 'checked' : ''}> Time alone never makes a need critical; only the story can</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsMood" ${settings().needsMood !== false ? 'checked' : ''}> Hungry, tired or uncomfortable makes feelings quicker to flare</label>
-                <p class="mw-fine">Normal: a few on-screen hours makes them peckish, a long scene with no toilet makes the bladder nag. Flashbacks and boards without a time change nothing. Comfort and health only move when the story moves them.</p></details>` : ''}</div>
+                <p class="mw-fine">Needs drain as story time passes and refill after a time skip.</p></details>` : ''}</div>
         ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">◆</button>` : ''}<small data-need-word="horny">${hornyV == null ? '—' : level(hornyV)}</small></h4>
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny"${pinsOn ? '' : ' disabled'}>
             ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}
@@ -116,7 +116,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         <details class="mw-board-foot" data-board-settings><summary>Board settings</summary>
             <label class="mw-toggle"><input type="checkbox" data-board-send ${send ? 'checked' : ''}> Send the board prompt in this chat</label>
             <label class="mw-toggle"><input type="checkbox" data-board-horny ${live.meta.includeHorny ? 'checked' : ''}> Include Horny on this chat’s board</label>
-            <p class="mw-fine">Off by default. Hidden Horny pins aren't sent. Moodlets and attraction settings still work separately.</p>
+            
             <label class="mw-toggle"><input type="checkbox" data-board-sync ${sync ? 'checked' : ''}> Present line moves the cast in and out</label>
             <label class="mw-toggle"><input type="checkbox" data-board-feed ${live.meta.feed !== false ? 'checked' : ''}> Replies update ${esc(charName)}’s feelings, needs and relationship</label>
             <p class="mw-fine">${weaveOn ? `The hidden line reports what each reply changed and the sliders follow, up or down.${withWeave ? ' The board’s State words fill in anything it didn’t mention.' : ''}` : 'The board’s State words move feelings, and the Toward row moves how they feel about you.'} Words like “terrified” land higher than “afraid”; “very” and “slightly” shift them; the first one listed counts most. Pinned ◆ sliders never move, and what you set by hand is never lowered by the board.</p>
@@ -127,6 +127,6 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardMemories" ${memoriesOn ? 'checked' : ''}> Save turning points as memories</label>
             ${!memoriesOn && savedMemories ? `<p class="mw-fine">${savedMemories} memor${savedMemories === 1 ? 'y' : 'ies'} saved earlier ${savedMemories === 1 ? 'isn’t' : 'aren’t'} being sent. <button type="button" class="mw-clear" data-action="board-memories-delete">Delete ${savedMemories === 1 ? 'it' : 'them'}</button></p>` : ''}
 
-            <p class="mw-fine">${send ? 'Moodweaver sends your INFO BOARD format, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
+            <p class="mw-fine">${send ? 'Moodweaver sends the info board prompt, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
         </details></section>`;
 }

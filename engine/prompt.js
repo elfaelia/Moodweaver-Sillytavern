@@ -5,6 +5,7 @@ import { TIERS, tierOf } from './strength.js';
 import { escapeHtml, shortName } from './util.js';
 import { ERA_LOCALE, LOCALE_RULES, LOCALE_SPEAKERS, toAmerican } from './locale.js';
 import { patternLines } from './patterns.js';
+import { WILDCARDS } from '../data/catalogue/story.js';
 import { activePersonalities, activePersonality, personalityCue } from './personality.js';
 import { pronounize } from './pronouns.js';
 import { TWO_ROLE_SHARED, activeSharedTags, compareText, relationshipKey, relationshipSets, relationshipText } from './relationships.js';
@@ -46,7 +47,7 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
     }
     if (scaled) return scaled;
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
-    if (isAuthor(m)) return `${m.label}: ${m.cue}`;
+    if (isAuthor(m)) return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}: ${m.cue}`;
     if (m.category === 'era') return `${m.label}${state?.targets?.year ? `, exactly ${pt(state.targets.year)}` : ''}: ${m.cue}`;
     // Lower-case the label for mid-sentence reading, but keep acronyms like AI.
     if (['writing', 'craft'].includes(m.category) && m.id.startsWith('prose_')) return `${m.label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase())}: ${m.cue}`;
@@ -80,6 +81,13 @@ const DARK_STORY_IDS = new Set([
     'unethical_experiments', 'reconditioning', 'medical_crisis', 'impossible_choice', 'addiction_spiral', 'killing_spree',
     'drug_world_violence', 'deaths_that_dont_stick', 'relapse', 'slow_death', 'loss_of_a_main', 'follow_through', 'no_fade_out', 'no_rescues', 'death_on_the_table', 'full_strength',
 ]);
+// Story settings that get their own paragraph instead of a line in the list.
+const OWN_LINE = new Set(['world_leads', 'wildcards']);
+// One wildcard for this reply, or '': the seed (reply number) decides both whether and which.
+function wildcardOf(strength = 0, seed = 0) {
+    const h = Math.imul((Number(seed) || 0) + 11, 0x9E3779B9) >>> 0;
+    return h % 100 < strength ? WILDCARDS[(h >>> 8) % WILDCARDS.length] : '';
+}
 // Prompt-safe text. Only angle brackets could break the note's tags, so apostrophes stay readable ("he's", not "he&#39;s").
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 // Inside name="…" a straight quote would end the name early, so it's swapped for a curly one.
@@ -324,8 +332,8 @@ function composePrompt(state, name, extras = {}) {
     const breaker = story.some(m => m.id === 'pattern_breaker') ? patternLines(extras.patterns, storyState.moods.pattern_breaker) : [];
     // Dialect: the strongest regional era sets narration; a second one only covers its own speakers.
     const locales = [...new Set(eras.filter(m => ERA_LOCALE[m.id]).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map(m => ERA_LOCALE[m.id].locale))];
-    const stakes = story.filter(m => m.category === 'stakes' && m.id !== 'world_leads');
-    const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category) && m.id !== 'world_leads');
+    const stakes = story.filter(m => m.category === 'stakes' && !OWN_LINE.has(m.id));
+    const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category) && !OWN_LINE.has(m.id));
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
     // The period as one plain instruction and a short line, then what it does to the things in play.
@@ -346,6 +354,9 @@ function composePrompt(state, name, extras = {}) {
     // so the handoffs are listed one by one, and the one stop that's wanted is named too.
     const leadPeak = story.find(m => m.id === 'world_leads') ? storyState.moods.world_leads : 0;
     if (leadPeak) out.push('', `The world leads. ${n}, everyone else and events make the big moves; the player only writes ${u}'s words, thoughts and deliberate choices, and wants to be carried. When something big is coming, brutal or erotic, it happens in this reply. Don't end on the threshold (a raised hand, fingers at a zip, "are you ready"), on a question or choice put to ${u}, on someone waiting for a go-ahead they wouldn't wait for, or on ${u}'s reaction before the act lands. Stop only where the very next beat has to be ${u}'s own words or choice.${leadPeak >= 61 ? ' Push the story forward every reply without being asked.' : ''}`);
+    // A wildcard: picked here, not by Claude, so it's actually random; its strength is how often (out of 100 replies).
+    const wild = story.some(m => m.id === 'wildcards') ? wildcardOf(storyState.moods.wildcards, extras.seed) : '';
+    if (wild) out.push('', `Wildcard for this reply: ${wild}. Grow it from something already in the scene (a person, object, place or rule) so it makes sense looking back, and let it change what happens next. What the player wrote for ${u} still happens as written.`);
     // Follow-through: the player asked for harm and decline to land, so say so plainly and early enough to steer planning.
     const stakesPeak = peakOf(stakes), playerAtRisk = stakes.some(m => m.id === 'player_not_safe');
     // No saying it twice. The follow-through paragraph above already spells out its own settings, so
@@ -358,10 +369,10 @@ function composePrompt(state, name, extras = {}) {
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply, first line to last, with no drifting back to a default style. Use contractions (doesn't, can't, he's) the way people talk, in narration and dialogue.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
-        ...(authorPeak ? [`Authors are techniques: sentence length and shape, punctuation, rhythm, word choice and what gets dwelt on. Apply them inside this chat's own point of view, tense, characters, setting and era; if an author wrote in another person or tense, carry their voice into the one used here. Mix them at their strengths${authorPeak >= 81 ? '; the strongest should read as if they wrote it' : ''}. Never borrow their sentences, characters or plots.`] : []));
+        ...(authorPeak ? [`Authors are techniques: sentence length and shape, punctuation, rhythm, word choice and what gets dwelt on. The books named are there so you know which voice is meant; take nothing from their plots, characters, settings or famous lines. Apply the voice inside this chat's own point of view, tense, characters, setting and era; if an author wrote in another person or tense, carry their voice into the one used here. Mix them at their strengths${authorPeak >= 81 ? '; the strongest should read as if they wrote it' : ''}, and keep your own judgement about what the scene needs.`] : []));
     if (breaker.length) out.push('', ...breaker);
     // The highest settings get named again at the end, where they carry the most weight.
-    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story, 'the story', N]]
+    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards'), 'the story', N]]
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject }).split(':')[0]} (${tierWord(st.moods[m.id])})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     for (const { name: subject, target, relation, tags } of relationships) {

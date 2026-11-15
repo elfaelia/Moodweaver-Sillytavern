@@ -24,16 +24,16 @@ function knowledgePanel(state, ch) {
     const active = activeMoods(state).filter(m => m.kind !== 'story');
     const knowledge = getKnowledge(ch);
     return `<details class="mw-knowledge mw-advanced"><summary>What ${esc(ch.name)} knows <small>${active.length} active tags</small></summary>
-        <p class="mw-fine">This covers your current feelings as well as traits and preferences. Scene only follows what they can see or already know. Private needs clues you actually give. Suspected is an impression they can act on but might get wrong. Known means they know, including how you feel now. Higher strengths should shape their response more; their own settings decide how. You still write your reactions.</p>
+        <p class="mw-fine">Scene: only what they can see. Private: they need clues from you. Suspected: a guess they can act on. Known: they know.</p>
         <input type="search" id="mw-knowledge-search" data-filter-list="knowledge" placeholder="Find an active trait or mood…" aria-label="Search persona knowledge">
         ${active.length ? active.map(m => {
             const entry = knowledgeEntry(knowledge[m.id]);
             return `<div class="mw-knowledge-row" data-knowledge-row="${m.id}" data-filter-item="knowledge" data-search="${esc(tagLabel(m) + ' ' + m.cue + ' ' + (MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}"><label for="mw-knowledge-${m.id}">${esc(tagLabel(m))} <small>${level(state.moods[m.id])} · ${state.moods[m.id]}%</small></label>
                 <select id="mw-knowledge-${m.id}" data-knowledge="${m.id}" aria-label="What ${esc(ch.name)} knows: ${esc(m.label)}">${KNOWLEDGE_MODES.map((mode, i) => `<option value="${mode}" ${entry.mode === mode ? 'selected' : ''}>${['Scene only', 'Private', 'Suspected', 'Known'][i]}</option>`).join('')}</select>
                 ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${m.id}" aria-label="Source for ${esc(m.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
-        }).join('') : '<p class="mw-fine">Enable a persona tag and it will appear here.</p>'}
+        }).join('') : '<p class="mw-fine">Nothing on yet.</p>'}
         <p class="mw-fine" data-filter-empty="knowledge" hidden>No matching active traits or moods.</p>
-        <p class="mw-fine">Each active tag is sent once, with its existing strength. Source notes add tokens only when filled in. Turning a tag off stops sending it; its knowledge choice is kept for next time.</p></details>`;
+        </details>`;
 }
 const SECTION_LABEL = { mood: 'moodlets', trait: 'traits', intimacy: 'intimacy', turn: 'turn-ons', state: 'facts', story: 'story settings' };
 // Which catalogue list the open tab shows. Tabs that aren't a list (Needs, Bonds, Items...) fall back to moodlets.
@@ -74,10 +74,10 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
     const label = SECTION_LABEL[kind];
     return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${ui.browsing ? 'Search all ' : 'Search your '}${label}…" aria-label="Search ${label}" value="${esc(ui.search)}">${ui.browsing ? `<button data-action="browse-done" class="mw-primary">✓ Done</button>`
             : `<button data-action="browse" class="mw-primary">＋ Add ${label}</button>${kind === 'mood' || kind === 'story' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend…</option>${Object.keys(kind === 'story' ? STORY_RECIPES : RECIPES).map(r => `<option>${esc(r)}</option>`).join('')}</select>` : ''}`}</div>
-    ${ui.browsing ? `<p class="mw-explainer">Everything available. Tap ＋ or move a slider to put it on ${esc(whose)}’s list.${hideBody ? ' Body is left out while the Needs board covers it.' : ''}</p>` : ''}
+    ${ui.browsing ? `<p class="mw-explainer">Tap a moon to add one to ${esc(whose)}’s list.</p>` : ''}
     <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
     <datalist id="mw-hate-names">${getCast(ch).filter(p => ui.who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist>
-    ${!ui.browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}’s list yet. Tap “＋ Add ${label}” to pick from everything.</p>` : ''}
+    ${!ui.browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}’s list yet. Tap “＋ Add ${label}”.</p>` : ''}
     <div class="mw-categories ${kind === 'turn' ? 'mw-turn-categories' : ''}">${cats}${turns}</div><p class="mw-no-results" hidden>Nothing matches.</p>`;
 }
 // ---- Scene reader card (Moodlets tab) ----
@@ -89,20 +89,20 @@ function readerBlock(state) {
     const est = subject && anyScope ? roughTokens(readerRequest(subject, scope).messages) : 0;
     const start = sceneStart(), chatLen = ctx().chat?.length ?? 0;
     return `<details class="mw-reader" data-reader ${profile ? 'open' : ''}>
-        <summary class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>${profile ? `Reads the latest messages and moves ${esc(subjectName())}’s sliders. Pinned ◆ ones stay put.` : 'Optional, and an extra paid request per read. The hidden weave line already does this for free with every reply.'}</small></div></summary>
+        <summary class="mw-reader-head"><span class="mw-reader-icon">✧</span><div><b>Scene reader</b><small>${profile ? `Reads the latest messages and sets ${esc(subjectName())}’s sliders. Pinned ◆ ones stay.` : 'Optional. Costs an extra request; the hidden line already does this each reply.'}</small></div></summary>
         <div class="mw-scope" role="group" aria-label="What to read">${SCOPES.map(([k, icon, label]) => `<button type="button" class="mw-scope-chip" data-scope="${k}" aria-pressed="${scope[k]}">${scope[k] ? '✓' : icon} ${label}</button>`).join('')}</div>${anyScope ? '' : '<p class="mw-fine mw-scope-none">Nothing ticked, so there’s nothing to read. Tap Moodlets to read feelings.</p>'}
         <div class="mw-reader-go"><button class="mw-primary mw-read" data-action="analyse" ${run.pending || !profile || !state.enabled || !anyScope ? 'disabled' : ''}>${run.pending ? 'Reading…' : '✧ Read the scene'}</button>${run.pending ? '<button data-action="cancel">Stop</button>' : `<button data-action="undo" ${!state.history?.length ? 'disabled' : ''} title="Undo the last read">↶ Undo</button>`}</div>
         <p class="mw-reader-meta">Last ${settings().sceneMessages} messages${start ? ' since your scene marker' : ''} · about ${fmtTokens(est)} tokens a read${scope.trait ? ' · traits roughly double it' : ''}</p>
-        ${!profile ? '<p class="mw-fine mw-warn">Pick a connection for the reader below. A small, cheap model does the job.</p>' : ''}
+        ${!profile ? '<p class="mw-fine mw-warn">Pick a connection below. A small, cheap model is fine.</p>' : ''}
         <details class="mw-tuning" data-reader-tuning><summary>Reader settings</summary>
             <label>Connection<select data-reader="profile"><option value="">Choose a connection profile…</option>${profile && !allProfiles.some(p => p.id === profile) ? `<option selected value="${esc(profile)}">Unavailable profile, choose another</option>` : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === profile ? 'selected' : ''}>${esc(p.name)} · ${esc(p.model)}</option>`).join('')}</select></label>
             <div class="mw-seg-label">Recent messages it reads</div>
             <div class="mw-seg" role="group" aria-label="Recent messages">${[4, 6, 10, 16].map(n => `<button type="button" data-reader-msgs="${n}" aria-pressed="${settings().sceneMessages === n}">${n}</button>`).join('')}</div>
             <div class="mw-scene-mark">${start && start < chatLen ? `<span>⟲ Scene starts at message ${start + 1} of ${chatLen}</span><button type="button" data-action="scene-clear">Remove</button>`
                 : `<button type="button" data-action="scene-mark">⟲ New scene starts at the latest message</button>`}</div>
-            <p class="mw-fine">Mark the start of a new scene and nothing older ever gets read, however long the chat is.</p>
+            <p class="mw-fine">Nothing before the mark gets read.</p>
             <label>Follow the read <output data-follow-out>${state.follow}%</output><input type="range" min="10" max="100" data-field="follow" value="${state.follow}" style="--mw-fill:${(state.follow - 10) / .9}%" aria-label="Follow the read"></label>
-            <p class="mw-fine">100 sets sliders exactly to what the reader sees. Lower keeps some of what you had.</p>
+            <p class="mw-fine">100 copies the reader exactly; lower keeps some of yours.</p>
             <label class="mw-inline">Fade feelings the scene stops showing by <input aria-label="Fade rate" type="number" min="0" max="20" data-field="decay" value="${state.decay}"> a read</label>
             ${ui.who === 'char' ? `<label class="mw-toggle"><input type="checkbox" data-auto-read ${state.mode === 'dynamic' ? 'checked' : ''}> Read automatically before each reply</label>
             ${state.mode === 'dynamic' ? `<label class="mw-inline">Every <input aria-label="Read interval" type="number" min="1" max="10" data-field="interval" value="${state.interval}"> of your messages</label>` : ''}` : ''}
@@ -163,7 +163,7 @@ export function factsContent(state, ch, active) {
     <div class="mw-summary mw-facts-summary"><div class="mw-section-label">Facts<span>${onHere} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off the facts, pins too. Other tabs stay as they are">Clear facts</button>` : ''}</span></div>
         ${now.length ? `<div class="mw-fact-row"><small>Right now</small><div class="mw-chips">${now.map(chip).join('')}</div></div>` : ''}
         ${who.length ? `<div class="mw-fact-row"><small>Who they are</small><div class="mw-chips">${who.map(chip).join('')}</div></div>` : ''}
-        ${!onHere ? `<p class="mw-fine">Nothing set. Body and substances wear off as story time passes (drunk becomes hungover); looks, job and background stay put.</p>` : ''}</div>
+        ${!onHere ? `<p class="mw-fine">Nothing yet. Right now facts wear off or change as the story goes; the rest stay.</p>` : ''}</div>
     ${catalogueBlock(state, 'state', ch, ui.who === 'story' ? 'the story' : subjectName())}
     ${inventoryView(state, ch)}`;
 }
@@ -172,18 +172,17 @@ export function sectionContent(state, kind, ch, active) {
     const shown = kind === 'turn' ? [] : active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
     const turnsSet = kind === 'turn' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
     const whose = ui.who === 'story' ? 'the story' : subjectName();
-    const heading = { mood: 'Active moodlets', trait: 'Who they are', intimacy: 'In bed and in their head', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'The story so far' }[kind];
-    const empty = { mood: 'Nothing set. Start with a starter blend, move a slider or read the scene.', trait: 'Nothing set yet. Temperament, manner, morals and archetypes go here.', intimacy: 'Nothing set yet. Roles in bed, sexual temperament, what draws them and the psychology underneath go here.', turn: 'Nothing set yet. What they like or can’t stand in other people goes here.', state: 'Nothing set. Looks, background, job and the scene go here.', story: 'No genre or style set for this chat yet.' }[kind];
+    const heading = { mood: 'Feeling now', trait: 'Traits', intimacy: 'Intimacy', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'Story' }[kind];
+    const empty = { mood: 'Nothing yet.', trait: 'Nothing yet.', intimacy: 'Nothing yet.', turn: 'Nothing yet.', state: 'Nothing yet.', story: 'Nothing set for this chat yet.' }[kind];
     const onHere = sectionCount(state, kind), what = SECTION_LABEL[kind];
     const sparks = ['turn', 'intimacy'].includes(kind) && ui.who === 'char' && bondData(ch).on ? computeBond(bondData(ch), Infinity, 'one', 'the other', null, bondList(ch)).sparks.filter(x => kind === 'turn' ? !x.trait : x.trait) : [];
     const lit = new Set(sparks.filter(x => x.fresh && x.id).map(x => x.id)), litTraits = new Set(sparks.filter(x => x.fresh && x.trait).map(x => x.trait));
     const chips = turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '✧' : v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('')
         + shown.map(m => `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '✧ ' : ''}${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('');
-    const explainer = ui.who === 'user' && kind === 'turn' ? `What ${esc(playerName())} likes or can’t stand in other people. The story works these in now and then; ${esc(ch.name)} only learns them from how you react.`
-        : kind === 'turn' ? `What draws ${esc(whose)} in or puts them off: people, bodies, kinks, fetishes and acts. Slide right for a turn-on, left for a turn-off. When the story touches one it lights up ✧ and counts a step stronger next reply.`
-        : ui.who === 'user' && ['mood', 'trait', 'intimacy'].includes(kind) ? `How ${esc(playerName())} comes across. ${esc(ch.name)} reacts to it but never writes for you. Choose what ${esc(ch.name)} knows below.`
-        : kind === 'trait' ? `Who ${esc(whose)} is underneath. Traits stay put unless you switch on ❂ Traits in the scene reader.`
-        : kind === 'intimacy' ? `How ${esc(whose)} wants and has sex. These lead in intimate scenes and stay in the background otherwise; the ones on light up ✧ when the story touches them. They stay put unless you switch on ❂ Traits in the scene reader.` : '';
+    const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
+        : kind === 'turn' ? 'Lit ✧ means the last reply touched it.'
+        : ui.who === 'user' && ['mood', 'trait', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
+        : kind === 'intimacy' ? 'These lead in intimate scenes and stay quiet otherwise.' : '';
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
         <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
@@ -194,7 +193,7 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
-    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">With an era set, short lines say how the period shapes what’s in play: power, marriage, dating, vices, faith, the law, being found out. When more apply than fit, they take turns from reply to reply, so a long story keeps meeting new sides of its period.</p>` : ''}
+    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>` : ''}
     ${['mood', 'trait', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
@@ -207,17 +206,17 @@ function storyMoodBlock(state, ch) {
     const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => BY_ID[id]);
     const name = id => BY_ID[id].label;
     const step = ([id, [a, b]]) => `<span class="mw-moodstep ${rec.f?.includes(id) ? 'is-fade' : b > a ? 'is-up' : 'is-down'}">${esc(name(id))} ${b === 0 ? 'off' : `${b > a ? '+' : '−'}${Math.abs(b - a)}`}${rec.f?.includes(id) ? ' · fading' : ''}</span>`;
-    const blocked = !bond.on ? 'Switch Bonds on for this character to use it: the hidden line comes with Bonds.' : !feed ? 'Replies are set not to update feelings (Board settings), so this is paused.' : '';
+    const blocked = !bond.on ? 'Switch on Bonds for this character first.' : !feed ? 'Replies are set not to update feelings (Board settings), so this is paused.' : '';
     return `<details class="mw-storymood" data-anchor="story-moods" ${on ? 'open' : ''}><summary><span>☾ The story moves moods</span><small>${on ? `${esc(pace.label)}${fade ? ', fading' : ''}` : 'off'}</small></summary>
         <label class="mw-toggle"><input type="checkbox" data-mood-auto ${on ? 'checked' : ''}> Each reply moves ${esc(ch.name)}’s feelings (free, no extra request)</label>
         ${blocked ? `<p class="mw-fine mw-scope-none">${blocked}</p>` : ''}
         ${on ? `<div class="mw-storymood-row"><label>Speed<select data-pace aria-label="How fast everything moves: feelings, Bonds meters and desire">${Object.entries(MOOD_PACE).map(([k, v]) => `<option value="${k}" ${MOOD_PACE[k] === pace ? 'selected' : ''}>${v.label}</option>`).join('')}</select></label>
             <label class="mw-toggle"><input type="checkbox" data-mood-fade ${fade ? 'checked' : ''}> Fade</label></div>
-        ${on ? '<p class="mw-fine mw-storymood-link">Speed sets the pace for everything: feelings, Bonds meters and desire.</p>' : ''}
+        ${on ? '<p class="mw-fine mw-storymood-link">Speed sets the pace for feelings, relationship meters and desire.</p>' : ''}
         <label class="mw-storymood-which">Which feelings<select data-mood-scope aria-label="Which feelings the story can set">
             <option value="any" ${state.moodScope !== 'list' ? 'selected' : ''}>Any of the ${FEELINGS_COUNT} moods</option>
             <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}’s list (${listedFeelings(state).length})</option></select></label>
-        ${state.moodScope === 'list' ? `<p class="mw-fine">The hidden line is given the names on the list (about ${Math.ceil(listedFeelings(state).join(', ').length / 3.6)} tokens), and anything else it names is ignored. Add moods to the list from the catalogue below.</p>` : ''}
+        ${state.moodScope === 'list' ? `<p class="mw-fine">The story can only move feelings on this list. Add more from the list below.</p>` : ''}
         <p class="mw-fine">${esc(pace.label)}, ${esc(pace.hint)}: up to ${moves.step} a reply.${fade ? ` A feeling nobody mentions for ${moves.after} repl${moves.after === 1 ? 'y' : 'ies'} loses ${moves.fade} a reply after that.` : ' Feelings stay until the story turns them down.'} Pinned ◆ ones never move.${moves.temper ? ` ${esc(moves.temper.slice(0, 2).map(id => BY_ID[id].label).join(' and '))} ${moves.temper.length > 1 ? 'shift' : 'shifts'} this: ${moves.swings > 0.2 ? 'feelings swing harder and let go sooner' : moves.swings < -0.2 ? 'feelings move less and hold on longer' : 'feelings hang on longer'}.` : ''}${moves.low?.length ? ` Low ${esc(moves.low.join(' and '))} make${moves.low.length > 1 ? '' : 's'} them quicker to flare.` : ''}</p>
         ${moved.length ? `<div class="mw-moodlast"><small>Last reply</small><div>${moved.map(step).join('')}</div><button type="button" data-action="mood-undo-last">↶ Undo</button></div>` : rec?.undone ? '<p class="mw-fine">Last reply’s changes were undone.</p>' : ''}` : ''}</details>`;
 }

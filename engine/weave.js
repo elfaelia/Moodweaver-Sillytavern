@@ -176,7 +176,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
         ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; release if they climaxed.`] : []),
-        ...(you ? [`- you: lasting things done to ${u}'s body (injured, drugged, tied): the full current list, or none once healed.`] : []),
+        ...(you ? [`- you: what is physically true of ${u} right now because of the story (hurt, drugged, tied up, undressed, soaked): the full current list each reply, or none.`] : []),
         ...(skills ? [`- used: skills someone used or was tested on, a word or two each.`] : []),
         ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
     ];

@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.58.0: plainer words, a dynamics overhaul, facts that come and go, and authors described properly
+
+### Plain wording
+- **The dock reads Mood, Relations, Info, Self and Story.** Headings, empty-tab text and help lines across the panel are shorter and plainer, with the obvious explanations taken out.
+
+### Dynamics
+- **Four new groups:** Clinic & experiment, Mind games & conditioning, Secrets & double lives, and Society & reputation. **182 new dynamics** across all thirteen groups (444 in all), and more keywords for the old ones.
+- **Eight new meters:** Conditioning, Clinical eye, Secrecy, Appearances, Fear, Rivalry, Shame and Devotion. Easterman's preset gets Conditioning and Clinical eye; there are new Experiment and Secret affair presets.
+- **Picking reads the whole picture.** Every dynamic whose meter test fits is scored, not just the first one: both people's moods, a clash between them, the ties you've set and the words in the last two messages lean it toward the groups that fit, more strongly at faster paces. In testing, 409 of the 444 can come up.
+- **A second dynamic underneath.** Slower to change and from a different group, it colours the main one rather than replacing it ("Captor, with Devotion underneath"). It works out on its own; Relations › Bonds can switch it off.
+
+### Facts
+- **172 new facts** across all twelve sections, mostly fitting 1950s–60s or 1990s–2010s: shock treatment, Thorazine, truth serum, an experimental drug, needle marks, rope burns, stitches; stockings and garters, a slip, handcuffs, tied to the bed; Miltown, diet pills, sleeping pills, Adderall, lean; Fifties New Look, Mod, Beatnik, Greaser, Y2K, Scene; a Mid-Atlantic or clinical voice; war veteran, institutionalised, polio survivor, blacklisted; nurse, orderly, secretary, housewife; committed, in a trial, someone else signs for them, in the closet, divorced, expecting; asylum ward, operating theatre, hydrotherapy room, drive-in, fallout shelter; Company man, Perfect wife, Handler, Cold surgeon and more.
+- **Facts come and go on their own.** Every right-now fact wears off unless the story keeps it going. The character's come on from the board's Physical State; yours come on from the hidden line's list of what's true of you, and come off when it stops listing them. Your own hand-set and pinned facts stay put. Undo and swipes put everything back.
+
+### Authors
+- **Every author now says how they write**, in plain words, with their best-known books. ⚙ Settings › Panel › Show how each author writes turns the longer descriptions off.
+- **13 new 1950s–60s authors**, mostly dark: Cornell Woolrich, Charles Beaumont, Margaret Millar, Georges Bataille, Paul Bowles, Joan Didion, Carson McCullers, Leonora Carrington, Janet Frame, Jerzy Kosiński, Theodore Sturgeon, Daniel Keyes and James Purdy.
+- **What Claude gets is technique only:** the name, one or two books so it knows which voice is meant, and a short line on sentence shape, point of view and rhythm. Lines that described plots were rewritten, and the note tells Claude to take nothing from the books' plots or characters.
+
+### The story prompt
+- **New writing options:** Its own words (no lifting phrases from the notes or card, which Opus 5.5 tends to do), Unexpected choices, and Follow my lead.
+- **Wildcards** (Stakes): Moodweaver picks a random twist for some replies (someone arrives, a lie, something breaks, an old detail comes back) and asks Claude to grow it from what's already in the scene. Its strength is how often.
+
+### 1950s–60s
+- **More 1960s lines** for the new facts: expecting, committed, signed for, in a trial, in the closet, divorced, nursing, secretary, keeping house, blacklisted, polio, police; and the new drugs, jobs, places and clothes wake the medicine, vice, secrets, home, law and dress lines.
+- **Ten new combos:** Treatment plan, Subject or sweetheart, On schedule, After the treatment, Behind closed doors, Afraid of wanting, Prize, Devoted to a fault, Good wife's smile and Shamed into it.
+
+## 1.57.0: when their moods clash
+
+- **Mood clashes.** When what you feel and what they feel don't match, one line says it may rub, or not, and leaves it to the scene: happy against sad or angry, wanting it against romantic-without-heat, tired, sad or cold, reaching against pulling back, both angry, both wanting the lead, jealous against flirty, calm against angry, wired against worn out, chatty against wanting quiet, and more. 19 kinds, read from whole mood families, so all the feelings in the list are covered.
+- **Never forced.** Only the strongest mismatch, one line at most, and only on some replies: ⚙ Settings › What is sent › When their moods clash: Off, Now and then (default, about one reply in three) or Often.
+- **Opposites still attract.** Traits never clash. Bed roles do (two who lead, or two who wait to be led), but only while one of you is in the mood.
+
 ## 1.56.1: many more 1960s lines
 
 The 1960s America lines now read almost everything on the cards, still under the same lines-per-reply cap, so each reply gets a different handful.

@@ -28,7 +28,7 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
     const pin = k => bond.pins[k] !== null;
     if (!bond.on) return `<section class="mw-bond is-off">
         <label class="mw-toggle"><input type="checkbox" data-bond-on> Hidden weave line for ${esc(charName)} in this chat</label>
-        <p class="mw-fine">Off. Nothing is asked for or sent, and the info board’s words update feelings instead.</p></section>`;
+        <p class="mw-fine">Off. The info board updates feelings instead.</p></section>`;
     return `<section class="mw-bond">
         ${bond.extra ? dynCard(bond, d, charName, userName, { canRead, pending, savedPool, drivers }) : ''}
         ${overlapBlock(overlaps)}
@@ -43,14 +43,14 @@ export function bondView({ bond, charName, userName, chatLength, axes = null, li
         ${tally?.sparks?.length ? `<div class="mw-bond-block" data-anchor="bond-tally"><h4>What gets to ${esc(charName)} <small>over this chat</small></h4><div class="mw-sparks">${tally.sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
         ${tally?.pressed?.length ? `<div class="mw-bond-block" data-anchor="bond-pressed"><h4>Hot buttons pressed</h4><div class="mw-sparks">${tally.pressed.map(x => `<span class="mw-spark is-off">⚡ ${esc(x.text)} <b>×${x.count}</b></span>`).join('')}</div></div>` : ''}
         <div class="mw-bond-block" data-anchor="bond-thinks"><h4>${esc(charName)} thinks ${esc(userName)} is…</h4>
-            <div class="mw-bond-thinks">${d.thinks.length ? d.thinks.map(t => `<span class="mw-bond-chip${t.own ? ' is-own' : ''}" title="${t.own ? 'Added by you' : `Strength ${Math.min(100, t.value)}`}">${esc(t.text)}<button type="button" data-bond-mute="${esc(t.text)}" aria-label="Remove ${esc(t.text)}">×</button></span>`).join('') : `<i class="mw-fine">Nothing yet. Opinions show up as the story gives ${esc(charName)} reasons.</i>`}</div>
+            <div class="mw-bond-thinks">${d.thinks.length ? d.thinks.map(t => `<span class="mw-bond-chip${t.own ? ' is-own' : ''}" title="${t.own ? 'Added by you' : `Strength ${Math.min(100, t.value)}`}">${esc(t.text)}<button type="button" data-bond-mute="${esc(t.text)}" aria-label="Remove ${esc(t.text)}">×</button></span>`).join('') : `<i class="mw-fine">Nothing yet.</i>`}</div>
             <div class="mw-bond-add"><input type="text" maxlength="40" data-bond-new placeholder="Add one (e.g. reckless)" aria-label="Add an opinion"><button type="button" data-action="bond-add">Add</button></div></div>
         ${changes.length ? `<div class="mw-bond-block" data-anchor="bond-recent"><h4>Recent changes</h4><ul class="mw-bond-recent">${changes.map(s => `<li><b>#${s.index + 1}</b>${[['f', 'friendship'], ['r', 'romance'], ['t', 'trust'], ['p', 'control'], ['l', 'pull']].filter(([k]) => s[k]).map(([k, w]) => `<span class="${s[k] > 0 ? 'is-up' : 'is-down'}">${w} ${sign(s[k])}</span>`).join('')}</li>`).join('')}</ul></div>` : ''}
         <details class="mw-bond-settings"><summary>Weave line settings</summary>
             <label class="mw-toggle"><input type="checkbox" data-bond-on checked> Hidden weave line for ${esc(charName)} in this chat</label>
             <label class="mw-toggle"><input type="checkbox" data-bond-extra ${bond.extra ? 'checked' : ''}> Trust, Control, Pull and the named dynamic</label>
-            <p class="mw-fine">Control is who really holds it: doors, money, freedom. Pull is who’s hooked on whom. They can point opposite ways, like a captive who still gets what she demands.</p>
-            <p class="mw-fine">Each reply ends with one hidden line that only Moodweaver reads: only what changed in feelings, needs, relationship, these meters, opinions, turn-ons set off and turning points. SillyTavern hides it in chat and Moodweaver strips it from the prompt. About 380 prompt and 20 to 60 reply tokens, no extra request. Drag a meter to set it; pin to hold it. Every meter is read from the replies still in the chat, so a swipe or a deleted reply takes its change with it.</p>
+            <p class="mw-fine">Control: who holds the doors, money and freedom. Pull: who’s hooked on whom.</p>
+            <p class="mw-fine">Each reply ends with a hidden line saying what changed. Swipes and deletes undo it. Pin ◆ a meter to hold it.</p>
         </details>
     </section>`;
 }
@@ -68,7 +68,7 @@ function overlapBlock(list = []) {
         ${o.also.length ? `<span class="mw-overlap-also">also a moodlet: ${o.also.map(esc).join(', ')}</span>` : ''}</div>
         ${o.drop.length ? `<button type="button" class="mw-overlap-tidy" data-overlap-tidy="${esc(o.key)}" aria-label="Turn off the extra ${esc(o.label)} copies">Tidy</button>` : ''}</li>`;
     return `<details class="mw-overlap" data-anchor="bond-overlap"><summary><span>⧉ Doubled up</span><small>${shown.length} idea${shown.length === 1 ? '' : 's'} in more than one place</small></summary>
-        <p class="mw-fine">The note sends each of these once already. Tidy switches off the crossed-out copies so your sliders match what’s sent. Meters, the dynamic and moodlets are never touched.</p>
+        <p class="mw-fine">These say the same thing twice. Tidy switches off the crossed-out copies.</p>
         <ul class="mw-overlap-list">${shown.map(row).join('')}</ul>
         ${tidy.length > 1 ? `<button type="button" class="mw-overlap-all" data-overlap-tidy="">Tidy all ${tidy.length}</button>` : ''}</details>`;
 }
@@ -79,7 +79,7 @@ function desireCard(bond, list, charName, userName, sparks = []) {
     const d = bond.desire ?? {};
     if (!d.on) return `<details class="mw-desire-card is-off"><summary><span>♨ Desire</span><small>off in this chat</small></summary>
         <label class="mw-toggle"><input type="checkbox" data-desire-on> Track ${esc(charName)}’s desire for ${esc(userName)} in this chat</label>
-        <p class="mw-fine">Arousal plus how it shows: boldness, tender or rough, fixation on you, shame and holding back. Moved by each reply’s hidden line, slow by default.</p></details>`;
+        <p class="mw-fine">Arousal and how it shows.</p></details>`;
     const x = computeDesire(bond, list), who = esc(userName);
     const word = (k, v) => k === 'a' ? x.stage : k === 'f' ? frustrationWord(v) : scaleWord(k, v).replace('them', who);
     const bar = (key, label) => `<div class="mw-desire-row" data-anchor="desire-${key}" data-tone="${key}"><div class="mw-bond-head"><b>${label}</b><span>${esc(word(key, x[key]))}</span>
@@ -94,7 +94,7 @@ function desireCard(bond, list, charName, userName, sparks = []) {
         ${lit.length ? `<div class="mw-sparks"><small>Lit lately</small>${lit.map(s => `<span class="mw-spark ${s.fresh ? 'is-fresh' : ''}">✧ ${esc(s.text)}</span>`).join('')}</div>` : ''}
         <div class="mw-desire-opts"><label>Tops out at<select data-desire-cap>${DESIRE_CAPS.map(([v, l]) => `<option value="${v}" ${x.cap === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
         <div class="mw-desire-scales"><small>Scales</small>${DESIRE_SCALES.map(([k, label]) => `<label class="mw-scale-chip"><input type="checkbox" data-desire-scale="${k}" ${x.scales[k] ? 'checked' : ''}> ${label}</label>`).join('')}</div>
-        <p class="mw-fine">Boldness decides how they act on it, unless holding back is high. Only scales that are saying something reach Claude. Slow burn lets arousal rise only a small step per reply. Release resets arousal and frustration, then a short afterglow. Drag a bar to set it; pin ◆ to hold it.</p>
+        <p class="mw-fine">Release resets arousal and frustration. Pin ◆ to hold a bar.</p>
         <label class="mw-toggle"><input type="checkbox" data-desire-on checked> Track desire in this chat</label></details>`;
 }
 
@@ -112,7 +112,7 @@ function moreBlock(bond, list, userName) {
         <details class="mw-more-pick"><summary>＋ Meters <small>${on.length ? `${on.length} on` : 'all off'}</small></summary>
             <div class="mw-more-presets"><small>Quick picks</small>${MORE_PRESETS.map(([name]) => `<button type="button" class="mw-chip-btn" data-more-preset="${esc(name)}">${esc(name)}</button>`).join('')}<button type="button" class="mw-chip-btn" data-more-preset="">None</button></div>
             ${MORE_METERS.map(([k, label, , , , , , , desc]) => `<label class="mw-toggle mw-more-opt"><input type="checkbox" data-more-on="${k}" ${on.includes(k) ? 'checked' : ''}> <span><b>${label}</b> <small>${esc(desc)}</small></span></label>`).join('')}
-            <p class="mw-fine">For this chat. A quick pick replaces which meters are on. The hidden line moves the ones that are on, they unlock new named dynamics above, and they go to Claude only when they’re saying something.</p></details></div>`;
+            <p class="mw-fine">Each meter you switch on opens up more dynamics.</p></details></div>`;
 }
 
 // The dynamic card. Who names it (the story, the meters or you), how fast things move, a fresh read
@@ -146,16 +146,18 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool, drivers }) {
             <button type="button" class="mw-chip-btn mw-dyn-all" data-dyn-group-all="${id}">${picked === rows.length ? 'Unpick all' : 'Pick all'}</button>${rows.map(row).join('')}</details>`;
     }).join('');
     return `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.key)}" data-tone="${d.dynamic.tone}"><small>${esc(n)} &amp; ${esc(u)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(cap(d.dynamic.cue))}</p>
+        ${d.under ? `<div class="mw-dyn-under" data-tone="${d.under.tone}"><small>Underneath</small><b>${esc(d.under.name)}</b><span>${esc(cap(d.under.cue))}</span></div>` : ''}
         ${driversLine(drivers, n, u)}
         <details class="mw-dyn-pron-box" data-anchor="dyn-pronouns"><summary>Pronouns <small>${esc([[n, bond.pn], [u, bond.pu]].map(([who, v]) => v === 'auto' ? pronounOf(who) : v).join(' · '))}</small></summary><div class="mw-dyn-pronouns" role="group" aria-label="Pronouns">${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)}<select data-dyn-pronoun="${k}" aria-label="Pronouns for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${id === 'auto' ? `Auto (${pronounOf(who) === 'they' ? 'names' : pronounOf(who)})` : label}</option>`).join('')}</select></label>`).join('')}</div></details>
         <div class="mw-dyn-modes" role="group" aria-label="Who names the dynamic">${[['story', '✧ Story'], ['meters', '≋ Meters'], ['pick', '✎ I pick']].map(([k, label]) => `<button type="button" data-dyn-mode="${k}" aria-pressed="${mode === k}">${label}</button>`).join('')}</div>
         ${mode === 'pick' ? `<label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic">${options}</select></label>` : ''}
         <div class="mw-dyn-row"><label title="How much the relationship sliders you set between them hold the meters and the dynamic">Your sliders<select data-bond-ties aria-label="How much your relationship sliders weigh">${Object.entries(TIES).map(([k, t]) => `<option value="${k}" ${bond.ties === k ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></label>
             <label class="mw-toggle mw-dyn-nudge" title="Feelings each reply reports push the matching meters: caring pushes Care, controlling pushes Control and Discipline, horny pushes Lust"><input type="checkbox" data-dyn-nudge ${bond.nudge !== false ? 'checked' : ''}> Feelings push meters</label>
+            <label class="mw-toggle mw-dyn-nudge" title="A second, slower dynamic of a different kind, read from where the meters have settled. It colours the main one"><input type="checkbox" data-dyn-under ${bond.under !== false ? 'checked' : ''}> Second dynamic underneath</label>
             ${canRead ? `<button type="button" class="mw-chip-btn mw-dyn-read" data-action="bond-reread" ${pending ? 'disabled' : ''} title="Ask the scene reader where these two stand right now">${pending ? 'Reading…' : '✧ Re-read the scene'}</button>` : ''}</div>
         <small class="mw-dyn-why">${esc(why)} Your sliders: ${esc(TIES[bond.ties]?.hint ?? TIES.balanced.hint)}. Pace (set on the Moods card): ${esc(PACE[pace].label)}.</small>
         <details class="mw-dyn-pool" data-anchor="dyn-pool"><summary>Dynamics for these two <small>${pool.size ? `${pool.size} picked${mode === 'story' && pool.size <= 25 ? ` · about ${Math.ceil([...pool].map(x => fill(x, n, u)).join(', ').length / 3.6)} tokens a reply` : ''}` : 'none picked: any of them'}</small></summary>
-            <p class="mw-fine">Meters mode: the meters choose, trying your picks first. Story mode: the reply names it when things change, matched to your picks (up to 25 are listed in the hidden line; past that it costs nothing extra). With none picked, it can be any of them. Roles like doctor and patient, boss and secretary or exes live in Relationships, not here.</p>
+            <p class="mw-fine">Pick some to narrow it down, or none to allow all of them.</p>
             <input type="search" data-dyn-search placeholder="Find a dynamic (captor, crush, toxic…)" aria-label="Find a dynamic">
             <div class="mw-dyn-tools"><button type="button" class="mw-chip-btn" data-action="dyn-pool-save">Save picks for ${esc(n)}’s new chats</button>${savedPool?.length ? `<button type="button" class="mw-chip-btn" data-action="dyn-pool-load">Use saved (${savedPool.length})</button>` : ''}${pool.size ? '<button type="button" class="mw-chip-btn" data-action="dyn-pool-clear">Clear picks</button>' : ''}</div>
             ${ui.openGroups?.['details[data-anchor="dyn-pool"]'] ? groups() : (ui.lazyBodies.set('dyn-pool', groups), '<div data-lazy="dyn-pool"></div>')}</details></div>`;

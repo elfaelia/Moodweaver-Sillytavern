@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.62.0: skills that come up when they fit, and an author list built around his point of view
+
+- **Skills come up far more often, without costing much.**
+  - Every reply now carries one short line with everyone's skills and levels (names and numbers only), so Claude always knows what each person can do.
+  - A skill's full description and the rule on how attempts go are only sent while that skill is in play.
+  - Skills now come into play from what's happening, not only from keywords. For example, Psychology and Reading people come up when your character's feelings show, when a strong mood or Mind setting is on, or in a clinical or mind-game dynamic. Medicine comes up with injuries and drugs, and Control and Manipulation with power shifts. At most three come in this way per person, so it stays cheap.
+  - Every skill's keywords now include everyday words. Psychology catches "why are you", "upset", "crying", "pretending" and so on.
+  - Every skill's description covers all the ways it gets used. Psychology is now "working out what someone feels and why, spotting the mood under the mask, seeing old wounds, and using what they understand, gently or not".
+  - 53 combos: when two of someone's skills are in play together, one line says how they work together (for example, he uses what he reads in her to steer her). The line rotates when several fit.
+  - The Skills tab marks a skill that "fits what's happening".
+- **Authors reshaped.**
+  - 30 authors who write almost only from a woman's point of view were removed. Your picks move to the closest author still in the list.
+  - Queer and WLW writers stay (Le Fanu, Woolf, Barnes, Waters, Machado, Arsan), along with anyone who writes both.
+  - Wording that framed an author as being about women is gone from what's sent and from the panel.
+  - 34 new authors:
+    - 1950s–60s men's-eye: Irwin Shaw, Saul Bellow, Mario Puzo, Ed McBain, Richard S. Prather, Stan Barstow, David Storey, Keith Waterhouse, Frederick Exley, Alistair MacLean, Gore Vidal.
+    - 1960 erotic and sleaze: Orrie Hitt, Lawrence Block's early paperbacks, Ann Bannon (lesbian pulp).
+    - 1980s–2010s men: Raymond Carver, Richard Ford, Elmore Leonard, Hanif Kureishi, Karl Ove Knausgård, Lee Child, Philip Kerr.
+    - 1984–90 erotic: Anne Rice as Anne Rampling, Jackie Collins, Sidney Sheldon, Dennis Cooper, Edmund White, Jeanette Winterson.
+    - 2010s erotic, explicit and slow-burn: Garth Greenwell, Sierra Simone, Christina Lauren, Pam Godwin, Sylvain Reynard.
+- **Back to the top:** tap the tab or dock button you're already on to scroll to the top.
+
 ## 1.61.0: moods that follow the scene, prose rules that hold, and a clearer Mind tab
 
 - **Giddy (or any feeling) no longer sticks.**

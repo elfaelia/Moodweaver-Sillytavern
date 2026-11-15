@@ -1,6 +1,6 @@
 // The Skills tab.
 import { subjectName } from '../app/chat.js';
-import { skillScene } from '../app/note.js';
+import { panelSkillContext, skillScene } from '../app/note.js';
 import { liveChat } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
@@ -10,8 +10,8 @@ import { SKILL_BY_ID, SKILL_GROUPS, SKILL_PACE, cleanPins, cleanSkillPace, clean
 
 export function skillsView(state, ch) {
     const whose = esc(subjectName()), set = cleanSkills(state.skills), pins = cleanPins(state.skillPins), pace = cleanSkillPace(state.skillPace);
-    const { scene, used } = skillScene(ch, liveChat()), going = litSkills(state, scene, used), lit = new Map(going.map(x => [x.id, x.why]));
-    const why = { used: 'Used in the last reply', scene: 'The scene calls for it' };
+    const { scene, used } = skillScene(ch, liveChat()), going = litSkills(state, scene, used, 5, panelSkillContext(ch)), lit = new Map(going.map(x => [x.id, x.why]));
+    const why = { used: 'Used in the last reply', scene: 'The scene calls for it', context: 'Fits what’s happening' };
     const row = s => { const value = set[s.id] ?? 0, pinned = Boolean(pins[s.id]), prog = skillProgress(state, s.id);
         return `<div class="mw-mood mw-skill-row ${lit.has(s.id) ? 'is-lit' : ''}" data-skill-row="${s.id}" data-search="${esc(`${s.label} ${s.cue}`)}">
         <div class="mw-row-head"><label for="mw-skill-${s.id}">${lit.has(s.id) ? '✧ ' : ''}${esc(s.label)}</label><span data-skill-word>${value ? skillWord(value) : 'off'}</span><output for="mw-skill-${s.id}">${value}/10</output>

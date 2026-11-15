@@ -467,10 +467,13 @@ export async function onPanelClick(e) {
     if (button.dataset.wantSuggest) { const t = button.dataset.wantSuggest; await changeState(s => { s.wants = cleanWants([...s.wants, { id: newId(), kind: 'want', text: t, value: 55 }]); }); return; }
     if (button.dataset.wantDismiss) { const t = button.dataset.wantDismiss; await changeState(s => { s.wantsDismissed = [...new Set([...(s.wantsDismissed ?? []), t.toLowerCase()])].slice(-40); }); return; }
     if (button.dataset.wantNotyet) { const id = button.dataset.wantNotyet, at = Number(button.dataset.at); await changeState(s => { const w = s.wants.find(x => x.id === id); if (w) w.after = at; }); return; }
-    if (button.dataset.tab) { openTab(button.dataset.tab); return; }
+    // Tapping the tab or dock section you're already on scrolls back to the top.
+    const toTop = () => { ui.panel?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
+    if (button.dataset.tab) { if (button.dataset.tab === ui.tab && ui.who !== 'story') { toTop(); return; } openTab(button.dataset.tab); return; }
     // The dock: Story switches to the story's settings; the others open the tab last used in that section.
     if (button.dataset.dock) {
         const key = button.dataset.dock;
+        if (key === 'story' ? ui.who === 'story' : ui.who !== 'story' && dockOf(ui.tab) === key) { toTop(); return; }
         if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; ui.settingsOpen = false; render(); return; }
         if (ui.who === 'story') ui.who = ui.lastWho && ui.lastWho !== 'story' ? ui.lastWho : 'char';
         const tabs = tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === key);

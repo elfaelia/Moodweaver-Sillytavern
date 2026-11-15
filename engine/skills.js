@@ -1,9 +1,11 @@
 // Skills: a level out of 10 per person, for the skills picked for them (data/catalogue/skills.js).
-// A skill costs nothing until the scene calls for it: its words come up in the player's latest message or the
-// last reply, or the hidden line says someone used it last reply. Then it goes to Claude with its level, which
-// decides how attempts go. Picked skills also grow slowly with use and slip after long disuse, at their own
+// Everyone's skills go as one short names-and-levels line. A skill's full description, the rule on how attempts go
+// and any combo line only go when the scene calls for it: its words come up in the player's latest message or the
+// last reply, the hidden line says someone used it last reply, or what's happening fits it (its `when` tokens:
+// feelings, Mind settings, the dynamic, facts). Its level decides how attempts go. Picked skills also grow slowly with use and slip after long disuse, at their own
 // pace; a pinned one stays where it is. Pure functions; app/ does the reading.
-import { SKILL_GROUPS, SKILL_MERGED } from '../data/catalogue/skills.js';
+import { SKILL_COMBOS, SKILL_GROUPS, SKILL_MERGED } from '../data/catalogue/skills.js';
+import { pronounize } from './pronouns.js';
 
 const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘]/g, "'");
 export { SKILL_GROUPS };
@@ -52,15 +54,19 @@ const named = (s, used) => calledFor(`${s.label}|${s.prompt}|${s.words}`, used);
 export function skillsOf(state) {
     if (!state) return [];
     const set = cleanSkills(state.skills), pins = cleanPins(state.skillPins);
-    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, words: s.words, level: v, pinned: Boolean(pins[id]) }; })
+    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, cue: s.cue, words: s.words, when: s.when ?? '', level: v, pinned: Boolean(pins[id]) }; })
         .sort((a, b) => b.level - a.level);
 }
 // Which of them the scene calls for. scene: the player's latest message and the last reply(s).
-// used: what the hidden line says was used last reply. At most `cap`, the highest first.
-export function litSkills(state, scene = '', used = '', cap = 6) {
-    const s = norm(scene), u = norm(used);
-    return skillsOf(state).map(x => ({ ...x, why: u && named(x, u) ? 'used' : s && calledFor(x.words, s) ? 'scene' : '' }))
-        .filter(x => x.why).sort((a, b) => b.level - a.level).slice(0, cap);
+// used: what the hidden line says was used last reply. context: a Set of what's happening (app/note.js
+// skillContext), matched against each skill's `when` tokens. At most `cap` (and three from context): used first, then words, then context,
+// the highest level first within each.
+const RANK = { used: 0, scene: 1, context: 2 };
+export function litSkills(state, scene = '', used = '', cap = 5, context = null) {
+    const s = norm(scene), u = norm(used), fits = x => Boolean(context?.size) && x.when.split(/\s+/).some(t => t && context.has(t));
+    return skillsOf(state).map(x => ({ ...x, why: u && named(x, u) ? 'used' : s && calledFor(x.words, s) ? 'scene' : fits(x) ? 'context' : '' }))
+        .filter(x => x.why).sort((a, b) => RANK[a.why] - RANK[b.why] || b.level - a.level)
+        .filter((x, i, all) => x.why !== 'context' || all.slice(0, i).filter(y => y.why === 'context').length < 3).slice(0, cap);
 }
 // One message's worth of practice for one person: picked skills its words (or the hidden line) touch get a
 // use, the rest a reply of disuse. Changes state in place and returns what to put back on a swipe:
@@ -102,10 +108,24 @@ export function skillProgress(state, id) {
     return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * lv];
 }
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
-// people: [{ name, lit: [...] }]. One line per person, then one rule. Nothing at all when nothing is lit.
-export function skillLines(people = [], u = 'the player’s character') {
-    const rows = people.filter(p => p.lit?.length).map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level}/10 (${skillWord(x.level)})`).join(', ')}`);
-    if (!rows.length) return [];
-    return ['Skills this scene calls on:', ...rows,
-        `Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits.`];
+// people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
+// levels only), then, only for what's lit: each skill's description, one combo line, and the rule.
+const roster = p => `${pt(p.name)}: ${p.all.map(x => `${pt(x.prompt)} ${x.level}`).join(', ')}`;
+function comboOf(p, other, seed) {
+    const ids = new Set(p.lit.map(x => x.id)), hits = SKILL_COMBOS.filter(([a, b]) => ids.has(a) && ids.has(b));
+    if (!hits.length) return '';
+    const text = hits[Math.abs(seed) % hits.length][2].replaceAll('{n}', p.name).replaceAll('{u}', other);
+    return pronounize(text[0].toUpperCase() + text.slice(1), p.name, other);
+}
+export function skillLines(people = [], u = 'the player’s character', seed = 0, n = '') {
+    const all = people.filter(p => p.all?.length);
+    if (!all.length) return [];
+    const out = [`Skills (out of 10): ${all.map(roster).join('; ')}.`];
+    const lit = people.filter(p => p.lit?.length);
+    if (!lit.length) return out;
+    out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level}/10 (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
+    const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
+    if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));
+    out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps.`);
+    return out;
 }

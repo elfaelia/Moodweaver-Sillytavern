@@ -184,7 +184,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; release if they climaxed.`] : []),
         ...(you ? [`- you: what is physically true of ${u} right now because of the story (hurt, drugged, tied up, undressed, soaked): the full current list each reply, or none.`,
             `- seems: how ${u} comes across this reply from what the player wrote, up to three feelings in plain words (scared, defiant, wanting), or none.`] : []),
-        ...(skills ? [`- used: skills someone used or was tested on, a word or two each.`] : []),
+        ...(skills ? [`- used: skills from the skills list that someone used or was tested on this reply, by name.`] : []),
         ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
     ];
 }

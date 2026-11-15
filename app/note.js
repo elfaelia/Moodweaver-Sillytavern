@@ -6,7 +6,7 @@ import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta, feelingId } from '../engine/board.js';
 import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
-import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
+import { BY_ID, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
 import { knowledgeEntry } from '../engine/state.js';
@@ -64,8 +64,9 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const knows = knowledgeNow(ch, history), notice = Object.entries(mine?.enabled ? mine.prefs ?? {} : {}).some(([id, v]) => v && knowledgeEntry(knows[`turn:${id}`]).mode !== 'known');
         const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null }) : [];
-        // Skills go only when the scene calls for them.
-        const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
+        // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
+        const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
+        const skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx) })), u, history.length, n);
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
@@ -220,6 +221,29 @@ export function listedFeelings(st) {
 function skillPeople(ch, state, mine) {
     return [{ name: shortName(ch?.name ?? ''), st: state }, { name: shortName(playerName()), st: mine },
         ...getCast(ch).filter(p => p.inScene).map(p => ({ name: shortName(p.name), st: p.state }))].filter(p => p.st?.enabled);
+}
+// What's happening, as tokens a skill's `when` can match: feel:<mood category> and mind for anyone in the scene
+// at mild or above, cat:<fact category> and fact:<id> for facts and settings, dyn:<group> for the dynamic, and
+// seems / power when the newest hidden line read the player's feelings or a shift in control.
+// The same, for the Skills tab: from the saved states and the dynamic the last note worked out.
+export const panelSkillContext = (ch, history = liveChat()) => skillContext(ch, history, [getState(ch), getUserState(), getStoryState(ch), ...getCast(ch).filter(p => p.inScene).map(p => p.state)], { dynamic: { group: lastDynamic.get(ch?.avatar) ?? '' } });
+function skillContext(ch, history, states, bd) {
+    const out = new Set(), newest = [...(history ?? [])].reverse().find(m => m && !m.is_system && writes(ch)(m)), w = newest ? weaveOf(newest) : null;
+    if (w?.seems?.length) out.add('seems');
+    if (w?.hasPower) out.add('power');
+    if (bd?.dynamic?.group) out.add(`dyn:${bd.dynamic.group}`);
+    for (const st of states) {
+        if (!st?.enabled) continue;
+        for (const [id, v] of Object.entries(st.moods ?? {})) {
+            const m = BY_ID[id]; if (!m || !(v >= 21)) continue;
+            const where = sectionOf(m);
+            if (where === 'psyche') out.add('mind');
+            else if (m.kind === 'mood' && where === 'mood') out.add(`feel:${m.category}`);
+            else if (m.kind === 'state') { out.add(`cat:${m.category}`); out.add(`fact:${id}`); }
+            else out.add(`fact:${id}`);
+        }
+    }
+    return out;
 }
 // What calls for a skill: your latest message and the character's last reply (or more, by the Look back setting),
 // plus whatever the newest reply's hidden line says was used. Read from the chat each time, so swipes undo it.

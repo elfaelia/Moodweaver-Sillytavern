@@ -48,8 +48,11 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
     if (scaled) return scaled;
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
     // Mind settings always say how they work, with the way they lean when it's set.
-    if (sectionOf(m) === 'psyche') { const lean = m.light && state?.psyLean?.[m.id], name = lowerLabel(m.label);
-        return `${m.cue.toLowerCase().startsWith(name.toLowerCase()) ? m.cue : `${name}: ${m.cue}`}${lean ? `; leaning ${lean === 'light' ? 'healthier' : 'darker'}: ${m[lean]}` : ''}`; }
+    // Two-sided ones (complexes and a few more) say what it is, then play only the side the player chose.
+    if (sectionOf(m) === 'psyche') { const name = m.label.replace(/ \(Jung\)$/, '');
+        if (!(m.light && m.dark)) return `${name}: ${m.cue}`;
+        const side = state?.psyLean?.[m.id] === 'light' ? 'light' : 'dark';
+        return `${name}, ${side === 'light' ? 'healthy' : 'unhealthy'} side: ${m.cue} Here it shows like this: ${m[side]}`; }
     // An author at clear or above gets the full brief of how they write, so the voice is unmistakable; fainter ones the short cue.
     if (isAuthor(m)) return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}: ${value >= 41 && m.style ? m.style : m.cue}`;
     if (m.category === 'era') return `${m.label}${state?.targets?.year ? `, exactly ${pt(state.targets.year)}` : ''}: ${m.cue}`;
@@ -131,8 +134,10 @@ function profileLines(st, core, other, people) {
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
 function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character', people = {}) {
     const observer = pt(shortName(other));
-    const headings = { known: `${observer} knows for sure, feelings included:`, suspected: `${observer} suspects or has picked up on:`,
-        scene: `${observer} can see or already knows:`, private: `True, but ${observer} doesn't know it:` };
+    // Each heading names whose rows these are, so a scar or a chipped tooth here can't drift onto the observer.
+    const who = pt(shortName(subject));
+    const headings = { known: `About ${who}, ${observer} knows for sure, feelings included:`, suspected: `About ${who}, ${observer} suspects or has picked up on:`,
+        scene: `About ${who}, ${observer} can see or already knows:`, private: `True of ${who}, but ${observer} doesn't know it:` };
     const groups = new Map(KNOWLEDGE_ORDER.map(mode => [mode, []]));
     for (const m of list) {
         const entry = knowledgeEntry(knowledge?.[m.id]);
@@ -261,7 +266,7 @@ function composePrompt(state, name, extras = {}) {
     if (everyone.some(m => sectionOf(m) === 'trait')) out.push('',
         `Traits are who someone is underneath, whatever their mood: they shape how each feeling comes out and what that person notices and chooses.${everyone.some(m => m.category === 'love') ? ' Love languages are how someone shows love and what makes them feel loved; their mood decides how openly.' : ''}`);
     if (everyone.some(m => sectionOf(m) === 'psyche')) out.push('',
-        `Mind settings are how someone's mind works underneath. Play them from the inside: their logic makes sense to them, and it shows in small specific choices, reactions, blind spots and what they misread, more under stress and less on a good day, often without anyone around noticing. Nobody names the condition unless someone in the story would. Skip the stock screen versions (the twitchy movie psychopath, the robotic genius, the screaming "crazy" ex, therapy talk); real people with these are mostly ordinary between the moments that show it.`);
+        `Mind settings are how someone's mind works underneath. Play them from the inside: their logic makes sense to them, and it shows in small specific choices, reactions, blind spots and what they misread, more under stress and less on a good day, often without anyone around noticing. Nobody names the condition unless someone in the story would. Where a setting names a healthy or unhealthy side, play that side only. Skip the stock screen versions (the twitchy movie psychopath, the robotic genius, the screaming "crazy" ex, therapy talk); real people with these are mostly ordinary between the moments that show it.`);
     if (everyone.some(m => sectionOf(m) === 'intimacy')) out.push('',
         `Intimacy settings (roles in bed, sexual temperament, what draws someone, psychosexual) are how someone wants and has sex. They lead in intimate or charged moments and otherwise stay in the background: a look, a thought, a small choice.`);
     if (darkActionPeak) out.push('',
@@ -271,7 +276,7 @@ function composePrompt(state, name, extras = {}) {
     const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
     if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;
-        out.push('', `<player_character name="${pa(U)}" written_by="player">`,
+        out.push('', `<player_character name="${pa(U)}" written_by="player">`, `Everything in this block is about ${u}, not ${n}: looks, marks and facts here belong to ${u} alone.`,
             ...theirProfile, ...(between ? [`Between them: ${n} is ${between} than ${u}.`] : []),
             ...personalityLines(player.state, player.knowledge ?? {}, n),
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra,
@@ -281,7 +286,7 @@ function composePrompt(state, name, extras = {}) {
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
-    for (const [castState, list, castName] of castSets) out.push('', `<supporting_character name="${pa(castName)}">`,
+    for (const [castState, list, castName] of castSets) out.push('', `<supporting_character name="${pa(castName)}">`, `Everything in this block is about ${pt(shortName(castName))}, not ${n} or ${u}.`,
         ...personalityLines(castState), ...listLines(castState, list, U, { ...people, subject: castName }), ...extraLines(castState), '</supporting_character>');
     if (castSets.length) out.push('',
         `These side characters are in the scene. Each keeps their own blend and only knows what they could have seen or heard. Not everyone needs to talk every turn, and the player still writes ${u}.`);
@@ -340,7 +345,9 @@ function composePrompt(state, name, extras = {}) {
     // Period first, then what happens, then how it reads: style settings aren't plot.
     // A regional era replaces its plain decade, so the period isn't described twice.
     const replaced = new Set(story.filter(m => ERA_LOCALE[m.id]).map(m => ERA_LOCALE[m.id].replaces));
-    const eras = story.filter(m => m.category === 'era' && !replaced.has(m.id)), styles = story.filter(m => STYLE_CATEGORIES.has(m.category) && m.id !== 'pattern_breaker');
+    const eras = story.filter(m => m.category === 'era' && !replaced.has(m.id)), styles = story.filter(m => STYLE_CATEGORIES.has(m.category) && m.category !== 'craft');
+    // Cleaner writing is the player's rules for the prose, so it goes last, as plain sentences, and outranks any author.
+    const rules = story.filter(m => m.category === 'craft' && m.id !== 'pattern_breaker').sort((x, y) => storyState.moods[y.id] - storyState.moods[x.id]);
     const breaker = story.some(m => m.id === 'pattern_breaker') ? patternLines(extras.patterns, storyState.moods.pattern_breaker) : [];
     // Dialect: the strongest regional era sets narration; a second one only covers its own speakers.
     const locales = [...new Set(eras.filter(m => ERA_LOCALE[m.id]).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map(m => ERA_LOCALE[m.id].locale))];
@@ -381,10 +388,10 @@ function composePrompt(state, name, extras = {}) {
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply, first line to last, with no drifting back to a default style. Use contractions (doesn't, can't, he's) the way people talk, in narration and dialogue.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
-        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing settings here: where a writing setting and an author pull different ways on sentence length, rhythm or how much is described, follow the author. Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []));
+        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []));
     if (breaker.length) out.push('', ...breaker);
     // The highest settings get named again at the end, where they carry the most weight.
-    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards'), 'the story', N]]
+    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards' && m.category !== 'craft'), 'the story', N]]
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject }).split(':')[0]} (${tierWord(st.moods[m.id])})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     for (const { name: subject, target, relation, tags } of relationships) {
@@ -418,7 +425,11 @@ function composePrompt(state, name, extras = {}) {
         + relationships.reduce((sum, r) => sum + r.tags.filter(t => r.relation.moods[t.id] >= 61).length, 0) + pairs.reduce((sum, p) => sum + p.tags.filter(t => p.moods[t.id] >= 61).length, 0);
     if (extras.blendPlan !== false && (top.length || strongCount >= 3)) out.push('',
         `Before you write, use your thinking to settle how the strongest settings combine in this exact moment: what each one looks like here, where they pull against each other, and which actions, lines and details carry several at once. Keep that planning in your thinking; the reply is only the scene.`);
-    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long; when two strong ones pull different ways, write both. ${boardLines.length ? 'Outside the board, show' : 'Show'} it through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on an action, a line or an image, with no closing paragraph that sums up or names a feeling the scene already showed. Never mention these notes.`);
+    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long; when two strong ones pull different ways, write both. ${boardLines.length ? 'Outside the board, show' : 'Show'} it through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on ${rules.some(m => m.id === 'prose_no_fragments') ? 'an action or a line inside a full paragraph' : 'an action, a line or an image'}, with no closing paragraph that sums up or names a feeling the scene already showed. Never mention these notes.`);
+    // Last, closest to the reply: the prose rules as full sentences, firm ones apart from lighter ones.
+    const firm = rules.filter(m => storyState.moods[m.id] >= 61), light = rules.filter(m => storyState.moods[m.id] < 61);
+    if (firm.length) out.push('', `These are the player's rules for the prose. They hold in every paragraph of every reply, inside any author's voice or style above, and they matter more to the player than any single beat. Earlier replies in this chat may not follow them; write this one by the rules rather than copying their layout. ${firm.map(m => m.cue).join(' ')}`);
+    if (light.length) out.push('', `${firm.length ? 'The player also likes these' : 'The player likes these'}, where they fit the moment. ${light.map(m => m.cue).join(' ')}`);
     // An American lead respells the whole note, so its own British spelling can't pull the reply that way.
     let body = out.join('\n');
     if (locales[0] === 'us') body = toAmerican(body);

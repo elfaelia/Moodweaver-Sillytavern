@@ -31,6 +31,14 @@ import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, rel
 import { cleanPins, cleanSkillPace, cleanSkills, skillWord } from '../engine/skills.js';
 import { TURN_BY_ID, cleanAge, cleanHeight, cleanInterests } from '../engine/turns.js';
 
+// A feeling ended by hand (lit before, 0 now) is remembered with the chat length, so the info board can't bring it
+// back and the next replies are told it's gone. Setting it again by hand forgets that.
+function markCut(s, id, was, next) {
+    if (BY_ID[id]?.kind !== 'mood') return;
+    s.cut ??= {};
+    if (next > 0) delete s.cut[id];
+    else if (was > 0) s.cut[id] = ctx().chat?.length ?? 0;
+}
 export function onPanelInput(e) {
     if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
     if (e.target.hasAttribute('data-skill-search')) { filterSkills(); return; }
@@ -430,7 +438,7 @@ export async function onPanelClick(e) {
         const id = button.dataset.unlist;
         await changeState(s => { s.loadout = s.loadout.filter(x => x !== id);
             if (id.startsWith('turn:')) { const { [id.slice(5)]: _, ...rest } = s.prefs; s.prefs = rest; }
-            else { s.moods[id] = 0; s.pins[id] = false; const { [id]: __, ...causes } = s.causes; s.causes = causes; } }); return;
+            else { markCut(s, id, s.moods[id] ?? 0, 0); s.moods[id] = 0; s.pins[id] = false; const { [id]: __, ...causes } = s.causes; s.causes = causes; } }); return;
     }
     if (button.dataset.invRemove) { const id = button.dataset.invRemove; await changeState(s => { s.inventory = (s.inventory ?? []).filter(i => i.id !== id); }); return; }
     if (button.dataset.memRemove) {
@@ -472,7 +480,7 @@ export async function onPanelClick(e) {
     // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
     if (button.dataset.moon) {
         const id = button.dataset.moon, now = viewState()?.moods?.[id] ?? 0, v = Number(button.dataset.v) || 0, next = v && level(now) === level(v) ? 0 : v;
-        await changeState(s => { s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; }); return;
+        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); }); return;
     }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
@@ -481,7 +489,14 @@ export async function onPanelClick(e) {
         if (!core.includes(id) && core.length >= CORE_MAX) { run.status = `Up to ${CORE_MAX} core traits and mind settings: unstar one first.`; renderStatus(); return; }
         await changeState(s => { const now = cleanCore(s.core, s.moods); if (now.includes(id)) s.core = now.filter(x => x !== id); else { if (!(s.moods[id] > 0)) s.moods[id] = 60; if (Array.isArray(s.loadout) && !s.loadout.includes(id)) s.loadout.push(id); s.core = [...now, id]; } }); return;
     }
-    if (button.dataset.lean) { const id = button.dataset.lean, v = button.dataset.v; await changeState(s => { s.psyLean = { ...(s.psyLean ?? {}) }; if (v) s.psyLean[id] = v; else delete s.psyLean[id]; }); return; }
+    // A two-sided Mind meter: left is the unhealthy side, right the healthy one, the middle is off.
+    if (button.dataset.pole) {
+        const id = button.dataset.pole, side = button.dataset.side, v = Number(button.dataset.v) || 0, s0 = viewState();
+        const same = side && (s0?.psyLean?.[id] === 'light' ? 'light' : 'dark') === side && (s0?.moods?.[id] ?? 0) > 0 && level(s0.moods[id]) === level(v), next = !side || same ? 0 : v;
+        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; s.psyLean = { ...(s.psyLean ?? {}) };
+            if (next) { s.psyLean[id] = side; if (!s.loadout.includes(id)) s.loadout.push(id); } else delete s.psyLean[id];
+            if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); }); return;
+    }
     if (button.dataset.jump) {
         clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render(); fillLazy(ui.panel);
         const row = ui.panel.querySelector(`[data-mood="${button.dataset.jump}"]`); if (!row) return;

@@ -14,7 +14,7 @@ const boardTemplate = (char, user, includeHorny = false, rows = {}) => `<div cla
 👔 <b> ${char}’s Outfit:</b> [Current appearance & outfit, short]<br>
 👗 <b>${user}’s Outfit:</b> [Current appearance & outfit, short]<br>
 🧠 <b>State:</b> [2–5 words for ${char}'s current mood, led by the strongest feelings; ${char}'s own state, not a description of what ${user} said or did]<br>
-💎 <b>Physical State:</b> [One short line: injuries, wet, drunk, tired, hungry or other bodily needs right now]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}${rows.toward ? `<br>\n💞 <b>Toward ${user}:</b> [2–4 words for how ${char} feels about ${user} right now, strongest first]` : ''}${rows.remember ? `<br>\n📌 <b>Remember:</b> [none, unless something just happened between ${char} and ${user} that a later scene needs: one short line of plain fact]` : ''}
+💎 <b>Physical State:</b> [One short line on ${char}'s own body only: injuries, wet, drunk, tired, hungry or other bodily needs right now]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}${rows.toward ? `<br>\n💞 <b>Toward ${user}:</b> [2–4 words for how ${char} feels about ${user} right now, strongest first]` : ''}${rows.remember ? `<br>\n📌 <b>Remember:</b> [none, unless something just happened between ${char} and ${user} that a later scene needs: one short line of plain fact]` : ''}
 </div>`;
 
 // ---- Reading a board back ----
@@ -395,14 +395,15 @@ function boardContinuity(live, char, user) {
 }
 // opts: { send, live, char, user, n, u, stripped, remember }. Returns prompt lines, or [] when there's no board in play.
 // remember: the Remember row goes on the board only when the hidden weave line isn't carrying it.
-export function boardPromptLines({ send, live, char, user, n, u, stripped = false, remember = false }) {
+export function boardPromptLines({ send, live, char, user, n, u, stripped = false, remember = false, ended = [] }) {
     if (!send && !live?.found) return [];
     const out = [];
+    if (ended.length) out.push(`${n} no longer feels ${ended.join(', ')}: the player ended ${ended.length > 1 ? 'them' : 'it'}. Leave ${ended.length > 1 ? 'them' : 'it'} off the board's State and out of how ${n} acts, unless something new in this reply clearly brings ${ended.length > 1 ? 'them' : 'it'} back.`);
     const includeHorny = live?.meta?.includeHorny === true, toward = live?.meta?.includeToward === true;
     if (send) out.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
         boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
     if (stripped && live?.found) out.push(boardContinuity(live, char, user));
-    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest current feelings from these notes and the scene, in a few words. Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
+    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]

@@ -613,7 +613,6 @@
 .mw-panel .mw-fact-head{display:flex;align-items:baseline;gap:8px;margin:16px var(--mw-pad) 6px;font:600 10.5px var(--mw-round);letter-spacing:.08em;text-transform:uppercase;color:var(--mw-text);opacity:.85}
 .mw-fact-head small{font:400 11px var(--mw-sans);letter-spacing:0;text-transform:none;color:var(--mw-faint)}
 .mw-panel .mw-why{display:block;margin:2px 0 1px;font-size:10.5px;color:var(--mw-faint);font-style:italic}
-.mw-panel .mw-lean{display:flex;gap:6px;margin:6px 0 2px;flex-wrap:wrap}.mw-panel .mw-lean-chip{min-height:32px;padding:4px 12px;border-radius:999px;font-size:12px;color:var(--mw-muted);border:1px solid color-mix(in srgb,var(--mw-accent,#b8a6e0) 35%,transparent);background:transparent}.mw-panel .mw-lean-chip.is-on{color:var(--mw-text);background:color-mix(in srgb,var(--mw-accent,#b8a6e0) 22%,transparent);border-color:color-mix(in srgb,var(--mw-accent,#b8a6e0) 60%,transparent)}
 .mw-panel .mw-core{flex:none;width:30px;height:30px;padding:0;border:0;background:none;color:var(--mw-faint);font-size:16px;line-height:1}.mw-panel .mw-core.is-core{color:#e3c38f}
 .mw-inventory{margin-bottom:6px}.mw-inventory .mw-fine{margin:0 var(--mw-pad) 14px}.mw-panel .mw-inventory .mw-inv-add{margin:10px var(--mw-pad) 6px}
 .mw-dyn-under{display:grid;gap:2px;margin:10px 0 0;padding:8px 10px;border-radius:12px;background:#ffffff0a;border-left:3px solid #ffffff2e}.mw-dyn-under small{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#b5aacb}.mw-dyn-under b{font-size:14px}.mw-dyn-under span{font-size:12.5px;color:#d7cfe8;line-height:1.4}
@@ -626,3 +625,13 @@
 .mw-dyn-pron-box{margin:10px 0 0}.mw-dyn-pron-box>summary{cursor:pointer;font-size:11.5px;color:#d7cfe8;list-style:none}.mw-dyn-pron-box>summary::-webkit-details-marker{display:none}
 .mw-dyn-pron-box>summary::before{content:'▸ ';color:#b5aacb}.mw-dyn-pron-box[open]>summary::before{content:'▾ '}.mw-dyn-pron-box summary small{color:#b5aacb;margin-left:4px}.mw-dyn-pron-box .mw-dyn-pronouns{margin-top:8px}
 
+
+/* Two-sided Mind meter: unhealthy to the left, off in the middle, healthy to the right */
+.mw-poles .mw-moon.mw-pole-dark.is-lit{background:color-mix(in srgb,#b0405a 18%,transparent)}
+.mw-poles .mw-moon.mw-pole-dark.is-lit>span{background:linear-gradient(270deg,#d9708a var(--mw-phase),#ffffff14 var(--mw-phase))}
+.mw-poles .mw-moon.mw-pole-dark>span{background:linear-gradient(270deg,#ffffff2e var(--mw-phase),#ffffff0d var(--mw-phase))}
+.mw-poles .mw-moon.mw-pole-light.is-lit{background:color-mix(in srgb,#5fae7c 18%,transparent)}
+.mw-poles .mw-moon.mw-pole-light.is-lit>span{background:linear-gradient(90deg,#9fdcb4 var(--mw-phase),#ffffff14 var(--mw-phase))}
+.mw-pole-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--mw-muted);margin:-3px 2px 6px}
+.mw-panel .mw-side{margin:6px 0 2px;font-size:12.5px;line-height:1.45}
+.mw-panel .mw-side b{font-weight:600}.mw-side-dark b{color:#e08ea2}.mw-side-light b{color:#9fdcb4}

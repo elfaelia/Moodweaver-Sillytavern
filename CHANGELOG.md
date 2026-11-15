@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.61.0: moods that follow the scene, prose rules that hold, and a clearer Mind tab
+
+- **Giddy (or any feeling) no longer sticks.**
+  - The info board used to feed its own State words back into moods every reply, and that kept old feelings alive. Now it can only add a feeling that isn't already on.
+  - A feeling you switch off stays off. It comes off the board and out of what's sent, and Claude is told it ended, unless something new in the scene clearly brings it back.
+  - The board's State row is written fresh each reply, so a kiss reads as desire, not the giddiness of an hour ago.
+  - Claude can now pick up to 14 feelings per reply (it was 10).
+- **Every feeling can come from the scene,** not just from meters. The hidden line asks for the whole range by name, including desire, sexual frustration, jealousy, shame and spite. Kissing brings Heated and sex brings Horny on their own, and a scene that's interrupted or held back brings Sexual frustration.
+- **Cleaner writing rewritten for Opus 5.5.**
+  - Each setting is now a plain instruction that says what to do and why, the way Anthropic's own guidance says Opus follows best.
+  - They are sent last as the player's rules for the prose. They hold in every paragraph, outrank any author or style, and ignore the layout of earlier replies.
+  - Full paragraphs (was No fragment drama) asks for paragraphs of at least three sentences and says that a short beat sentence joins its paragraph instead of standing alone.
+  - The panel now shows what each setting actually does.
+  - New: No similes or metaphors, Don't point out the obvious (no "you're shivering"; he shows he noticed by doing something), Don't narrate my character, and No empty threats.
+- **Details stay on the right person.** Your character's section and each side character's section now say whose details they hold, so a scar or a chipped tooth can't drift onto someone else. The board's body row covers only the main character.
+- **The Mind tab, rewritten.**
+  - All 178 entries are now described in plain words, checked against how each condition really works. For example, Social anxiety now covers dread before events, replaying afterwards, blushing and going blank, and looking cold to others. Borderline covers emotions that change fast, fear of being left, swinging between idealising people and feeling betrayed, an unstable sense of self, emptiness and impulsivity, and also how deeply they love.
+  - Complexes and a few others (narcissistic, histrionic, and Jung's shadow, persona, anima, animus, eternal youth and old man) now have a meter that starts in the middle. Left is the unhealthy side, right is the healthy side, and the middle sends nothing. The panel and what Claude gets both describe the side you chose.
+
 ## 1.60.2: modern authors researched, and authors split by style
 
 - **Authors with very different styles are now separate entries**, so Claude gets one clear voice instead of an average of two. Your existing picks keep the best-known style and are now named for it. 21 new style entries: Philip Roth (late), Truman Capote (early gothic) and (reportage), Evelyn Waugh (elegiac), William S. Burroughs (plain), Cormac McCarthy (baroque), Ian McEwan (early, macabre), Norman Mailer (reportage), Ken Kesey (chorus), Tanizaki (family realism), John Banville as Benjamin Black (1950s crime), Don DeLillo (late, spare), James Ellroy (early), Poppy Z. Brite (restaurant comedies), Nicholson Baker (minute), Michel Faber (cold, alien), J. M. Coetzee (allegory), Susanna Clarke (journal), Joyce Carol Oates (realist), Dennis Lehane (PI) and Lisa Kleypas (contemporary).

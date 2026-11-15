@@ -133,7 +133,9 @@ const cleanClock = c => Object.fromEntries(Object.entries(c && typeof c === 'obj
 export function extendCatalogue(state) {
     if (!state || extended.has(state)) return state;
     migrateCatalogue(state);
-    state.causes = cleanCauses(state.causes); state.about = Object.fromEntries(Object.entries(state.about && typeof state.about === 'object' ? state.about : {}).filter(([id, v]) => BY_ID[id] && typeof v === 'string' && v.trim()).map(([id, v]) => [id, v.trim().slice(0, 40)])); state.shows = cleanShows(state.shows); state.prefs = cleanPrefs(state.prefs);
+    state.causes = cleanCauses(state.causes); state.about = Object.fromEntries(Object.entries(state.about && typeof state.about === 'object' ? state.about : {}).filter(([id, v]) => BY_ID[id] && typeof v === 'string' && v.trim()).map(([id, v]) => [id, v.trim().slice(0, 40)])); state.shows = cleanShows(state.shows);
+    // Feelings ended by hand: { id: chat length when ended }. The board can't bring them back; the story can, by naming them anew.
+    state.cut = Object.fromEntries(Object.entries(state.cut && typeof state.cut === 'object' ? state.cut : {}).filter(([id, v]) => BY_ID[id] && Number.isInteger(v) && v >= 0)); state.prefs = cleanPrefs(state.prefs);
     // Retired: own options (1.50); "always send" skills and a separate feelings pace (1.53: skills go only when
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;

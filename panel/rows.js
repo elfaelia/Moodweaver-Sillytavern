@@ -41,18 +41,32 @@ export function moons(m, value) {
         return `<button type="button" class="mw-moon ${lit ? 'is-lit' : ''} ${here ? 'is-now' : ''}" data-moon="${m.id}" data-v="${MOON_AT[i]}" aria-pressed="${here}" aria-label="${t.name}" title="${t.name}" style="--mw-phase:${Math.round((i + 1) / 8 * 100)}%"><span></span></button>`; });
     return `<div class="mw-moons" role="group" aria-labelledby="mw-${m.id}"><button type="button" class="mw-moon is-new ${value ? '' : 'is-now'}" data-moon="${m.id}" data-v="0" aria-pressed="${!value}" aria-label="Off" title="Off"><span></span></button>${phases.join('')}</div>`;
 }
-// Mind settings that can go either way: middling by default, or leaning healthier or darker (state.psyLean).
-const leanChips = (m, state) => !m.light || !state.moods[m.id] ? '' : `<div class="mw-lean" role="group" aria-label="Which way it leans">${[['light', '☀ Healthier', m.light], ['', 'Middling', 'some of both'], ['dark', '☾ Darker', m.dark]].map(([k, label, hint]) =>
-    `<button type="button" class="mw-lean-chip ${(state.psyLean?.[m.id] ?? '') === k ? 'is-on' : ''}" data-lean="${m.id}" data-v="${k}" aria-pressed="${(state.psyLean?.[m.id] ?? '') === k}" title="${esc(hint)}">${label}</button>`).join('')}</div>`;
+// Mind settings with two sides (complexes and a few others) get a meter that starts in the middle, which is
+// off: tapping left sets the unhealthy side, tapping right the healthy one, further out is stronger. The side
+// lives in state.psyLean, the strength in moods. Tapping the moon it's already at goes back to the middle.
+export const twoSided = m => Boolean(m.light && m.dark);
+const POLE_AT = [30, 50, 70, 95];
+export const sideOf = (m, state) => twoSided(m) && state.moods[m.id] > 0 ? (state.psyLean?.[m.id] === 'light' ? 'light' : 'dark') : '';
+export const SIDE_NAME = { dark: 'Unhealthy side', light: 'Healthy side' };
+function poleMoons(m, state) {
+    const value = state.moods[m.id] ?? 0, side = sideOf(m, state), now = tierOf(value);
+    const moon = (s, v, i) => { const lit = side === s && value >= v - 1, here = lit && tierOf(v) === now;
+        return `<button type="button" class="mw-moon mw-pole-${s} ${lit ? 'is-lit' : ''} ${here ? 'is-now' : ''}" data-pole="${m.id}" data-side="${s}" data-v="${v}" aria-pressed="${here}" aria-label="${SIDE_NAME[s]}, ${tierOf(v).name}" title="${SIDE_NAME[s]}: ${tierOf(v).name}" style="--mw-phase:${Math.round((i + 1) / 4 * 100)}%"><span></span></button>`; };
+    const dark = POLE_AT.map((v, i) => moon('dark', v, i)).reverse(), light = POLE_AT.map((v, i) => moon('light', v, i));
+    return `<div class="mw-moons mw-poles" role="group" aria-labelledby="mw-${m.id}">${dark.join('')}<button type="button" class="mw-moon is-new ${value ? '' : 'is-now'}" data-pole="${m.id}" data-side="" data-v="0" aria-pressed="${!value}" aria-label="Off" title="Off: nothing is sent"><span></span></button>${light.join('')}</div>
+        <div class="mw-pole-legend" aria-hidden="true"><span>◂ unhealthy</span><span>off</span><span>healthy ▸</span></div>`;
+}
+// What the panel says about a two-sided setting: what it is, then how its side plays out once one is chosen.
+const sideText = (m, state) => { const side = sideOf(m, state); return side ? `<p class="mw-side mw-side-${side}"><b>${SIDE_NAME[side]}:</b> ${esc(m[side])}</p>` : ''; };
 // An author's books, and (Settings › Panel) how they write, under the row.
 const authorLines = m => m.books ? `<small class="mw-books">${esc(m.books.replaceAll("; ", " · "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
 export function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
-        <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
+        <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${sideOf(m, state) ? `${sideOf(m, state) === 'dark' ? 'unhealthy' : 'healthy'} · ` : ''}${level(value)}</span>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${coreButton(m, state)}${listButton(m.id, state)}</div>
-        ${moons(m, value)}
-        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${leanChips(m, state)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
+        ${twoSided(m) ? poleMoons(m, state) : moons(m, value)}
+        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${sideText(m, state)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
 }
 // On an active feeling, how it shows on this person. Empty uses the default wording (the placeholder).
 const showsBox = (m, state) => analysed(m) && ON_PAGE[m.id] && settings().showsMode !== 'off' ? `<input type="text" class="mw-cause mw-shows" data-shows="${m.id}" maxlength="120" value="${esc(state.shows?.[m.id] ?? '')}" placeholder="${settings().showsMode === 'mine' ? 'your wording (default is off): ' : 'shows as: '}${esc(ON_PAGE[m.id])}" title="How it shows on ${esc(subjectName())}. Leave empty for: ${esc(ON_PAGE[m.id])}" aria-label="How it shows on them">` : '';

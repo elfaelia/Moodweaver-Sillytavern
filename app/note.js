@@ -43,7 +43,9 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const n = shortName(name), u = shortName(player), bond = bondData(ch), bm = cleanBoardMeta(boardMeta());
         const memories = settings().boardMemories;
         const liveNow = liveFor(ch, history);
-        const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on });
+        // Feelings ended by hand in the last few replies, so the board and the scene drop them too.
+        const ended = Object.entries(state.cut ?? {}).filter(([id, at]) => !(state.moods?.[id] > 0) && history.length - at < 12 && BY_ID[id]).map(([id]) => BY_ID[id].label.split('/')[0].trim().toLowerCase());
+        const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on, ended });
         const react = reactions(ch, history, liveNow), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
         // The current dynamic, worked out once. The story is asked to rename it when it shifts, and
         // both-ways or story lines it already says are left out of this note.

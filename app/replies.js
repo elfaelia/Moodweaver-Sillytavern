@@ -451,8 +451,21 @@ function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } 
 // the note can say so and the feeling isn't turned on you. "angry at his wife +10" is split the same way, unless
 // the whole phrase is a feeling's own name. A rise with nobody named means it's general again.
 // Kissing or making out in a reply: one clear sign plus one more touch word, so a hand at a throat in a fight doesn't count.
+const CUT_HOLD = 8; // messages (about four replies)
 const KISS = /\b(kiss(?:es|ed|ing)?|making out|made out|moan(?:s|ed|ing)?|grind(?:s|ed|ing)?|straddl\w*|undress\w*)\b/i;
 const TOUCH = /\b(lips?|mouth|tongue|throat|neck|collarbone|jaw|thighs?|hips?|breath|skin|chest)\b/gi;
+const SEXUAL = /\b(naked|undress\w*|nipples?|thrust\w*|grind\w*|hard against|between (?:her|his|their) (?:legs|thighs)|moan\w*|gasp\w*|arch(?:es|ed|ing) into)\b/gi;
+const DENIED = /\b(pull(?:s|ed)? away|pushe[sd]? (?:him|her|them) (?:away|back)|not yet|stops? (?:him|her|them)|stopped|interrupt\w*|knock(?:s|ed|ing) at|ache[sd]? for|frustrat\w*)\b/i;
+// Free scene reading for the desire family, when the hidden line named none: kissing warms them, plainly sexual
+// touch makes them horny, and being stopped mid-way leaves them frustrated.
+export function sceneFeelings(text) {
+    const t = String(text ?? '').replace(/<!--[\s\S]*?-->/g, ''), out = [];
+    if (!intimate(t)) return out;
+    const sexual = new Set((t.match(SEXUAL) ?? []).map(w => w.toLowerCase())).size;
+    out.push(sexual >= 2 ? ['horny', 10] : ['heated', 6]);
+    if (DENIED.test(t)) out.push(['sexually frustrated', 6]);
+    return out;
+}
 export const intimate = text => { const t = String(text ?? '').replace(/<!--[\s\S]*?-->/g, ''); return KISS.test(t) && new Set((t.match(TOUCH) ?? []).map(w => w.toLowerCase())).size >= 2; };
 function aimed(x) {
     if (x.about || feelingId(x.name) || factId(x.name)) return x;
@@ -494,7 +507,10 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             // feelings on the character's list.
             const listOnly = st.moodScope === 'list', listed = id => !listOnly || st.loadout?.includes(id) || (st.moods[id] ?? 0) > 0;
             // Body facts that come and go (drunk, bleeding, sore) can be named there too.
-            const resolve = name => { const fact = factId(name); if (fact) { factsNamed.add(fact); return fact; } const id = feelingId(name); return id && listed(id) ? id : null; };
+            // A feeling you ended by hand stays ended for the next few replies whatever the line says (it's often just
+            // copying an older board); after that the story can bring it back, and doing so forgets the cut.
+            const at = ctx().chat?.indexOf(m) ?? -1, fresh = id => st.cut?.[id] !== undefined && (at < 0 || at - st.cut[id] < CUT_HOLD);
+            const resolve = name => { const fact = factId(name); if (fact) { factsNamed.add(fact); return fact; } const id = feelingId(name); return id && listed(id) && !fresh(id) ? id : null; };
             // The character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
             const pace = movePace(writer), named = new Set();
@@ -507,11 +523,13 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
                 if (id && !list.some(y => feelingId(y.name) === id)) list.push({ name, delta: paceDelta(x.delta <= -100 ? x.delta : Math.round(x.delta / 2) || Math.sign(x.delta), pace) });
             }
             // A reply that's plainly physical (kissing, mouths on skin) with no desire named still warms them a little.
-            if (st.moodAuto !== false && !list.some(x => BY_ID[feelingId(x.name)]?.category === 'desire') && intimate(m.mes)) list.push({ name: 'heated', delta: paceDelta(6, pace) });
+            if (st.moodAuto !== false && !list.some(x => BY_ID[feelingId(x.name)]?.category === 'desire')) for (const [name, delta] of sceneFeelings(m.mes)) list.push({ name, delta: paceDelta(delta, pace) });
             // The scene touching what they're into (Facts › Into) puts them a little in their element, never past strong.
             if (st.moodAuto !== false && (st.moods.in_their_element ?? 0) < 41 && !list.some(x => feelingId(x.name) === 'in_their_element') && touchesInterest(st, m.mes)) list.push({ name: 'in their element', delta: paceDelta(8, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
             aimAt(st, list, rec);
+            for (const id of Object.keys(rec.m)) if (st.moods[id] > 0 && st.cut?.[id] !== undefined) { (rec.cu ??= {})[id] = st.cut[id]; delete st.cut[id]; }
+            let fromBoard = new Set();
             const relation = userRelation(st, Boolean(w.toward.length || w.feels.length));
             if (relation) {
                 const before = { ...relation.moods };
@@ -526,14 +544,16 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
                 const named = Object.fromEntries(w.moods.map(x => [feelingId(x.name), true]).filter(([id]) => id));
                 const fed = fedOf(meta, writer); rec.fed ??= structuredClone(fed);
                 const before = { ...st.moods };
-                feedValues(st.moods, { ...st.pins, ...named }, fed.moods, feelingsFromBoard(board).filter(x => !named[x.id]));
-                Object.assign(rec.m, diff(before, st.moods));
+                // Only feelings that are off and weren't ended by hand: the board mostly echoes these notes, so letting it
+                // hold up a live feeling kept one (giddy) going forever.
+                feedValues(st.moods, { ...st.pins, ...named }, fed.moods, feelingsFromBoard(board).filter(x => !named[x.id] && !(before[x.id] > 0) && st.cut?.[x.id] === undefined));
+                const boardMoved = diff(before, st.moods); Object.assign(rec.m, boardMoved); fromBoard = new Set(Object.keys(boardMoved));
             }
             facts(st.moodAuto !== false);
             // Feelings nobody mentioned for a while fade, on the character's pace. Pinned ones and
             // traits never do. Recorded with the reply, so a swipe or Undo puts them back.
             if (st.moodAuto !== false && st.moodFade !== false) {
-                for (const id of Object.keys(rec.m)) named.add(id);
+                for (const id of Object.keys(rec.m)) if (!fromBoard.has(id)) named.add(id);
                 const values = {};
                 for (const [id, v] of Object.entries(st.moods)) if (v > 0 && !st.pins?.[id] && analysed(BY_ID[id]) && !hold?.m?.has(id)) values[id] = v;
                 rec.q = structuredClone(st.moodQuiet ?? {});
@@ -552,7 +572,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         if (board && b.feed) {
             const fed = fedOf(meta, writer); rec.fed = structuredClone(fed);
             const before = { ...st.moods };
-            feedValues(st.moods, st.pins, fed.moods, feelingsFromBoard(board));
+            feedValues(st.moods, st.pins, fed.moods, feelingsFromBoard(board).filter(x => st.cut?.[x.id] === undefined));
             rec.m = diff(before, st.moods);
             if (board.toward !== undefined) {
                 const readings = relationsFromBoard(board, playerName()), relation = userRelation(st, readings.length > 0);
@@ -595,6 +615,7 @@ function undoReply(meta, writer, st, rec) {
     if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.fromStory = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
     if (rec.sf) st.fromStory = structuredClone(rec.sf);
     for (const [id, was] of Object.entries(rec.ab ?? {})) { st.about ??= {}; if (was) st.about[id] = was; else delete st.about[id]; }
+    for (const [id, at] of Object.entries(rec.cu ?? {})) (st.cut ??= {})[id] = at;
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);

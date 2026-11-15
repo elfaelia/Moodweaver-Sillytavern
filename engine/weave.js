@@ -91,7 +91,7 @@ function readLine(body) {
         // The story's own name for the dynamic, only when it shifted.
         dynamic: NONE.test(unquote(f.dynamic ?? '')) ? '' : unquote(f.dynamic ?? '').replace(/\s*\(.*$/, '').slice(0, 40),
         hasTrust: 'trust' in f, hasPower: 'control' in f || 'power' in f, pRaw: f.control ?? f.power ?? '', lRaw: f.pull ?? '',
-        moods: changes(f.moods, 10), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
+        moods: changes(f.moods, 14), hasMoods: 'moods' in f, needs: needs(f.needs, deltas), needDeltas: deltas, toward, feels,
         wants: wantItems(f.wants), fears: list(f.fears, 3, 80), pressed: list(f.pressed, 3, 80),
         newWant: NONE.test(unquote(f.newwant ?? '')) ? '' : unquote(f.newwant ?? '').slice(0, 100),
         desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
@@ -112,7 +112,7 @@ export function parseWeave(mes) {
         if (x.dynamic) out.dynamic = x.dynamic;
         out.hasTrust ||= x.hasTrust; out.hasPower ||= x.hasPower; out.hasMoods ||= x.hasMoods;
         out.pRaw = [out.pRaw, x.pRaw].filter(Boolean).join(' ; '); out.lRaw = [out.lRaw, x.lRaw].filter(Boolean).join(' ; ');
-        out.moods = [...out.moods, ...x.moods].slice(0, 14); out.toward = [...out.toward, ...x.toward].slice(0, 6);
+        out.moods = [...out.moods, ...x.moods].slice(0, 20); out.toward = [...out.toward, ...x.toward].slice(0, 6);
         out.feels = [...out.feels, ...x.feels].slice(0, 6); out.needs = { ...out.needs, ...x.needs };
         out.thinks = [...out.thinks, ...x.thinks].slice(0, 6); out.sparked = [...out.sparked, ...x.sparked].slice(0, 6); out.noticed = [...out.noticed, ...x.noticed].slice(0, 4);
         if (x.remember) out.remember = x.remember;
@@ -170,7 +170,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
     return [
         `End every reply with a hidden line for Moodweaver: only what changed for ${n} this reply, or <!-- weave: none -->. Shape:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to eight, any kind (dark, sexual and ugly ones count), in plain words: ${mp.ordinary} usually, up to ${mp.step} for big moments, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes above say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
+        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, giddiness and so on; dark, sexual and ugly ones count), whatever this moment gives them, in plain words: ${mp.ordinary} usually, up to ${mp.step} for big moments, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes above say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
             `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them; a beating costs health.`,
             `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
         ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,

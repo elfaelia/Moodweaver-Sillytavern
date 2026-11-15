@@ -22,16 +22,22 @@ You and the main character sit at the top as two matching cards (tap one to swit
 | Dock | Tabs | What they hold |
 |---|---|---|
 | ☾ Mood | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
-| ♥ Relations | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 440, in 13 groups) with a slower second one underneath, and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
+| ♥ Relations | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 460, in 13 groups) with a slower second one underneath, and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
 | ◔ Info | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts |
-| ❂ Self | Traits, Skills, Wants | Who they are (★ makes a trait core, up to three), skill levels out of 10, and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
+| ❂ Self | Traits, Mind, Skills, Wants | Who they are (★ makes a trait core, up to three); how their mind works (complexes, neurodivergence, personality disorders, anxiety, trauma, attachment, defences, Freud, Jung and the old schools, 1950s–60s diagnoses, strengths); skill levels out of 10; and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
 | ✦ Story | | Era, genre, tropes, stakes, writing style and authors, shared by everyone in the chat |
 
 **Moons.** Feelings, traits and facts are set by tapping a moon: eight phases from faint to maximum, and a dark new moon for off. Tapping the moon it's already on (or the level word) clears it. No dragging.
 
 **Facts run their course.** Every "right now" fact (body, bedroom, substances) wears off by the clock on the info board (or about ten minutes a reply without one) unless the story keeps naming it, turns into what comes after (drunk into hungover), and stirs the feelings that go with it. The story puts facts on by itself: the character's from the board's Physical State, yours from the hidden line's list of what's true of you, which also takes yours off again once it stops listing them. Pin a fact to keep it. A time skip moves it on; undoing or swiping a reply puts it back.
 
-**Authors.** Each author shows their best-known books and, unless ⚙ Settings › Panel › Show how each author writes is off, a plain description of how they write. Claude gets the name, the books and a short line of technique, never their plots.
+**Authors.** Each author shows their best-known books and, unless ⚙ Settings › Panel › Show how each author writes is off, a description of how they write: prose, dialogue, how minds and people are shown, and their hallmarks. Claude gets the name, the books and a short line of technique, or that full description at clear or above, never their plots, characters or settings. Authors outrank the other writing settings where they disagree, and they never change your chat's person or tense.
+
+**Mind.** Each person's own. Clear and stronger settings are sent every reply; fainter ones only when the last messages use their words (a mother complex when someone's mother comes up). ★ sends one every reply whatever its strength, and counts toward the three core picks. Some can lean Healthier or Darker; Middling is the default. They lean the dynamic, can clash with the other person's (clinging against pulling away, a rescuer and someone wounded), set off a few combos, change how fast needs run down, and in 1950s–60s America get their own period lines (no word yet for autism, Miltown for nerves, Cleckley's mask of sanity, hysteria and frigidity as diagnoses).
+
+**Who a feeling is about.** The hidden line can say a feeling is aimed at someone else ("angry +10 at his wife"). It's shown as "(at his wife)" and Claude is told it can shorten a temper but doesn't become a feeling about you. The dynamic is scoped to the two of you.
+
+**How you come across.** The hidden line also names up to three feelings you showed this reply ("seems: scared, defiant"). They come on at about half strength and fade once the story stops naming them, so your side has moods for clashes and combos without you setting any.
 
 **Why is this on?** A faint line under a feeling says what put it there when it wasn't you (the story raised it, a fact brought it, it's wearing off). ⚙ Settings › Panel › Show why turns it off.
 
@@ -41,7 +47,7 @@ You and the main character sit at the top as two matching cards (tap one to swit
 
 **Setting something back to 0.** Tap the level word or number on a row ("Clear", "Neutral", "3/10") and it goes to 0, the middle on a two-way slider. × still takes it off the list.
 
-The story (writing style first, then era, genre, tropes, stakes and authors) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America, including how the same trait reads on a man and on a woman: a woman taking charge, a man giving way, a woman drinking, a man crying). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
+The story (writing style first, then authors, era, genre, tropes and stakes) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America, including how the same trait reads on a man and on a woman: a woman taking charge, a man giving way, a woman drinking, a man crying). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
 
 Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, overwhelming, maximum. Only what's switched on is sent.
 

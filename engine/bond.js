@@ -95,13 +95,19 @@ const FAMILY_LEAN = {
     desire: ['heat'], closeness: ['romance'], love: ['romance'], attachment: ['obsess'], cold: ['distance', 'secret'], cruel: ['toxic', 'captor', 'mind'],
     angry: ['toxic', 'allies'], scared: ['captor', 'mind'], bold: ['power', 'allies'], happy: ['romance', 'allies'], masks: ['secret', 'society'], sad: ['distance', 'toxic'],
     headspace: ['mind'], bed_roles: ['power', 'heat'], psychosexual: ['heat', 'toxic'],
+    // Mind tab groups, at clear or above.
+    psy_complexes: ['obsess', 'power'], psy_personality: ['toxic', 'mind', 'power'], psy_attachment: ['obsess', 'toxic'], psy_trauma: ['captor', 'mind'],
+    psy_psychosis: ['obsess', 'mind'], psy_anxiety: ['distance'], psy_defences: ['secret'], psy_schools: ['mind'], psy_old: ['clinic', 'society'], psy_strengths: ['romance', 'allies'],
 };
 // Single feelings that point somewhere their family doesn't.
 const MOOD_LEAN = {
-    clinic: ['clinical', 'taking_notes', 'clinical_cruelty', 'curious', 'morbid_curiosity', 'bedside_manner', 'experimenter_role', 'test_subject', 'medicated', 'sedated', 'hospital_ward', 'playing_god'],
+    clinic: ['hysteria', 'neurasthenia', 'frigidity', 'nymphomania', 'sexual_psychopath', 'nervous_breakdown', 'florence_nightingale_effect', 'clinical', 'taking_notes', 'clinical_cruelty', 'curious', 'morbid_curiosity', 'bedside_manner', 'experimenter_role', 'test_subject', 'medicated', 'sedated', 'hospital_ward', 'playing_god'],
     mind: ['gaslighting', 'manipulative', 'hypnotised', 'brainwashed', 'conditioned', 'conditioning', 'dissociating', 'in_denial', 'mindfuck', 'confused', 'disoriented', 'performing_obedience'],
-    secret: ['lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'secretive', 'plausible_deniability', 'blackmailing'],
-    society: ['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'gossipy', 'traditional', 'status_panic', 'married_status', 'engaged_status'],
+    secret: ['false_self', 'divided_self', 'compartmentalising', 'lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'secretive', 'plausible_deniability', 'blackmailing'],
+    obsess: ['erotomania', 'romantic_delusion', 'borderline', 'anxious_attachment', 'lima_syndrome', 'florence_nightingale_effect', 'mirror_hunger', 'monomania'],
+    captor: ['stockholm_syndrome', 'lima_syndrome', 'identifies_with_aggressor', 'fawns'],
+    power: ['god_complexed', 'messiah_complex', 'napoleon_complex', 'father_complex', 'electra_complex', 'moves_against'],
+    society: ['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'gossipy', 'traditional', 'status_panic', 'married_status', 'engaged_status', 'persona_bound', 'madonna_whore_complex'],
 };
 const MOOD_LEAN_BY_ID = new Map();
 for (const [g, ids] of Object.entries(MOOD_LEAN)) for (const id of ids) MOOD_LEAN_BY_ID.set(id, [...(MOOD_LEAN_BY_ID.get(id) ?? []), g]);

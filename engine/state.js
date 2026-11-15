@@ -124,21 +124,25 @@ function canonical(obj, off) {
 }
 // Up to three core traits: ids from the Traits tab that are on. Always sent, first, whatever the mood.
 export const CORE_MAX = 3;
-export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && sectionOf(BY_ID[id]) === 'trait' && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
-// How long each fact that runs its course has run (engine/moodpace.js factStep). storyFacts: your facts the
-// story put on, which it takes off again when its list leaves them out (app/replies.js).
+// Which way a mind setting leans: 'light' (healthier) or 'dark'; missing means middling.
+export const cleanLean = x => Object.fromEntries(Object.entries(x && typeof x === 'object' ? x : {}).filter(([id, v]) => BY_ID[id]?.light && ['light', 'dark'].includes(v)));
+export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && ['trait', 'psyche'].includes(sectionOf(BY_ID[id])) && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
+// How long each fact that runs its course has run (engine/moodpace.js factStep). fromStory: facts and
+// feelings the story put on, which it takes off again when its list leaves them out (app/replies.js).
 const cleanClock = c => Object.fromEntries(Object.entries(c && typeof c === 'object' ? c : {}).filter(([id, v]) => BY_ID[id] && v && Number.isFinite(v.h) && Number.isFinite(v.v) && Number.isFinite(v.at)));
 export function extendCatalogue(state) {
     if (!state || extended.has(state)) return state;
     migrateCatalogue(state);
-    state.causes = cleanCauses(state.causes); state.shows = cleanShows(state.shows); state.prefs = cleanPrefs(state.prefs);
+    state.causes = cleanCauses(state.causes); state.about = Object.fromEntries(Object.entries(state.about && typeof state.about === 'object' ? state.about : {}).filter(([id, v]) => BY_ID[id] && typeof v === 'string' && v.trim()).map(([id, v]) => [id, v.trim().slice(0, 40)])); state.shows = cleanShows(state.shows); state.prefs = cleanPrefs(state.prefs);
     // Retired: own options (1.50); "always send" skills and a separate feelings pace (1.53: skills go only when
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
     state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
     state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests);
+    state.psyLean = cleanLean(state.psyLean);
     state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
-    state.storyFacts = [...new Set(Array.isArray(state.storyFacts) ? state.storyFacts : [])].filter(id => BY_ID[id]);
+    // fromStory was storyFacts in 1.58 (facts only).
+    state.fromStory = [...new Set([state.fromStory, state.storyFacts].flatMap(x => Array.isArray(x) ? x : []))].filter(id => BY_ID[id]); delete state.storyFacts;
     state.wants = cleanWants(state.wants); state.readScope = cleanScope(state.readScope);
     state.follow = clamp(state.follow ?? 90, 10, 100);
     state.loadout = cleanLoadout(state.loadout, state);
@@ -206,7 +210,7 @@ export function freshState(base = {}) {
         personality: cleanPersonality(base.personality),
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
-        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), core: cleanCore(base.core, base.moods ?? {}),
+        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), core: cleanCore(base.core, base.moods ?? {}), psyLean: cleanLean(base.psyLean),
         skills: cleanSkills(base.skills), skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),

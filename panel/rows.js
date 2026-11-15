@@ -29,8 +29,8 @@ function whyLine(m, state) {
     const why = state.moods[m.id] > 0 ? [ui.why?.get(m.id), courseNote(state, m.id)].filter(Boolean).join(' · ') : '';
     return why ? `<small class="mw-why">↳ ${esc(why)}</small>` : '';
 }
-// Traits get a star: up to three core traits, always sent first.
-const coreButton = (m, state) => { if (sectionOf(m) !== 'trait') return ''; const on = state.core?.includes(m.id) && state.moods[m.id] > 0;
+// Traits and mind settings get a star: up to three core ones, always sent first.
+const coreButton = (m, state) => { if (!['trait', 'psyche'].includes(sectionOf(m))) return ''; const on = state.core?.includes(m.id) && state.moods[m.id] > 0;
     return `<button type="button" class="mw-core ${on ? 'is-core' : ''}" data-core="${m.id}" aria-pressed="${on}" aria-label="${on ? 'Not a core trait' : 'Make it a core trait'}: ${esc(tagLabel(m))}" title="Core trait: always sent, whatever the mood (up to three)">${on ? '★' : '☆'}</button>`; };
 // Strength as eight moons, faint to maximum, filling like the phases, with a dark new moon for 0. A tap sets
 // that strength; tapping the one it's already at (or the new moon) clears it. No dragging.
@@ -41,6 +41,9 @@ export function moons(m, value) {
         return `<button type="button" class="mw-moon ${lit ? 'is-lit' : ''} ${here ? 'is-now' : ''}" data-moon="${m.id}" data-v="${MOON_AT[i]}" aria-pressed="${here}" aria-label="${t.name}" title="${t.name}" style="--mw-phase:${Math.round((i + 1) / 8 * 100)}%"><span></span></button>`; });
     return `<div class="mw-moons" role="group" aria-labelledby="mw-${m.id}"><button type="button" class="mw-moon is-new ${value ? '' : 'is-now'}" data-moon="${m.id}" data-v="0" aria-pressed="${!value}" aria-label="Off" title="Off"><span></span></button>${phases.join('')}</div>`;
 }
+// Mind settings that can go either way: middling by default, or leaning healthier or darker (state.psyLean).
+const leanChips = (m, state) => !m.light || !state.moods[m.id] ? '' : `<div class="mw-lean" role="group" aria-label="Which way it leans">${[['light', '☀ Healthier', m.light], ['', 'Middling', 'some of both'], ['dark', '☾ Darker', m.dark]].map(([k, label, hint]) =>
+    `<button type="button" class="mw-lean-chip ${(state.psyLean?.[m.id] ?? '') === k ? 'is-on' : ''}" data-lean="${m.id}" data-v="${k}" aria-pressed="${(state.psyLean?.[m.id] ?? '') === k}" title="${esc(hint)}">${label}</button>`).join('')}</div>`;
 // An author's books, and (Settings › Panel) how they write, under the row.
 const authorLines = m => m.books ? `<small class="mw-books">${esc(m.books.replaceAll("; ", " · "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
 export function row(m, state) {
@@ -49,7 +52,7 @@ export function row(m, state) {
         <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${level(value)}</span>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${coreButton(m, state)}${listButton(m.id, state)}</div>
         ${moons(m, value)}
-        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
+        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${leanChips(m, state)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
 }
 // On an active feeling, how it shows on this person. Empty uses the default wording (the placeholder).
 const showsBox = (m, state) => analysed(m) && ON_PAGE[m.id] && settings().showsMode !== 'off' ? `<input type="text" class="mw-cause mw-shows" data-shows="${m.id}" maxlength="120" value="${esc(state.shows?.[m.id] ?? '')}" placeholder="${settings().showsMode === 'mine' ? 'your wording (default is off): ' : 'shows as: '}${esc(ON_PAGE[m.id])}" title="How it shows on ${esc(subjectName())}. Leave empty for: ${esc(ON_PAGE[m.id])}" aria-label="How it shows on them">` : '';

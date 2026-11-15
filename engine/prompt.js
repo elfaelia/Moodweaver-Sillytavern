@@ -47,7 +47,11 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
     }
     if (scaled) return scaled;
     if (MERGED_PROMPT_CUES[m.id]) return MERGED_PROMPT_CUES[m.id];
-    if (isAuthor(m)) return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}: ${m.cue}`;
+    // Mind settings always say how they work, with the way they lean when it's set.
+    if (sectionOf(m) === 'psyche') { const lean = m.light && state?.psyLean?.[m.id], name = lowerLabel(m.label);
+        return `${m.cue.toLowerCase().startsWith(name.toLowerCase()) ? m.cue : `${name}: ${m.cue}`}${lean ? `; leaning ${lean === 'light' ? 'healthier' : 'darker'}: ${m[lean]}` : ''}`; }
+    // An author at clear or above gets the full brief of how they write, so the voice is unmistakable; fainter ones the short cue.
+    if (isAuthor(m)) return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}: ${value >= 41 && m.style ? m.style : m.cue}`;
     if (m.category === 'era') return `${m.label}${state?.targets?.year ? `, exactly ${pt(state.targets.year)}` : ''}: ${m.cue}`;
     // Lower-case the label for mid-sentence reading, but keep acronyms like AI.
     if (['writing', 'craft'].includes(m.category) && m.id.startsWith('prose_')) return `${m.label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase())}: ${m.cue}`;
@@ -137,8 +141,13 @@ function personaLines(state, list, other, knowledge = {}, subject = 'the player�
     return [...groups].filter(([, rows]) => rows.length).flatMap(([mode, rows]) => [headings[mode], ...rows]);
 }
 const live = s => s?.enabled ? activeMoods(s) : [];
+// Mind settings at clear or above, or starred as core, go every reply; fainter ones only when the scene
+// (the player's last message and the latest replies) uses one of their words.
+const sceneHas = (m, scene) => Boolean(scene) && (m.words ?? []).some(w => new RegExp(`(^|[^a-z’'])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`, 'i').test(scene));
+const mindOn = (st, scene) => m => sectionOf(m) !== 'psyche' || st.moods[m.id] >= 41 || st.core?.includes(m.id) || sceneHas(m, scene);
 const AROUSED = new Set(['horny', 'heated', 'desperate_for_it', 'craving', 'insatiable', 'starved_for_them', 'sexually_frustrated', 'teased_to_breaking', 'dominant_hunger', 'submissive_longing', 'possessive_lust']);
-const causeOf = (state, id) => state?.causes?.[id] ? `, because ${pt(state.causes[id])}` : '';
+// Why a feeling is there (the player's words), or who it's aimed at when that's someone else (from the hidden line).
+const causeOf = (state, id) => state?.causes?.[id] ? `, because ${pt(state.causes[id])}` : state?.about?.[id] && state.moods?.[id] > 0 ? ` (at ${pt(state.about[id])})` : '';
 const liveWants = (state, done = null) => (state?.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !done?.has(w.id)).sort((a, b) => b.value - a.value);
 const WANT_WORD = { want: 'want', goal: 'goal', fear: 'fear', button: 'hot button' };
 const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply', touched: 'touched last reply', pressed: 'pressed hard last reply' };
@@ -199,8 +208,9 @@ const DODGES = 'someone knocking, calling or walking in; a guard, alarm or rescu
 function composePrompt(state, name, extras = {}) {
     const { player = null, story: storyState = null } = extras;
     SHOWS = ['all', 'mine', 'off'].includes(extras.showsMode) ? extras.showsMode : 'all';
-    const mine = live(state).filter(m => m.kind !== 'story');
-    const theirs = live(player?.state).filter(m => m.kind !== 'story');
+    const scene = String(extras.scene ?? '');
+    const mine = live(state).filter(m => m.kind !== 'story').filter(mindOn(state, scene));
+    const theirs = live(player?.state).filter(m => m.kind !== 'story').filter(mindOn(player?.state, scene));
     const story = live(storyState).filter(m => m.kind === 'story');
     const cast = liveCast(extras);
     const N = String(name ?? '').trim() || 'the character', n = pt(shortName(N));
@@ -214,7 +224,7 @@ function composePrompt(state, name, extras = {}) {
     const mineExtra = extraLines(state, undefined, '', lit, null, { map: signs?.char, who: u }), storyExtra = extraLines(storyState, ['story']);
     const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n }, { map: signs?.user, who: n });
     const prefKnown = mode => livePrefs(player?.state).some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
-    const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story'), String(person.name).trim().slice(0, 80)]);
+    const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story').filter(mindOn(person.state, scene)), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
     // The meters sit with the rest of what the character feels about the player; the weave line request goes last.
     const standing = (Array.isArray(extras.standing) ? extras.standing : [extras.standing]).filter(Boolean), weaveLines = Array.isArray(extras.weave) ? extras.weave : [];
@@ -246,10 +256,12 @@ function composePrompt(state, name, extras = {}) {
     const core = coreOf(state), profile = profileLines(state, core, U, people);
     if (mine.length || mineExtra.length || hasType(state) || profile.length) out.push('', `<character_state name="${pa(N)}">`, ...profile, ...personalityLines(state), ...listLines(state, mine.filter(m => !core.includes(m)), U, people, lit), ...mineExtra, `</character_state>`);
     if (feelings.length) out.push('',
-        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
+        `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. A feeling marked (at someone) belongs to that person: it can shorten a temper with others, but it doesn't become a feeling about them. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
     // Standing settings get one plain line each, so they read as who someone is rather than as this reply's mood.
     if (everyone.some(m => sectionOf(m) === 'trait')) out.push('',
         `Traits are who someone is underneath, whatever their mood: they shape how each feeling comes out and what that person notices and chooses.${everyone.some(m => m.category === 'love') ? ' Love languages are how someone shows love and what makes them feel loved; their mood decides how openly.' : ''}`);
+    if (everyone.some(m => sectionOf(m) === 'psyche')) out.push('',
+        `Mind settings are how someone's mind works underneath. Play them from the inside: their logic makes sense to them, and it shows in small specific choices, reactions, blind spots and what they misread, more under stress and less on a good day, often without anyone around noticing. Nobody names the condition unless someone in the story would. Skip the stock screen versions (the twitchy movie psychopath, the robotic genius, the screaming "crazy" ex, therapy talk); real people with these are mostly ordinary between the moments that show it.`);
     if (everyone.some(m => sectionOf(m) === 'intimacy')) out.push('',
         `Intimacy settings (roles in bed, sexual temperament, what draws someone, psychosexual) are how someone wants and has sex. They lead in intimate or charged moments and otherwise stay in the background: a look, a thought, a small choice.`);
     if (darkActionPeak) out.push('',
@@ -304,7 +316,7 @@ function composePrompt(state, name, extras = {}) {
             if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
         }
         if (standing.length && !placed) out.push(`${n} toward ${u}:`, ...standing.map(r => `- ${pt(r)}`));
-        out.push('', `"Both ways" lines are true for both; the rest is one side, and an opinion is a view, not a fact. They count when the other person is absent too, in thoughts, talk and memories. Intense or above keeps coming back; maximum drives what they do around that person, whatever it costs.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}${standing.length ? ` The ties are who they are to each other and change slowly; where it stands and the dynamic are how it's going lately. Where the two pull apart, write the strain between them rather than dropping either. Friendship, romance and trust move separately, and so do control and pull: whoever holds the keys can still be the one who gives way.` : ''}${relationships.some(r => r.tags.some(t => t.category === 'How it shows')) ? ` Lines on how someone shows it decide what a feeling looks like on the page: it can be strong and still come out as an insult, a gift or a locked door.` : ''}`);
+        out.push('', `"Both ways" lines are true for both; the rest is one side, and an opinion is a view, not a fact. They count when the other person is absent too, in thoughts, talk and memories. They're about these two only: with anyone else, people act from their own feelings and history, not this dynamic. Intense or above keeps coming back; maximum drives what they do around that person, whatever it costs.${pairs.some(p => p.tags.some(t => TWO_ROLE_SHARED.has(t.id))) ? ' Where a both-ways line gives them different parts (captor and captive, grumpy/sunshine, unrequited love), the card, the chat and the one-sided lines decide who\'s who.' : ''}${pairs.some(p => p.memories.length) ? ' Memories really happened and come back at their strength.' : ''}${relationships.some(r => r.isPlayer) ? ` On ${u}'s side, ${n} only acts on what they know or suspect.` : ''}${standing.length ? ` The ties are who they are to each other and change slowly; where it stands and the dynamic are how it's going lately. Where the two pull apart, write the strain between them rather than dropping either. Friendship, romance and trust move separately, and so do control and pull: whoever holds the keys can still be the one who gives way.` : ''}${relationships.some(r => r.tags.some(t => t.category === 'How it shows')) ? ` Lines on how someone shows it decide what a feeling looks like on the page: it can be strong and still come out as an insult, a gift or a locked door.` : ''}`);
         out.push('</relationships>');
     }
     if (signed || [state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) out.push('',
@@ -369,7 +381,7 @@ function composePrompt(state, name, extras = {}) {
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) out.push('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply, first line to last, with no drifting back to a default style. Use contractions (doesn't, can't, he's) the way people talk, in narration and dialogue.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
-        ...(authorPeak ? [`Authors are techniques: sentence length and shape, punctuation, rhythm, word choice and what gets dwelt on. The books named are there so you know which voice is meant; take nothing from their plots, characters, settings or famous lines. Apply the voice inside this chat's own point of view, tense, characters, setting and era; if an author wrote in another person or tense, carry their voice into the one used here. Mix them at their strengths${authorPeak >= 81 ? '; the strongest should read as if they wrote it' : ''}, and keep your own judgement about what the scene needs.`] : []));
+        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing settings here: where a writing setting and an author pull different ways on sentence length, rhythm or how much is described, follow the author. Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []));
     if (breaker.length) out.push('', ...breaker);
     // The highest settings get named again at the end, where they carry the most weight.
     const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards'), 'the story', N]]

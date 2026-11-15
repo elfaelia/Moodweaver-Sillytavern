@@ -165,6 +165,16 @@ const SOCIAL = ['chatty', 'party_mode', 'playful', 'bubbly', 'giddy', 'goofy', '
 const QUIET = ['socially_drained', 'withdrawn', 'closed_off', 'clammed_up', 'wants_comfort', 'shut_down', 'numbed_out'];
 const STIRRED = ['jealous', 'possessive', 'jealous_lust', 'protective_jealousy', 'jealous_fury', 'afraid_to_be_replaced'];
 const LOOSE = ['flirty', 'swaggering_flirt', 'showing_off', 'seductive', 'provocative', 'teasing_them'];
+// Mind settings that pull against each other.
+const CLINGS = ['anxious_attachment', 'abandonment_issues', 'abandonment_dread', 'borderline', 'dependent_personality'];
+const PULLS_AWAY = ['avoidant_attachment', 'avoidant_personality', 'fearful_avoidant', 'schizoid', 'moves_away'];
+const NEEDS_MIRROR = ['narcissistic', 'grandiose_narcissist', 'covert_narcissist', 'vulnerable_narcissist', 'malignant_narcissism', 'mirror_hunger', 'god_complexed', 'histrionic'];
+const GIVES_SELF = ['moves_toward', 'dependent_personality', 'fawns', 'codependent', 'martyr_complex', 'false_self'];
+const RESCUER = ['saviour_complex', 'messiah_complex', 'florence_nightingale_effect'];
+const WOUNDED = ['traumatised', 'ptsd', 'complex_ptsd', 'depressed', 'self_defeating', 'learned_helplessness', 'melancholia'];
+const SUSPICIOUS = ['paranoid_personality', 'persecution_complex', 'hypervigilant', 'persecutory_delusion'];
+const ORDERLY = ['obsessive_personality', 'anal_retentive', 'superego_ridden', 'ocd'];
+const IMPULSIVE = ['id_driven', 'adhd', 'puer_aeternus', 'peter_pan_complex', 'bipolar'];
 const CLASHES = [
     [LEAD, LEAD, (a, b, x, y) => `both want the lead (${a} ${x}, ${b} ${y}): they may butt heads, or one may give way for a price`, true, false, false, 'power'],
     [BED_LEAD, BED_LEAD, (a, b, x, y) => `both lean to leading in bed (${a} ${x}, ${b} ${y}): neither waits to be led, so it can turn into a contest, or a game of who gives first`, true, false, true, 'power'],
@@ -185,6 +195,13 @@ const CLASHES = [
     [['scared'], ['happy', 'bold'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${b} may miss it entirely, or see it and steady ${a}`, false, false, false, 'captor'],
     [WIRED, WORN, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: they're at different speeds, and ${a} may wear ${b} out or get ${b} moving`, false, false, false, 'allies'],
     [SOCIAL, QUIET, (a, b, x, y) => `${a} is ${x} and ${b} wants quiet (${y}): ${a} may grate, or coax ${b} out`, false, false, false, 'distance'],
+    // Mind settings (Mind tab), set at clear or above, against each other or against a mood.
+    [CLINGS, PULLS_AWAY, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: the more one reaches, the more the other backs off, and each move feeds the other's`, false, false, false, 'toxic'],
+    [CLINGS, ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s coolness may read to ${a} as being left`, false, false, false, 'toxic'],
+    [NEEDS_MIRROR, GIVES_SELF, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may feed what ${a} needs and lose a little of themselves each time`, false, false, false, 'mind'],
+    [RESCUER, WOUNDED, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may want to fix ${b}, and ${b} may not want to be anyone's project`, false, false, false, 'romance'],
+    [SUSPICIOUS, ['masks', 'secretive', 'lying', 'compartmentalising', 'false_self'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may smell what ${b} is hiding, or invent worse`, false, false, false, 'secret'],
+    [ORDERLY, IMPULSIVE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: order meets impulse; it can grate, or loosen ${a} up`, false, false, false, 'allies'],
 ];
 export const CLASH_CHOICES = ['off', 'sometimes', 'often'];
 const fits = (id, side) => side.includes(id) || side.includes(CAT.get(id));

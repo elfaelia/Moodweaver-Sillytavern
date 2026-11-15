@@ -101,6 +101,8 @@ const NUDGES = [
     [['conditioning', 'mindfuck', 'playing_god', 'breaking_will', 'gaslighting', 'paternalistic_control'], { cd: 1 }],
     [['clinical', 'clinical_cruelty', 'taking_notes', 'bedside_manner', 'experimenter_role', 'detective_mind'], { cl: 2 }],
     [['curious', 'morbid_curiosity', 'observant', 'focused', 'businesslike'], { cl: 1 }],
+    [['forbidden_want', 'guilty_lust', 'repressed', 'in_denial', 'withholding', 'shy_desire', 'regretful_longing'], { rt: 2 }],
+    [['guilty', 'guilt_sick', 'devout', 'shy'], { rt: 1 }],
     [['lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'plausible_deniability', 'confessing_to_no_one'], { se: 2, op: -1 }],
     [['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'performative', 'playing_nice', 'forced_cheer'], { ap: 2, op: -1 }],
     [['status_panic', 'embarrassed'], { ap: 1 }],

@@ -1,5 +1,8 @@
 // Older options that were folded into another one. Saved values under the old id move to the new id when a chat loads.
 export const MERGED_MOODS = {
+    "author_flannery_oconnor": "author_shirley_jackson",
+    "author_carson_mccullers": "author_shirley_jackson",
+    "author_jim_thompson": "author_dorothy_b_hughes",
     "wet_aroused": "bedroom_wet",
     "irked": "angry",
     "conceited": "egotistical",

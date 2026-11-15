@@ -89,6 +89,17 @@ export const COMBOS = [
         (n, u) => `${n} keeps the pleasant, proper face the times expect, and what's under it leaks through small domestic things: a plate set down too hard, a smile held a second too long`],
     ['Shamed into it', c => (c.more?.sh ?? 0) >= 61 && (c.desire?.a ?? 0) >= 41,
         (n, u) => `desire and shame arrive together: ${n} goes through with it and won't look at ${u} after`],
+    // Mind settings (Mind tab) meeting a feeling or a meter.
+    ['Clings harder', c => feel(c.moods, ['anxious_attachment', 'abandonment_dread', 'abandonment_issues', 'borderline', 'dependent_personality']) && feel(c.moods, ['hurt', 'jealous', 'insecure', 'abandoned', 'rejected']),
+        (n, u) => `the old fear of being left takes over: ${n} reaches for ${u} too hard, checks and tests, or cuts first to get it over with`],
+    ['Cold method', c => feel(c.moods, ['psychopathic', 'sociopathic', 'malignant_narcissism', 'sadistic_personality']) && ((c.more?.ob ?? 0) >= 61 || feel(c.moods, ['obsessed', 'possessive'])),
+        (n, u) => `what ${n} wants with ${u} runs through ${n}'s coldness: charm used as a tool, patience with a purpose, no flinch at what it costs ${u}`],
+    ['The doctor’s eye', c => feel(c.moods, ['god_complexed', 'messiah_complex', 'persona_bound']) && (c.more?.cl ?? 0) >= 41,
+        (n, u) => `${n} watches ${u} like a case that proves ${n} right: each reaction a result, each kindness part of the treatment`],
+    ['Nerves in the body', c => feel(c.moods, ['general_anxiety', 'panic_attacks', 'agoraphobic', 'social_anxiety', 'neurasthenia', 'claustrophobic']) && feel(c.moods, ['afraid', 'anxious', 'overwhelmed', 'cornered']),
+        (n, u) => `${n}'s nerves take over the body: breath, hands, a need to get out or hold on to something, and the work of hiding it from ${u}`],
+    ['Then and now', c => feel(c.moods, ['traumatised', 'ptsd', 'complex_ptsd', 'shell_shocked', 'battle_fatigue']) && feel(c.moods, ['afraid', 'cornered', 'overwhelmed']),
+        (n, u) => `the moment lines up with an old horror: ${n} reacts to then as much as to now, and for a beat may not see ${u} clearly`],
     ['Shame spiral', c => (c.desire?.a ?? 0) >= 41 && (c.desire?.h ?? 0) >= 61, (n, u) => `wanting it makes ${n} hate ${u} for it: cruelty or coldness right after the want`],
 ];
 // custom: [{ id, a, b, name, text }] where a and b are 'turn:id' (lit last reply), 'trait:id' (lit),

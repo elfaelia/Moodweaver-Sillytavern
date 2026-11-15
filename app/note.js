@@ -4,7 +4,7 @@ import { boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bond
 import { settings } from './settings.js';
 import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
-import { boardPromptLines, cleanBoardMeta } from '../engine/board.js';
+import { boardPromptLines, cleanBoardMeta, feelingId } from '../engine/board.js';
 import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
 import { BY_ID, MOODS, analysed } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
@@ -61,7 +61,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
         const knows = knowledgeNow(ch, history), notice = Object.entries(mine?.enabled ? mine.prefs ?? {} : {}).some(([id, v]) => v && knowledgeEntry(knows[`turn:${id}`]).mode !== 'known');
         const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length) }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null }) : [];
         // Skills go only when the scene calls for them.
         const skillScene0 = skillScene(ch, history), skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, lit: litSkills(p.st, skillScene0.scene, skillScene0.used) })), u);
         // Pattern breaker: the character's last five replies, read here, no extra request.
@@ -73,7 +73,7 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
         const links = sceneLinks({ ch, state, mine, story, bond, bd, n, u });
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
@@ -202,6 +202,13 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     return { lenses, links };
 }
 // The feelings on a character's list, as the plain names the hidden line uses (first part of the label).
+// Feelings the hidden line keeps raising: named rising in 4 or more of the character's last 8 lines, never lowered,
+// and still at clear or above. Read from the chat, so swipes and edits count as they are now.
+export function lingering(ch, history, st) {
+    const lines = history.filter(m => writes(ch)(m) && !m.is_system).map(weaveOf).filter(Boolean).slice(-8), up = {}, down = new Set();
+    for (const w of lines) for (const x of w.moods) { const id = feelingId(x.name); if (!id) continue; if (x.delta > 0) up[id] = (up[id] ?? 0) + 1; else down.add(id); }
+    return Object.keys(up).filter(id => up[id] >= 4 && !down.has(id) && (st.moods?.[id] ?? 0) >= 41 && !st.pins?.[id] && BY_ID[id]).map(id => BY_ID[id].label.split('/')[0].trim().toLowerCase());
+}
 export function listedFeelings(st) {
     const ids = new Set([...(st.loadout ?? []), ...Object.keys(st.moods ?? {}).filter(id => st.moods[id] > 0)]);
     return [...ids].map(id => BY_ID[id]).filter(m => m && analysed(m)).map(m => m.label.split('/')[0].trim().toLowerCase());

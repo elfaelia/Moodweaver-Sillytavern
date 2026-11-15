@@ -1,5 +1,63 @@
 # Changelog
 
+## 1.60.2: modern authors researched, and authors split by style
+
+- **Authors with very different styles are now separate entries**, so Claude gets one clear voice instead of an average of two. Your existing picks keep the best-known style and are now named for it. 21 new style entries: Philip Roth (late), Truman Capote (early gothic) and (reportage), Evelyn Waugh (elegiac), William S. Burroughs (plain), Cormac McCarthy (baroque), Ian McEwan (early, macabre), Norman Mailer (reportage), Ken Kesey (chorus), Tanizaki (family realism), John Banville as Benjamin Black (1950s crime), Don DeLillo (late, spare), James Ellroy (early), Poppy Z. Brite (restaurant comedies), Nicholson Baker (minute), Michel Faber (cold, alien), J. M. Coetzee (allegory), Susanna Clarke (journal), Joyce Carol Oates (realist), Dennis Lehane (PI) and Lisa Kleypas (contemporary).
+- **Modern authors looked up across their careers.** About 50 had useful sources on their whole body of work, and 20 descriptions were rewritten to cover more than one book or series: Le Guin, Carter, Wolfe, Tanith Lee, King, Ishiguro, Ligotti, Pratchett, Welsh, Palahniuk, Tana French, Moshfegh, Kepnes, Barker, Gaitskill, Coupland, Houellebecq, Nesbø, Hobb and Miéville. The rest found little beyond their famous titles and keep their earlier wording.
+
+## 1.60.1: authors researched, not remembered
+
+- **Looked up, then compared.** About 110 authors were checked against sources on their whole career: every 1950s–60s men's-eye writer, the other mid-century names, and the authors whose description only fit one famous book. 47 descriptions were rewritten where the research showed something different or broader (Roth's three different voices, Capote's three registers, Robbe-Grillet beyond one novel, John D. MacDonald's wry first person, Patrick Hamilton's comic Dickensian side, Sturgeon's hidden metre, Tanizaki's diaries and confessions, Bloch's black humour, and more). Notes are kept with the project files.
+- **Character details taken out**, such as one character's broken English in Stoker's description and a famous well in Murakami's.
+- **16 new researched authors.**
+  - 1950s–60s, men's point of view: J. P. Donleavy, Kingsley Amis, Alan Sillitoe, Malcolm Lowry, James Salter (frank and erotic), Arthur Hailey (hospitals and institutions), John Hawkes, Charles Jackson, Colin Wilson, Gerald Kersh, Charles Willeford, Terry Southern.
+  - Modern, the male gaze on purpose or by accident: Haruki Murakami, Martin Amis, Javier Marías, Jeffrey Eugenides.
+
+## 1.60.0: authors rewritten from the ground up
+
+- **Every author rewritten.** All 203 now have a description in five parts: prose (sentence shape, rhythm, punctuation, point of view), dialogue, minds (how inner life is shown), people (how characters are drawn, not which ones) and hallmarks. No plots, characters, settings or famous lines; the books only say which voice is meant.
+- **Authors lead harder.** The full description goes to Claude at clear or above (it was strong), and the note says all five parts are technique to use, including how much of desire or violence is on the page.
+- **Your chat's person and tense stay put.** First stays first, third stays third, past stays past, and the same people narrate. "First person" or "alternating chapters" in a description says how the author wrote, not what to write here.
+- **35 new authors.**
+  - 1920s–60s, written for men and through a man's eye (some examined, some not): Henry Miller, Norman Mailer, Philip Roth, Harold Robbins, Georges Simenon, Boileau-Narcejac, Alain Robbe-Grillet, Patrick Hamilton, John Braine, John le Carré.
+  - 1920s–60s erotic, steamy to fully explicit: Alexander Trocchi, Emmanuelle Arsan, Grace Metalious, Jean Genet, Marco Vassi.
+  - Modern, cold and male-gaze: J. M. Coetzee, Michel Houellebecq, Jo Nesbø, Don Winslow.
+  - Modern dark romance: Emily McIntire, Katee Robert, L.J. Shen, Aleatha Romig, J.T. Geissinger, Sophie Lark.
+  - Modern erotic, no fades: E. L. James, Tiffany Reisz, Joey W. Hill, Kitty Thomas, Mary Gaitskill, Erica Jong, Megan Hart, Nicholson Baker, Laura Antoniou, A. N. Roquelaure.
+- Corrected after research: Aleatha Romig (close third, shifting tense), Rina Kent, Pepper Winters, CJ Roberts and others.
+
+## 1.59.1: feelings that follow the scene
+
+- **Desire and love reach the Moods tab.** The hidden line often put what he felt about you under "toward" (aroused, obsessed with her, in love), which only fed Bonds, so a kiss never showed as a feeling. Those words now count as feelings too (at half the step), and the line is told plainly that feelings about you belong under moods.
+- **No more stuck leaders.** A feeling raised in four or more of his last eight replies, never lowered and still clear or stronger, is named back to Claude to lower unless the reply truly renews it. Claude is also asked to score what each reply stirs, not what the notes already say. Pinned feelings are left alone.
+- **A plainly physical reply warms him.** Kissing or making out (a clear sign plus touch words like lips, throat, skin) with no desire named adds a little Heated.
+- More everyday words land: passionate, arousal, desirous, enthralled, besotted, lovestruck, consumed (obsessed).
+
+## 1.59.0: a Mind tab, feelings that know who they're about, and Restraint
+
+### Mind
+- **A new Mind tab under Self**, separate from traits and moods and set per person. 178 entries in 13 groups: complexes, neurodivergence, personality disorders, anxiety and mood, eating and body image, trauma and dissociation, attachment, delusion and psychosis, defences, thinking traps, Freud, Jung and the old schools (Adler, Horney, Fenichel, Reich, Winnicott, Kohut, Laing, behaviourism), old diagnoses (hysteria, nerves, melancholia, frigidity, dementia praecox, sexual psychopath and more), and strengths. The clinical entries that were scattered across Traits and Facts (narcissism, psychopathy, attachment styles, autism, ADHD and so on) moved here; what's left in Traits is now Patterns & coping.
+- **Short lines, played from the inside.** Each entry is one plain line, and one paragraph asks Claude to show it in small choices and blind spots, let it vary with stress, have nobody name it unless someone in the story would, and skip the stock screen versions.
+- **Sent when it makes sense.** Clear and stronger every reply; fainter ones only when the last messages touch their words. ★ always sends one.
+- **Healthier or darker.** Complexes and some others lean either way; Middling is the default.
+- **It weaves in:** it leans the dynamic, six new clashes (clinging against pulling away, a need for admiration against someone who gives themselves up, a rescuer and someone wounded, suspicion against a secret, order against impulse), five new combos (Clings harder, Cold method, The doctor's eye, Nerves in the body, Then and now), and needs drain faster or slower to fit (an insomniac tires sooner, a schizoid barely gets lonely).
+- **1950s–60s lines for it**, researched, each written for him and for her: no word yet for autism (a rare children's diagnosis blamed on "refrigerator mothers"), a restless mind called lazy or minimal brain damage, self-regard, Cleckley's mask of sanity and the sexual-psychopath laws, borderline and hysteria, Miltown and Valium for nerves, Freud's complexes, figure and food, desire on file (frigid or nymphomaniac), and holding on. The madness, low spells and old wounds lines now cover the new entries too.
+
+### Feelings that stay with the right person
+- **A feeling can be about someone else.** The hidden line can say "angry +10 at his wife"; the panel shows it, and Claude is told it can shorten his temper but doesn't turn into anger at you. Relationships and dynamics are now said to be about the two of you only, so they don't spill onto the rest of the cast.
+
+### Your side
+- **How you come across.** The hidden line names up to three feelings you showed this reply. They're set at about half strength and fade once the story stops naming them. This is why clashes hadn't fired: your side never had moods unless you set them.
+
+### Restraint
+- **Restraint is back as a meter** (Relations › Bonds), with 17 dynamics for it: love held back out of guilt, a relationship that can't be seen, out of wedlock, saving it for the wedding, courting properly, duty first, and more. Guilty, repressed and forbidden feelings push it up. A new Forbidden love preset.
+
+### Authors
+- **Authors moved up**, right after Cleaner writing and Writing style.
+- **19 new authors**, mostly men writing from a man's point of view, several in third person: John O'Hara, James M. Cain, Ross Macdonald, John D. MacDonald, Ian Fleming, Mickey Spillane, Graham Greene, Alberto Moravia, Kōbō Abe, Jun'ichirō Tanizaki, Richard Stark, W. Somerset Maugham, Frank G. Slaughter (a surgeon who wrote hospital novels), Albert Camus, Lawrence Durrell and John Cheever; and three modern ones who write the 1950s and 60s: Patrick McGrath (a psychiatrist narrating an asylum affair), James Ellroy and Dennis Lehane.
+- **Authors lead the writing.** They now outrank the other writing settings where the two pull different ways, and a strong author (strong or above) sends its fuller description of how they write, so the voice should be recognisable in every paragraph. Every description is technique only (sentence shape, rhythm, point of view, what the eye lingers on), and Claude is told not to borrow plots, characters or personalities, or to make anyone more like one of theirs. Nearly a hundred descriptions that leaned on the books (their settings, plots or character types) were rewritten as pure technique.
+- **Southern writers taken out of the 1950s–60s list:** Flannery O'Connor, Carson McCullers and Jim Thompson. If you had one on, it moves to Shirley Jackson (O'Connor, McCullers) or Dorothy B. Hughes (Thompson).
+
 ## 1.58.0: plainer words, a dynamics overhaul, facts that come and go, and authors described properly
 
 ### Plain wording

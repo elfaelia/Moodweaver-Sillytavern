@@ -5,7 +5,7 @@ import { lastDynamic, movePace, syncPrompt, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry } from '../engine/state.js';
-import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
+import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
@@ -49,7 +49,7 @@ const solo = () => !ctx().groupId;
 export const writes = ch => m => Boolean(m && ch && !m.is_user && (solo() || m.name === ch.name));
 const writerOf = m => solo() ? target() : members().find(w => w.name === m?.name) ?? null;
 export function liveFor(ch = target(), chat = liveChat()) {
-    return liveBoard(latestBoard(chat), boardMeta(), { char: ch?.name ?? '', user: playerName() }, needSteps(chat), { pins: settings().boardPins, timeline: needTimeline(ch, chat), needs: needOpts() });
+    return liveBoard(latestBoard(chat), boardMeta(), { char: ch?.name ?? '', user: playerName() }, needSteps(chat), { pins: settings().boardPins, timeline: needTimeline(ch, chat), needs: needOpts(ch) });
 }
 // Each of the character's replies with a board or reported needs, oldest first, so needs can
 // drain with in-world time and come back up after a time jump. Read from the chat every time.
@@ -63,7 +63,7 @@ function needTimeline(ch, chat = liveChat()) {
     });
     return out.slice(-40);
 }
-export const needOpts = () => ({ drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
+export const needOpts = ch => ({ bias: ch ? needBias(getState(ch)?.moods) : {}, drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
 // Intimacy entries that are on can light up like turn-ons.
 const bedroomTraits = st => MOODS.filter(m => INTIMACY_CATEGORIES.has(m.category) && (st?.moods?.[m.id] ?? 0) > 0).map(m => ({ id: m.id, label: m.label }));
 const WANT_STOP = new Set(['the', 'and', 'her', 'his', 'them', 'their', 'she', 'him', 'get', 'make', 'for', 'with', 'from', 'being']);
@@ -202,7 +202,7 @@ function moveRoles(ch, names) {
         const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} → ${label}`); };
         if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}’s side)`); }
         else if (kind === 'shared') { const pair = getPair(`char:${ch.avatar}`, 'user', true); if (pair) { pair.moods ??= {}; raise(pair.moods, `${SHARED_BY_ID[id].label} (both ways)`); } }
-        else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
+        else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
     }
     for (const [k, list] of Object.entries(settings().dynamicPools ?? {})) settings().dynamicPools[k] = (list ?? []).filter(name => !ROLE_HOMES[name]);
     return out;
@@ -321,7 +321,7 @@ export function whyMap(ch, who = 'char') {
             if (seen.has(id)) continue; seen.add(id);
             if (!(st?.moods?.[id] > 0) || st.moods[id] !== b) continue;
             const fx = who === 'user' ? rec.ufx : rec.fx;
-            out.set(id, `${fx?.[id] ?? (rec.f?.includes(id) ? 'fading, not mentioned lately' : b > a ? 'the story raised it' : 'the story eased it')}, ${when}`);
+            out.set(id, `${fx?.[id] ?? (rec.f?.includes(id) ? 'fading, not mentioned lately' : b > a ? 'the story raised it' : 'the story eased it')}${st.about?.[id] ? ` (at ${st.about[id]})` : ''}, ${when}`);
         }
     }
     return out;
@@ -424,20 +424,50 @@ function runFacts(st, hours, named, feel = false, hold = null) {
     return { m, fx, fc };
 }
 const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(moved)) rec.m[id] = [rec.m[id]?.[0] ?? a, b]; };
-// A fact the story names that isn't on yet comes on at this strength, then runs its course like any other.
-const FACT_ON = 50;
-// Facts the story says are true now: the character's from the board's Physical State, yours from the hidden
-// line's "you" list. Those come on; yours the story put on and has since left off the list come off (it gives
-// the full list each reply, so leaving one off means it's over: full). Pinned facts and ones you set yourself
-// stay; the character's come off by running their course. Returns { id: [before, after] } and notes why in fx.
-function storyFacts(st, named, fx, hold = null, full = false) {
+// What the story says is true of someone now: the character's facts from the board's Physical State, yours from
+// the hidden line's "you" list (facts) and "seems" list (how you come across). A fact named comes on at STORY_ON
+// and runs its course; a feeling named rises to it. When the line gives the whole list (full), the ones it put
+// on and has since left off go: a fact comes off, a feeling fades a step each reply. Pinned ones and ones you set
+// yourself stay. kind: 'state' for facts, 'mood' for feelings. Returns { id: [before, after] }; fx says why.
+const STORY_ON = 50, STORY_FADE = 15;
+function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } = {}) {
     const moved = {}, set = (id, v, why) => { moved[id] = [st.moods[id] ?? 0, v]; st.moods[id] = v; fx[id] = why; };
-    const added = new Set(st.storyFacts ?? []);
-    for (const id of named) if (!(st.moods[id] > 0) && !st.pins?.[id] && !hold?.m?.has(id)) { set(id, FACT_ON, 'the story put it on'); added.add(id); }
-    if (!full) return moved;
-    for (const id of added) if (!named.has(id)) { if (st.moods[id] > 0 && !st.pins?.[id]) set(id, 0, 'the story took it off'); added.delete(id); }
-    st.storyFacts = [...added];
+    const mine = new Set(st.fromStory ?? []), fact = kind === 'state';
+    for (const id of named) {
+        const v = st.moods[id] ?? 0;
+        if (st.pins?.[id] || hold?.m?.has(id) || (fact ? v > 0 : v >= STORY_ON)) continue;
+        set(id, STORY_ON, fact ? 'the story put it on' : 'how the story reads you'); if (!v) mine.add(id);
+    }
+    if (full) for (const id of mine) {
+        if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id)) continue;
+        const v = st.moods[id] ?? 0; if (!v || st.pins?.[id]) { mine.delete(id); continue; }
+        const to = fact ? 0 : Math.max(0, v - STORY_FADE);
+        set(id, to, to ? 'fading, not seen lately' : 'the story took it off'); if (!to) mine.delete(id);
+    }
+    st.fromStory = [...mine];
     return moved;
+}
+// Who a feeling is about, when the hidden line says it's someone other than you ("angry +10 at his wife"), so
+// the note can say so and the feeling isn't turned on you. "angry at his wife +10" is split the same way, unless
+// the whole phrase is a feeling's own name. A rise with nobody named means it's general again.
+// Kissing or making out in a reply: one clear sign plus one more touch word, so a hand at a throat in a fight doesn't count.
+const KISS = /\b(kiss(?:es|ed|ing)?|making out|made out|moan(?:s|ed|ing)?|grind(?:s|ed|ing)?|straddl\w*|undress\w*)\b/i;
+const TOUCH = /\b(lips?|mouth|tongue|throat|neck|collarbone|jaw|thighs?|hips?|breath|skin|chest)\b/gi;
+export const intimate = text => { const t = String(text ?? '').replace(/<!--[\s\S]*?-->/g, ''); return KISS.test(t) && new Set((t.match(TOUCH) ?? []).map(w => w.toLowerCase())).size >= 2; };
+function aimed(x) {
+    if (x.about || feelingId(x.name) || factId(x.name)) return x;
+    const m = x.name.match(/^(.+?)\s+(?:at|about|toward|towards)\s+(.+)$/);
+    return m && (feelingId(m[1]) || factId(m[1])) ? { ...x, name: m[1], about: m[2].slice(0, 40) } : x;
+}
+function aimAt(st, list, rec) {
+    const you = new Set([playerName(), shortName(playerName()), 'you', 'them'].map(v => String(v).toLowerCase()));
+    for (const x of list) {
+        const id = feelingId(x.name); if (!id || !rec.m[id] || x.delta <= 0) continue;
+        const about = x.about && !you.has(x.about.toLowerCase()) ? x.about : '';
+        if ((st.about?.[id] ?? '') === about) continue;
+        (rec.ab ??= {})[id] = st.about?.[id] ?? '';
+        st.about ??= {}; if (about) st.about[id] = about; else delete st.about[id];
+    }
 }
 // hold: feelings you moved by hand after an earlier version of this same swipe (before it was continued
 // or its hidden line edited). They're yours now, so the new version leaves them alone.
@@ -454,7 +484,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         if (!b.feed) return;
         // What the board's Physical State names comes on first (the hidden line has had its say by now).
         const fx = {};
-        if (st.moodAuto !== false) mergeMoved(rec, storyFacts(st, factsIn(board?.physical), fx, hold));
+        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, factsIn(board?.physical), fx, { hold })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
         const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc;
         Object.assign(fx, r.fx); if (Object.keys(fx).length) rec.fx = fx;
     };
@@ -468,11 +498,20 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             // The character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
             const pace = movePace(writer), named = new Set();
-            const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...x, delta: paceDelta(x.delta, pace) }));
+            const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...aimed(x), delta: paceDelta(x.delta, pace) }));
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
+            // Feelings the line put under "toward" (aroused, obsessed with her, in love) are feelings too, so they reach
+            // the Moods tab as well as Bonds. Halved, since toward moves in bigger steps.
+            if (st.moodAuto !== false) for (const x of w.toward) {
+                const name = x.name.replace(/\s+(?:with|for|about|toward|towards|at|on|by|over)\s+.*$/, ''), id = feelingId(name);
+                if (id && !list.some(y => feelingId(y.name) === id)) list.push({ name, delta: paceDelta(x.delta <= -100 ? x.delta : Math.round(x.delta / 2) || Math.sign(x.delta), pace) });
+            }
+            // A reply that's plainly physical (kissing, mouths on skin) with no desire named still warms them a little.
+            if (st.moodAuto !== false && !list.some(x => BY_ID[feelingId(x.name)]?.category === 'desire') && intimate(m.mes)) list.push({ name: 'heated', delta: paceDelta(6, pace) });
             // The scene touching what they're into (Facts › Into) puts them a little in their element, never past strong.
             if (st.moodAuto !== false && (st.moods.in_their_element ?? 0) < 41 && !list.some(x => feelingId(x.name) === 'in_their_element') && touchesInterest(st, m.mes)) list.push({ name: 'in their element', delta: paceDelta(8, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
+            aimAt(st, list, rec);
             const relation = userRelation(st, Boolean(w.toward.length || w.feels.length));
             if (relation) {
                 const before = { ...relation.moods };
@@ -530,14 +569,15 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     // off), then they run their course on the same clock. The list keeps the ones it names going.
     const me = getUserState();
     if (me?.enabled && b.feed) {
-        const listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x)])), ufx = {}, sf = structuredClone(me.storyFacts ?? []), fc = structuredClone(me.factClock ?? {});
-        const um = w?.you ? storyFacts(me, listed, ufx, null, true) : {};
+        const listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x)])), seems = new Set((w?.seems ?? []).map(feelingId).filter(Boolean));
+        const ufx = {}, sf = structuredClone(me.fromStory ?? []), fc = structuredClone(me.factClock ?? {});
+        const um = { ...(w?.you ? fromStory(me, listed, ufx, { full: true }) : {}), ...(w?.seems ? fromStory(me, seems, ufx, { kind: 'mood', full: true }) : {}) };
         const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical)]));
         for (const [id, [a, z]] of Object.entries(r.m)) um[id] = [um[id]?.[0] ?? a, z];
         Object.assign(ufx, r.fx);
-        if (Object.keys(um).length) { rec.um = um; rec.ufx = ufx; me.revision = (me.revision || 0) + 1; notes.push(...Object.keys(um).filter(id => ufx[id]?.startsWith('the story')).map(id => `${playerName()}: ${labelOf(me, id).toLowerCase()}${me.moods[id] ? '' : ' off'}`)); }
+        if (Object.keys(um).length) { rec.um = um; rec.ufx = ufx; me.revision = (me.revision || 0) + 1; notes.push(...Object.keys(um).filter(id => /^(the story|how the story)/.test(ufx[id] ?? '')).map(id => `${playerName()}: ${labelOf(me, id).toLowerCase()}${me.moods[id] ? '' : ' off'}`)); }
         if (rec.um || JSON.stringify(fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = fc;
-        if (JSON.stringify(sf) !== JSON.stringify(me.storyFacts ?? [])) rec.usf = sf;
+        if (JSON.stringify(sf) !== JSON.stringify(me.fromStory ?? [])) rec.usf = sf;
     }
     // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
     // from the message it answers.
@@ -552,7 +592,9 @@ function undoReply(meta, writer, st, rec) {
     const backM = untrack(moodTarget(st), rec.m);
     if (rec.q) st.moodQuiet = structuredClone(rec.q);
     if (rec.fc) st.factClock = structuredClone(rec.fc);
-    if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.storyFacts = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
+    if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.fromStory = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
+    if (rec.sf) st.fromStory = structuredClone(rec.sf);
+    for (const [id, was] of Object.entries(rec.ab ?? {})) { st.about ??= {}; if (was) st.about[id] = was; else delete st.about[id]; }
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];
     const kept = { m: new Set(Object.keys(rec.m ?? {}).filter(id => !backM.includes(id))), r: new Set(Object.keys(rec.r ?? {}).filter(id => !backR.includes(id))) };
     if (rec.fed) (meta.boardFed ??= {})[`char:${writer.avatar}`] = structuredClone(rec.fed);

@@ -207,7 +207,23 @@ function hoursBetween(a, b) {
 // Per in-world hour on screen. Comfort and health only change when the story changes them.
 const NEED_DRAIN = { hunger: 5, energy: 4, bladder: 12, hygiene: 2, social: 2, fun: 4, comfort: 0, health: 0 };
 const NEED_SPEEDS = { gentle: 0.5, normal: 1, harsh: 1.6 };
-const cleanNeedOpts = o => ({ drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
+// Who someone is changes how fast a need runs down: the clinger gets lonely fast, the schizoid hardly at all,
+// the insomniac tires, the restless mind gets bored. Mind settings and facts at clear or above, multiplied.
+const NEED_BIAS = {
+    insomniac: { energy: 1.5 }, neurasthenia: { energy: 1.5 }, depressed: { energy: 1.4, hygiene: 1.4 }, melancholia: { energy: 1.4, hygiene: 1.4 },
+    general_anxiety: { energy: 1.3 }, ptsd: { energy: 1.3 }, complex_ptsd: { energy: 1.3 }, hypervigilant: { energy: 1.3 }, bipolar: { energy: 0.8 },
+    autistic: { energy: 1.2, social: 0.7 }, social_anxiety: { social: 0.7, energy: 1.2 }, schizoid: { social: 0.4 }, avoidant_attachment: { social: 0.6 }, moves_away: { social: 0.6 },
+    anxious_attachment: { social: 1.5 }, borderline: { social: 1.5 }, dependent_personality: { social: 1.5 }, histrionic: { social: 1.5 }, mirror_hunger: { social: 1.4 }, abandonment_dread: { social: 1.4 },
+    adhd: { fun: 1.6 }, minimal_brain_dysfunction: { fun: 1.6 }, puer_aeternus: { fun: 1.4 }, peter_pan_complex: { fun: 1.4 }, id_driven: { fun: 1.3, hunger: 1.2 },
+    ocd: { hygiene: 1.6 }, binge_eater: { hunger: 1.4 }, oral_fixation: { hunger: 1.2 },
+    drunk: { bladder: 1.5 }, drugged: { energy: 1.5 }, sedated: { energy: 1.6 }, on_sleeping_pills: { energy: 1.3 }, on_diet_pills: { hunger: 0.5, energy: 0.8 }, hungover: { energy: 1.3 },
+};
+export function needBias(moods = {}) {
+    const out = {};
+    for (const [id, by] of Object.entries(NEED_BIAS)) if ((moods?.[id] ?? 0) >= 41) for (const [need, f] of Object.entries(by)) out[need] = (out[need] ?? 1) * f;
+    return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, Math.max(0.3, Math.min(2, v))]));
+}
+const cleanNeedOpts = o => ({ bias: o?.bias && typeof o.bias === 'object' ? o.bias : {}, drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
 const hrs = h => h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : `${Math.round(h * 10) / 10} h`;
 // timeline: the character's replies oldest first, [{ index, board, needs: { id: level }, deltas: { id: ±n } }].
 function simulateNeeds(timeline = [], options = {}) {
@@ -226,7 +242,7 @@ function simulateNeeds(timeline = [], options = {}) {
                 const span = Math.min(h, o.skipHours);
                 for (const [id, rate] of Object.entries(NEED_DRAIN)) {
                     if (!rate) continue;
-                    const next = Math.round(Math.max(Math.min(values[id], o.floor ? 30 : 0), values[id] - rate * span * speed));
+                    const next = Math.round(Math.max(Math.min(values[id], o.floor ? 30 : 0), values[id] - rate * (o.bias[id] ?? 1) * span * speed));
                     if (next < values[id]) { values[id] = next; source[id] = `${hrs(span)} passed`; if (next < 66) known[id] = true; }
                 }
             }
@@ -559,7 +575,7 @@ const PLAIN_FEELINGS = {
     'unimpressed': 'distant', 'aloof': 'distant', 'menacing': 'smiling_threat', 'threatening': 'smiling_threat', 'cornered': 'afraid', 'trapped': 'helpless', 'superior': 'condescending',
     'haughty': 'condescending', 'arrogant': 'smug', 'controlled': 'controlling', 'in control': 'controlling', 'commanding': 'controlling', 'dominant': 'controlling', 'authoritative': 'controlling',
     'powerful': 'power_drunk', 'submissive': 'vulnerable', 'obedient': 'vulnerable', 'meek': 'vulnerable', 'docile': 'vulnerable', 'compliant': 'vulnerable', 'deferential': 'vulnerable',
-    'spoiled': 'demanding', 'spoilt': 'demanding', 'pampered': 'content', 'bratty': 'demanding', 'pouty': 'sulking', 'petulant': 'sulking', 'cagey': 'defensive',
+    'passionate': 'heated', 'arousal': 'horny', 'desirous': 'craving', 'wants her': 'craving', 'wants him': 'craving', 'enthralled': 'smitten', 'consumed': 'obsessed', 'besotted': 'smitten', 'lovestruck': 'smitten', 'spoiled': 'demanding', 'spoilt': 'demanding', 'pampered': 'content', 'bratty': 'demanding', 'pouty': 'sulking', 'petulant': 'sulking', 'cagey': 'defensive',
 };
 let labelIndex = null, labelSize = 0;
 export function feelingId(name) {

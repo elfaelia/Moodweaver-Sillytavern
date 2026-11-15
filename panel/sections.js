@@ -35,10 +35,10 @@ function knowledgePanel(state, ch) {
         <p class="mw-fine" data-filter-empty="knowledge" hidden>No matching active traits or moods.</p>
         </details>`;
 }
-const SECTION_LABEL = { mood: 'moodlets', trait: 'traits', intimacy: 'intimacy', turn: 'turn-ons', state: 'facts', story: 'story settings' };
+const SECTION_LABEL = { mood: 'moodlets', trait: 'traits', psyche: 'mind settings', intimacy: 'intimacy', turn: 'turn-ons', state: 'facts', story: 'story settings' };
 // Which catalogue list the open tab shows. Tabs that aren't a list (Needs, Bonds, Items...) fall back to moodlets.
 // The catalogue section the open tab shows. Your You tab holds your facts.
-export const tabKind = () => ui.who === 'story' ? 'story' : ui.who === 'user' && ui.tab === 'needs' ? 'state' : ['trait', 'intimacy', 'turn', 'state'].includes(ui.tab) ? ui.tab : 'mood';
+export const tabKind = () => ui.who === 'story' ? 'story' : ui.who === 'user' && ui.tab === 'needs' ? 'state' : ['trait', 'psyche', 'intimacy', 'turn', 'state'].includes(ui.tab) ? ui.tab : 'mood';
 // While the board is in play, the Body list is redundant: needs and physical state come from the board.
 // Body options you'd already switched on still show and still send.
 const boardCoversBody = () => boardSend() || Boolean(latestBoard(ctx().chat));
@@ -172,8 +172,8 @@ export function sectionContent(state, kind, ch, active) {
     const shown = kind === 'turn' ? [] : active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
     const turnsSet = kind === 'turn' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
     const whose = ui.who === 'story' ? 'the story' : subjectName();
-    const heading = { mood: 'Feeling now', trait: 'Traits', intimacy: 'Intimacy', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'Story' }[kind];
-    const empty = { mood: 'Nothing yet.', trait: 'Nothing yet.', intimacy: 'Nothing yet.', turn: 'Nothing yet.', state: 'Nothing yet.', story: 'Nothing set for this chat yet.' }[kind];
+    const heading = { mood: 'Feeling now', trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'Story' }[kind];
+    const empty = { mood: 'Nothing yet.', trait: 'Nothing yet.', psyche: 'Nothing yet.', intimacy: 'Nothing yet.', turn: 'Nothing yet.', state: 'Nothing yet.', story: 'Nothing set for this chat yet.' }[kind];
     const onHere = sectionCount(state, kind), what = SECTION_LABEL[kind];
     const sparks = ['turn', 'intimacy'].includes(kind) && ui.who === 'char' && bondData(ch).on ? computeBond(bondData(ch), Infinity, 'one', 'the other', null, bondList(ch)).sparks.filter(x => kind === 'turn' ? !x.trait : x.trait) : [];
     const lit = new Set(sparks.filter(x => x.fresh && x.id).map(x => x.id)), litTraits = new Set(sparks.filter(x => x.fresh && x.trait).map(x => x.trait));
@@ -181,8 +181,9 @@ export function sectionContent(state, kind, ch, active) {
         + shown.map(m => `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '✧ ' : ''}${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('');
     const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
         : kind === 'turn' ? 'Lit ✧ means the last reply touched it.'
-        : ui.who === 'user' && ['mood', 'trait', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
-        : kind === 'intimacy' ? 'These lead in intimate scenes and stay quiet otherwise.' : '';
+        : ui.who === 'user' && ['mood', 'trait', 'psyche', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
+        : kind === 'intimacy' ? 'These lead in intimate scenes and stay quiet otherwise.'
+        : kind === 'psyche' ? 'Clear and stronger ones go with every reply; fainter ones only when the scene touches them. Star ★ one to send it every reply. Some can lean healthier or darker.' : '';
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
         <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
@@ -194,7 +195,7 @@ export function sectionContent(state, kind, ch, active) {
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
     ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>` : ''}
-    ${['mood', 'trait', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
+    ${['mood', 'trait', 'psyche', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
 export function lastMoodRec(ch) {

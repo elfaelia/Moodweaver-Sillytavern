@@ -86,11 +86,11 @@ function drawPanel() {
     if (ui.tab === 'wants' && settings().wantsTab === false) ui.tab = 'mood';
     const kind = tabKind();
     // The faint "why" lines under rows and on chips (Settings › Show why).
-    ui.why = state && charState && settings().whyOn !== false && ['char', 'user'].includes(ui.who) && ['mood', 'trait', 'intimacy', 'state'].includes(kind) ? whyMap(ch, ui.who) : new Map();
+    ui.why = state && charState && settings().whyOn !== false && ['char', 'user'].includes(ui.who) && ['mood', 'trait', 'psyche', 'intimacy', 'state'].includes(kind) ? whyMap(ch, ui.who) : new Map();
     const active = state ? activeMoods(state) : [];
     const live = charState ? liveFor(ch) : null;
     const relationshipCount = state && ui.who !== 'story' ? peers().reduce((n, p) => n + (p.relation?.enabled !== false && p.relation ? activeRelationshipTags(p.relation).length : 0) + (p.pair ? activeSharedTags(p.pair).length : 0), 0) : 0;
-    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + activePersonalities(state).length, intimacy: active.filter(m => sectionOf(m) === 'intimacy').length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
+    const counts = { mood: active.filter(m => sectionOf(m) === 'mood').length, trait: active.filter(m => sectionOf(m) === 'trait').length + activePersonalities(state).length, psyche: active.filter(m => sectionOf(m) === 'psyche').length, intimacy: active.filter(m => sectionOf(m) === 'intimacy').length, turn: Object.values(state?.prefs ?? {}).filter(Boolean).length,
         rel: relationshipCount, state: active.filter(m => m.kind === 'state' && sectionOf(m) === 'state').length,
         needs: ui.who === 'user' ? (settings().youTrack && ch ? reactions(ch).condition.length : 0) : live?.needs.filter(n => n.known && n.value <= 35).length ?? 0,
         inv: (state?.inventory ?? []).filter(i => i.carried).length, wants: (state?.wants ?? []).filter(w => !w.done && w.value > 0).length, skills: state ? skillsOf(state).length : 0 };

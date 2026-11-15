@@ -478,9 +478,10 @@ export async function onPanelClick(e) {
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
     if (button.dataset.core) {
         const id = button.dataset.core, s0 = viewState(), core = cleanCore(s0?.core, s0?.moods);
-        if (!core.includes(id) && core.length >= CORE_MAX) { run.status = `Up to ${CORE_MAX} core traits: unstar one first.`; renderStatus(); return; }
+        if (!core.includes(id) && core.length >= CORE_MAX) { run.status = `Up to ${CORE_MAX} core traits and mind settings: unstar one first.`; renderStatus(); return; }
         await changeState(s => { const now = cleanCore(s.core, s.moods); if (now.includes(id)) s.core = now.filter(x => x !== id); else { if (!(s.moods[id] > 0)) s.moods[id] = 60; if (Array.isArray(s.loadout) && !s.loadout.includes(id)) s.loadout.push(id); s.core = [...now, id]; } }); return;
     }
+    if (button.dataset.lean) { const id = button.dataset.lean, v = button.dataset.v; await changeState(s => { s.psyLean = { ...(s.psyLean ?? {}) }; if (v) s.psyLean[id] = v; else delete s.psyLean[id]; }); return; }
     if (button.dataset.jump) {
         clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render(); fillLazy(ui.panel);
         const row = ui.panel.querySelector(`[data-mood="${button.dataset.jump}"]`); if (!row) return;

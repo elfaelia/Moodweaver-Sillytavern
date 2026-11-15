@@ -3,13 +3,14 @@
 import moodSection from './catalogue/mood.js';
 import traitSection from './catalogue/trait.js';
 import intimacySection from './catalogue/intimacy.js';
+import psycheSection from './catalogue/psyche.js';
 import stateSection from './catalogue/state.js';
 import storySection from './catalogue/story.js';
 export { SCALED_MOOD_CUES, MERGED_PROMPT_CUES } from './catalogue/scaled.js';
 export { MERGED_MOODS, MERGED_SEARCH_NAMES, REMOVED_MOODS } from './catalogue/merged.js';
 export { RECIPES, STORY_RECIPES } from './catalogue/recipes.js';
 
-const SECTIONS = [...moodSection, ...traitSection, ...intimacySection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
+const SECTIONS = [...moodSection, ...traitSection, ...intimacySection, ...psycheSection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
 
 // words: "seething, white-hot, out for blood" → ['seething', 'white-hot', 'out for blood'].
 const wordsOf = text => String(text).toLowerCase().split(',').map(w => w.trim()).filter(Boolean);
@@ -19,7 +20,7 @@ export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.t
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
 // "hazy_drunk +4, emboldened +2" → [['hazy_drunk', 4], ['emboldened', 2]].
 const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
-export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
+export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 
 // The wording sent for each option, where it has one, and how each feeling shows on the page.
@@ -35,8 +36,10 @@ for (const c of SECTIONS) for (const r of c.rows) {
 // ❂ Traits scope is on.
 export const TRAIT_CATEGORIES = new Set(['love', 'sims', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
 export const INTIMACY_CATEGORIES = new Set(intimacySection.map(c => c.id));
-export const isStanding = m => TRAIT_CATEGORIES.has(m?.category) || INTIMACY_CATEGORIES.has(m?.category);
-export const sectionOf = m => m.kind === 'story' ? 'story' : TRAIT_CATEGORIES.has(m.category) ? 'trait' : INTIMACY_CATEGORIES.has(m.category) ? 'intimacy' : m.kind;
+// Mind tab (catalogue/psyche.js): how someone's mind works underneath. Standing, like traits.
+export const PSYCHE_CATEGORIES = new Set(psycheSection.map(c => c.id));
+export const isStanding = m => TRAIT_CATEGORIES.has(m?.category) || INTIMACY_CATEGORIES.has(m?.category) || PSYCHE_CATEGORIES.has(m?.category);
+export const sectionOf = m => m.kind === 'story' ? 'story' : TRAIT_CATEGORIES.has(m.category) ? 'trait' : INTIMACY_CATEGORIES.has(m.category) ? 'intimacy' : PSYCHE_CATEGORIES.has(m.category) ? 'psyche' : m.kind;
 // The scene reader only reads feelings; traits (love languages included) and intimacy are standing, so it leaves them alone.
 export const analysed = m => m?.kind === 'mood' && !isStanding(m)
     && !['hates_user', 'hates_char', 'hates_other', 'comparing_people'].includes(m.id);

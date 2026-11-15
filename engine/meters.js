@@ -65,6 +65,8 @@ export const MORE_METERS = [
         (n, u) => `${n} is ashamed of what ${n} feels or does with ${u}: hides it, punishes ${n}self or ${u} for it, and comes back anyway`, null, 'Shame about what’s between you.'],
     ['dv', 'Devotion', false, 0, 'devotion', [[81, 'lives to serve them'], [61, 'devoted'], [41, 'eager to please'], [21, 'attentive'], [0, 'goes their own way']],
         (n, u) => `${n} wants to please ${u} and serve ${u}'s wishes, and measures ${n}self by ${u}'s approval`, null, 'How much they live to please you.'],
+    ['rt', 'Restraint', false, 0, 'restraint', [[81, 'won’t let themselves'], [61, 'holding it in'], [41, 'careful'], [21, 'a little guarded'], [0, 'unguarded']],
+        (n, u) => `${n} holds back what ${n} feels for ${u}, out of guilt, duty, propriety or fear of what it would cost; it shows in what ${n} almost does`, null, 'How much they hold back what they feel for you.'],
 ];
 const MORE_KEYS = MORE_METERS.map(([k]) => k);
 const DEF = Object.fromEntries(MORE_METERS.map(m => [m[0], m]));
@@ -79,7 +81,8 @@ export const MORE_PRESETS = [
     // By kind of relationship rather than by character.
     ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu', 'fe']],
     ['Experiment', ['cl', 'cd', 'fa', 'kn', 'ca', 'di', 'co']],
-    ['Secret affair', ['se', 'ap', 'sh', 'lu', 'je', 'gu']],
+    ['Secret affair', ['se', 'ap', 'sh', 'lu', 'je', 'gu', 'rt']],
+    ['Forbidden love', ['rt', 'gu', 'ap', 'se', 'ly', 'lu']],
     ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je', 'ri']],
     ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly', 'dv']],
     ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co']],

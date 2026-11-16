@@ -34,7 +34,8 @@ export function savedPanel(view) { return views.get(view); }
 export function restorePanelFields(panel, snapshot) {
     if (!snapshot) return;
     for (const [selector, value] of Object.entries(snapshot.searches)) { const el = panel.querySelector(selector); if (el) el.value = value; }
-    for (const [selector, open] of Object.entries(snapshot.details)) { const el = panel.querySelector(selector); if (el) el.open = open; }
+    // Music drawers remember themselves (so ✎ Tags can open Songs), so they are left as drawn.
+    for (const [selector, open] of Object.entries(snapshot.details)) { const el = panel.querySelector(selector); if (el && !el.matches('[data-music-fold]')) el.open = open; }
 }
 export function restorePanelPosition(panel, snapshot, sameView) {
     if (!snapshot) { panel.scrollTop = 0; return; }

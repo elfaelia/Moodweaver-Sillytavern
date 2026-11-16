@@ -655,44 +655,129 @@
 .mw-range-moons{margin:8px 0 6px}.mw-want-controls .mw-range-moons{flex:1;min-width:0;margin:4px 0}
 .mw-range-moons .mw-moon[disabled]{opacity:.45;cursor:default}
 .mw-needs,.mw-bond-grid{grid-template-columns:1fr}
-/* ♫ Music tab (panel/music-tab.js): cards, big tap targets, chips. Nothing drags. */
-.mw-music-card{display:block;margin:10px var(--mw-pad);padding:12px 14px;background:#ffffff08;border:1px solid var(--mw-line-2);border-radius:var(--mw-r)}
-.mw-music-card h3{margin:0 0 8px;font:500 16px/1.2 var(--mw-serif);color:#f6f1ff;display:inline}
-.mw-music-card>summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-height:32px}
-.mw-music-card>summary::-webkit-details-marker{display:none}
-.mw-music-card>summary small{color:var(--mw-muted);font-size:12px}
-.mw-music-card[open]>summary{margin-bottom:8px}
-.mw-music-steps{margin:8px 0 0;padding-left:20px;display:grid;gap:12px}
-.mw-music-steps li{line-height:1.5}.mw-music-steps input,.mw-music-steps textarea{margin-top:6px}
-.mw-music-steps a{color:var(--mw-moon)}
-.mw-panel .mw-music-big{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:10px 18px;border-radius:12px;font-size:15px;font-weight:600;text-decoration:none;
-  color:#15111f;background:#9fd3c9;border:0;margin-top:6px;cursor:pointer}
-.mw-music-file{position:relative;overflow:hidden}.mw-music-file input{position:absolute;inset:0;opacity:0;cursor:pointer}
-.mw-music-np{display:flex;gap:12px;align-items:center}
-.mw-music-np img,.mw-music-art{width:64px;height:64px;border-radius:10px;flex:none;object-fit:cover}
-.mw-music-art{display:grid;place-items:center;background:#9fd3c922;color:#9fd3c9;font-size:28px}
-.mw-music-np div{display:flex;flex-direction:column;min-width:0}
-.mw-music-np b{font-size:15px;color:#f6f1ff;overflow-wrap:anywhere}.mw-music-np small{color:var(--mw-muted)}
-.mw-music-np i{font-style:normal;font-size:11.5px;color:var(--mw-muted);margin-top:3px}.mw-music-np i.mw-music-scene{color:var(--mw-faint)}
-.mw-music-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.mw-panel .mw-music-controls>button,.mw-panel .mw-music-controls>.mw-mchip{min-height:46px;min-width:52px;font-size:16px}
-.mw-mchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.mw-panel .mw-mchip{min-height:40px;padding:8px 12px;border-radius:999px;font-size:13px;line-height:1.2;text-align:left}
-.mw-panel .mw-mchip[aria-pressed="true"]{background:#9fd3c933;border-color:#9fd3c9;color:#eafff9}
-.mw-panel .mw-mchip:disabled{opacity:.45;cursor:not-allowed}
-.mw-music-label{margin:10px 0 0;font-size:12px;color:var(--mw-muted)}
-.mw-music-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
-.mw-panel .mw-music-list button{width:100%;min-height:44px;text-align:left;display:flex;flex-direction:column;border-radius:10px}
-.mw-music-list small{color:var(--mw-muted);font-size:11.5px}
-.mw-music-editor{margin:4px 0 12px;padding:10px;border:1px solid #9fd3c955;border-radius:12px;background:#9fd3c90c}
-.mw-music-editor-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.mw-music-editor-head b{color:#f6f1ff}.mw-music-editor-head small{color:var(--mw-muted);flex:1}
-.mw-music-tags>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-size:12.5px;color:var(--mw-muted)}
+/* ♫ Music tab (panel/music-tab.js): a small night sky of its own. The song is a planet (the cover art) in the
+   colour of the followed person's leading feeling, with an orbit ring and a moon that circles while it plays.
+   Drawers open on little glowing orbs; lit playlists are stars. Big tap targets only, nothing drags. */
+.mw-music{--mw-aqua:#9fd3c9;--mw-tone:#9fd3c9;--mw-shade:#6f8fd8;padding:0 var(--mw-pad) 8px}
+.mw-music-label{margin:14px 2px 6px;font:600 10.5px/1 var(--mw-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--mw-faint)}
+.mw-music-note{margin:6px 2px;font-size:12px;line-height:1.5;color:var(--mw-muted)}.mw-music-note.is-warn{color:var(--mw-moon)}
 
-.mw-music-pllist{display:flex;flex-direction:column;gap:4px;margin:6px 0 10px}
-.mw-panel .mw-music-plrow{display:flex;align-items:center;gap:10px;min-height:48px;padding:8px 12px;border:1px solid var(--mw-line-2);border-radius:12px;background:#ffffff06;color:var(--mw-text);text-align:left;font-size:15px}
-.mw-panel .mw-music-plrow[aria-pressed="true"]{background:#9fd3c926;border-color:#9fd3c9}
-.mw-panel .mw-music-plrow:disabled{opacity:.45}
-.mw-music-pltick{flex:0 0 22px;height:22px;border-radius:50%;border:1px solid var(--mw-line-2);display:grid;place-items:center;color:#9fd3c9;font-size:13px}
-.mw-music-plname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mw-music-plrow small{color:var(--mw-muted);font-size:12px;white-space:nowrap}
-.mw-music-card input[type=search]{width:100%;box-sizing:border-box;min-height:44px;font-size:16px}
+/* The hero: no box, just sky. A soft nebula in the feeling's colour sits behind the planet. */
+.mw-music-hero{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:18px 4px 6px;margin:0 calc(var(--mw-pad) * -1);
+  background:radial-gradient(60% 46% at 50% 30%,color-mix(in srgb,var(--mw-tone) 16%,transparent),transparent 72%),radial-gradient(40% 30% at 78% 18%,color-mix(in srgb,var(--mw-shade) 12%,transparent),transparent 70%)}
+.mw-panel .mw-music-power{position:absolute;top:10px;right:var(--mw-pad);display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:6px 13px 6px 10px;border-radius:999px;font-size:12px;color:var(--mw-muted);background:#0e0b17b0;border-color:var(--mw-line-2)}
+.mw-music-power>span{width:9px;height:9px;border-radius:50%;background:#ffffff30;transition:background .3s,box-shadow .3s}
+.mw-panel .mw-music-power[aria-pressed=true]{color:#eafff9;border-color:#9fd3c966}
+.mw-music-power[aria-pressed=true]>span{background:var(--mw-aqua);box-shadow:0 0 10px var(--mw-aqua)}
+
+.mw-music-planet{position:relative;width:200px;height:200px;margin:14px auto 12px;display:grid;place-items:center}
+.mw-music-ball{position:relative;z-index:1;width:146px;height:146px;border-radius:50%;object-fit:cover;display:grid;place-items:center;font:300 46px/1 var(--mw-serif);color:#f6f1ff;
+  background:radial-gradient(circle at 34% 28%,#ffffff55,var(--mw-tone) 36%,var(--mw-shade) 78%,#0e0b17 100%);
+  box-shadow:0 0 0 1px #ffffff1c,0 0 34px color-mix(in srgb,var(--mw-tone) 45%,transparent),0 0 90px color-mix(in srgb,var(--mw-tone) 22%,transparent),inset -14px -18px 34px #0e0b17aa}
+img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(--mw-tone) 50%,transparent),0 0 90px color-mix(in srgb,var(--mw-tone) 24%,transparent)}
+.mw-music-ring{position:absolute;inset:0;border-radius:50%;border:1px dashed color-mix(in srgb,var(--mw-tone) 45%,#ffffff22);animation:mw-orbit 26s linear infinite;animation-play-state:paused}
+.mw-music-ring>i{position:absolute;top:-6px;left:calc(50% - 6px);width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#fff3cf 45%,#efd59c);box-shadow:0 0 12px #efd59ccc}
+.mw-music-hero.is-playing .mw-music-ring{animation-play-state:running}
+.mw-music-hero.is-playing .mw-music-ball{animation:mw-breathe 5.5s ease-in-out infinite}
+.mw-music-planet.is-idle .mw-music-ball{filter:saturate(.55) brightness(.8)}
+@keyframes mw-orbit{to{transform:rotate(360deg)}}
+@keyframes mw-breathe{50%{box-shadow:0 0 0 1px #ffffff26,0 0 46px color-mix(in srgb,var(--mw-tone) 62%,transparent),0 0 110px color-mix(in srgb,var(--mw-tone) 30%,transparent)}}
+
+.mw-music-title{margin:2px 10px 0;font:500 21px/1.25 var(--mw-serif);color:#f6f1ff;text-wrap:balance;overflow-wrap:anywhere}
+.mw-music-sub{margin:4px 10px 0;font-size:13px;color:var(--mw-muted)}
+/* The song's path: a thin line, the travelled part in the feeling's colour, a star at its head. */
+.mw-music-track{position:relative;width:min(280px,82%);height:3px;margin:16px auto 2px;border-radius:3px;background:#ffffff14}
+.mw-music-track>i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--mw-tone) 30%,transparent),var(--mw-tone));animation:mw-path linear forwards}
+.mw-music-track>i::after{content:'';position:absolute;right:-5px;top:-4px;width:11px;height:11px;border-radius:50%;background:#fff8e6;box-shadow:0 0 10px #efd59c,0 0 3px #fff}
+@keyframes mw-path{to{width:100%}}
+.mw-music-transport{display:flex;align-items:center;justify-content:center;gap:22px;margin:14px 0 4px}
+.mw-panel .mw-music-round{display:grid;place-items:center;width:52px;height:52px;padding:0;border-radius:50%;font-size:17px;background:#ffffff0c;border-color:var(--mw-line-2);font-variant-emoji:text}
+.mw-panel .mw-music-round[aria-pressed=true]{border-color:#efd59c88;box-shadow:0 0 14px #efd59c44}
+.mw-panel .mw-music-round.is-main{width:72px;height:72px;font-size:22px;color:#15111f;border:0;
+  background:radial-gradient(circle at 35% 30%,#fffdf5,#f3e3b8 48%,#d9bd7c);box-shadow:0 0 0 6px #efd59c14,0 0 28px #efd59c55,inset -6px -8px 14px #b8995a66}
+.mw-panel .mw-music-round:active{transform:scale(.94)}
+.mw-music-verdict{display:flex;justify-content:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
+.mw-panel .mw-music-verdict button{min-height:40px;padding:8px 14px;border-radius:999px;font-size:13px;background:#0e0b1799}
+.mw-music-why{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin:12px 6px 0}
+.mw-music-why small{width:100%;font:600 10px/1 var(--mw-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--mw-faint);margin-bottom:2px}
+.mw-music-why span{padding:4px 10px;border-radius:999px;font-size:11.5px;color:color-mix(in srgb,var(--mw-tone) 70%,#fff);background:color-mix(in srgb,var(--mw-tone) 10%,transparent);border:1px solid color-mix(in srgb,var(--mw-tone) 28%,transparent)}
+.mw-music-scene{margin:8px 14px 0;font-size:11.5px;color:var(--mw-faint);font-style:italic}
+
+/* Follow: three small planets, like the people at the top of the panel. */
+.mw-music-follow{margin-top:8px}
+.mw-music-whos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mw-panel .mw-music-who{display:flex;flex-direction:column;align-items:center;gap:5px;min-height:96px;padding:12px 6px 10px;border-radius:18px;background:#0e0b17a8;border-color:var(--mw-line);color:var(--mw-muted);text-align:center}
+.mw-panel .mw-music-who[aria-pressed=true]{background:color-mix(in srgb,var(--mw-tone) 13%,#15111f);border-color:color-mix(in srgb,var(--mw-tone) 55%,transparent);color:var(--mw-text);box-shadow:0 0 22px color-mix(in srgb,var(--mw-tone) 20%,transparent)}
+.mw-music-who-orbs{display:flex;justify-content:center;height:36px}
+.mw-music-who-orbs i{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font:500 15px/1 var(--mw-serif);font-style:normal;color:#15111f;background:radial-gradient(circle at 35% 30%,#fff8,var(--mw-tone) 38%,var(--mw-shade) 100%);box-shadow:0 0 12px color-mix(in srgb,var(--mw-tone) 40%,transparent)}
+.mw-music-who-orbs i+i{margin-left:-6px;outline:2px solid #15111f}
+.mw-music-who b{max-width:100%;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-music-who small{font-size:10.5px;color:var(--mw-faint)}
+
+/* Drawers: one quiet column; each opens on a glowing orb. */
+.mw-music-drawers{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.mw-music-drawer{border:1px solid var(--mw-line);border-radius:18px;background:linear-gradient(180deg,#ffffff07,#ffffff02);overflow:hidden}
+.mw-music-drawer[open]{border-color:#9fd3c933;background:linear-gradient(180deg,#9fd3c90b,#ffffff02)}
+.mw-music-drawer>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 14px}
+.mw-music-drawer>summary::-webkit-details-marker{display:none}
+.mw-music-orb{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;font-size:15px;color:var(--mw-aqua);font-variant-emoji:text;
+  background:radial-gradient(circle at 35% 30%,#9fd3c933,#0e0b17 70%);border:1px solid #9fd3c944;box-shadow:0 0 14px #9fd3c922}
+.mw-music-dt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.mw-music-dt b{font:500 15.5px/1.25 var(--mw-serif);color:#f6f1ff}
+.mw-music-dt small{font-size:11.5px;color:var(--mw-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-music-chev{flex:none;color:var(--mw-faint);font-size:20px;transition:transform .25s}
+.mw-music-drawer[open] .mw-music-chev{transform:rotate(90deg);color:var(--mw-aqua)}
+.mw-music-dbody{padding:0 14px 14px}
+
+/* Lists: rows on one dark sheet, hairlines between. A lit star for ticked, a faint one for not. */
+.mw-music-rows{display:flex;flex-direction:column;margin:4px 0 8px;border:1px solid var(--mw-line);border-radius:14px;background:#0e0b1799;overflow:hidden}
+.mw-panel .mw-music-row{display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 14px;border:0;border-radius:0;background:none;text-align:left;font-size:14.5px;color:var(--mw-text)}
+.mw-panel .mw-music-row+.mw-music-row{border-top:1px solid var(--mw-line)}
+.mw-panel .mw-music-row[aria-pressed=true]{background:#efd59c0d}
+.mw-panel .mw-music-row:disabled{opacity:.4}
+.mw-music-tick{flex:0 0 18px;text-align:center;font-size:15px;color:var(--mw-faint);font-variant-emoji:text}
+.mw-music-row[aria-pressed=true] .mw-music-tick{color:var(--mw-moon);text-shadow:0 0 10px #efd59ccc}
+.mw-music-row.is-song .mw-music-tick{font-size:12px}
+.mw-music-row.is-song[aria-pressed=true]{background:#9fd3c912}
+.mw-music-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-music-name b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.mw-music-name small,.mw-music-row>small{display:block;color:var(--mw-faint);font-size:11.5px}
+.mw-panel .mw-music-search{min-height:46px;margin:8px 0 6px;font-size:16px;border-radius:14px;background:#0e0b17cc}
+.mw-panel .mw-music-quiet{display:block;width:100%;min-height:44px;margin:6px 0;border-radius:12px;font-size:13px;color:var(--mw-muted);background:#ffffff06;border:1px dashed var(--mw-line-2)}
+.mw-music-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.mw-music-pair .mw-music-quiet{margin:0}
+
+/* Song sheet: two moon tiles. */
+.mw-music-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
+.mw-panel .mw-music-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:96px;padding:12px 8px;border-radius:16px;background:#0e0b17b0;border:1px solid var(--mw-line-2);text-align:center;cursor:pointer}
+.mw-music-tile>span{font-size:24px;line-height:1;color:var(--mw-moon);text-shadow:0 0 14px #efd59c88;font-variant-emoji:text}
+.mw-music-tile b{font:500 15px/1.2 var(--mw-serif);color:#f6f1ff}.mw-music-tile small{font-size:11px;color:var(--mw-faint)}
+.mw-music-file{overflow:hidden}.mw-music-file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Chips (tags and settings): dim until lit, then a soft aqua glow. */
+.mw-mchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
+.mw-panel .mw-mchip{min-height:40px;padding:8px 13px;border-radius:999px;font-size:13px;line-height:1.2;text-align:left;background:#0e0b1799;border-color:var(--mw-line-2);color:var(--mw-muted)}
+.mw-panel .mw-mchip[aria-pressed=true]{background:#9fd3c922;border-color:#9fd3c9aa;color:#eafff9;box-shadow:0 0 14px #9fd3c926}
+.mw-panel .mw-mchip:disabled{opacity:.45;cursor:not-allowed}
+.mw-music-editor{margin:2px 0 12px;padding:12px;border:1px solid #9fd3c944;border-radius:16px;background:radial-gradient(80% 60% at 20% 0%,#9fd3c912,transparent 70%),#0e0b17b0}
+.mw-music-editor-head{display:flex;align-items:center;gap:10px}.mw-music-editor-head .mw-music-quiet{width:auto;min-height:38px;padding:6px 14px;margin:0}
+.mw-music-tags{margin-top:6px}
+.mw-music-tags>summary{cursor:pointer;min-height:38px;display:flex;align-items:center;font:600 10.5px/1 var(--mw-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--mw-faint)}
+
+/* Connect Spotify: the steps are a constellation, each star lights once it's done. */
+.mw-music-setup .mw-music-sub{max-width:300px}
+.mw-music-path{list-style:none;margin:18px 0 6px;padding:0 6px 0 4px;text-align:left;width:100%}
+.mw-music-path li{position:relative;display:flex;gap:12px;padding-bottom:18px;font-size:13px;line-height:1.55;color:var(--mw-text)}
+.mw-music-path li:not(:last-child)::before{content:'';position:absolute;left:13px;top:28px;bottom:2px;border-left:1px dashed #ffffff26}
+.mw-music-path li>div{flex:1;min-width:0}
+.mw-music-path input,.mw-music-path textarea{margin-top:8px}
+.mw-music-path a{color:var(--mw-moon)}
+.mw-music-star{flex:none;display:grid;place-items:center;width:27px;height:27px;border-radius:50%;font:600 12px/1 var(--mw-round);color:var(--mw-muted);background:#0e0b17;border:1px solid var(--mw-line-2)}
+.mw-music-path li.is-lit .mw-music-star{color:#15111f;background:radial-gradient(circle at 35% 30%,#fffdf5,#efd59c);border-color:transparent;box-shadow:0 0 12px #efd59c88}
+.mw-panel .mw-music-cta{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;margin-top:8px;padding:10px 18px;border:0;border-radius:999px;font:600 15px/1 var(--mw-sans);text-decoration:none;color:#15111f;
+  background:linear-gradient(90deg,#9fd3c9,#c9b8f0);box-shadow:0 0 22px #9fd3c944;cursor:pointer}
+.mw-music-path a.mw-music-cta{color:#15111f}
+
+@media (prefers-reduced-motion:reduce){.mw-music-ring,.mw-music-hero.is-playing .mw-music-ball,.mw-music-track>i{animation:none!important}.mw-music-chev{transition:none}}
+
+.mw-panel .mw-music-icon{width:22px;height:22px;display:block}
+.mw-panel .mw-music-round.is-main .mw-music-icon{width:30px;height:30px}

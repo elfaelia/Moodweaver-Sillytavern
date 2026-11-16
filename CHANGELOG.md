@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.66.0: a night-sky Music tab
+
+- The Music tab is redesigned to match the rest of the panel. The song now playing sits in the middle as a glowing planet (its album art), with a dashed orbit and a small moon that circles while music plays and stops when it pauses.
+- Under it, a thin star path shows how far through the song you are, with a star at its tip.
+- Play and pause is a big moon-gold button between Lock and Next. All three are clean line icons now instead of emoji.
+- ✦ Fits, ✕ Not here and ✎ Tags sit just under the controls, and "Picked for" shows the feelings and moments that chose the song.
+- "Follow whose moods" is three tappable planets (the character, you, or both together), coloured by each person's current mood like the cards at the top.
+- Playlists, Songs, Song sheet and Music settings are tidy drawers that open with one tap. Ticked playlists glow as gold stars.
+- Connecting Spotify for the first time is a short star path of steps.
+- ✎ Tags now reliably opens the Songs drawer at that song.
+
 ## 1.65.3: finding playlists
 
 - Music › Playlists no longer shows every playlist at once. The ones you've ticked sit on top as big rows; find the rest by typing part of the name (emoji work too), or tap "Show all" for a plain list.

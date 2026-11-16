@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.65.2: song sheet fix
+
+- Importing a song sheet now keeps the three dynamics whose names have a comma in them (Power, care & control; Toxic, broken & on-off; Friends, rivals & enemies). Before, they were dropped as unknown.
+
 ## 1.65.1: Music on the dock
 
 - ♫ Music has its own button in the middle of the dock (Mood, Relations, Music, Info, Self, Story) instead of hiding under Info.

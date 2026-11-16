@@ -32,7 +32,15 @@ export const headerIndex = row => { const m = new Map(); (row ?? []).forEach((h,
 const cellOf = (row, idx, name) => { const i = idx.get(norm(name).replace(/[^a-z0-9]/g, '')); return i === undefined ? '' : String(row[i] ?? '').trim(); };
 // characters: the names SillyTavern knows, so "easterman" comes back as "Easterman".
 export function cellsToTags(row, idx, characters = [], unknown = new Set()) {
-    const t = emptyTags(), take = (kind, cell, into) => { for (const v of split(cell)) { const id = FIND[kind].get(norm(v)); if (id) into.push(id); else unknown.add(v); } };
+    // A few names have commas of their own ("Toxic, broken & on-off"), so the longest run of pieces that names something wins.
+    const t = emptyTags(), take = (kind, cell, into) => {
+        const parts = split(cell);
+        for (let i = 0; i < parts.length;) {
+            let n = Math.min(3, parts.length - i), id = '';
+            for (; n > 0; n--) { id = FIND[kind].get(norm(parts.slice(i, i + n).join(', '))); if (id) break; }
+            if (id) { into.push(id); i += n; } else { unknown.add(parts[i]); i++; }
+        }
+    };
     take('f', cellOf(row, idx, 'Feeling 1'), t.f); take('f', cellOf(row, idx, 'Feeling 2'), t.f); take('f', cellOf(row, idx, 'Feeling'), t.f);
     take('m', cellOf(row, idx, 'Exact moods'), t.m);
     take('p', cellOf(row, idx, 'Place 1'), t.p); take('p', cellOf(row, idx, 'Place 2'), t.p); take('p', cellOf(row, idx, 'Place'), t.p);

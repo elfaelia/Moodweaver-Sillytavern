@@ -2,7 +2,7 @@
 import { getCast, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
 import { boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, pronounsFor, reactions, userRelation, weaveOf, writes } from './replies.js';
 import { settings } from './settings.js';
-import { KEY, PROMPT_KEY, ctx, run, tintLauncher } from './state.js';
+import { GUIDE_KEY, KEY, PROMPT_KEY, clearNotes, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta, feelingId } from '../engine/board.js';
 import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
@@ -21,16 +21,29 @@ import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
 import { pronounize } from '../engine/pronouns.js';
-import { litSkills, skillLines, skillsOf } from '../engine/skills.js';
+import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
+import { aftermathLines, contagionLine } from '../engine/echoes.js';
 
-export async function syncPrompt(forGeneration = false, chat = null, type = '') {
+// The note is built in full right before every reply (forGeneration). Taps in the panel only ask for a preview
+// rebuild, and a burst of taps is folded into one, a moment after the last, so the panel stays quick.
+let previewTimer = null;
+export function syncPrompt(forGeneration = false, chat = null, type = '') {
+    clearTimeout(previewTimer); previewTimer = null;
+    if (forGeneration) return buildNote(true, chat, type);
+    previewTimer = setTimeout(() => { previewTimer = null; void buildNote(false); }, NOTE_SETTLE_MS);
+    return Promise.resolve();
+}
+const NOTE_SETTLE_MS = 300;
+// Straight away, for a chat being opened or a reply that just arrived (not a tap in the panel).
+export function syncPromptNow() { clearTimeout(previewTimer); previewTimer = null; return buildNote(false); }
+async function buildNote(forGeneration = false, chat = null, type = '') {
     // The note for a reply in progress stays as it was built; redraw it once that reply is done.
     if (!forGeneration && writingNow()) { run.resyncAfter = true; return; }
     const version = ++run.promptVersion;
     const c = ctx(), ch = target(forGeneration), state = getState(ch), id = identity(ch), mine = getUserState(), story = getStoryState(ch);
     if (run.suspended || !state) {
-        c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
+        clearNotes(c);
         run.promptInfo = { prompt: '', tokens: 0, omitted: 0 }; renderPreview(); return;
     }
     if (!forGeneration) tintLauncher(moodTone(state.moods).lead);
@@ -45,7 +58,8 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const liveNow = liveFor(ch, history);
         // Feelings ended by hand in the last few replies, so the board and the scene drop them too.
         const ended = Object.entries(state.cut ?? {}).filter(([id, at]) => !(state.moods?.[id] > 0) && history.length - at < 12 && BY_ID[id]).map(([id]) => BY_ID[id].label.split('/')[0].trim().toLowerCase());
-        const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on, ended });
+        const split = settings().splitNote !== false;
+        const board = boardPromptLines({ send: boardSend(), live: liveNow, char: name, user: player, n, u, stripped: settings().boardStrip, remember: memories && !bond.on, ended, split });
         const react = reactions(ch, history, liveNow), live = (state.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !react.done.has(w.id));
         // The current dynamic, worked out once. The story is asked to rename it when it shifts, and
         // both-ways or story lines it already says are left out of this note.
@@ -63,10 +77,11 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
         const knows = knowledgeNow(ch, history), notice = Object.entries(mine?.enabled ? mine.prefs ?? {} : {}).some(([id, v]) => v && knowledgeEntry(knows[`turn:${id}`]).mode !== 'known');
         const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
-        const skills = skillLines(skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx) })), u, history.length, n);
+        const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st) }));
+        const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length)];
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
@@ -75,16 +90,24 @@ export async function syncPrompt(forGeneration = false, chat = null, type = '') 
         const pairs = pairExtras(ch).map(p => pairDrop.size && p.names[0] === name && p.names[1] === player ? { ...p, moods: zero(p.moods, pairDrop) } : p);
         const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
         const links = sceneLinks({ ch, state, mine, story, bond, bd, n, u });
+        // Aftermath of a strong feeling that just ended, and the player's feeling rubbing off (Settings › What is sent).
+        const newestW = [...history].reverse().find(m => m && !m.is_system && writes(ch)(m)), seemsIds = (newestW ? weaveOf(newestW)?.seems ?? [] : []).map(feelingId).filter(Boolean);
+        const close = Boolean(bd && (bd.f >= 41 || bd.r >= 41));
+        const echoes = [...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
+            contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion })].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
         c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, settings().depth, false, 1);
+        // The guide sits in the prompt above the chat (system role), so it stays the same text reply after reply and
+        // can be cached along with everything before it.
+        c.setExtensionPrompt(GUIDE_KEY, result.fixed ?? '', 0, 0, false, 0);
         run.promptInfo = result; renderPreview();
     } catch (err) {
         console.error('[Moodweaver] could not build the note', err);
-        c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
+        clearNotes(c);
         run.promptInfo = { prompt: '', tokens: 0, omitted: 0 };
         renderPreview();
         run.status = `The mood note couldn't be built, so nothing was sent this time: ${err?.message ?? err}`; renderStatus();
@@ -218,6 +241,9 @@ export function listedFeelings(st) {
 }
 // ---- Skills ----
 // Who can have skills in this reply: the character, your character and the cast in the scene.
+// Someone's Mind settings at mild or above, for a mind-reading skill to notice (strongest first).
+const mindOf = st => Object.entries(st?.moods ?? {}).filter(([id, v]) => v >= 21 && BY_ID[id] && sectionOf(BY_ID[id]) === 'psyche')
+    .map(([id, v]) => { const m = BY_ID[id]; return { label: m.label, words: m.words, v, side: m.light && m.dark ? (st.psyLean?.[id] === 'light' ? 'light' : 'dark') : '' }; }).sort((a, b) => b.v - a.v);
 function skillPeople(ch, state, mine) {
     return [{ name: shortName(ch?.name ?? ''), st: state }, { name: shortName(playerName()), st: mine },
         ...getCast(ch).filter(p => p.inScene).map(p => ({ name: shortName(p.name), st: p.state }))].filter(p => p.st?.enabled);

@@ -158,7 +158,7 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     // The same instructions in about half the words. The line Moodweaver reads is unchanged.
@@ -167,15 +167,19 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(bond ? ['romance +2', ...(extra ? [`control ${n} +1`] : []), 'sparked: defiance'] : []),
         ...(remember ? [`remember: ${u} promised to stay`] : []),
     ];
-    return [
+    // split: the format is the same every reply and goes near the top to be cached; the step sizes (which follow
+    // hunger and tiredness), the feelings that have run high and the current dynamic come late, in live.
+    const steps = `${mp.ordinary} usually, up to ${mp.step} for big moments`;
+    const live = split ? [`Hidden line this reply: mood steps ${steps}.${settle?.length && !split ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}${dynamic ? ` The dynamic is ${dynamic.now}: name a new one only if it's no longer that${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ', in two or three words'}.` : ''}`] : [];
+    const lines = [
         `End every reply with a hidden line for Moodweaver: only what changed for ${n} this reply, or <!-- weave: none -->. Shape:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, giddiness and so on; dark, sexual and ugly ones count), whatever this moment gives them, in plain words: ${mp.ordinary} usually, up to ${mp.step} for big moments, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes above say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
+        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, giddiness and so on; dark, sexual and ugly ones count), whatever this moment gives them, in plain words: ${split ? 'step sizes as given just before the reply' : steps}, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
             `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them; a beating costs health.`,
             `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
         ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,
             ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
-            ...(dynamic ? [`- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
+            ...(dynamic ? [split ? '- dynamic: only if it has changed, what it is now (see just before the reply).' : `- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
             `- thinks: ${n} thinks ${u} is… (stubborn, his, a liar).`,
             `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`,
             ...(notice ? [`- noticed: any of ${u}'s turn-ons or turn-offs that ${n} picked up on this reply from how ${u} reacted, by name.`] : [])] : []),
@@ -187,4 +191,6 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(skills ? [`- used: skills from the skills list that someone used or was tested on this reply, by name.`] : []),
         ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
     ];
+    if (split) lines.live = live;
+    return lines;
 }

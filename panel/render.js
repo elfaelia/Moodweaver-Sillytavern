@@ -25,25 +25,35 @@ import { relationshipView } from './relationships-tab.js';
 import { activeRelationshipTags, activeSharedTags } from '../engine/relationships.js';
 import { skillsOf } from '../engine/skills.js';
 
+// The token meter: the header pill and the footer give the total; Settings › What is sent splits it into the
+// guide (the same every reply, so cached after the first) and what's sent fresh, against your target.
+const kTokens = n => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 export function renderPreview() {
     if (!ui.panel) return;
+    const info = run.promptInfo, guide = info.fixedTokens ?? 0, fresh = info.liveTokens ?? info.tokens;
+    const pill = ui.panel.querySelector('[data-token-pill]');
+    if (pill) { pill.hidden = !info.tokens; pill.querySelector('b').textContent = kTokens(info.tokens || 0); pill.title = guide ? `About ${info.tokens} tokens a reply: ${guide} in the cached guide, ${fresh} sent fresh. Tap for details.` : `About ${info.tokens} tokens a reply. Tap for details.`; pill.classList.toggle('is-over', Boolean(info.overBudget)); }
     const mini = ui.panel.querySelector('[data-token-mini]');
-    if (mini) { mini.textContent = run.promptInfo.tokens ? `≈ ${run.promptInfo.tokens} tokens sent${run.promptInfo.overBudget ? ` · ${run.promptInfo.overBudget} over your ${run.promptInfo.target} target` : ''}` : ''; mini.classList.toggle('is-over', Boolean(run.promptInfo.overBudget)); }
+    if (mini) { mini.textContent = info.tokens ? `≈ ${info.tokens} tokens sent${guide ? ` (${guide} cached)` : ''}${info.overBudget ? ` · ${info.overBudget} over your ${info.target} target` : ''}` : ''; mini.classList.toggle('is-over', Boolean(info.overBudget)); }
     const count = ui.panel.querySelector('[data-token-count]');
-    if (count) count.textContent = `${run.promptInfo.tokens} counted tokens · ${run.promptInfo.selectedIds?.length || 0} active states sent`;
+    if (count) {
+        const max = Math.max((info.target || 1) + guide, info.tokens || 0), w = n => `${Math.round(n / max * 100)}%`;
+        count.innerHTML = `<div class="mw-token-meter" role="img" aria-label="${info.tokens} tokens: ${guide} cached guide, ${fresh} fresh"><i class="is-guide" style="width:${w(guide)}"></i><i class="is-fresh" style="width:${w(fresh)}"></i>${info.target ? `<b style="left:${w(info.target + (guide ? guide : 0))}" title="Your target"></b>` : ''}</div>
+            <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first · ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply · target ${info.target ?? '—'}${guide ? ' (for the fresh part)' : ''} · ${info.selectedIds?.length || 0} settings in play</p>`;
+    }
     const preview = ui.panel.querySelector('[data-preview]');
-    if (preview) preview.textContent = run.promptInfo.prompt || 'No mood directions are being sent.';
+    if (preview) preview.textContent = info.prompt ? `${info.fixed ? `${info.fixed}\n\n` : ''}${info.prompt}` : 'No mood directions are being sent.';
     const audit = ui.panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: user role · depth ${settings().depth}${run.promptInfo.overBudget ? `\n${run.promptInfo.overBudget} tokens above the ${run.promptInfo.target}-token target; nothing was dropped or shortened.` : ''}`;
+    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role · depth ${settings().depth}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
     const last = ui.panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
-        last.textContent = snapshot ? `${snapshot.at}\nUser role · depth ${snapshot.depth}\n${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
+        last.textContent = snapshot ? `${snapshot.at}\nUser role · depth ${snapshot.depth}\n${snapshot.fixed ? `${snapshot.fixed}\n\n` : ''}${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
     }
     const warning = ui.panel.querySelector('[data-budget-warning]');
     if (warning) {
-        warning.hidden = !run.promptInfo.overBudget;
-        warning.textContent = `Full blend kept: ${run.promptInfo.tokens} tokens (${run.promptInfo.overBudget} above target). Details are in “What is sent to the model?”`;
+        warning.hidden = !info.overBudget;
+        warning.textContent = `Full blend kept: ${guide ? fresh : info.tokens} tokens${guide ? ' sent fresh' : ''} (${info.overBudget} above target). Details are in “What is sent to the model?”`;
     }
 }
 export function renderStatus() {
@@ -116,7 +126,7 @@ function drawPanel() {
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
         : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
-        <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live) + factsContent(state, ch, active)
+        <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live, boardPeople(ch)) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
@@ -125,21 +135,58 @@ function drawPanel() {
         : sectionContent(state, kind, ch, active)}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
-        <div class="mw-top-actions"><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
+        <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">◷</i><b></b></button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch, charState)}
     ${state ? body : ''}
     ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
-    restorePanelFields(ui.panel, snapshot);
+    restorePanelFields(ui.panel, snapshot); moonify(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
 }
 // Draw the rows of folded groups that were left empty (all of them in scope, or the one just opened).
 export function fillLazy(scope) {
     const bodies = scope?.matches?.('[data-lazy]') ? [scope] : [...(scope?.querySelectorAll('[data-lazy]') ?? [])];
-    for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) el.innerHTML = rows(); }
+    for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) { el.innerHTML = rows(); moonify(el); } }
+}
+// Every slider in the panel is shown as moons to tap, no dragging. The slider stays in the page, hidden, and a tap
+// sets it and sends the same input and change events a drag would, so each tab's own handling is unchanged.
+// One-sided sliders get a new moon (off) and eight phases; ones that go below zero get four moons each side of
+// a middle new moon. Tapping the moon it's already at goes back to off (or the middle).
+const MOON_AT = [5, 15, 30, 50, 70, 85, 95, 100], MOON_FROM = [1, 11, 21, 41, 61, 81, 91, 100];
+const POLE_AT = [30, 50, 70, 95], POLE_FROM = [1, 35, 60, 85];
+export function moonify(root) {
+    for (const input of root?.querySelectorAll?.('input[type="range"]:not([data-moons])') ?? []) {
+        input.dataset.moons = '1'; input.tabIndex = -1; input.setAttribute('aria-hidden', 'true');
+        const box = document.createElement('div');
+        box.className = `mw-moons mw-range-moons${Number(input.min) < 0 ? ' mw-poles' : ''}`; box.setAttribute('role', 'group');
+        if (input.getAttribute('aria-label')) box.setAttribute('aria-label', input.getAttribute('aria-label'));
+        input.after(box); drawMoons(input, box);
+    }
+}
+function drawMoons(input, box) {
+    const min = Number(input.min) || 0, v = Number(input.value) || 0, off = input.disabled, two = min < 0;
+    const btn = (to, lit, now, cls = '', phase = '') => `<button type="button" class="mw-moon ${cls} ${lit ? 'is-lit' : ''} ${now ? 'is-now' : ''}" data-range-moon="${to}" aria-pressed="${now}" aria-label="${to}" title="${to}"${off ? ' disabled' : ''}${phase ? ` style="--mw-phase:${phase}"` : ''}><span></span></button>`;
+    if (two) {
+        const at = POLE_FROM.reduce((k, f, i) => Math.abs(v) >= f ? i : k, -1), side = v < 0 ? -1 : 1;
+        const half = s => POLE_AT.map((to, i) => btn(s * to, side === s && at >= i, side === s && at === i, s < 0 ? 'mw-pole-dark' : 'mw-pole-light', `${Math.round((i + 1) / 4 * 100)}%`));
+        box.innerHTML = `${half(-1).reverse().join('')}${btn(0, false, at < 0, 'is-new')}${half(1).join('')}`;
+    } else {
+        const at = MOON_FROM.reduce((k, f, i) => v >= f ? i : k, -1);
+        box.innerHTML = `${btn(min, false, at < 0 || v <= min, 'is-new')}${MOON_AT.map((to, i) => btn(Math.max(min, to), at >= i && v > min, at === i && v > min, '', `${Math.round((i + 1) / 8 * 100)}%`)).join('')}`;
+    }
+}
+// A tap on one of those moons: set the slider, fire its events, redraw the moons (a re-render may replace them anyway).
+export function tapRangeMoon(button) {
+    const input = button.closest('.mw-range-moons')?.previousElementSibling;
+    if (!input || input.type !== 'range' || input.disabled) return;
+    const min = Number(input.min) || 0, rest = min < 0 ? 0 : min;
+    const to = button.classList.contains('is-now') ? rest : Number(button.dataset.rangeMoon);
+    input.value = String(to);
+    input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
+    if (input.isConnected) drawMoons(input, button.closest('.mw-range-moons'));
 }
 export function onGroupToggle(e) { if (e.target.matches?.('details') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
 export function toggleTop() { const b = ui.panel?.querySelector('.mw-to-top'); if (b) b.hidden = ui.panel.scrollTop < 500; }

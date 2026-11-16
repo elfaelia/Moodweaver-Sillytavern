@@ -4,7 +4,7 @@ import moodSection from './catalogue/mood.js';
 import traitSection from './catalogue/trait.js';
 import intimacySection from './catalogue/intimacy.js';
 import psycheSection from './catalogue/psyche.js';
-import stateSection from './catalogue/state.js';
+import stateSection, { OPPOSITE_FACTS } from './catalogue/state.js';
 import storySection from './catalogue/story.js';
 export { SCALED_MOOD_CUES, MERGED_PROMPT_CUES } from './catalogue/scaled.js';
 export { MERGED_MOODS, MERGED_SEARCH_NAMES, REMOVED_MOODS } from './catalogue/merged.js';
@@ -20,8 +20,11 @@ export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.t
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
 // "hazy_drunk +4, emboldened +2" → [['hazy_drunk', 4], ['emboldened', 2]].
 const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
-export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
+export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.private ? { private: true } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
+// For each fact, the facts it can't be on with (OPPOSITE_FACTS in catalogue/state.js).
+export const OPPOSITE_OF = {};
+for (const group of OPPOSITE_FACTS) for (const id of group) if (BY_ID[id]) OPPOSITE_OF[id] = [...new Set([...(OPPOSITE_OF[id] ?? []), ...group.filter(x => x !== id && BY_ID[x])])];
 
 // The wording sent for each option, where it has one, and how each feeling shows on the page.
 export const PROMPT_NAME = {};

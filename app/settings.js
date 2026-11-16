@@ -4,7 +4,7 @@ import { clamp } from '../engine/util.js';
 import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
 import { CLASH_CHOICES } from '../engine/links.js';
 
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes' };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true };
 export function settings() {
     const c = ctx();
     c.extensionSettings[KEY] ??= structuredClone(defaults);
@@ -47,6 +47,14 @@ export function settings() {
         needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
         showsMode: ['all', 'mine', 'off'].includes(saved.showsMode) ? saved.showsMode : 'all',
         moodClash: CLASH_CHOICES.includes(saved.moodClash) ? saved.moodClash : 'sometimes',
+        // Who-they-are facts (looks, style, voice, job, past) only when the scene touches them, so the card isn't repeated.
+        factsWhenRelevant: saved.factsWhenRelevant !== false,
+        // The note in two halves: a guide that stays the same (cacheable) and what's true right now (last).
+        splitNote: saved.splitNote !== false,
+        // Opposite facts (Hot and Cold) switch each other off.
+        factOpposites: saved.factOpposites !== false,
+        // Feelings carrying on: the player's feeling rubbing off on an empathetic character, and a strong feeling's aftermath.
+        contagion: saved.contagion === 'off' ? 'off' : 'scene', aftermath: saved.aftermath !== false,
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.

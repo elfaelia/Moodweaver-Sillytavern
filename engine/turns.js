@@ -51,6 +51,17 @@ export function heightCm(text) {
     return n >= 50 && n <= 260 ? n : 0;
 }
 // "38", "6'1" and "guitar, chess" → "38, 6'1, into guitar, chess". Empty when nothing's filled in.
+// Favourites: food, drink, colour and style. Sent only when the scene comes near them (a meal, a bar, a gift,
+// getting dressed) or every few replies, so they colour choices without being repeated each time.
+export const FAVS = [
+    ['food', 'Favourite food', 'cherry pie', /\b(eat\w*|ate|food|dinner|lunch|breakfast|supper|meal|hungry|cook\w*|restaurant|diner|kitchen|snack\w*|dessert|order\w*|menu|bak\w*)\b/i],
+    ['drink', 'Favourite drink', 'bourbon', /\b(drink\w*|drank|bar|pour\w*|coffee|tea|wine|whisk(e)?y|bourbon|beer|cocktail\w*|thirst\w*|glass|bottle|cup|toast)\b/i],
+    ['colour', 'Favourite colour', 'deep green', /\b(colou?r\w*|paint\w*|flowers?|gift\w*|present|ribbon|dress\w*|lipstick|decorat\w*)\b/i],
+    ['style', 'Style', 'sharp suits', /\b(cloth\w*|dress\w*|wear\w*|wore|outfit|suit|shop\w*|style|look\w*|mirror|wardrobe|shoes|jacket|hair)\b/i],
+];
+export const cleanFavs = v => Object.fromEntries(FAVS.map(([k]) => [k, String(v?.[k] ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60)]).filter(([, t]) => t));
+export const favText = (st, scene = '', all = false) => FAVS.filter(([k, , , topic]) => st?.favs?.[k] && (all || topic.test(scene)))
+    .map(([k, label]) => `${label.replace('Favourite ', '').toLowerCase()} ${st.favs[k]}`).join('; ');
 export const profileText = st => { const parts = [cleanAge(st?.age), cleanHeight(st?.height)].filter(Boolean).join(', '), into = cleanInterests(st?.interests);
     return [parts, into ? `into ${into} (when the scene gives it room)` : ''].filter(Boolean).join('; '); };
 // How two people compare: "14 years older and about a head taller". Only gaps worth saying.

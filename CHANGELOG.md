@@ -1,5 +1,76 @@
 # Changelog
 
+## 1.64.0: a cached guide, moons everywhere, and feelings that carry on
+
+- **The note now comes in two parts, so most of it can be cached** (Settings › What is sent › "Split the note", on by default).
+  - The guide holds the parts that read the same every reply: what the strength words mean, how to play feelings, traits, Mind and relationships, the info board's layout and rules, the hidden line's format, the period and the author notes. It goes once near the top of the prompt, above the chat, where caching can reuse it for much less.
+  - The notes hold everything that's true right now, and anything meant to change the scene: moods, facts, needs, the last board, skills in play, period lines, dark and stakes settings, wildcards, the "turned up highest" list, and your prose rules. They still go last, right before the reply, where they land hardest.
+  - A short line in the notes names the authors in play, so the voice stays in force even though their full notes live in the guide.
+  - The guide only changes when you change settings (add a trait, switch an author, turn on a board row), so it stays cached between replies. Turn the setting off to send everything in one block at the end, as before.
+- **Every slider is now moons.** Turn-ons, the Bonds meters, Desire, Needs, Wants, relationship feelings, memories, personality strength and "Follow the read" all use taps.
+  - One-sided ones have a new moon (off) and eight phases.
+  - Ones that go below zero (turn-on to turn-off, the Bonds meters) have four moons on each side of a middle moon.
+  - Tapping the moon it's already on goes back to off or the middle.
+  - Needs and the Bonds meters are now one per row, so the moons are bigger.
+- **Opposite facts switch each other off** (Settings › What is sent, on by default). Putting on Hot takes off Cold; Hard takes off Soft; Drunk takes off Tipsy; Critical takes off Stable; Well endowed takes off Small. This works whether you set the fact or the story does, and pinned facts stay.
+- **Your feelings can rub off on them** (Settings › What is sent › "Your feelings rubbing off").
+  - When the hidden line reads a feeling in you (scared, sad, happy, wanting, angry), a character with the empathy for it now and then feels a faint echo of it.
+  - Warm traits and caring moods make it likelier. Cold-blooded, callous, psychopathic, narcissistic or cruel settings stop it entirely. Selective empathy only works if they're close to you.
+  - Set it to Off to stop it.
+- **Aftermath** (on by default). When fear, rage, grief, desire or cruelty at strong or above has just ended, it leaves a wake for a reply or two. Fear leaves shaking hands and jumpiness; rage leaves a short fuse and pride or shame about it. Light feelings like amusement or boredom just stop.
+- **Token meter.**
+  - A small ◷ pill at the top of the panel shows roughly how many tokens each reply sends.
+  - Tapping it opens Settings › What is sent, where a bar splits the count into the cached guide and the part sent fresh, against your target.
+- **The note is built once, when it's needed.** Taps in the panel used to rebuild the whole note each time. Now a burst of taps is folded into one rebuild a moment after the last. The full note is always built fresh right before every reply.
+- **Southern options removed:** the Southern gothic genre, the Southern accent, Truman Capote (early gothic) and Cormac McCarthy (baroque). Saved picks move to Gothic fiction, Accented, Truman Capote (chic) and Cormac McCarthy (late, spare).
+- **Trimmed:** the needs explanation and the last-board explanation moved into the guide, so only the needs and the board record themselves are sent fresh.
+
+## 1.63.0: a skills catalogue, mind-reading skills, facts that look after themselves, and a fuller Info tab
+
+- **Skills work like the other catalogues now.**
+  - The Skills tab shows only the skills this person has, grouped and open, so there's no long list to scroll.
+  - "＋ Add skills" opens the full catalogue, folded by group, with a search box. "✓ Done" goes back to their own list.
+  - Levels are set by tapping a number from 1 to 10 instead of dragging a slider. Tapping the number it's already on takes the skill away.
+- **About 60 new skills, 155 in all, in 16 groups:**
+  - Charm & people: Courtship, Small talk, Showmanship, Salesmanship.
+  - Manners of the day (1950s–60s): A lady's graces, A gentleman's conduct, Poise and deportment, Man of the house, Homemaking, Hostessing, Bridge and party games.
+  - Mind games: Conditioning, Reprogramming.
+  - Power & bed: Kissing, Dirty talk, Aftercare.
+  - Medicine & the mind: Pharmacology, Neurology, Sedation, Running experiments, Bedside manner, Case notes and records.
+  - Violence: Restraining people, Swordsmanship, Archery, Ambush.
+  - Crime & getting away: Hiding, Escape artistry, Surveillance.
+  - Hands & dexterity: Dexterity, Sleight of hand, Magic tricks, Rolling smokes.
+  - Body: Fitness, Skateboarding.
+  - Animals & outdoors: A way with animals, Animal training, Animal care, Riding, Fishing.
+  - Knowledge: Maths, Books and literature, History.
+  - Work, money & machines: Bookkeeping, Finance, Running an institution, Carpentry and repairs.
+  - Faith & the occult: Scripture and theology, Preaching, Occult and arcana, Spellcasting, Herbalism.
+  - Style & taste: Grooming, Fine dining and wine, Music knowledge.
+  - Arts & music: Graffiti and street art.
+  - Home & care: Baking, Running the household money, Knitting and crafts, Gardening.
+  - Baking, Herbalism and Fitness used to fold into Cooking, Chemistry and Strength; they're their own skills again.
+- **Psychology and Psychiatry see what's underneath.**
+  - When either is at 6 or more and in play, the person can see the other's Mind settings: complexes, anxieties, attachment and so on.
+  - It happens when the scene touches one of those settings, or about one reply in three otherwise. It doesn't happen every reply.
+  - At 9 or more they see two settings and roughly where they come from.
+  - What they do with it follows who they are. They might soothe it, feed it, use it as a lever or keep quiet. The note says plainly that understanding a wound is not the same as wanting it healed.
+- **Size, for men:** three new facts under Looks: Small, Average and Well endowed (down there).
+  - Each is played by personality. A proud or insecure man is touchy and defensive about being smaller, and an easy one jokes it off.
+  - They're only sent in private or intimate moments: undressing, showering, bathing, sex, or when someone is aroused.
+- **Facts look after themselves more.**
+  - Places now come on from the board's Location ("Murkoff Facility, Sleep Room" turns on Facility and Sleep room) and late night from the clock. They come off when the location changes.
+  - A fact the story put on the character comes off once the board stops naming it. Facts that run a course still wear off by the clock.
+  - The story keeps at most 8 facts on one person. Past that, the oldest one it added goes. Facts you set or pinned yourself are never touched.
+- **Fewer repeated tokens.**
+  - Who-they-are facts (looks, style, voice, past, job, fighting, status) now only go when the scene touches them, at overwhelming or maximum, and every sixth reply as a reminder.
+  - Right-now facts and places always go. Age and height always go too.
+  - So what's already in the character card or persona isn't repeated every reply, and you don't have to edit the cards.
+  - You can switch this off in Settings › What is sent.
+- **Info tab.**
+  - Your own Info now opens with the same sky card as the character's board: clock, date, weather, place and who's there.
+  - Below it come your mood, a single row of counts, how they see you, then Condition and Wearing in the board's style.
+  - The Profile card, for both people, has Favourites: food, drink, colour and style. They're sent when the scene comes near them (a meal, a bar, a gift, getting dressed) and on the reminder replies.
+
 ## 1.62.0: skills that come up when they fit, and an author list built around his point of view
 
 - **Skills come up far more often, without costing much.**

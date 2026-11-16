@@ -74,7 +74,7 @@ function overlapBlock(list = []) {
 }
 
 // The desire card. Closed, it's one line: the stage, how it's showing and two thin bars. Open, every
-// bar can be dragged and pinned like the other meters; scales you don't want can be switched off.
+// bar can be set with a tap and pinned like the other meters; scales you don't want can be switched off.
 function desireCard(bond, list, charName, userName, sparks = []) {
     const d = bond.desire ?? {};
     if (!d.on) return `<details class="mw-desire-card is-off"><summary><span>♨ Desire</span><small>off in this chat</small></summary>

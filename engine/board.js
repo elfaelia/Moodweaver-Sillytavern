@@ -383,7 +383,8 @@ const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling har
 // Corrected fields are left to the correction block below, so nothing is said twice.
 // The notes as a whole outrank the chat, which is right for feelings but wrong for a record of
 // the last board: if the chat has moved on, Opus 5.5 should follow the chat. So this line says so.
-function boardContinuity(live, char, user) {
+const CONTINUITY_RULE = `It's a record of where that reply left things. Start this reply's board from there and change what this reply changes. Where the chat shows something different, the chat is right.`;
+function boardContinuity(live, char, user, split = false) {
     const b = live?.board; if (!b) return '';
     const pins = live.meta?.pins ?? {}, out = [];
     const add = (key, value, label = '') => { const v = clean(value); if (v && !pins[key]) out.push(label ? `${label}: ${v}` : v); };
@@ -391,19 +392,22 @@ function boardContinuity(live, char, user) {
     const outfit = who => b.outfits.find(o => same(o.name, who))?.text ?? b.outfits[who === char ? 0 : 1]?.text;
     add('charOutfit', outfit(char), `${char} wears`); add('userOutfit', outfit(user), `${user} wears`);
     add('physical', b.physical, 'body');
-    return out.length ? `The last reply's board, taken out of the chat above to save space: ${pt(out.join('; '))}. It's a record of where that reply left things. Start this reply's board from there and change what this reply changes. Where the chat shows something different, the chat is right.` : '';
+    return out.length ? `The last reply's board, taken out of the chat above to save space: ${pt(out.join('; '))}.${split ? '' : ` ${CONTINUITY_RULE}`}` : '';
 }
 // opts: { send, live, char, user, n, u, stripped, remember }. Returns prompt lines, or [] when there's no board in play.
 // remember: the Remember row goes on the board only when the hidden weave line isn't carrying it.
-export function boardPromptLines({ send, live, char, user, n, u, stripped = false, remember = false, ended = [] }) {
+// split: the template and the rules for filling it don't change from reply to reply, so they go in out.fixed (sent
+// once, near the top, where they can be cached); what changes (the last board, corrections, needs) stays in out.
+export function boardPromptLines({ send, live, char, user, n, u, stripped = false, remember = false, ended = [], split = false }) {
     if (!send && !live?.found) return [];
-    const out = [];
+    const out = [], fixed = split ? [] : out;
+    if (split) out.fixed = fixed;
     if (ended.length) out.push(`${n} no longer feels ${ended.join(', ')}: the player ended ${ended.length > 1 ? 'them' : 'it'}. Leave ${ended.length > 1 ? 'them' : 'it'} off the board's State and out of how ${n} acts, unless something new in this reply clearly brings ${ended.length > 1 ? 'them' : 'it'} back.`);
     const includeHorny = live?.meta?.includeHorny === true, toward = live?.meta?.includeToward === true;
-    if (send) out.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
+    if (send) fixed.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
         boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
-    if (stripped && live?.found) out.push(boardContinuity(live, char, user));
-    out.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs below and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
+    if (stripped && live?.found) { const record = boardContinuity(live, char, user, split); if (record) { out.push(record); if (split) fixed.push(`The last reply's board, when the notes give it: ${CONTINUITY_RULE}`); } }
+    fixed.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs in the notes and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
@@ -415,7 +419,9 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     const cut = [...b.mute.state, ...b.mute.physical].filter(p => [live.board?.state, live.board?.physical].some(line => String(line ?? '').toLowerCase().includes(p.toLowerCase())));
     if (cut.length) out.push(`The player cut these. Drop them from the board and the scene: ${pt(cut.join(', '))}.`);
     const needs = live.needs.filter(nd => nd.pinned || (nd.known && nd.value <= 35));
-    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', `${n}'s needs right now (keep them off the board unless it already shows them). Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins:`,
+    const needRule = `Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins. Keep them off the board unless it already shows them.`;
+    if (split) fixed.push(`${n}'s needs, when the notes list them: ${needRule}`);
+    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', split ? `${n}'s needs right now:` : `${n}'s needs right now (keep them off the board unless it already shows them). Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins:`,
         ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn’t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
         ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
     const rest = live.needs.filter(nd => nd.known && !nd.pinned && nd.value > 35);
@@ -664,6 +670,17 @@ export function factsIn(text) {
     if (!t.trim()) return out;
     if (!factIndex) factId('');
     for (const [key, id] of factIndex) if (t.includes(` ${key} `)) out.add(id);
+    return out;
+}
+// Settings (Place & time facts) the board's Location names, by their words, longest first so "jazz club" isn't
+// also read as a bar. Late night comes from the clock (11pm to 4am). Each stretch of text counts once.
+let placeIndex = null;
+export function placesIn(location, time = '') {
+    if (!placeIndex) placeIndex = MOODS.filter(m => m.kind === 'state' && m.category === 'setting' && m.words).flatMap(m => m.words.map(w => [factKey(w), m.id])).filter(([k]) => k).sort((a, b) => b[0].length - a[0].length);
+    let t = ` ${factKey(location)} `; const out = new Set();
+    if (t.trim()) for (const [key, id] of placeIndex) if (t.includes(` ${key} `)) { out.add(id); t = t.replaceAll(` ${key} `, '  '); }
+    const min = boardClock({ time })?.minutes;
+    if (min != null && (min >= 23 * 60 || min < 4 * 60)) out.add('late_night');
     return out;
 }
 // In-world hours one reply covers, from the info boards before and after it: the clocks when both have one

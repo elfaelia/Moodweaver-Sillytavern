@@ -1,5 +1,7 @@
 // Older options that were folded into another one. Saved values under the old id move to the new id when a chat loads.
 export const MERGED_MOODS = {
+    // 1.64: the last Southern options go.
+    southern_gothic: 'gothic', voice_southern: 'voice_accented', author_truman_capote_gothic: 'author_truman_capote', author_cormac_mccarthy_baroque: 'author_cormac_mccarthy',
     "author_lisa_kleypas_contemporary": "author_lisa_kleypas",
     "author_jane_austen": "author_evelyn_waugh",
     "author_charlotte_bronte": "author_emily_bronte",

@@ -1,7 +1,7 @@
 // The scene reader: one request to your reader connection that reads moods or bond meters from
 // the latest messages.
 import { getState, getUserState, identity, persist, playerName, selectedCast, target } from './chat.js';
-import { syncPrompt } from './note.js';
+import { syncPromptNow } from './note.js';
 import { bondAxes, bondData, bondList, editBond } from './replies.js';
 import { settings } from './settings.js';
 import { KEY, ctx, run, ui } from './state.js';
@@ -71,7 +71,7 @@ export async function analyse(force = false, whom = ui.who, ch = target()) {
         run.status = controller.signal.aborted ? 'Reading stopped or timed out. Nothing changed.' : (error.message || 'Reading failed. Nothing changed.');
     } finally {
         clearTimeout(timer); run.pending = null;
-        await syncPrompt(); render();
+        await syncPromptNow(); render();
     }
 }
 // Bonds → Re-read the scene. One request to the reader's connection, only when tapped: where the

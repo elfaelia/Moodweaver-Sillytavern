@@ -1,13 +1,13 @@
 // Reading the chat's replies: the needs board, hidden weave lines, bond meters, and keeping
 // everything in line when replies are swiped, edited or deleted.
 import { getCast, getKnowledge, getPair, getState, getStoryState, getUserState, members, pairId, persist, playerName, resolveRelationName, target } from './chat.js';
-import { lastDynamic, movePace, syncPrompt, writingNow } from './note.js';
+import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry } from '../engine/state.js';
-import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
+import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
-import { BY_ID, INTIMACY_CATEGORIES, MOODS, analysed, sectionOf } from '../data/catalogue.js';
+import { BY_ID, INTIMACY_CATEGORIES, MOODS, OPPOSITE_OF, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
@@ -149,7 +149,7 @@ function needSteps(chat = liveChat()) {
 export async function editBoard(mutate) {
     const meta = ctx().chatMetadata?.[KEY]; if (!meta) return;
     const b = cleanBoardMeta(meta.board); mutate(b); meta.board = b;
-    await persist(); await syncPrompt(); render();
+    await persist(); await syncPromptNow(); render();
 }
 // A reply arrived, or one was swiped, edited, continued or deleted. Bring everything into line with
 // the chat, save, and redraw.
@@ -157,7 +157,7 @@ async function boardChanged() {
     const out = reconcile();
     if (out.changed) { if (out.notes.length) run.status = out.notes.join(' '); await persist(); }
     if (ui.panel?.open) render(true);
-    await syncPrompt();
+    await syncPromptNow();
 }
 // Bond meters, kept per character per chat.
 // Who's he and who's she, for the Bonds lines. Auto reads the card and the persona description;
@@ -430,6 +430,9 @@ const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(m
 // on and has since left off go: a fact comes off, a feeling fades a step each reply. Pinned ones and ones you set
 // yourself stay. kind: 'state' for facts, 'mood' for feelings. Returns { id: [before, after] }; fx says why.
 const STORY_ON = 50, STORY_FADE = 15;
+// full 'loose' (the character's board) only takes off facts that don't run a course: those wear off by the clock.
+// The story keeps at most FACT_CAP facts on one person at a time; past that the oldest one it put on comes off.
+const FACT_CAP = 8;
 function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } = {}) {
     const moved = {}, set = (id, v, why) => { moved[id] = [st.moods[id] ?? 0, v]; st.moods[id] = v; fx[id] = why; };
     const mine = new Set(st.fromStory ?? []), fact = kind === 'state';
@@ -437,12 +440,17 @@ function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } 
         const v = st.moods[id] ?? 0;
         if (st.pins?.[id] || hold?.m?.has(id) || (fact ? v > 0 : v >= STORY_ON)) continue;
         set(id, STORY_ON, fact ? 'the story put it on' : 'how the story reads you'); if (!v) mine.add(id);
+        if (fact && settings().factOpposites !== false) for (const o of OPPOSITE_OF[id] ?? []) if ((st.moods[o] ?? 0) > 0 && !st.pins?.[o] && !named.has(o)) { set(o, 0, 'its opposite came on'); mine.delete(o); }
     }
     if (full) for (const id of mine) {
-        if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id)) continue;
+        if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id) || (full === 'loose' && BY_ID[id]?.lasts)) continue;
         const v = st.moods[id] ?? 0; if (!v || st.pins?.[id]) { mine.delete(id); continue; }
         const to = fact ? 0 : Math.max(0, v - STORY_FADE);
         set(id, to, to ? 'fading, not seen lately' : 'the story took it off'); if (!to) mine.delete(id);
+    }
+    if (fact) {
+        const on = [...mine].filter(id => BY_ID[id]?.kind === 'state' && (st.moods[id] ?? 0) > 0 && !st.pins?.[id]);
+        for (const id of on.slice(0, Math.max(0, on.length - FACT_CAP))) { set(id, 0, 'made room for newer facts'); mine.delete(id); }
     }
     st.fromStory = [...mine];
     return moved;
@@ -495,9 +503,10 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     const factsNamed = new Set([...factsIn(board?.physical), ...factsIn(board?.state)]);
     const facts = feel => {
         if (!b.feed) return;
-        // What the board's Physical State names comes on first (the hidden line has had its say by now).
+        // What the board's Physical State and Location name comes on first (the hidden line has had its say by now);
+        // ones the story put on and the board has dropped come off, and a place goes when the Location changes.
         const fx = {};
-        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, factsIn(board?.physical), fx, { hold })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
+        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...factsIn(board?.physical), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
         const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc;
         Object.assign(fx, r.fx); if (Object.keys(fx).length) rec.fx = fx;
     };
@@ -743,7 +752,7 @@ function migrateChat(meta, chat) {
 export async function editBond(mutate) {
     const ch = target(), bond = bondData(ch); if (!ch) return;
     mutate(bond, bondList(ch)); ctx().chatMetadata[KEY].bond[`char:${ch.avatar}`] = cleanBond(bond, settings().bondTrack);
-    await persist(); await syncPrompt(); render();
+    await persist(); await syncPromptNow(); render();
 }
 // Memories the board or hidden line saved (and nobody has edited since) between this character and you.
 export const boardMemoryCount = ch => (getPair(`char:${ch?.avatar}`, 'user')?.memories ?? []).filter(untouchedMemory).length;

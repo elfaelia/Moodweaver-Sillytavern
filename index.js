@@ -1,10 +1,10 @@
 import { getState, identity, persist, target } from './app/chat.js';
 import { addSlashCommand, addWandItem, launch, placeLauncher, setLaunch, warnDuplicate, wireLauncher } from './app/launcher.js';
-import { startGenerating, stopGenerating, syncPrompt } from './app/note.js';
+import { startGenerating, stopGenerating, syncPrompt, syncPromptNow } from './app/note.js';
 import { analyse, cancelAnalysis } from './app/reader.js';
 import { queueBoard, reconcile } from './app/replies.js';
 import { settings } from './app/settings.js';
-import { PROMPT_KEY, SELF, VERSION, ctx, generationSnapshots, run, ui } from './app/state.js';
+import { SELF, VERSION, clearNotes, ctx, generationSnapshots, run, ui } from './app/state.js';
 import { hasBoard, stripBoard } from './engine/board.js';
 import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
 import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
@@ -24,7 +24,7 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
         if (next !== mes) chat[i] = { ...structuredClone(m), mes: next };
     }
     if (run.suspended || ['quiet', 'impersonate'].includes(type)) {
-        ++run.promptVersion; ctx().setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); return;
+        ++run.promptVersion; clearNotes(ctx()); return;
     }
     // Settle the chat first. A regenerate deletes the old reply a moment before this runs and a
     // swipe still holds the old swipe's text, so without this the new reply would be written with the
@@ -35,7 +35,7 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
     const ch = target(true), state = getState(ch);
     if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
     await syncPrompt(true, chat, type);
-    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: run.promptInfo.prompt });
+    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: run.promptInfo.prompt, fixed: run.promptInfo.fixed ?? '' });
     if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
     renderPreview();
 };
@@ -79,8 +79,8 @@ function setup() {
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
         cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';
         run.generating = false; run.resyncAfter = false; clearTimeout(run.genTimer);
-        ++run.promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
-        render(); void syncPrompt();
+        ++run.promptVersion; clearNotes(c);
+        render(); void syncPromptNow();
         // Bring the newly opened chat up to date (and move it from older versions) straight away.
         queueBoard();
     });
@@ -90,19 +90,19 @@ function setup() {
         if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], queueBoard);
     }
     c.eventSource.on(c.eventTypes.GENERATION_AFTER_COMMANDS, (type, _args, dryRun) => {
-        if (['quiet', 'impersonate'].includes(type)) { ++run.promptVersion; c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); }
+        if (['quiet', 'impersonate'].includes(type)) { ++run.promptVersion; clearNotes(c); }
         else if (dryRun) return syncPrompt(true);
     });
     for (const event of ['CONNECTION_PROFILE_CREATED', 'CONNECTION_PROFILE_DELETED', 'CONNECTION_PROFILE_UPDATED']) {
         if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], () => { if (ui.panel.open) render(true); });
     }
-    render(); void syncPrompt();
+    render(); void syncPromptNow();
 }
 // jQuery ready also works when installed after APP_READY has fired.
 if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();
 export function onDisable() {
     run.suspended = true; ++run.promptVersion; cancelAnalysis();
-    ctx().setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1);
+    clearNotes(ctx());
     ui.panel?.close();
     for (const node of document.querySelectorAll('#moodweaver-panel, #moodweaver-launcher, #moodweaver-wand, .mw-settings-entry')) node.hidden = true;
 }
@@ -111,5 +111,5 @@ export function onEnable() {
     if (!ui.panel) setup();
     for (const node of document.querySelectorAll('#moodweaver-panel, #moodweaver-wand, .mw-settings-entry')) node.hidden = false;
     placeLauncher(); queueBoard();
-    void syncPrompt();
+    void syncPromptNow();
 }

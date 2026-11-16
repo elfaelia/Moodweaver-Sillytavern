@@ -17,7 +17,7 @@ import { courseNote, fmtTokens, inventoryView, row, tagLabel, turnRow } from './
 import { reactiveBlock } from './wants-tab.js';
 import { personalityView } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
-import { TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, turnGroupKey } from '../engine/turns.js';
+import { FAVS, TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, turnGroupKey } from '../engine/turns.js';
 import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
 
 function knowledgePanel(state, ch) {
@@ -143,12 +143,14 @@ function profileCard(state, ch) {
     const vs = ui.who === 'user' ? [getState(ch), shortName(ch.name)] : [getUserState(), shortName(playerName())];
     const gap = vs[0]?.enabled ? compareProfiles(state, vs[0]) : '';
     const core = (state.core ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
-    return `<section class="mw-profile" data-anchor="profile"><div class="mw-profile-head"><h4>Profile</h4><small>for turn-ons and comparisons</small></div>
+    return `<section class="mw-profile" data-anchor="profile"><div class="mw-profile-head"><h4>Profile</h4><small>age and height always go; the rest when it fits</small></div>
         <div class="mw-profile-grid">
             <label class="mw-pf"><span>Age</span><input type="number" data-profile="age" min="1" max="999" inputmode="numeric" enterkeyhint="done" placeholder="—" value="${cleanAge(state.age)}"></label>
             <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
             <label class="mw-pf mw-pf-wide"><span>Into</span><input type="text" data-profile="interests" maxlength="120" enterkeyhint="done" placeholder="guitar, old films, chess" value="${esc(state.interests ?? '')}"></label>
         </div>
+        <div class="mw-profile-favs"><span class="mw-profile-sub">Favourites <small>sent when the scene comes near them</small></span>
+            <div class="mw-profile-grid">${FAVS.map(([k, label, hint]) => `<label class="mw-pf"><span>${esc(label.replace('Favourite ', ''))}</span><input type="text" data-fav="${k}" maxlength="60" enterkeyhint="done" placeholder="${esc(hint)}" value="${esc(state.favs?.[k] ?? '')}"></label>`).join('')}</div></div>
         <div class="mw-profile-core"><span>Core</span>${core.length ? core.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">★ ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">★ Star up to three traits</button>'}</div>
         ${gap ? `<p class="mw-profile-vs">${esc(shortName(subjectName()))} is ${esc(gap)} than ${esc(vs[1])}.</p>` : ''}
     </section>`;

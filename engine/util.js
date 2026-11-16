@@ -12,3 +12,5 @@ export const shortName = full => {
     if (!TITLES.has(first.toLowerCase())) return first;
     return words.length > 2 ? `${first} ${words.at(-1)}` : words.join(' ');
 };
+// Whether a row's words (a list) turn up in the scene text, as whole words.
+export const sceneHas = (m, scene) => Boolean(scene) && (m.words ?? []).some(w => new RegExp(`(^|[^a-z’'])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`, 'i').test(scene));

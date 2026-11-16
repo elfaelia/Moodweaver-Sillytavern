@@ -10,7 +10,7 @@ import { EDIT_FIELDS, NO_BOARD, latestBoard, liveBoard, needWord } from '../engi
 import { cleanDesire, computeBond, dynamicRows, setDesire, setMeter } from '../engine/bond.js';
 import { addCastMember, castName, newCastId } from '../engine/cast.js';
 import { BY_ID, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
-import { CORE_MAX, WANT_KINDS, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
+import { CORE_MAX, WANT_KINDS, clearOpposites, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
 import { clamp, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { effectiveChat, untrack } from '../engine/ledger.js';
@@ -18,7 +18,7 @@ import { MORE_PRESETS, cleanMore, setMore } from '../engine/meters.js';
 import { MOOD_PACE } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
-import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderStatus } from './render.js';
+import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, tapRangeMoon } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { dockOf, tabStep, tabsFor } from './header.js';
@@ -28,8 +28,8 @@ import { filterPersonality } from './personality-tab.js';
 import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, relationshipKey } from '../engine/relationships.js';
-import { cleanPins, cleanSkillPace, cleanSkills, skillWord } from '../engine/skills.js';
-import { TURN_BY_ID, cleanAge, cleanHeight, cleanInterests } from '../engine/turns.js';
+import { cleanPins, cleanSkillPace, cleanSkills } from '../engine/skills.js';
+import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests } from '../engine/turns.js';
 
 // A feeling ended by hand (lit before, 0 now) is remembered with the chat length, so the info board can't bring it
 // back and the next replies are told it's gone. Setting it again by hand forgets that.
@@ -42,11 +42,6 @@ function markCut(s, id, was, next) {
 export function onPanelInput(e) {
     if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
     if (e.target.hasAttribute('data-skill-search')) { filterSkills(); return; }
-    if (e.target.dataset.skill !== undefined) {
-        const v = Number(e.target.value), row = e.target.closest('.mw-skill-row');
-        if (row) { put(row, 'output', `${v}/10`); put(row, '[data-skill-word]', v ? skillWord(v) : 'off'); }
-        e.target.style.setProperty('--mw-fill', `${v * 10}%`); return;
-    }
     if (e.target.dataset.wantValue !== undefined || e.target.dataset.field === 'follow') {
         const v = Number(e.target.value), row = e.target.closest('.mw-mood');
         if (row) { put(row, 'output', `${v}%`); put(row, '[data-lvl]', level(v)); e.target.style.setProperty('--mw-fill', `${v}%`); }
@@ -129,13 +124,8 @@ export function onPanelKeydown(e) {
 }
 export async function onPanelChange(e) {
     const input = e.target;
-    if (input.dataset.skill !== undefined) {
-        // A level set by hand starts fresh progress toward the next; 0 takes the skill off them entirely.
-        const id = input.dataset.skill, v = Number(input.value);
-        await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
-            if (v > 0) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
-    }
     // The profile card on Facts (and your You tab).
+    if (input.dataset.fav) { const k = input.dataset.fav, v = input.value; await changeState(s => { s.favs = cleanFavs({ ...s.favs, [k]: v }); }); return; }
     if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
     if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
@@ -325,6 +315,7 @@ export async function onPanelClick(e) {
         range.dispatchEvent(new Event('input', { bubbles: true })); range.dispatchEvent(new Event('change', { bubbles: true })); return;
     }
     const button = e.target.closest('button'); if (!button) return;
+    if (button.dataset.rangeMoon !== undefined) { tapRangeMoon(button); return; }
     if (button.dataset.who) {
         if (button.closest('.mw-board')) ui.tab = 'mood';
         ui.who = button.dataset.who; ui.browsing = false; ui.settingsOpen = false; ui.boardFocus = ''; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId;
@@ -410,6 +401,12 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
+    if (button.dataset.skillSet) {
+        // A level set by hand starts fresh progress toward the next. Tapping the level it's already at takes the skill off them.
+        const id = button.dataset.skillSet, v = Number(button.dataset.v) || 0;
+        await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
+            if (v > 0 && s.skills[id] !== v) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
+    }
     if (button.dataset.skillPin) { const id = button.dataset.skillPin; await changeState(s => { const p = cleanPins(s.skillPins); if (p[id]) delete p[id]; else p[id] = true; s.skillPins = p; }); return; }
     if (button.dataset.skillJump) { fillLazy(ui.panel); const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
     if (button.dataset.bondMute) {
@@ -483,7 +480,7 @@ export async function onPanelClick(e) {
     // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
     if (button.dataset.moon) {
         const id = button.dataset.moon, now = viewState()?.moods?.[id] ?? 0, v = Number(button.dataset.v) || 0, next = v && level(now) === level(v) ? 0 : v;
-        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); }); return;
+        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); if (next > 0 && !was && settings().factOpposites !== false) clearOpposites(s, id); }); return;
     }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
@@ -528,6 +525,8 @@ export async function onPanelClick(e) {
             render(); await syncPrompt(); break;
         }
         case 'settings': ui.settingsOpen = true; render(); ui.panel.scrollTo({ top: 0 }); break;
+        // The token pill opens Settings at What is sent, where the meter splits the count.
+        case 'tokens': { ui.settingsOpen = true; render(); renderPreview(); const sent = ui.panel.querySelector('[data-settings="sent"]'); if (sent) { sent.open = true; sent.scrollIntoView({ block: 'start' }); } break; }
         case 'launch-reset': setLaunch({ x: null, y: null, show: true }); render(); break;
         case 'board-memories-delete': {
             const ch = target(), pair = getPair(`char:${ch?.avatar}`, 'user'), n = boardMemoryCount(ch); if (!pair || !n) break;

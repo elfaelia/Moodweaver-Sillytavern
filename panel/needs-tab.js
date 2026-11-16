@@ -23,7 +23,7 @@ const P = {
     body: '<circle cx="8" cy="3.2" r="1.8"/><path d="M3 6.6h10M8 6.6v3.6M8 10.2l-2.6 4.3M8 10.2l2.6 4.3"/>',
     edit: '<path d="M10.8 2.4l2.8 2.8L6 12.8l-3.4.6.6-3.4z"/>',
 };
-const icon = (name, cls = '') => `<svg class="mw-ic ${cls}" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${P[name] ?? ''}</svg>`;
+export const icon = (name, cls = '') => `<svg class="mw-ic ${cls}" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${P[name] ?? ''}</svg>`;
 const needColour = v => v <= 15 ? '#e46a6a' : v <= 35 ? '#e79a5c' : v <= 65 ? '#dfc56c' : '#8fd18a';
 
 function tile(kind, t, focus) {
@@ -70,10 +70,11 @@ const pinMark = (pins, key) => pins[key] ? `<button type="button" class="mw-pinn
 
 // opts: { live, send, sync, charName, userName, people: [{ name, match(name), attrs, away }], editing, focus,
 //   pinsOn, memoriesOn, withWeave, weaveOn, savedMemories } (1.38.0: the board switches, all chats)
-export function boardView({ live, send, sync, charName, userName, people, editing, focus, pinsOn = false, memoriesOn = false, withWeave = true, weaveOn = true, savedMemories = 0, needOpts = null }) {
+// The sky card at the top of the Info tab: clock, date, weather, place and who's there. Shared by the
+// character's board and your own Info, so both open the same way.
+export function skyCard(live, people, { send = true, editing = false, extra = '' } = {}) {
     const pins = live.meta.pins, sky = live.sky;
     const [clock, ampm] = (() => { const m = String(live.time).match(/^(\d{1,2}:\d{2})\s*([AP]\.?M\.?)?(.*)$/i); return m ? [m[1], `${m[2] ?? ''}${m[3] ?? ''}`.trim()] : [live.time, '']; })();
-    const owner = live.name || charName;
     const scene = live.found || editing ? `
         <div class="mw-sky-top"><div class="mw-clock"><b>${esc(clock || '—')}</b><span>${esc(ampm)}</span>${pinMark(pins, 'time')}</div>${live.emoji ? `<span class="mw-sky-emoji" aria-hidden="true">${esc(live.emoji)}</span>` : ''}</div>
         <div class="mw-sky-date">${esc(live.day)}${pinMark(pins, 'date')}</div>
@@ -85,6 +86,10 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             ${live.activity ? `<p class="mw-activity">${esc(live.activity)}${pinMark(pins, 'activity')}</p>` : ''}
         </div>` : `
         <div class="mw-sky-empty"><b>No board yet</b><p>${send ? 'The next reply starts with your info board, and it lands here.' : 'Turn on “Send the board prompt” below, or keep INFO BOARD in your preset. Either way the next board lands here.'}</p></div>`;
+    return `<div class="mw-sky" data-sky="${sky.time}" data-weather="${sky.weather}"><i class="mw-sky-fx" aria-hidden="true"></i>${scene}${extra}</div>`;
+}
+export function boardView({ live, send, sync, charName, userName, people, editing, focus, pinsOn = false, memoriesOn = false, withWeave = true, weaveOn = true, savedMemories = 0, needOpts = null }) {
+    const pins = live.meta.pins, owner = live.name || charName;
     const edit = editing ? `<section class="mw-board-edit">
         <p class="mw-fine">Edits here correct the board ✎ for the next reply. Clear a box to undo.</p>
         ${editField('date', 'Date', pins.date || live.day, 80)}${editField('time', 'Time', pins.time || live.time, 40)}${editField('location', 'Location', live.location)}${editField('activity', 'Activity', live.activity)}
@@ -92,11 +97,11 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         <div class="mw-actions"><button class="mw-primary" data-action="board-edit-done">✓ Done</button></div></section>` : '';
     const hornyV = live.hornyValue;
     return `<section class="mw-board">
-        <div class="mw-sky" data-sky="${sky.time}" data-weather="${sky.weather}"><i class="mw-sky-fx" aria-hidden="true"></i>${scene}</div>
+        ${skyCard(live, people, { send, editing })}
         ${edit}
         <div class="mw-board-block"><h4>${icon('mind')} State <small>${esc(owner)}</small></h4>
             ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : ''}</div>
-        <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · drag to set</small></h4>
+        <div class="mw-board-block"><h4>Needs <small>${esc(owner)} · tap to set</small></h4>
             <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
             <p class="mw-fine">Read from the board’s words${weaveOn ? ' and the hidden line' : ''}${needOpts?.drift ? ', and the board’s clock: needs drain a little as in-world time passes and come back up after a time jump. Who they are changes the speed: an insomniac tires sooner, a clingy heart gets lonely faster' : ''}. Faded bars haven’t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does; nothing extra is printed on your board.</p>
             ${needOpts ? `<details class="mw-need-settings"><summary>Needs over time <small>all chats</small></summary>

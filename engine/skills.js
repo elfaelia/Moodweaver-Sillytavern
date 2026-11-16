@@ -6,6 +6,7 @@
 // pace; a pinned one stays where it is. Pure functions; app/ does the reading.
 import { SKILL_COMBOS, SKILL_GROUPS, SKILL_MERGED } from '../data/catalogue/skills.js';
 import { pronounize } from './pronouns.js';
+import { sceneHas } from './util.js';
 
 const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘]/g, "'");
 export { SKILL_GROUPS };
@@ -127,5 +128,30 @@ export function skillLines(people = [], u = 'the player’s character', seed = 0
     const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
     if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));
     out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps.`);
+    return out;
+}
+
+// Someone good at reading minds (Psychology or Psychiatry at 6+, while lit) sees what drives the other person
+// underneath: their Mind settings. Only when the scene touches one of those settings' words, or now and then
+// (about one reply in three) when it doesn't, so it stays a moment of insight rather than a running commentary.
+// What they do with it is left to who they are: a caring person may soothe it, a cruel or controlling one feed it.
+// people: [{ name, lit, mind: [{ label, side, words, v }] }] (mind = their settings at 21+).
+const READERS = ['psychology', 'psychiatry'];
+// Labels lower-cased mid-sentence, except names and initials (Stockholm, Oedipus, PTSD).
+const NAMED = /^(Stockholm|Lima|Oedipus|Electra|Peter|Napoleon|Messiah|Medea|Madonna|Nightingale|Cinderella|Cassandra|Capgras|Cotard|Tourette|God\b|[A-Z]{2,})/;
+const midLabel = l => NAMED.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
+export function insightLines(people = [], scene = '', seed = 0) {
+    const out = [];
+    people.forEach((p, i) => {
+        const reader = (p.lit ?? []).filter(x => READERS.includes(x.id) && x.level >= 6).sort((a, b) => b.level - a.level)[0];
+        if (!reader) return;
+        people.filter(o => o !== p && o.mind?.length).forEach((o, j) => {
+            const touched = o.mind.filter(m => sceneHas(m, scene)), now = (seed + i * 3 + j) % 3 === 0;
+            const seen = (touched.length ? touched : now ? o.mind : []).sort((a, b) => b.v - a.v).slice(0, reader.level >= 9 ? 2 : 1);
+            if (!seen.length) return;
+            const what = seen.map(m => `${midLabel(m.label)}${m.side ? ` (${m.side === 'light' ? 'healthy side' : 'unhealthy side'})` : ''}`).join(' and ');
+            out.push(`With ${reader.prompt} at ${reader.level}/10, ${pt(p.name)} sees what is under ${pt(o.name)}'s behaviour right now: ${pt(what)}${reader.level >= 9 ? ', and roughly where it comes from' : ''}. It needn't be said aloud. What ${pt(p.name)} does with it follows ${pt(p.name)}'s own nature and what ${pt(p.name)} wants from ${pt(o.name)}: soothe it, feed it, use it as a lever, or keep it quiet. Understanding a wound is not the same as wanting it healed.`);
+        });
+    });
     return out;
 }

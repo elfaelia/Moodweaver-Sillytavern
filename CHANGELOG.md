@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.65.3: finding playlists
+
+- Music › Playlists no longer shows every playlist at once. The ones you've ticked sit on top as big rows; find the rest by typing part of the name (emoji work too), or tap "Show all" for a plain list.
+
 ## 1.65.2: song sheet fix
 
 - Importing a song sheet now keeps the three dynamics whose names have a comma in them (Power, care & control; Toxic, broken & on-off; Friends, rivals & enemies). Before, they were dropped as unknown.

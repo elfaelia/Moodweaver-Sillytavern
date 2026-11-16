@@ -52,10 +52,17 @@ function followCard(m) {
         ${choice('follow', 'char', m.follow, `Follow ${followName('char')} ({{char}})`)}${choice('follow', 'user', m.follow, `Follow ${followName('user')} ({{user}})`)}${choice('follow', 'both', m.follow, 'Follow both')}</div>
         <p class="mw-fine">Whose moods pick the music. Songs tagged for that person (by name, {{char}} or {{user}}) win.</p></section>`;
 }
+// You may have hundreds of playlists: the ticked ones sit on top, the rest are found by searching (or a tap on
+// "Show all"), as a plain list with big rows.
 function playlistCard(m) {
-    const list = Object.entries(m.playlists).sort((a, b) => (b[1].on - a[1].on) || a[1].name.localeCompare(b[1].name)), on = list.filter(([, p]) => p.on).length;
-    return `<details class="mw-music-card" ${ui.musicOpen?.playlists ? 'open' : ''} data-music-fold="playlists"><summary><h3>Playlists</h3><small>${on} ticked · ${usableSongs(m).length} songs</small></summary>
-        <div class="mw-mchips">${list.map(([id, p]) => chip(`data-music="playlist" data-id="${esc(id)}"${!p.owned ? ' disabled' : ''}`, p.on, `${p.name}${p.count ? ` (${p.count})` : ''}`, p.owned ? '' : 'Spotify only lets apps read playlists you made. Copy it into a new playlist of your own to use it.')).join('') || '<span class="mw-fine">None loaded yet.</span>'}</div>
+    const all = Object.entries(m.playlists).sort((a, b) => a[1].name.localeCompare(b[1].name)), ticked = all.filter(([, p]) => p.on);
+    const q = norm(ui.musicPlSearch ?? ''), others = all.filter(([, p]) => !p.on), found = q ? all.filter(([, p]) => norm(p.name).includes(q)) : ui.musicPlAll ? others : [];
+    const row = ([id, p]) => `<button type="button" class="mw-music-plrow" data-music="playlist" data-id="${esc(id)}" aria-pressed="${Boolean(p.on)}"${p.owned ? '' : ' disabled title="Spotify only lets apps read playlists you made. Copy it into a new playlist of your own to use it."'}><span class="mw-music-pltick" aria-hidden="true">${p.on ? '✓' : ''}</span><span class="mw-music-plname">${esc(p.name)}</span><small>${p.count ? `${p.count} songs` : ''}</small></button>`;
+    return `<details class="mw-music-card" ${ui.musicOpen?.playlists ? 'open' : ''} data-music-fold="playlists"><summary><h3>Playlists</h3><small>${ticked.length} of ${all.length} ticked · ${usableSongs(m).length} songs</small></summary>
+        ${ticked.length ? `<p class="mw-music-label">Playing from (tap to untick)</p><div class="mw-music-pllist">${ticked.map(row).join('')}</div>` : all.length ? '<p class="mw-fine">Nothing ticked yet: find a playlist below and tap it.</p>' : ''}
+        ${all.length ? `<input type="search" data-music-field="plsearch" value="${esc(ui.musicPlSearch ?? '')}" placeholder="Find a playlist by name or emoji" aria-label="Find a playlist">
+        ${q ? `<div class="mw-music-pllist">${found.slice(0, 40).map(row).join('') || '<p class="mw-fine">No playlist with that in its name.</p>'}</div>${found.length > 40 ? `<p class="mw-fine">${found.length - 40} more: type a little more.</p>` : ''}`
+            : `<div class="mw-actions"><button type="button" data-music="plall">${ui.musicPlAll ? 'Hide the rest' : `Show all ${others.length} others`}</button></div>${ui.musicPlAll ? `<div class="mw-music-pllist">${found.map(row).join('')}</div>` : ''}`}` : '<span class="mw-fine">None loaded yet.</span>'}
         <div class="mw-actions"><button type="button" data-music="load">↻ Load playlists and songs</button></div>
         <p class="mw-fine">Greyed ones were made by someone else: Spotify won't share their songs. In Spotify, select all their songs › Add to playlist › New playlist to make your own copy.</p></details>`;
 }
@@ -129,7 +136,8 @@ export async function musicClick(e, redraw) {
     else if (a === 'edit') { ui.musicSong = ui.musicSong === el.dataset.uri ? '' : el.dataset.uri; redraw(); }
     else if (a === 'close-edit') { ui.musicSong = ''; redraw(); }
     else if (a === 'tag') setTag(el.dataset.uri, el.dataset.k, el.dataset.v);
-    else if (a === 'playlist') togglePlaylist(el.dataset.id);
+    else if (a === 'playlist') { togglePlaylist(el.dataset.id); redraw(); }
+    else if (a === 'plall') { ui.musicPlAll = !ui.musicPlAll; redraw(); }
     else if (a === 'load') await loadPlaylists();
     else if (a === 'export') exportSheet();
     else if (a === 'set') { m[el.dataset.k] = ['hold'].includes(el.dataset.k) ? Number(el.dataset.v) : el.dataset.v; save(); redraw(); }
@@ -146,11 +154,13 @@ export async function musicChange(e, redraw) {
     else if (f === 'import' && el.files?.[0]) { await importSheet(el.files[0]); el.value = ''; redraw(); }
     else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
     else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
+    else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
     return true;
 }
 export function musicInput(e, redraw) {
-    const el = e.target.closest('[data-music-field="search"]'); if (!el) return false;
-    ui.musicSearch = el.value; clearTimeout(ui.musicSearchTimer); ui.musicSearchTimer = setTimeout(() => { redraw(); const box = ui.panel?.querySelector('[data-music-field="search"]'); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } }, 400);
+    const el = e.target.closest('[data-music-field="search"],[data-music-field="plsearch"]'); if (!el) return false;
+    const f = el.dataset.musicField; if (f === 'search') ui.musicSearch = el.value; else ui.musicPlSearch = el.value;
+    clearTimeout(ui.musicSearchTimer); ui.musicSearchTimer = setTimeout(() => { redraw(); const box = ui.panel?.querySelector(`[data-music-field="${f}"]`); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } }, 400);
     return true;
 }
 export function musicFold(e) {

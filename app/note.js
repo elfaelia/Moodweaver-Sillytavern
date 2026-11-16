@@ -98,6 +98,9 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
             standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
+        // Music › "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
+        const musicLine = run.musicLine?.() ?? '';
+        if (musicLine) { result.prompt = result.prompt ? `${result.prompt}\n${musicLine}` : musicLine; result.tokens = (result.tokens ?? 0) + Math.ceil(musicLine.length / 4); }
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
         // Preset instructions outside chat history can still follow it.
         c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, settings().depth, false, 1);

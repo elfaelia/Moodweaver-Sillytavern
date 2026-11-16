@@ -23,7 +23,7 @@ You and the main character sit at the top as two matching cards (tap one to swit
 |---|---|---|
 | ☾ Mood | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
 | ♥ Relations | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 460, in 13 groups) with a slower second one underneath, and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
-| ◔ Info | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts |
+| ◔ Info | Needs, Facts, Music | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts. **♫ Music** plays songs from your own Spotify playlists to fit the scene (below) |
 | ❂ Self | Traits, Mind, Skills, Wants | Who they are (★ makes a trait core, up to three); how their mind works (complexes, neurodivergence, personality disorders, anxiety, trauma, attachment, defences, Freud, Jung and the old schools, 1950s–60s diagnoses, strengths); skill levels out of 10; and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
 | ✦ Story | | Era, genre, tropes, stakes, writing style and authors, shared by everyone in the chat |
 
@@ -50,6 +50,19 @@ You and the main character sit at the top as two matching cards (tap one to swit
 The story (writing style first, then authors, era, genre, tropes and stakes) lives on its own panel, shared by everyone in the chat. With an era set, a few short period lines say how the time shapes what's in play (power, marriage, dating, medicine, vices, faith, the law, being found out, and more for 1950s–60s America, including how the same trait reads on a man and on a woman: a woman taking charge, a man giving way, a woman drinking, a man crying). When more apply than fit, they take turns from reply to reply; **Period lines per reply** on that panel sets how many.
 
 Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, overwhelming, maximum. Only what's switched on is sent.
+
+## Music from your Spotify
+
+Info › ♫ Music picks songs from **your own** Spotify playlists to fit the scene and plays them on your Spotify. It's plain matching in Moodweaver, never Claude, so it costs no tokens.
+
+- **Setting up (once).** On the [Spotify developer dashboard](https://developer.spotify.com/dashboard), open your app › Settings › Edit, add the Redirect URI the Music tab shows, tick Web API, and paste the app's Client ID into the Music tab. Then tap Sign in to Spotify. If you open SillyTavern from a phone over home wifi (an address like `192.168.1.11:8000`), Spotify can't send you straight back: it opens a 127.0.0.1 page that won't load. Copy that page's address and paste it into the Music tab to finish. Spotify needs Premium for an app to play songs.
+- **Your songs.** Tick the playlists Moodweaver may use. Spotify only lets apps read playlists you made or collaborate on; copy anyone else's into a new playlist of your own. Playlist folders are invisible to apps, so you can keep them all in one folder in Spotify, out of the way.
+- **Tagging, in a sheet.** Export song sheet gives a spreadsheet (Google Sheets or Excel) with every song and dropdown columns: Feeling, Exact moods, Place, Moment, Dynamic, Heat, Energy, Character, Theme, Never during, Favourite, Off. A blank cell means "doesn't matter". The Playlists tab tags a whole playlist in one row. Character offers your SillyTavern characters and personas, plus {{char}} (whoever the main character is) and {{user}} (your persona). Import it back with Import song sheet. exportify.net CSVs import too. Songs can also be tagged in the panel by tapping chips.
+- **How a song is picked.** After each reply, every song gets points for what it shares with the scene: who it's about, exact moods, feeling, place, moment (Being hunted, Captivity, Sleep, Confession…), dynamic, heat and energy. A song for someone else, a sex-scene song outside one, or one played recently loses points; Never during and Off rule it out. One of the best is picked, and the next best queue up behind it on Spotify.
+- **When it changes.** A song plays to its end, then the next best for where the story is now plays. It's only cut short when the scene really shifts (a new place, someone else, a new moment, heat, a big change of energy or a feeling that holds for two replies) and the new song fits clearly better, at most every 2 minutes (Music settings: only at a song's end, on big shifts, or on any shift; 1, 2 or 4 minutes). Swipes don't count as the story moving on. 🔒 Lock keeps the music as it is.
+- **Follow.** Follow {{char}}, Follow {{user}} (your persona's name) or Follow both: whose moods and whose songs lead.
+- **Teaching it.** ✓ Fits and ✗ Not here on the Now playing card remember the song for that kind of scene (place, moment, feeling, heat); ✗ also plays the next best. Six ✗ in the same moment or heat adds it to Never during.
+- **Tokens.** None, unless Music settings › "Let the story feel the music" is on: one short line describing the music's feel (never its name), about 15 tokens a reply.
 
 ## How a reply changes things
 

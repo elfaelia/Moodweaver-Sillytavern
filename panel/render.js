@@ -22,6 +22,7 @@ import { wantsView, youView } from './wants-tab.js';
 import { filterPersonality } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
 import { relationshipView } from './relationships-tab.js';
+import { musicView } from './music-tab.js';
 import { activeRelationshipTags, activeSharedTags } from '../engine/relationships.js';
 import { skillsOf } from '../engine/skills.js';
 
@@ -128,6 +129,7 @@ function drawPanel() {
         : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
         <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live, boardPeople(ch)) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
+        : ui.who !== 'story' && ui.tab === 'music' ? musicView()
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({

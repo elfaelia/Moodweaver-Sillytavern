@@ -158,6 +158,8 @@ async function boardChanged() {
     if (out.changed) { if (out.notes.length) run.status = out.notes.join(' '); await persist(); }
     if (ui.panel?.open) render(true);
     await syncPromptNow();
+    // Music listens for the story moving on (app/music.js, wired in index.js).
+    run.afterBoard?.();
 }
 // Bond meters, kept per character per chat.
 // Who's he and who's she, for the Bonds lines. Auto reads the card and the persona description;

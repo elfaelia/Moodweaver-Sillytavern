@@ -52,7 +52,7 @@ panel/              What you see
   header.js           Person cards, the dock, section chips and the swipe order
   sections.js         The Moods, Traits, Turn-ons, Facts and Story lists
   rows.js             Single rows: moons, pins, stars
-  …-tab.js            One file per tab
+  …-tab.js            One file per tab (music-tab.js is the ♫ Music tab)
   settings-sheet.js   ⚙ Settings
 ```
 
@@ -86,6 +86,18 @@ Each data file starts with a comment saying what each field is. In short:
 - **A skill:** add a row to a group in `data/catalogue/skills.js`. `words` call for it in the scene and also count as practice, so keep them to things someone does with the skill; broad words ("read", "hair", "drink") would level it every reply. To retire one, add it to `SKILL_MERGED`. The Skills tab shows only the skills someone has; "＋ Add skills" (`ui.browsing`) opens the whole catalogue. A level is set by tapping 1–10 (`data-skill-set`). Every other slider in the panel is shown as moons by `moonify` in `panel/render.js`: the range input stays, hidden, and `tapRangeMoon` sets it and fires its events, so new sliders need no extra work; tapping the current one takes the skill off. Psychology or Psychiatry at 6+, while in play, lets someone see the other person's Mind settings (`insightLines` in `engine/skills.js`, fed by `mindOf` in `app/note.js`): only when the scene touches one of them, or about one reply in three, and what they do with it is left to who they are. Growth (`SKILL_PACE`, `growSkills` in `engine/skills.js`) runs once per message in `applyReply` (`app/replies.js`) and is recorded with the reply, so a swipe takes it back.
 
 Only options that are switched on are sent to Claude, so a bigger catalogue costs nothing in tokens on its own.
+
+## Music
+
+Songs from the player's own Spotify playlists, picked by plain code. Five files:
+
+- `data/catalogue/music.js`: the Moments (kinds of scene) and how each is spotted (moods at 41+, setting facts, dynamic groups, an optional test on the snapshot), Heat, Energy, `FAMILY_ENERGY`, `SEX_FACTS`, and `POINTS` (what each match is worth). Add a moment here and the sheet, the panel chips and the picker all pick it up.
+- `engine/music.js`: tags (`cleanTags`, `mergeTags`: a song's own tags on top of its playlists'), the scene snapshot (`snapshot`), scoring (`scoreSong`, `rank`, `pick`, `lineup`) and when to cut a song (`shiftOf`). Pure, so it runs in Node.
+- `engine/sheet.js` and `engine/xlsx.js`: the song sheet. `sheetFile` writes an .xlsx with dropdowns (list validations pointing at the Lists tab); `readSheet` reads ours, a CSV of it, or an exportify.net CSV. `xlsx.js` is a small zip writer and reader (DecompressionStream for compressed files) with no outside libraries.
+- `app/spotify.js`: sign-in (PKCE with its own SHA-256, because http on a home network has no `crypto.subtle`), the paste-the-address way back for addresses Spotify won't return to, refresh, and the Web API calls (playlists use `/playlists/{id}/items`, Spotify's 2026 name, with `/tracks` as a fallback).
+- `app/music.js`: the library and tags (kept in extension settings under `moodweaver.music`, so every device shares them), `sceneNow` (moods of whoever Follow points at, facts, the board's Present, time and Horny, the dynamic), `afterReply` (run from `boardChanged` through `run.afterBoard`), `songEnding` (a timer a few seconds before the end of each song that re-picks the next one if the planned one no longer fits), feedback, import and export. `musicLine` is the optional feel line, added to the notes in `app/note.js` through `run.musicLine`.
+
+Tags are ids, never labels, so renaming a label in the catalogue keeps saved tags. Character tags are names as typed (compared without case), plus `{{char}}`, `{{user}}` and `Any`.
 
 ## The note in two halves
 

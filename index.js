@@ -9,6 +9,8 @@ import { hasBoard, stripBoard } from './engine/board.js';
 import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
 import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
+import { afterReply, initMusic, musicLine, onMusicChange } from './app/music.js';
+import { musicFold } from './panel/music-tab.js';
 
 globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type) => {
     // Weave lines never reach the model, and neither do old boards (the newest is summarised in the note).
@@ -75,6 +77,12 @@ function setup() {
     ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target } : null; }, { passive: true });
     ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe(touch, { x: t.clientX, y: t.clientY }); touch = null; }, { passive: true });
     ui.panel.addEventListener('toggle', onGroupToggle, true);
+    ui.panel.addEventListener('toggle', musicFold, true);
+    // Music: songs from your Spotify playlists, picked for the scene after each reply (app/music.js).
+    run.afterBoard = () => void afterReply().catch(err => console.warn('[Moodweaver] music', err));
+    run.musicLine = musicLine;
+    onMusicChange(() => { if (ui.panel?.open && ui.tab === 'music' && !ui.settingsOpen) render(true); });
+    try { initMusic(); } catch (err) { console.warn('[Moodweaver] music could not start', err); }
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
         cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';

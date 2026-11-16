@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.65.0: music from your own Spotify playlists
+
+- **New ♫ Music tab (Info › Music).** Moodweaver picks songs from your own Spotify playlists to fit the scene and plays them on your Spotify (phone, computer or speaker). The picking is plain matching inside Moodweaver, never Claude, so it costs no tokens.
+- **Signing in works from your phone.** Spotify won't send a sign-in back to a home-wifi address like 192.168.1.11, so the Music tab shows the address to add in your Spotify app (http://127.0.0.1:8000/callback/spotify). After you agree on Spotify's page you land on a page that won't load; copy its address, paste it into the Music tab, and you're in. On a computer at 127.0.0.1 it comes straight back by itself. The sign-in is kept in SillyTavern's settings and refreshes itself, so it works on every device after that.
+- **Only your playlists.** Tick the ones Moodweaver may use. Spotify only shares songs from playlists you made or collaborate on, so anyone else's shows greyed out; copy it into a playlist of your own to use it. Liked Songs works too.
+- **The song sheet.** Export song sheet gives a spreadsheet for Google Sheets or Excel: every song, with dropdowns for Feeling, Exact moods, Place, Moment, Dynamic, Heat, Energy, Character, Theme, Never during, Favourite and Off. A blank cell means "doesn't matter". The Playlists tab tags a whole playlist in one row, and the Characters tab gives each character a default playlist and a theme song. Import song sheet brings it back (xlsx or CSV), and exportify.net CSVs import too.
+- **Characters from SillyTavern.** The Character choices are your SillyTavern characters and personas, plus {{char}} (whoever the main character is) and {{user}} (whichever persona you're playing).
+- **Follow {{char}}, Follow {{user}} or Follow both** decides whose moods and songs lead.
+- **How a song is chosen.** After each reply every song scores points for what it shares with the scene: the person it's for, exact moods, feeling, place, moment (Being hunted, Captivity, Experiment, Confession, Sleep, Afterglow and 12 more, worked out from moods, facts and the dynamic), the dynamic, heat and energy. Songs for someone else, sex-scene songs outside one, and recently played songs lose points. Never during and Off rule a song out. If nothing fits well, the character's default playlist steps in. One of the best is picked and the next best are queued behind it, so Spotify keeps playing fitting songs even if your phone locks.
+- **Music that doesn't jump around.** A song plays to its end, then the best song for where the story is now follows. It's only cut short (with a short fade on devices that allow it) when the scene really shifts and the new song fits clearly better, and at most every 2 minutes. Swiping a reply doesn't count. 🔒 Lock holds the music. Music settings change this: only at a song's end, on big shifts, or on any shift; 1, 2 or 4 minutes.
+- **Teach it as you go.** ✓ Fits and ✗ Not here remember the song for that kind of scene. ✗ also skips to the next best. ✎ Tags opens the song's tags as tap chips.
+- **No tokens** unless you switch on Music settings › "Let the story feel the music", which adds one short line describing the music's feel (never its name).
+
 ## 1.64.0: a cached guide, moons everywhere, and feelings that carry on
 
 - **The note now comes in two parts, so most of it can be cached** (Settings › What is sent › "Split the note", on by default).

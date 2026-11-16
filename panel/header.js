@@ -61,8 +61,8 @@ export function personCard(ch, state, live) {
 // the section. Swiping sideways walks through the tabs in this order. Body holds the live board (Needs) and
 // Facts; on your own character Needs becomes You and your facts live there. Wants can be hidden in Settings.
 const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'],
-    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f']];
-export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['body', '◔', 'Info', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'wants']], ['story', '✦', 'Story', []]];
+    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f'], ['music', '♫', 'Music', '#9fd3c9']];
+export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['body', '◔', 'Info', ['needs', 'state', 'music']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'wants']], ['story', '✦', 'Story', []]];
 export const dockOf = tab => DOCK.find(([, , , tabs]) => tabs.includes(tab))?.[0] ?? 'heart';
 export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'state' && who === 'user'))
     .map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row);

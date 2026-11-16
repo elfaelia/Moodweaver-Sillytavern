@@ -18,6 +18,7 @@ import { MORE_PRESETS, cleanMore, setMore } from '../engine/meters.js';
 import { MOOD_PACE } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
+import { musicChange, musicClick, musicInput } from './music-tab.js';
 import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, tapRangeMoon } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
@@ -40,6 +41,7 @@ function markCut(s, id, was, next) {
     else if (was > 0) s.cut[id] = ctx().chat?.length ?? 0;
 }
 export function onPanelInput(e) {
+    if (musicInput(e, () => render())) return;
     if (e.target.hasAttribute('data-filter-list')) { filterLocalLists(); return; }
     if (e.target.hasAttribute('data-skill-search')) { filterSkills(); return; }
     if (e.target.dataset.wantValue !== undefined || e.target.dataset.field === 'follow') {
@@ -123,6 +125,7 @@ export function onPanelKeydown(e) {
     if (e.key === 'Enter' && (e.target.dataset.boardAdd || e.target.dataset.boardField)) { e.preventDefault(); e.target.blur(); }
 }
 export async function onPanelChange(e) {
+    if (await musicChange(e, () => render())) return;
     const input = e.target;
     // The profile card on Facts (and your You tab).
     if (input.dataset.fav) { const k = input.dataset.fav, v = input.value; await changeState(s => { s.favs = cleanFavs({ ...s.favs, [k]: v }); }); return; }
@@ -302,6 +305,7 @@ export function onPanelSwipe(start, end) {
     const next = tabStep(dx < 0 ? 1 : -1); if (next && next !== ui.tab) openTab(next);
 }
 export async function onPanelClick(e) {
+    if (await musicClick(e, () => render())) return;
     const summary = e.target.closest('summary');
     if (summary?.parentElement.matches('details')) rememberGroupChoice(ui.panel, summary.parentElement);
     // Tapping a row's level word or number sets its slider to 0 (the middle of a two-way one): far easier

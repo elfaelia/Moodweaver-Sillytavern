@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.65.1: Music on the dock
+
+- ♫ Music has its own button in the middle of the dock (Mood, Relations, Music, Info, Self, Story) instead of hiding under Info.
+- Settings › Panel › "Show Music on the dock" hides it. Hiding only tidies the panel: music you switched on keeps playing.
+
 ## 1.65.0: music from your own Spotify playlists
 
 - **New ♫ Music tab (Info › Music).** Moodweaver picks songs from your own Spotify playlists to fit the scene and plays them on your Spotify (phone, computer or speaker). The picking is plain matching inside Moodweaver, never Claude, so it costs no tokens.

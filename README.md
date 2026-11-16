@@ -23,7 +23,8 @@ You and the main character sit at the top as two matching cards (tap one to swit
 |---|---|---|
 | ☾ Mood | Moods | Over 600 feelings and moodlets, each with everyday words Claude can use to set it, the scene reader, and how fast the story moves them |
 | ♥ Relations | Bonds, Turn-ons, Intimacy | Relationships, meters, the named dynamic (over 460, in 13 groups) with a slower second one underneath, and the desire card; what draws them in or puts them off, with combos and cravings; how they want and have sex. "Shaped by" on the Bonds card shows what's steering the dynamic and can suggest a tie it implies |
-| ◔ Info | Needs, Facts, Music | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts. **♫ Music** plays songs from your own Spotify playlists to fit the scene (below) |
+| ♫ Music | Music | Plays songs from your own Spotify playlists to fit the scene (below). Settings › Panel can hide it; songs you switched on keep playing |
+| ◔ Info | Needs, Facts | The info board and needs; then a small profile (age, height, what they're into, up to three core traits), what's true right now, who they are, and what they carry. On your own character this is **You**: outfit, condition, the moodlets showing, then your profile and facts. |
 | ❂ Self | Traits, Mind, Skills, Wants | Who they are (★ makes a trait core, up to three); how their mind works (complexes, neurodivergence, personality disorders, anxiety, trauma, attachment, defences, Freud, Jung and the old schools, 1950s–60s diagnoses, strengths); skill levels out of 10; and wants, goals and fears (⚙ Settings › Panel can hide Wants) |
 | ✦ Story | | Era, genre, tropes, stakes, writing style and authors, shared by everyone in the chat |
 
@@ -53,7 +54,7 @@ Strength is a word, not a number: faint, subtle, mild, clear, strong, intense, o
 
 ## Music from your Spotify
 
-Info › ♫ Music picks songs from **your own** Spotify playlists to fit the scene and plays them on your Spotify. It's plain matching in Moodweaver, never Claude, so it costs no tokens.
+♫ Music, in the middle of the dock, picks songs from **your own** Spotify playlists to fit the scene and plays them on your Spotify. It's plain matching in Moodweaver, never Claude, so it costs no tokens.
 
 - **Setting up (once).** On the [Spotify developer dashboard](https://developer.spotify.com/dashboard), open your app › Settings › Edit, add the Redirect URI the Music tab shows, tick Web API, and paste the app's Client ID into the Music tab. Then tap Sign in to Spotify. If you open SillyTavern from a phone over home wifi (an address like `192.168.1.11:8000`), Spotify can't send you straight back: it opens a 127.0.0.1 page that won't load. Copy that page's address and paste it into the Music tab to finish. Spotify needs Premium for an app to play songs.
 - **Your songs.** Tick the playlists Moodweaver may use. Spotify only lets apps read playlists you made or collaborate on; copy anyone else's into a new playlist of your own. Playlist folders are invisible to apps, so you can keep them all in one folder in Spotify, out of the way.

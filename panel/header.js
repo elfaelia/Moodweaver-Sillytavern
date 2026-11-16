@@ -60,11 +60,13 @@ export function personCard(ch, state, live) {
 // Five places on the dock at the bottom, each holding one to three tabs that show as chips at the top of
 // the section. Swiping sideways walks through the tabs in this order. Body holds the live board (Needs) and
 // Facts; on your own character Needs becomes You and your facts live there. Wants can be hidden in Settings.
-const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'],
-    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f'], ['music', '♫', 'Music', '#9fd3c9']];
-export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['body', '◔', 'Info', ['needs', 'state', 'music']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'wants']], ['story', '✦', 'Story', []]];
+const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'], ['music', '♫', 'Music', '#9fd3c9'],
+    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f']];
+// Music has its own place in the middle of the dock; Settings › Panel can hide it (songs keep playing).
+export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['music', '♫', 'Music', ['music']], ['body', '◔', 'Info', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'wants']], ['story', '✦', 'Story', []]];
 export const dockOf = tab => DOCK.find(([, , , tabs]) => tabs.includes(tab))?.[0] ?? 'heart';
-export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'state' && who === 'user'))
+const musicShown = () => settings().musicTab !== false;
+export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'music' && !musicShown()) && !(k === 'state' && who === 'user'))
     .map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row);
 // The chips for the open section (none when it holds a single tab).
 export function tabBar(counts) {
@@ -74,7 +76,8 @@ export function tabBar(counts) {
 }
 export function dockBar(counts) {
     const here = ui.who === 'story' ? 'story' : dockOf(ui.tab), have = new Set(tabsFor(ui.who === 'story' ? 'char' : ui.who).map(([k]) => k));
-    return `<nav class="mw-dock" aria-label="Sections">${DOCK.map(([key, icon, label, tabs]) => {
+    const dock = DOCK.filter(([key]) => key !== 'music' || musicShown());
+    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length},minmax(0,1fr))">${dock.map(([key, icon, label, tabs]) => {
         const n = tabs.filter(t => have.has(t)).reduce((sum, t) => sum + (counts[t] ?? 0), 0);
         return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}</span><span>${label}</span>${n && key !== 'story' ? `<i>${n}</i>` : ''}</button>`; }).join('')}</nav>`;
 }

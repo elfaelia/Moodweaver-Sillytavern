@@ -95,6 +95,7 @@ function drawPanel() {
     // Items live on Facts now, and your facts on the You tab; a hidden Wants tab falls back to Moods.
     if (ui.tab === 'inv' || (ui.tab === 'state' && ui.who === 'user')) ui.tab = ui.who === 'user' ? 'needs' : 'state';
     if (ui.tab === 'wants' && settings().wantsTab === false) ui.tab = 'mood';
+    if (ui.tab === 'music' && settings().musicTab === false) ui.tab = 'mood';
     const kind = tabKind();
     // The faint "why" lines under rows and on chips (Settings › Show why).
     ui.why = state && charState && settings().whyOn !== false && ['char', 'user'].includes(ui.who) && ['mood', 'trait', 'psyche', 'intimacy', 'state'].includes(kind) ? whyMap(ch, ui.who) : new Map();

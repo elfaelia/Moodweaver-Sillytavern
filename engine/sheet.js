@@ -118,7 +118,7 @@ export function sheetFile(lib, characters = []) {
 // tables: { tabName: rows } (one tab for a CSV, named after the file). Returns what to change; app/music.js applies it.
 // Songs are found by their Spotify id, or by song and artist when the id is missing or broken.
 export function readSheet(tables, lib, characters = [], fileName = '') {
-    const out = { tags: {}, ptags: {}, chars: {}, newSongs: {}, sound: {}, newPlaylist: null, matched: 0, unmatched: [], unknown: new Set() };
+    const out = { tags: {}, ptags: {}, chars: {}, newSongs: {}, sound: {}, songPl: {}, newPlaylist: null, matched: 0, unmatched: [], unknown: new Set() };
     const byTitle = new Map(Object.entries(lib.songs ?? {}).map(([uri, s]) => [`${norm(s.n)}|${norm(String(s.a).split(',')[0])}`, uri]));
     const plByName = new Map(Object.entries(lib.playlists ?? {}).map(([id, p]) => [norm(p.name), id]));
     for (const [tab, rows] of Object.entries(tables)) {
@@ -142,6 +142,8 @@ export function readSheet(tables, lib, characters = [], fileName = '') {
             if (!lib.songs?.[uri]) out.newSongs[uri] = { n: cellOf(r, idx, 'Song'), a: cellOf(r, idx, 'Artist'), al: cellOf(r, idx, 'Album'), ms: 0, pl: [] };
             out.tags[uri] = cellsToTags(r, idx, characters, out.unknown); out.matched++;
             if (has('Sound')) out.sound[uri] = split(cellOf(r, idx, 'Sound')).slice(0, 8);
+            // The playlist the song came from: on import it's linked back to your playlist of that name.
+            if (has('From playlist') && cellOf(r, idx, 'From playlist')) out.songPl[uri] = cellOf(r, idx, 'From playlist');
         } else if (has('Playlist')) for (const r of body) {
             const id = cellOf(r, idx, "Spotify ID (don't edit)") || plByName.get(norm(cellOf(r, idx, 'Playlist')));
             if (id && lib.playlists?.[id]) out.ptags[id] = cellsToTags(r, idx, characters, out.unknown);

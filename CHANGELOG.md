@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.72.3: the playlist link survives sheets and Spotify hiccups
+
+- **Importing a song sheet now keeps every song linked to its playlist.** Each row's "From playlist" cell (Spider. Eye. Lamb. in your sheet) links the song back to your Spotify playlist of that name, so replacing the sheet can never leave songs outside your lit playlist.
+- **Two playlists with the same name count as one.** If a sheet or CSV import ever made a second "Spider. Eye. Lamb." next to your Spotify one, lighting either lights both.
+- **A half answer from Spotify no longer empties the playlist.** When Spotify says a playlist changed but sends back far fewer songs than it holds (it said 560 and sent 1), Moodweaver adds any new songs and removes none, and tries the full reload again next time. Re-roll's note says when this happened.
+
+## 1.72.2: songs no longer drop out of the pool
+
+- **Fixed: Re-roll could end up choosing from just 1 song.** Re-roll asks Spotify for your playlist list first. If a lit playlist wasn't in what Spotify sent back, Moodweaver forgot that playlist, and every song in it (your whole tagged sheet) quietly stopped counting, so only songs from some other lit playlist were left. Lyric cues went quiet too, because the cued songs were among the missing ones. Now a lit playlist Spotify doesn't list is kept (shown as "not found on Spotify" under ✦ Playlists), and tagged songs whose playlists are all gone still play, like sheet songs.
+- **An empty answer from Spotify for a playlist that had songs is treated as a hiccup**, and the songs are kept.
+- **When the pool is tiny, Re-roll says so plainly**: how many songs there are, which playlists are lit with how many songs each, and how many tagged songs you have, instead of a cheerful "1 songs".
+
 ## 1.72.1: ambience that follows the story, and camera clicks
 
 - **Ambience now picks its sounds from the story's own words**, not only from place facts. When no place fact is set, it uses where the last 4 messages put the scene; rain or a storm counts for the last 6 messages until someone says it has stopped. A place fact still comes first.

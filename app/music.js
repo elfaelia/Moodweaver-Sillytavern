@@ -123,8 +123,11 @@ export function sceneNow(deep = false) {
 // ---- The songs that count ----
 // Songs from the playlists you ticked (and songs you tagged from a sheet), each with its playlists' tags under its own.
 export function usableSongs(m = music()) {
-    const on = new Set(Object.entries(m.playlists).filter(([, p]) => p.on).map(([id]) => id));
-    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).length))
+    // A playlist counts as lit when it, or one with the same name (a sheet import and the Spotify playlist), is ticked.
+    const litNames = new Set(Object.values(m.playlists).filter(p => p.on).map(p => norm(p.name)));
+    const on = new Set(Object.entries(m.playlists).filter(([, p]) => p.on || litNames.has(norm(p.name))).map(([id]) => id));
+    // A tagged song whose playlists are all gone (deleted, renamed away, or never loaded) still counts, like a sheet song.
+    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).some(id => m.playlists[id])))
         .map(([uri, s]) => ({ uri, song: s, g: s.g ?? [], learn: m.learn[uri], tags: mergeTags(cleanTags(m.tags[uri] ?? {}), ...(s.pl ?? []).filter(id => on.has(id)).map(id => m.ptags[id] && cleanTags(m.ptags[id]))) }));
 }
 // ---- Lyric cues ----
@@ -395,9 +398,17 @@ export async function reRoll() {
         if (!mus.error) {
             const live = (mus.heard ?? []).filter(h => !h.resting && h.fits);
             const cueNote = !m.cues ? 'lyric cues are off' : live.length ? `cued: ${live[0].name}` : mus.heard?.length ? 'a cue was heard but its song is resting or doesn\'t fit this scene' : 'no lyric cues in the last two replies';
-            say(`Re-rolled from the last two replies · ${usableSongs(m).length} songs · ${cueNote}.`);
+            const n = usableSongs(m).length;
+            say(n < 15 ? `Only ${n} ${n === 1 ? 'song' : 'songs'} to choose from, so the scene can't pick well. ${poolText(m)} Open ✦ Playlists below and light the playlist with your songs (or import your song sheet again).`
+                : `Re-rolled from the last two replies · ${n} songs · ${cueNote}.`);
         }
     } finally { mus.busy = false; mus.loading = ''; changed(); }
+}
+// Which playlists are lit and how many songs each gives, for when the pool is suspiciously small.
+function poolText(m) {
+    const lit = Object.entries(m.playlists).filter(([, p]) => p.on).map(([id, p]) => `${p.name}${p.gone ? ' (not found on Spotify)' : ''}: ${Object.values(m.songs).filter(s => s.pl?.includes(id)).length}`);
+    const tagged = Object.keys(m.tags).filter(u => m.songs[u]).length;
+    return `${lit.length ? `Lit: ${lit.join(', ')}.` : 'No playlist is lit.'} ${tagged} tagged songs are in your library.${mus.partial ? ` Spotify only sent ${mus.partial.got} of the ${mus.partial.total} songs in ${mus.partial.name}, so none were removed.` : ''}`;
 }
 // The kind of scene, said by you: holds for the next 6 replies (or until you tap Auto), then Moodweaver reads it again.
 export function forceMode(mode) {
@@ -439,21 +450,29 @@ export async function loadPlaylists() {
         const list = await sp.playlists(m), seen = new Set(['liked']);
         m.playlists.liked ??= { name: 'Liked Songs', on: false, owned: true, count: 0 };
         for (const p of list) { seen.add(p.id); m.playlists[p.id] = { ...(m.playlists[p.id] ?? { on: false }), name: p.name, owned: p.owned, count: p.count, snapNew: p.snap }; }
-        for (const id of Object.keys(m.playlists)) if (!seen.has(id) && !id.startsWith('csv:')) delete m.playlists[id];
+        // A lit playlist Spotify didn't list this time is kept (marked missing) rather than dropped, so its songs don't
+        // silently vanish from the music; others that are gone are forgotten.
+        for (const [id, p] of Object.entries(m.playlists)) if (!seen.has(id) && !id.startsWith('csv:')) { if (p.on && Object.values(m.songs).some(s => s.pl?.includes(id))) p.gone = true; else delete m.playlists[id]; }
+        for (const id of seen) if (m.playlists[id]) delete m.playlists[id].gone;
         save(); await loadSongs();
     } catch (err) { mus.loading = ''; say(err.message, true); }
 }
 // The songs of every ticked playlist whose contents changed since last time.
 export async function loadSongs() {
-    const m = music(), todo = Object.entries(m.playlists).filter(([id, p]) => p.on && p.owned && !id.startsWith('csv:') && (id === 'liked' || p.snap !== p.snapNew || !Object.values(m.songs).some(s => s.pl?.includes(id))));
+    const m = music(), todo = Object.entries(m.playlists).filter(([id, p]) => p.on && !p.gone && p.owned && !id.startsWith('csv:') && (id === 'liked' || p.snap !== p.snapNew || !Object.values(m.songs).some(s => s.pl?.includes(id))));
     let n = 0;
     try {
         for (const [id, p] of todo) {
             mus.loading = `Loading ${p.name} (${++n} of ${todo.length})…`; changed();
             const songs = await sp.songsOf(m, id);
-            for (const s of Object.values(m.songs)) if (s.pl?.includes(id)) s.pl = s.pl.filter(x => x !== id);
+            // Only trust the answer to say what LEFT the playlist when it's complete. Spotify sometimes sends back far fewer
+            // songs than the playlist holds (the count it gave a moment ago): then new songs are added and none are removed.
+            const had = Object.values(m.songs).filter(s => s.pl?.includes(id)).length, total = Number(p.count) || 0;
+            const complete = songs.length > 0 && (!total || songs.length >= total * 0.9) && (songs.length >= had * 0.5 || had < 20);
+            if (!complete) mus.partial = { name: p.name, got: songs.length, total: total || had };
+            if (complete) for (const s of Object.values(m.songs)) if (s.pl?.includes(id)) s.pl = s.pl.filter(x => x !== id);
             for (const t of songs) { const old = m.songs[t.uri]; m.songs[t.uri] = { n: t.n, a: t.a, al: t.al, ms: t.ms, ...(old?.g ? { g: old.g } : {}), pl: [...new Set([...(old?.pl ?? []), id])] }; }
-            p.snap = p.snapNew; p.count = songs.length;
+            if (complete) { p.snap = p.snapNew; p.count = songs.length; }
         }
         // Songs in no playlist and with no tags of their own are dropped.
         for (const [uri, s] of Object.entries(m.songs)) if (!(s.pl ?? []).length && !hasTags(m.tags[uri])) delete m.songs[uri];
@@ -477,6 +496,10 @@ export async function importSheet(file) {
         const got = readSheet(tables, m, characterNames(), file.name);
         if (got.newPlaylist) m.playlists[got.newPlaylist.id] ??= { name: got.newPlaylist.name, on: true, owned: true, count: 0, csv: true };
         for (const [uri, s] of Object.entries(got.newSongs)) { const old = m.songs[uri]; m.songs[uri] = { ...s, ...(old ?? {}), pl: [...new Set([...(old?.pl ?? []), ...(s.pl ?? [])])] }; }
+        // Link each song back to the playlist named in its "From playlist" cell (your Spotify one first, else a sheet one),
+        // so replacing the sheet never leaves songs outside your lit playlist.
+        const plIds = name => Object.entries(m.playlists).filter(([, p]) => norm(p.name) === norm(name)).sort((a, b) => Number(b[0].startsWith('csv:') ? 0 : 1) - Number(a[0].startsWith('csv:') ? 0 : 1)).map(([id]) => id);
+        for (const [uri, name] of Object.entries(got.songPl ?? {})) { const ids = plIds(name), s = m.songs[uri]; if (s && ids.length) s.pl = [...new Set([...(s.pl ?? []), ids[0]])]; }
         for (const [uri, g] of Object.entries(got.sound ?? {})) if (m.songs[uri]) { if (g.length) m.songs[uri].g = g; else delete m.songs[uri].g; }
         if (got.newPlaylist) m.playlists[got.newPlaylist.id].count = Object.values(m.songs).filter(s => s.pl?.includes(got.newPlaylist.id)).length;
         for (const [uri, t] of Object.entries(got.tags)) { if (hasTags(t) || t.note) m.tags[uri] = t; else delete m.tags[uri]; }

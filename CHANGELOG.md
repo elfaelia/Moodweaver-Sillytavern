@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.72.1: ambience that follows the story, and camera clicks
+
+- **Ambience now picks its sounds from the story's own words**, not only from place facts. When no place fact is set, it uses where the last 4 messages put the scene; rain or a storm counts for the last 6 messages until someone says it has stopped. A place fact still comes first.
+- **Six new sounds:** a camera clicking, a ticking clock, street traffic (cars passing, a far-off horn now and then), birdsong by day, a train, and a shower or running water. Up to three play at once: the weather, the place, then a layer (radio crackle, the camera, a clock, birds or crickets).
+- **Camera clicks**, a new setting under Ambience (shown when Ambience isn't Off): a camera's shutter clicking softly with long pauses, and now and then the film winding on. It plays in a darkroom, or when the last 3 messages mention a camera, a shutter, a polaroid or the dark room. It starts as Only some with nobody ticked, so it only plays for the characters you tick (for example your Life is Strange character, not Easterman).
+- **Where it plays:** on the phone or computer that has SillyTavern open in its browser, not on the computer running the server.
+
+## 1.72.0: five music extras, each per character
+
+All five live in a new **✧ Extras** drawer on the Music tab. Each one has three big chips: **Off**, **Everyone**, or **Only some**. Only some shows a chip with the chat's character's name: tap it to switch that extra on for them. The tick is saved with the character, so it follows them into every chat; other ticked characters show as chips too (tap to untick). The old "Fade on a cut" chip in Music settings moved here as Crossfade.
+
+- **Crossfade** (on for everyone at first). When the song changes in the middle of a scene, Spotify's volume slides down to about an eighth over 2.4 seconds, the new song starts, and the volume slides back up over about 3 seconds. Spotify's app has no crossfade it lets other apps use, so this is done with the device's volume. A speaker that doesn't allow volume control just cuts.
+- **Stings** (on for everyone at first). Six big beats: Violence (a slap, a gunshot, a stabbing), Someone bursts in (a door kicked in, someone storming in), Reveal (the truth comes out, a mask comes off), Love confession ("I love you"), First kiss, Death. When the newest reply or your last message has one, Moodweaver cuts straight to the best-fitting song tagged for that beat, whatever the hold time, and the Now card says "⚡ Sting: …". Only strong, specific wording counts, so an everyday reply won't set one off. A song that has stung rests for 10 minutes. New sheet column **Sting** (a dropdown), and in ✎ Tags a new section **Sting, peak and year**.
+- **Start at the peak** (on for everyone at first). Stings, ↻ Re-roll and cuts into a scene already at full tilt start the song at its chorus or drop instead of its intro. Where that is: the sheet's new **Peak** column (like 1:05) if you set it; otherwise Spotify's own analysis of the song's sections (the loudest one after the intro), if Spotify still lets your app read that; otherwise a guess about a quarter of the way in. Calm scenes and songs under 100 seconds always start at the beginning.
+- **Ambience** (off at first). A quiet sound bed under the music, from the scene's place and weather facts: rain or a storm, a ward's hum with a monitor beep, fluorescent hum, machinery, a murmuring room with the odd clink, wind, waves, a crackling fire, the road, a cold dripping room, crickets at night outdoors, and radio crackle while the in-story radio is on. It's drawn live by the browser (Web Audio): no sound files, nothing downloaded or sent anywhere. Soft, Medium or Loud. It plays on the device with SillyTavern open, which may not be your Spotify device, and browsers only allow it after a tap: the Now card shows "Tap to start the ambience" when it's waiting. It fades out when the music is switched off or paused by you.
+- **In-story radio** (on for everyone at first). When the story turns on a radio, a jukebox, a record player or the car radio, the music becomes what the characters can hear: only songs from the story's era or earlier, read from the new sheet column **Year** (a story set in the 1960s plays songs up to 1969; with no era set, any song). The song changes straight away, the Now card shows "📻 A jukebox is playing in the story", and Claude gets one line naming the song so the characters can notice it, hum, dance or switch it off (about 50 tokens a reply, never quoting lyrics). It lasts 6 replies, longer while the story keeps mentioning it, and ends when someone switches it off; then the film-score music comes back.
+- **Your song sheet** (same name, Easterman-song-sheet-tagged.xlsx) now has Sting, Peak and Year. Stings were tagged by hand from the research notes: 26 Violence, 18 Someone bursts in, 21 Reveal, 21 Love confession, 35 First kiss, 31 Death. Years are when each recording first came out, with compilations and reissues corrected (Peggy Lee's Fever 1958, the Ink Spots 1941, Only You by the Platters 1955, and so on); 44 songs are from 1969 or earlier. Peak is left empty for you to fill where you care.
+
+## 1.71.3: cues that actually react
+
+- **A cued song now almost always plays.** Before, a cued song that fitted the scene was only lifted to near the top and had a 50/50 chance, so a close rival (like Touch Myself in a foreplay scene) still often won. Now:
+  - **↻ Re-roll** always starts with the cued song when one fits the scene and isn't resting.
+  - **Play, Next and a new reply** pick it 9 times in 10.
+  - **A new reply with a fresh cue** can change the song after 30 seconds of the current one, instead of waiting out the usual hold time ("Only when a song ends" is still respected).
+- **The rest after a cued song plays is 10 minutes, not 3 hours.** Repeats now and then are fine.
+- **The Now card says why when a cue doesn't play.** "Heard in the story" now sits right under Re-roll and also lists a cue whose song is resting, with the minutes left. After a Re-roll the note says what it found: the cued song, a cue that's resting or doesn't fit, or no lyric cues in the last two replies.
+
 ## 1.71.2: ↻ Re-roll
 
 - **A big "↻ Re-roll for the story now" button under the play controls.** For when you come back after SillyTavern was closed, or the music just feels stale. One tap:

@@ -1,10 +1,11 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { characterNames, exportSheet, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, reRoll, setOn, setTag, signOut, start, sync, toggleLock, togglePlay, togglePlaylist, usableSongs } from '../app/music.js';
+import { EXTRAS, ambienceBeds, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
-import { DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm } from '../engine/music.js';
+import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm, peakText } from '../engine/music.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { moodTone } from '../engine/tone.js';
 import { getState, getUserState } from '../app/chat.js';
@@ -63,12 +64,27 @@ function kindRow(snap) {
     return `<div class="mw-music-kind"><small>${now ? `This scene is ${esc(MODES.find(x => x.id === now)?.label ?? now)} for ${mus.forced.left} more ${mus.forced.left === 1 ? 'reply' : 'replies'}` : `This scene reads as ${seen ? esc(MODES.find(x => x.id === seen)?.label ?? seen) : 'nothing in particular'} · tap to set it yourself`}</small>
         <div class="mw-mchips">${chipFor('', 'Auto')}${MODES.map(x => chipFor(x.id, x.label)).join('')}</div></div>`;
 }
+// What the extras are doing right now: the in-story radio, a sting that just hit, and the ambience.
+function extrasLines(m) {
+    const out = [];
+    if (radioOn(m)) {
+        const end = eraEnd(), dated = usableSongs(m).filter(x => x.tags?.yr).length;
+        out.push(`📻 ${esc(mus.radio.kind[0].toUpperCase() + mus.radio.kind.slice(1))} is playing in the story${end ? ` · songs from ${end} or earlier` : ''}${mus.radio.empty ? ' · no song with a Year fits, so any song plays' : !dated ? ' · no songs have a Year yet, so any song plays' : ''}`);
+    }
+    if (mus.sting && Date.now() - mus.sting.at < 5 * 60 * 1000) out.push(`⚡ Sting: ${esc(mus.sting.beat.toLowerCase())} → ${esc(mus.sting.name)}`);
+    if (extraOn('amb', m) && m.on) {
+        const beds = ambienceBeds(mus.latest, m);
+        if (beds.length) out.push(`☁ Ambience: ${esc(beds.map(b => BED_LABELS[b] ?? b).join(', '))}${needsTap() ? ' · <button type="button" class="mw-music-quiet mw-music-inline" data-music="sound">Tap to start the ambience</button>' : ''}`);
+    }
+    return out.map(l => `<p class="mw-music-note">${l}</p>`).join('');
+}
+const restText = ms => { const min = Math.ceil((ms ?? 0) / 60000); return min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m more` : `${min} min more`; };
 function nowCard(m, tone) {
     const n = mus.now, snap = mus.latest, playing = Boolean(n?.playing && m.on);
     const why = (mus.why ?? []).filter(Boolean).slice(0, 4);
     // Lyric cues the story just said: one line, so you can see a cue was heard and why it did or didn't play.
     const seen = new Set(), heard = (mus.heard ?? []).filter(h => h.name && !seen.has(norm(h.name)) && seen.add(norm(h.name))).slice(0, 3);
-    const heardLine = heard.length ? `<p class="mw-music-note">Heard in the story: ${heard.map(h => `“${esc(h.cue)}” → ${esc(h.name)}${h.uri === mus.now?.uri ? ' (playing)' : h.resting ? ' (resting)' : h.fits ? ' (nudged)' : " (doesn't fit this scene)"}`).join(' · ')}</p>` : '';
+    const heardLine = heard.length ? `<p class="mw-music-note">Heard in the story: ${heard.map(h => `“${esc(h.cue)}” → ${esc(h.name)}${h.uri === mus.now?.uri ? ' (playing)' : h.resting ? ` (resting ${restText(h.restLeft)}: it played for a cue not long ago)` : h.fits ? ' (nudged)' : " (doesn't fit this scene)"}`).join(' · ')}</p>` : '';
     const elapsed = n ? (n.playing ? Date.now() - n.started : n.progress) : 0, pct = n?.ms ? Math.max(0, Math.min(100, elapsed / n.ms * 100)) : 0, left = n?.ms ? Math.max(0, n.ms - elapsed) : 0;
     return `<section class="mw-music-hero ${playing ? 'is-playing' : ''}" style="${toneVars(tone)}">
         <button type="button" class="mw-music-power" data-music="toggle-on" aria-pressed="${Boolean(m.on)}"><span aria-hidden="true"></span>${m.on ? 'Music on' : 'Music off'}</button>
@@ -82,12 +98,13 @@ function nowCard(m, tone) {
             <button type="button" class="mw-music-round" data-music="next" aria-label="Next best song">${icon('next')}</button>
         </div>
         <button type="button" class="mw-music-reroll" data-music="reroll"${mus.busy ? ' disabled' : ''}>↻ Re-roll for the story now</button>
+        ${heardLine}
+        ${extrasLines(m)}
+        ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : mus.status ? `<p class="mw-music-note">${esc(mus.status)}</p>` : ''}
         ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button></div>` : ''}
         ${kindRow(snap)}
         ${why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
         ${snap ? `<p class="mw-music-scene">${esc(describe(snap, snap.name))}</p>` : ''}
-        ${heardLine}
-        ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : mus.status ? `<p class="mw-music-note">${esc(mus.status)}</p>` : ''}
         ${mus.loading ? `<p class="mw-music-note">${esc(mus.loading)}</p>` : ''}
     </section>`;
 }
@@ -145,7 +162,8 @@ function tagEditor(m, uri) {
         ${group('place', 'Place', t.p.map(id => labelOf('p', id)), PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''))}
         ${group('never', 'Never during', t.nv.map(v => neverAll.find(([k]) => k === v)?.[1] ?? v), neverAll.map(([v, l]) => tag('nv', v, l, t.nv.includes(v))).join(''))}
         ${group('moods', 'Exact moods', t.m.map(id => labelOf('m', id)), `<label class="mw-music-note">Names separated by commas, as in the sheet<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>`)}
-        ${group('cues', 'Cues', [...t.cue, ...t.cw], `<label class="mw-music-note">Phrases: each one alone nods to this song when the story says it (like a dog). Separate with commas.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label><label class="mw-music-note">Theme words: any two of these close together count (dog*, leash*, collar*, salivat*). A * means any ending.<input type="text" data-music-field="cuewords" data-uri="${esc(uri)}" value="${esc(t.cw.join(', '))}" autocapitalize="off" spellcheck="false"></label><p class="mw-fine">The song gets a nudge for a few replies if it fits the scene, then rests for 3 hours once it has played.</p>`)}
+        ${group('cues', 'Cues', [...t.cue, ...t.cw], `<label class="mw-music-note">Phrases: each one alone nods to this song when the story says it (like a dog). Separate with commas.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label><label class="mw-music-note">Theme words: any two of these close together count (dog*, leash*, collar*, salivat*). A * means any ending.<input type="text" data-music-field="cuewords" data-uri="${esc(uri)}" value="${esc(t.cw.join(', '))}" autocapitalize="off" spellcheck="false"></label><p class="mw-fine">When the story cues this song and it fits the scene, it almost always plays next (always on ↻ Re-roll), then rests for 10 minutes.</p>`)}
+        ${group('sting', 'Sting, peak and year', [...t.st.map(id => BEATS.find(b => b.id === id)?.label ?? id), t.pk ? `peak ${peakText(t.pk)}` : '', t.yr ? String(t.yr) : ''].filter(Boolean), `<p class="mw-fine">Sting: a big beat this song can cut in on, straight away.</p>${BEATS.map(b => tag('st', b.id, b.label, t.st.includes(b.id))).join('')}<label class="mw-music-note">Peak: where its chorus or drop starts, like 1:05 (empty: Moodweaver finds or guesses it)<input type="text" inputmode="numeric" data-music-field="peak" data-uri="${esc(uri)}" value="${esc(peakText(t.pk))}" placeholder="1:05"></label><label class="mw-music-note">Year it first came out (for the in-story radio)<input type="text" inputmode="numeric" data-music-field="year" data-uri="${esc(uri)}" value="${t.yr || ''}" placeholder="1962"></label>`)}
         <div class="mw-mchips mw-music-flags">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div>
         ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
@@ -167,13 +185,28 @@ function settingsCard(m) {
     const body = `<p class="mw-music-label">Change songs</p><div class="mw-mchips">${CHANGE_CHOICES.map(([v, l]) => choice('change', v, m.change, l)).join('')}</div>
         <p class="mw-music-label">Shortest time before cutting a song</p><div class="mw-mchips">${HOLD_CHOICES.map(([v, l]) => choice('hold', v, m.hold, l)).join('')}</div>
         <p class="mw-music-label">Theme songs play</p><div class="mw-mchips">${THEME_CHOICES.map(([v, l]) => choice('themes', v, m.themes, l)).join('')}</div>
-        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="fade"', m.fade, 'Fade on a cut')}${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}${chip('data-music="flag" data-k="tell"', m.tell, 'Tell the story the song')}${chip('data-music="flag" data-k="cues"', m.cues, 'Lyric cues')}</div>
-        <p class="mw-fine">“Let the story feel the music” adds a few words on the music's feel, never its name (about 15 tokens). “Tell the story the song” gives Claude the song and artist, whatever the era, to score the scene by: never quoted, named or heard by anyone (about 70 tokens). Both are off by default: otherwise the music costs no tokens. “Lyric cues” (on by default, no tokens): when the story says one of a song's cue phrases, that song gets a nudge for a few replies if it fits the scene, then rests for a few hours.</p>
+        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}${chip('data-music="flag" data-k="tell"', m.tell, 'Tell the story the song')}${chip('data-music="flag" data-k="cues"', m.cues, 'Lyric cues')}</div>
+        <p class="mw-fine">“Let the story feel the music” adds a few words on the music's feel, never its name (about 15 tokens). “Tell the story the song” gives Claude the song and artist, whatever the era, to score the scene by: never quoted, named or heard by anyone (about 70 tokens). Both are off by default: otherwise the music costs no tokens. “Lyric cues” (on by default, no tokens): when the story says one of a song's cue phrases, that song almost always plays next if it fits the scene, then rests for 10 minutes.</p>
         ${m.tell ? `<p class="mw-music-label">Tell it for</p><div class="mw-mchips">${[[1, 'First reply of a song'], [2, '2 replies'], [3, '3 replies'], [0, 'While it plays']].map(([v, l]) => choice('tellFor', v, Number(m.tellFor), l)).join('')}</div><p class="mw-fine">Short is safest: the song sets the mood as it starts, then the story moves on freely.</p>` : ''}
         <p class="mw-music-label">Playing on</p><p class="mw-music-note">${esc(m.deviceName || 'Whichever Spotify is open')}</p>
         ${mus.devices.length > 1 ? `<div class="mw-mchips">${mus.devices.map(d => chip(`data-music="device" data-id="${esc(d.id)}"`, d.id === m.device, d.name)).join('')}</div>` : ''}
         <div class="mw-music-pair"><button type="button" class="mw-music-quiet" data-music="devices">Find my Spotify devices</button><button type="button" class="mw-music-quiet" data-music="signout">Sign out of Spotify</button></div>`;
     return drawer('settings', '☾', 'Music settings', `${(CHANGE_CHOICES.find(([v]) => v === m.change) ?? [, ''])[1]}`, body, ui.musicOpen?.settings);
+}
+// ✧ Extras: each one Off, on for Everyone, or on for Only some characters (ticked one by one, saved with them).
+const MODE_LABELS = [['off', 'Off'], ['all', 'Everyone'], ['some', 'Only some']];
+function extrasCard(m) {
+    const me = thisCharName();
+    const row = x => {
+        const mode = m.extras[x.id] ?? 'off', ticked = extraChars(x.id), others = ticked.filter(n => norm(n) !== norm(me));
+        const some = mode === 'some' ? `<div class="mw-mchips">${me ? chip(`data-music="extrachar" data-k="${x.id}"`, ticked.some(n => norm(n) === norm(me)), `${ticked.some(n => norm(n) === norm(me)) ? '✓' : '+'} ${me}`) : ''}${others.map(n => chip(`data-music="extrachar" data-k="${x.id}" data-v="${esc(n)}"`, true, `✓ ${n}`)).join('')}</div>
+            <p class="mw-fine">${me ? `Tap ${esc(me)} to switch it on or off for them. ` : ''}It follows each ticked character into every chat. Tap a ticked name to untick it.</p>` : '';
+        const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>` : '';
+        return `<div class="mw-music-extra${x.under ? ' is-under' : ''}"><p class="mw-music-label">${esc(x.label)}${extraOn(x.id, m) ? ' <span class="mw-music-lit">· on here</span>' : ''}</p><p class="mw-fine">${esc(x.note)}</p>
+            <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}</div>`;
+    };
+    const lit = EXTRAS.filter(x => extraOn(x.id, m)).map(x => x.label.toLowerCase());
+    return drawer('extras', '✧', 'Extras', lit.length ? `On here: ${esc(lit.join(', '))}` : 'Crossfade, stings, peaks, ambience, radio', EXTRAS.filter(x => !x.under || (m.extras[x.under] ?? 'off') !== 'off').map(row).join(''), ui.musicOpen?.extras);
 }
 // After picking a song, bring its editor into view.
 function toEditor() { requestAnimationFrame(() => ui.panel?.querySelector('.mw-music-editor')?.scrollIntoView({ block: 'start', behavior: 'smooth' })); }
@@ -181,7 +214,7 @@ export function musicView() {
     const m = music();
     if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
     const t = tones(), lead = m.follow === 'user' ? t.user : t.char;
-    return `<div class="mw-music">${nowCard(m, lead)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${sheetCard(m)}${settingsCard(m)}</div></div>`;
+    return `<div class="mw-music">${nowCard(m, lead)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
 }
 
 // ---- Taps ----
@@ -189,6 +222,7 @@ export function musicView() {
 export async function musicClick(e, redraw) {
     const el = e.target.closest('[data-music]'); if (!el || !ui.panel?.contains(el)) return false;
     if (el.tagName === 'A') return true;
+    unlockSound(); // browsers only allow the ambience after a tap
     const m = music(), a = el.dataset.music, save = () => ctx().saveSettingsDebounced();
     if (a === 'finish') { await finishSignIn(ui.panel.querySelector('[data-music-field="paste"]')?.value ?? ''); redraw(); }
     else if (a === 'toggle-on') await setOn(!m.on);
@@ -215,6 +249,10 @@ export async function musicClick(e, redraw) {
     else if (a === 'devices') { await sync(); try { const { devices } = await import('../app/spotify.js'); mus.devices = await devices(m); } catch (err) { mus.error = err.message; } redraw(); }
     else if (a === 'device') { m.device = el.dataset.id; m.deviceName = mus.devices.find(d => d.id === el.dataset.id)?.name ?? ''; save(); if (m.on) await start(); redraw(); }
     else if (a === 'signout') signOut();
+    else if (a === 'extra') setExtra(el.dataset.k, el.dataset.v);
+    else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
+    else if (a === 'amblevel') setAmbLevel(el.dataset.v);
+    else if (a === 'sound') redraw();
     return true;
 }
 export async function musicChange(e, redraw) {
@@ -225,6 +263,8 @@ export async function musicChange(e, redraw) {
     else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
     else if (f === 'cues') { setTag(el.dataset.uri, 'cue', el.value); redraw(); }
     else if (f === 'cuewords') { setTag(el.dataset.uri, 'cw', el.value); redraw(); }
+    else if (f === 'peak') { setTag(el.dataset.uri, 'pk', el.value); redraw(); }
+    else if (f === 'year') { setTag(el.dataset.uri, 'yr', el.value); redraw(); }
     else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
     else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
     return true;

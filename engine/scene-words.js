@@ -51,3 +51,29 @@ export function readScene(texts = []) {
     }
     return { score, on: new Set(Object.entries(score).filter(([, v]) => v >= 2).map(([k]) => k)) };
 }
+
+// ---- Stings: a big beat in the newest reply ----
+// One sudden, unmistakable moment: a slap, a gunshot, a door kicked in, "I love you", a death, a first kiss, a
+// mask coming off. Each has a song list of its own (sheet column Sting). Only strong, specific wording counts, so
+// an ordinary reply doesn't set one off. Only the newest reply and your last message are read.
+export const BEATS = [
+    { id: 'violence', label: 'Violence', re: /\b(?:slap(?:s|ped)? (?:her|him|me|you)|backhand(?:s|ed)?|punch(?:es|ed)? (?:her|him|me|you)|gunshot|gun goes off|pulls? the trigger|pulled the trigger|fires? (?:a|the) (?:gun|shot)|stabs? (?:her|him|me|you)|stabbed|plunges? the (?:knife|blade|needle)|throat (?:is )?(?:cut|slit)|smash(?:es|ed)? (?:her|his|my|your) head|blood (?:sprays|spatters|splatters|pours))/i },
+    { id: 'entrance', label: 'Someone bursts in', re: /\b(?:door (?:is )?(?:kicked|smashed|bursts?|slams?|flies|flew|crashes) (?:in|open)|kick(?:s|ed)? (?:the|a) door (?:in|open|down)|burst(?:s)? (?:in|into the room|through the door)|barg(?:es|ed) in|storm(?:s|ed) in(?:to)?\b|break(?:s)? down the door|broke down the door)/i },
+    { id: 'reveal', label: 'Reveal', re: /\b(?:the truth (?:is|was|comes out|came out)|it was (?:you|him|her) all along|unmask(?:s|ed)?|recogni[sz]es? (?:the|his|her) (?:face|voice)|finds? out (?:that|who|what)|found out (?:that|who|what)|the file (?:says|reads)|discovers? (?:the body|the truth|what (?:he|she) did)|isn't who (?:he|she) said|wasn't who (?:he|she) said|(?:has|had) been lying (?:to (?:her|him|me|you) )?(?:all along|the whole time))/i },
+    { id: 'confession', label: 'Love confession', re: /\b(?:i love you|i'm in love with you|i am in love with you|i've fallen for you|i have feelings for you|i want you\. only you|marry me)\b/i },
+    { id: 'kiss', label: 'First kiss', re: /\b(?:first kiss|kiss(?:es|ed)? (?:her|him|me|you) (?:for the first time|hard|fiercely|desperately)|crash(?:es)? (?:his|her|their) (?:lips|mouth)|lips crash|mouth (?:crashes|slams) (?:into|against|onto))/i },
+    { id: 'death', label: 'Death', re: /\b(?:dies\b|died\b|stops? breathing|stopped breathing|last breath|no pulse|flatlin\w*|heart (?:stops|stopped)|goes still forever|lifeless|is dead\b|was dead\b)/i },
+];
+export function beatsIn(text) { const t = plainStory(text); return BEATS.filter(b => b.re.test(t)).map(b => b.id); }
+
+// ---- In-story radio: something in the scene is playing music the characters can hear ----
+// on: a radio, jukebox or record player switched on or playing. off: switched off, smashed, the music stops.
+const RADIO_ON = /\b(?:radio|jukebox|record player|phonograph|gramophone|turntable|hi-fi|hifi|stereo|wireless|transistor|car radio|the needle (?:drops|settles)|drops? the needle|puts? (?:a|on a|the) record|record (?:spins|plays|crackles|skips)|on the record|band (?:plays|is playing|strikes up)|music (?:drifts|plays|crackles|spills) from)/i;
+const RADIO_OFF = /\b(?:(?:turns?|switch(?:es)?|clicks?|shuts?|snaps?) (?:off |)(?:the )?(?:radio|jukebox|record player|music|stereo)(?: off)?|(?:radio|record|music|jukebox) (?:dies|cuts out|stops|goes quiet|falls silent)|lifts? the needle|unplugs? the)/i;
+export const radioIn = text => { const t = plainStory(text); return RADIO_OFF.test(t) ? 'off' : RADIO_ON.test(t) ? 'on' : ''; };
+// What the radio is, for the line to Claude ("a jukebox"), from the same words.
+export function radioKind(text) {
+    const t = plainStory(text).toLowerCase();
+    for (const [k, label] of [['jukebox', 'a jukebox'], ['record player', 'a record player'], ['phonograph', 'a phonograph'], ['gramophone', 'a gramophone'], ['turntable', 'a record player'], ['car radio', 'the car radio'], ['transistor', 'a transistor radio'], ['band', 'a band'], ['record', 'a record player'], ['stereo', 'a stereo'], ['radio', 'a radio'], ['wireless', 'a wireless']]) if (t.includes(k)) return label;
+    return 'a radio';
+}

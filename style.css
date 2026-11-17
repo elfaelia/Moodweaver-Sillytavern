@@ -831,3 +831,8 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 @keyframes mw-nowglow{50%{box-shadow:0 0 0 1px #efd59c88,0 0 26px #efd59c55}}
 .mw-panel .mw-music-whos{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (prefers-reduced-motion:reduce){.mw-panel .mw-music-row.is-now,.mw-panel .mw-music-editor.is-now{animation:none}}
+/* ✧ Extras drawer */
+.mw-music-extra{padding:10px 0 12px;border-bottom:1px solid var(--mw-line-2)}.mw-music-extra:last-child{border-bottom:0}
+.mw-music-extra .mw-fine{margin:2px 2px 8px}.mw-music-lit{color:var(--mw-moon);font-weight:400}
+.mw-panel .mw-music-note .mw-music-inline{display:inline-block;width:auto;min-height:40px;margin:4px 0 0;padding:6px 14px}
+.mw-music-extra.is-under{margin-left:14px;padding-left:12px;border-left:2px solid var(--mw-line-2)}

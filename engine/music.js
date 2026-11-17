@@ -4,7 +4,7 @@ import moodSection from '../data/catalogue/mood.js';
 import stateSection from '../data/catalogue/state.js';
 import { DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
 import { COMBOS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
-import { readScene } from './scene-words.js';
+import { BEATS as BEAT_LIST, readScene } from './scene-words.js';
 
 // ---- The names the sheet and the panel use ----
 const FAMILY_ROWS = moodSection.filter(g => g.kind === 'mood');
@@ -46,16 +46,29 @@ export function meaningsOf(moods = {}) {
 // One song's (or one playlist's) tags. Character names are kept as typed (compared without case);
 // {{char}} and {{user}} stand for whoever the main character and your persona are in the chat.
 // nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (✗ Not here adds these).
-export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], note: '' });
+export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], st: [], pk: 0, yr: 0, note: '' });
 const ids = (list, ok) => [...new Set((Array.isArray(list) ? list : []).filter(x => typeof x === 'string' && ok(x)))];
 export function cleanTags(t = {}) {
     return {
         f: ids(t.f, x => Boolean(LABEL.f[x])), cm: ids(t.cm, x => MEANING_IDS.has(x)), m: ids(t.m, x => Boolean(MOOD_FAMILY[x])), p: ids(t.p, x => PLACE_IDS.has(x)), mo: ids(t.mo, x => Boolean(LABEL.mo[x])), d: ids(t.d, x => DYN_IDS.has(x)),
         h: LABEL.h[t.h] ? t.h : '', e: [1, 2, 3, 4, 5].includes(Number(t.e)) ? Number(t.e) : 0,
         c: [...new Set((Array.isArray(t.c) ? t.c : []).map(x => String(x).trim()).filter(Boolean).slice(0, 12))],
-        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), cw: cleanCueWords(t.cw), note: String(t.note ?? '').slice(0, 300),
+        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), cw: cleanCueWords(t.cw), st: ids(t.st, x => BEAT_IDS.has(x)), pk: cleanPeak(t.pk), yr: cleanYear(t.yr), note: String(t.note ?? '').slice(0, 300),
     };
 }
+// ---- Stings, peaks and years ----
+// st: the big story beats this song can sting (engine/scene-words.js BEATS). pk: where the song's peak starts, in
+// seconds (the chorus or drop to jump to when a scene is at full tilt). yr: the year the recording first came out,
+// for the in-story radio. "1:05", "65" and "65s" all read as 65 seconds.
+export { BEATS } from './scene-words.js';
+const BEAT_IDS = new Set(BEAT_LIST.map(b => b.id));
+export function cleanPeak(v) {
+    if (typeof v === 'number') return v > 0 && v < 1800 ? Math.round(v) : 0;
+    const m = String(v ?? '').trim().match(/^(\d{1,2}):(\d{2})$|^(\d{1,4})\s*s?$/i); if (!m) return 0;
+    const sec = m[3] !== undefined ? Number(m[3]) : Number(m[1]) * 60 + Number(m[2]); return sec > 0 && sec < 1800 ? sec : 0;
+}
+export const cleanYear = v => { const y = Number(String(v ?? '').match(/\b(1[89]\d\d|20\d\d)\b/)?.[1] ?? v); return y >= 1880 && y <= 2100 ? y : 0; };
+export const peakText = sec => sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '';
 // ---- Lyric cues ----
 // Short phrases that nod to a song when the story says them ("like a dog" → I Wanna Be Your Dog). Lower case, 1 to 4
 // words, up to 8 per song; a trailing * means any ending ("salivat*").
@@ -107,13 +120,13 @@ export function cueHits(songs, text) {
     }
     return out;
 }
-export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length || t.cw?.length));
+export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length || t.cw?.length || t.st?.length || t.pk || t.yr));
 // A song's own tags on top of its playlists': lists add up, a song's own Heat, Energy and Off win.
 export function mergeTags(own, ...fromPlaylists) {
     const all = [...fromPlaylists.filter(Boolean), own].filter(Boolean), out = emptyTags();
     for (const t of all) {
-        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue', 'cw']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
-        if (t.h) out.h = t.h; if (t.e) out.e = t.e; if (t.th) out.th = true; if (t.fav) out.fav = true; if (t.off) out.off = true;
+        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue', 'cw', 'st']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
+        if (t.h) out.h = t.h; if (t.e) out.e = t.e; if (t.pk) out.pk = t.pk; if (t.yr) out.yr = t.yr; if (t.th) out.th = true; if (t.fav) out.fav = true; if (t.off) out.off = true;
     }
     return out;
 }

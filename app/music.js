@@ -10,11 +10,12 @@ import { GOOD_ENOUGH, MODES, MOOD_LIST, cleanTags, cueHits, describe, emptyTags,
 import { readSheet, sheetFile } from '../engine/sheet.js';
 import { readCsv, readXlsx } from '../engine/xlsx.js';
 import { shortName } from '../engine/util.js';
-import { plainStory } from '../engine/scene-words.js';
+import { BEATS, beatsIn, plainStory, radioIn, radioKind } from '../engine/scene-words.js';
+import * as amb from './ambience.js';
 import * as sp from './spotify.js';
 
 const DEFAULTS = { on: false, clientId: '', redirect: '', auth: null, pending: null, playlists: {}, songs: {}, tags: {}, ptags: {}, chars: {}, learn: {},
-    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, cues: true, cueAt: {}, device: '', deviceName: '', recent: [], loadedAt: 0 };
+    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, cues: true, cueAt: {}, ambLevel: 2, stingAt: {}, peaks: {}, device: '', deviceName: '', recent: [], loadedAt: 0 };
 // Everything is kept in SillyTavern's extension settings (on your computer), so every device shares it.
 export function music() {
     const all = ctx().extensionSettings[KEY] ??= {};
@@ -25,10 +26,42 @@ export function music() {
     if (!['end', 'big', 'any'].includes(m.change)) m.change = 'big';
     if (![60, 120, 240].includes(Number(m.hold))) m.hold = 120;
     if (!['big', 'always', 'off'].includes(m.themes)) m.themes = 'big';
+    // Extras: each one Off, for Everyone, or Only some (the characters ticked for it, kept per character).
+    if (!m.extras || typeof m.extras !== 'object') m.extras = { ...EXTRA_DEFAULTS, ...(m.fade === false ? { fade: 'off' } : {}) };
+    for (const [k, v] of Object.entries(EXTRA_DEFAULTS)) if (!['off', 'all', 'some'].includes(m.extras[k])) m.extras[k] = v;
+    if (![1, 2, 3].includes(Number(m.ambLevel))) m.ambLevel = 2;
     return m;
 }
+// ---- Extras ----
+// Crossfade, stings, peaks, ambience and the in-story radio. Each can be off, on for everyone, or on only for the
+// characters ticked for it (saved with that character, so it follows them into every chat).
+export const EXTRAS = [
+    { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
+    { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
+    { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
+    { id: 'amb', label: 'Ambience', note: 'A quiet sound bed under the music, picked by itself from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night. It plays on the phone or computer you have SillyTavern open on.' },
+    { id: 'camera', label: 'Camera clicks', under: 'amb', note: 'Part of the ambience: a camera’s shutter clicking softly, with long pauses and now and then the film winding on, in a darkroom or when the last few messages mention a camera, a shutter, a polaroid or the dark room.' },
+    { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it.' },
+];
+const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', camera: 'some', radio: 'all' };
+const charKey = () => norm(shortName(target()?.name ?? ''));
+export function extraOn(id, m = music()) {
+    const mode = m.extras?.[id] ?? 'off';
+    return mode === 'all' || (mode === 'some' && Boolean(m.chars[charKey()]?.x?.[id]));
+}
+// Ticks or unticks a character for one extra (the main character of this chat unless a name is given).
+export function toggleExtraFor(id, name = '') {
+    const m = music(), key = name ? norm(name) : charKey(); if (!key) return;
+    const c = m.chars[key] ??= { name: name || shortName(target()?.name ?? '') };
+    c.x = { ...(c.x ?? {}), [id]: !c.x?.[id] }; save(); updateAmbience(); changed();
+}
+export const extraChars = id => Object.values(music().chars).filter(c => c.x?.[id]).map(c => c.name);
+export const thisCharName = () => shortName(target()?.name ?? '');
+export function setExtra(id, mode) { const m = music(); m.extras[id] = mode; save(); updateAmbience(); changed(); }
+export function setAmbLevel(level) { const m = music(); m.ambLevel = Number(level); save(); updateAmbience(); changed(); }
+
 // Not saved: what's playing and why.
-export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '', cues: new Map(), heard: [] };
+export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '', cues: new Map(), heard: [], radio: null, sting: null };
 function save() { ctx().saveSettingsDebounced(); }
 sp.onSignInChange(save);
 let redraw = () => {};
@@ -96,8 +129,8 @@ export function usableSongs(m = music()) {
 }
 // ---- Lyric cues ----
 // When the story says a song's cue ("salivating like a dog"), that song gets a nudge for this reply and the next two,
-// only if it fits the scene. Once it has played for a cue, its cues rest for a few hours so it doesn't keep coming back.
-const CUE_REPLIES = 3, CUE_REST = 3 * 3600 * 1000;
+// only if it fits the scene. Once it has played for a cue, its cues rest for 10 minutes so it doesn't keep coming back.
+const CUE_REPLIES = 3, CUE_REST = 10 * 60 * 1000;
 const replyCount = () => (ctx().chat ?? []).filter(x => x && !x.is_user && !x.is_system).length;
 function readCues(m, deep = false) {
     if (!m.cues) { mus.cues.clear(); return []; }
@@ -106,14 +139,16 @@ function readCues(m, deep = false) {
     const lastReply = [...chat].reverse().find(x => x && !x.is_user && !x.is_system), lastYou = [...chat].reverse().find(x => x && x.is_user);
     const prevReply = deep ? chat.filter(x => x && !x.is_user && !x.is_system).at(-2) : null;
     const text = `${plainStory(lastReply?.mes)}\n${plainStory(lastYou?.mes)}${prevReply ? `\n${plainStory(prevReply.mes)}` : ''}`;
-    const fresh = cueHits(usableSongs(m), text).filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST);
-    for (const h of fresh) mus.cues.set(h.uri, { cue: h.cue, at, chat: id });
-    return fresh.map(h => h.uri);
+    // Resting songs are kept too, so the Now card can say a cue was heard but its song is resting; they don't score.
+    const hits = cueHits(usableSongs(m), text);
+    for (const h of hits) mus.cues.set(h.uri, { cue: h.cue, at, chat: id });
+    return hits.filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST).map(h => h.uri);
 }
 const cuedNow = m => m.cues ? new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue])) : new Map();
-// Half the time a fitting cued song is the pick; otherwise the usual pick (which may still be it).
-const CUE_CHANCE = 0.5;
-function pickCued(list, only = null) { const c = list.filter(x => x.cue && (!only || only.includes(x.uri)) && x.uri !== mus.now?.uri); return c.length && Math.random() < CUE_CHANCE ? c[0] : null; }
+// When the story has just cued a song that fits the scene and isn't resting, it is almost always the pick (9 in 10);
+// ↻ Re-roll always takes it. The 3-hour rest after it plays is what stops it coming back again and again.
+const CUE_CHANCE = 0.9;
+function pickCued(list, only = null, chance = CUE_CHANCE) { const c = list.filter(x => x.cue && (!only || only.includes(x.uri)) && x.uri !== mus.now?.uri); return c.length && Math.random() < chance ? c[0] : null; }
 // A cued song that plays uses up its cue for a while.
 function cuePlayed(m, uri) {
     if (!uri || !mus.cues.has(uri)) return;
@@ -125,8 +160,14 @@ function cuePlayed(m, uri) {
 function ranked(snap, m = music(), exclude = []) {
     const songs = usableSongs(m).filter(s => !exclude.includes(s.uri)), recent = new Set(m.recent.slice(-20));
     let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m) });
+    // In-story radio: only songs from the story's era or earlier (by the sheet's Year), still in order of fit.
+    if (radioOn(m)) {
+        const end = eraEnd(), year = new Map(songs.map(s => [s.uri, s.tags.yr]));
+        const period = list.filter(x => year.get(x.uri) && (!end || year.get(x.uri) <= end));
+        mus.radio.empty = !period.length; if (period.length) list = period;
+    }
     // What the cues did, for the Now playing card: heard, and whether the song fits this scene.
-    mus.heard = [...mus.cues].map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
+    mus.heard = [...mus.cues].map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, restLeft: Math.max(0, CUE_REST - (Date.now() - (m.cueAt[uri] ?? 0))), fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
     // Nothing fits well: the character's own default playlist (Characters tab), then simply the best there is.
     if (!list.length || list[0].score < GOOD_ENOUGH) {
         const own = m.chars[norm(snap.name.split(' & ')[0])]?.pl;
@@ -135,6 +176,62 @@ function ranked(snap, m = music(), exclude = []) {
     return list;
 }
 
+// ---- Radio, stings and peaks ----
+const RADIO_REPLIES = 6, STING_REST = 10 * 60 * 1000;
+export const radioOn = (m = music()) => Boolean(mus.radio && mus.radio.chat === ctx().chatId && extraOn('radio', m));
+// The last year of the story's era (era_1960s… → 1969), from either of you; 0 when no era is set.
+export function eraEnd() {
+    const ch = target(), years = [];
+    for (const moods of [getState(ch)?.moods ?? {}, getUserState()?.moods ?? {}]) for (const [id, v] of Object.entries(moods)) { const y = id.match(/^era_(\d{3})0s/); if (y && v > 0) years.push(Number(y[1]) * 10 + 9); }
+    return years.length ? Math.max(...years) : 0;
+}
+// A scene already at full tilt: frantic energy, a sex scene, or danger and darkness running high.
+const fullTilt = snap => Boolean(snap && (snap.energy >= 4 || snap.heat === 'sex' || (['danger', 'dark'].includes(snap.mode) && snap.energy >= 3)));
+// Where a song's peak starts: the sheet's Peak, else Spotify's own sections (the loudest one after the intro), else
+// a guess (most songs reach their first chorus a little over a quarter of the way in).
+async function peakMs(m, uri) {
+    const own = cleanTags(m.tags[uri] ?? {}).pk; if (own) return own * 1000;
+    if (m.peaks[uri]) return m.peaks[uri] * 1000;
+    const len = (m.songs[uri]?.ms ?? 0) / 1000;
+    if (!mus.noAnalysis) {
+        try {
+            const a = await sp.analysis(m, uri), secs = (a?.sections ?? []).filter(x => x.start >= 20 && x.start <= Math.max(30, len * 0.7));
+            if (secs.length) { const loud = Math.max(...secs.map(x => x.loudness)), best = secs.find(x => x.loudness >= loud - 1); m.peaks[uri] = Math.round(best.start); save(); return m.peaks[uri] * 1000; }
+        } catch { mus.noAnalysis = true; }
+    }
+    if (len < 100) return 0;
+    return Math.round(Math.min(Math.max(len * 0.28, 35), 95, len - 60)) * 1000;
+}
+// ---- Ambience ----
+const OUTSIDE = new Set(['outdoors', 'rooftop_night', 'graveside', 'isolated', 'campfire', 'drive_in', 'beach', 'abandoned']);
+// The story's own words, newest first (the last few replies and your messages), for scenes with no place fact set.
+const recentStory = (n = 6) => (ctx().chat ?? []).filter(x => x && !x.is_system && x.mes).slice(-n).reverse().map(x => plainStory(x.mes));
+// Which of these word lists the newest text matches: [id, how many messages back] for the most recent match.
+const newestHit = (list, texts) => { let best = null; for (const [id, re] of list) { const i = texts.findIndex(t => re.test(t)); if (i >= 0 && (!best || i < best[1])) best = [id, i]; } return best; };
+export function ambienceBeds(snap = mus.latest, m = music()) {
+    if (!extraOn('amb', m) || !m.on || mus.userPaused) return [];
+    const places = snap?.places ?? new Set(), texts = recentStory(6), beds = [];
+    // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).
+    const stop = texts.findIndex(t => amb.WEATHER_STOP.test(t)), sky = newestHit(amb.WEATHER_WORDS, texts);
+    if (places.has('stormy')) beds.push('storm'); else if (places.has('raining')) beds.push('rain');
+    else if (sky && (stop < 0 || sky[1] < stop)) beds.push(sky[0]);
+    // The place: a place fact first, else the place the last 4 messages most recently put them in.
+    const place = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
+    if (place) beds.push(place);
+    if (radioOn(m)) beds.push('crackle');
+    // Layers on top: the camera (its own setting, for a darkroom or a camera in the last 3 messages), a clock,
+    // birds by day, crickets at night outdoors.
+    const near = texts.slice(0, 3), has = id => amb.LAYER_WORDS.find(([k]) => k === id)[1];
+    if (extraOn('camera', m) && (places.has('darkroom') || near.some(t => has('camera').test(t)))) beds.push('camera');
+    if (near.slice(0, 2).some(t => has('clock').test(t))) beds.push('clock');
+    const outside = [...places].some(p => OUTSIDE.has(p)) || ['wind', 'waves', 'fire'].includes(place);
+    if (!snap?.night && near.some(t => has('birds').test(t)) && !beds.includes('storm')) beds.push('birds');
+    if (snap?.night && outside && !beds.includes('rain') && !beds.includes('storm')) beds.push('crickets');
+    return [...new Set(beds)].slice(0, 3);
+}
+export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel); } catch { /* no sound here */ } }
+export const unlockSound = () => { amb.unlock(); updateAmbience(); };
+
 // ---- Playing ----
 const deviceFor = async m => {
     const list = await sp.devices(m); mus.devices = list;
@@ -142,31 +239,37 @@ const deviceFor = async m => {
     if (!chosen) throw Object.assign(new Error('Open Spotify on your phone or computer, play anything for a second, then tap ▶ again.'), { code: 'device' });
     return chosen;
 };
-async function fadeTo(m, device, from, to) {
-    if (!m.fade || !device?.supports_volume) return;
-    for (const v of [0.66, 0.33, 0].map(f => to + (from - to) * f)) { await sp.volume(m, v, device.id).catch(() => null); await new Promise(r => setTimeout(r, 260)); }
+// Volume in small steps (Spotify has no crossfade of its own through its API, so this is the next best thing).
+async function ramp(m, device, from, to, ms, steps = 8) {
+    for (let i = 1; i <= steps; i++) { await sp.volume(m, from + (to - from) * i / steps, device.id).catch(() => null); await new Promise(r => setTimeout(r, ms / steps)); }
 }
-async function playList(m, uris, why, snap, cut = false) {
-    const device = await deviceFor(m), vol = device.volume_percent ?? 70;
-    if (cut && mus.now) await fadeTo(m, device, vol, Math.round(vol * 0.15));
+// startMs: where in the first song to start (its peak), 0 for the beginning.
+async function playList(m, uris, why, snap, cut = false, startMs = 0) {
+    const device = await deviceFor(m);
+    // While an earlier fade is still coming back up, Spotify reports the lowered volume: use the one from before it.
+    const vol = Date.now() < (mus.fadeUntil ?? 0) ? mus.fullVol : device.volume_percent ?? 70, low = Math.round(vol * 0.12);
+    const xfade = cut && mus.now?.playing && extraOn('fade', m) && device.supports_volume;
+    if (xfade) { mus.fullVol = vol; mus.fadeUntil = Date.now() + 7000; await ramp(m, device, vol, low, 2400); }
     await sp.shuffleOff(m, device.id); await sp.repeatOff(m, device.id);
-    await sp.play(m, uris, device.id);
-    if (cut && mus.now && m.fade && device.supports_volume) setTimeout(() => void sp.volume(m, vol, device.id).catch(() => null), 500);
+    await sp.play(m, uris, device.id, startMs);
+    if (xfade) setTimeout(() => void ramp(m, device, low, vol, 3200), 300);
     mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why; mus.userPaused = false; mus.wasPlaying = true;
     const s = m.songs[uris[0]];
-    mus.now = { uri: uris[0], name: s?.n ?? '', artist: s?.a ?? '', art: '', ms: s?.ms ?? 0, started: Date.now(), progress: 0, playing: true };
+    mus.now = { uri: uris[0], name: s?.n ?? '', artist: s?.a ?? '', art: '', ms: s?.ms ?? 0, started: Date.now() - startMs, progress: startMs, playing: true };
+    updateAmbience(snap);
     remember(m, uris[0]); say(''); setTimeout(() => void sync(), 1500);
 }
 function remember(m, uri) { if (!uri) return; cuePlayed(m, uri); m.recent = [...m.recent.filter(u => u !== uri), uri].slice(-40); save(); }
 // Start (or restart) with the best songs for the scene right now.
-export async function start(exclude = [], deep = false) {
+export async function start(exclude = [], deep = false, sure = false) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
     const snap = sceneNow(deep) ?? snapshot({}); mus.latest = snap;
     readCues(m, deep); // Play and Next hear the story too, not only a new reply.
     const list = ranked(snap, m, exclude);
     if (!list.length) return say('No songs yet: tick a playlist and tap Load songs, or import a song sheet.', true);
-    const first = pickCued(list) ?? pick(list);
-    try { await playList(m, lineup(list, first), first.why, snap, Boolean(mus.now)); m.on = true; save(); }
+    const first = pickCued(list, null, sure ? 1 : CUE_CHANCE) ?? pick(list);
+    const at = sure && fullTilt(snap) && extraOn('peak', m) ? await peakMs(m, first.uri) : 0;
+    try { await playList(m, lineup(list, first), at ? [...first.why, 'started at its peak'] : first.why, snap, Boolean(mus.now), at); m.on = true; save(); }
     catch (err) { say(err.message, true); }
 }
 // After each reply: decide whether this is a real shift worth cutting the song for.
@@ -183,7 +286,35 @@ export async function afterReply() {
     if (!mus.now) { await sync(); if (!mus.now) return start(); }
     // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
     if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
+    updateAmbience(snap);
     if (mus.locked || swiped) { changed(); return; }
+    // The words of this turn: the newest reply, and your message if it came just before it.
+    const turn = [last?.is_user ? '' : last?.mes, chat.at(-2)?.is_user ? chat.at(-2).mes : ''].filter(Boolean).join('\n');
+    // In-story radio: switched on, kept on (for a while, or while the story keeps mentioning it), or switched off.
+    if (extraOn('radio', m)) {
+        const said = radioIn(turn), was = radioOn(m);
+        if (said === 'on') mus.radio = { chat: ctx().chatId, kind: was ? mus.radio.kind : radioKind(turn), left: RADIO_REPLIES };
+        else if (said === 'off') mus.radio = null;
+        else if (was && --mus.radio.left <= 0) mus.radio = null;
+        if (radioOn(m) !== was) {
+            const list = ranked(snap, m), first = list.length ? pick(list) : null;
+            if (first) { try { await playList(m, lineup(list, first), radioOn(m) ? [`${mus.radio.kind} in the story`] : ['the radio went off'], snap, true); } catch (err) { say(err.message, true); } return; }
+        }
+    } else mus.radio = null;
+    // Stings: a big beat cuts straight to a song tagged for it, once (not again for 10 minutes), whatever the hold.
+    const beats = extraOn('sting', m) ? [...new Set(beatsIn(turn))] : [];
+    if (beats.length && Date.now() - mus.cutAt > 8000) {
+        const list = ranked(snap, m), tagsOf = new Map(usableSongs(m).map(x => [x.uri, x.tags]));
+        const hit = list.find(x => x.uri !== mus.now.uri && Date.now() - (m.stingAt[x.uri] ?? 0) > STING_REST && (tagsOf.get(x.uri)?.st ?? []).some(b => beats.includes(b)));
+        if (hit) {
+            const beat = BEATS.find(b => beats.includes(b.id) && tagsOf.get(hit.uri).st.includes(b.id));
+            m.stingAt[hit.uri] = Date.now(); for (const [u, t] of Object.entries(m.stingAt)) if (Date.now() - t > STING_REST) delete m.stingAt[u];
+            mus.sting = { beat: beat?.label ?? '', name: m.songs[hit.uri]?.n ?? '', at: Date.now() };
+            const at = extraOn('peak', m) ? await peakMs(m, hit.uri) : 0;
+            try { await playList(m, lineup(list, hit), [`sting: ${(beat?.label ?? '').toLowerCase()}`, ...(at ? ['started at its peak'] : []), ...hit.why], snap, true, at); } catch (err) { say(err.message, true); }
+            return;
+        }
+    }
     const shift = shiftOf(mus.anchor, snap, famHeld), list = ranked(snap, m);
     // The story just said a song's cue and that song now leads: that counts as a real shift (the hold time still applies).
     const cueShift = list.some(x => x.cue && freshCues.includes(x.uri) && x.uri !== mus.now.uri);
@@ -192,9 +323,12 @@ export async function afterReply() {
     // The scene turned into another kind (a kiss, a chase, a death) and this song is wrong for it: change now,
     // whatever the hold time or "Only when a song ends" says. Otherwise the usual rules.
     const wrong = snap.mode && (!now || !now.fits) && list[0].fits && (Date.now() - mus.cutAt) > 15000;
-    if (wrong || (m.change !== 'end' && held && (cueShift || ((m.change === 'any' ? shift.any : shift.big) && list[0].score >= current + 4)))) {
+    // A fresh cue doesn't wait for the full hold time: half a minute into a song is enough.
+    const cueReady = cueShift && (Date.now() - mus.cutAt) > 30000;
+    if (wrong || (m.change !== 'end' && (cueReady || (held && (m.change === 'any' ? shift.any : shift.big) && list[0].score >= current + 4)))) {
         const first = (cueShift && pickCued(list, freshCues)) || pick(list);
-        try { await playList(m, lineup(list, first), first.why, snap, true); } catch (err) { say(err.message, true); }
+        const at = fullTilt(snap) && extraOn('peak', m) && !radioOn(m) ? await peakMs(m, first.uri) : 0;
+        try { await playList(m, lineup(list, first), at ? [...first.why, 'started at its peak'] : first.why, snap, true, at); } catch (err) { say(err.message, true); }
     } else changed();
 }
 // What Spotify is playing now; keeps the end-of-song timer right.
@@ -239,7 +373,7 @@ async function songEnding() {
 // ---- Buttons ----
 export async function togglePlay() {
     const m = music();
-    try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) { mus.userPaused = true; mus.wasPlaying = false; await sp.pause(m, d.id); } else { mus.userPaused = false; await sp.resume(m, d.id); } setTimeout(() => void sync(), 600); }
+    try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) { mus.userPaused = true; mus.wasPlaying = false; await sp.pause(m, d.id); } else { mus.userPaused = false; await sp.resume(m, d.id); } updateAmbience(); setTimeout(() => void sync(), 600); }
     catch (err) { say(err.message, true); }
 }
 export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
@@ -257,8 +391,12 @@ export async function reRoll() {
         }
         mus.story = null; mus.anchor = null; mus.lineup = []; mus.cues.clear(); mus.why = []; mus.lastFam = ''; mus.loading = '';
         if (mus.forced && mus.forced.chat !== ctx().chatId) mus.forced = null;
-        await start(mus.now ? [mus.now.uri] : [], true);
-        if (!mus.error) say(`Re-rolled from the last two replies · ${usableSongs(m).length} songs to pick from.`);
+        await start(mus.now ? [mus.now.uri] : [], true, true);
+        if (!mus.error) {
+            const live = (mus.heard ?? []).filter(h => !h.resting && h.fits);
+            const cueNote = !m.cues ? 'lyric cues are off' : live.length ? `cued: ${live[0].name}` : mus.heard?.length ? 'a cue was heard but its song is resting or doesn\'t fit this scene' : 'no lyric cues in the last two replies';
+            say(`Re-rolled from the last two replies · ${usableSongs(m).length} songs · ${cueNote}.`);
+        }
     } finally { mus.busy = false; mus.loading = ''; changed(); }
 }
 // The kind of scene, said by you: holds for the next 6 replies (or until you tap Auto), then Moodweaver reads it again.
@@ -267,7 +405,7 @@ export function forceMode(mode) {
     const m = music(); if (m.on && sp.signedIn(m)) void start(); else changed();
 }
 export function toggleLock() { mus.locked = !mus.locked; changed(); }
-export async function setOn(on) { const m = music(); m.on = on; save(); if (on) { await sync(); if (!mus.now?.playing) await start(); poller(); } else { clearTimeout(mus.timer); try { const d = await deviceFor(m); await sp.pause(m, d.id); } catch { /* nothing playing */ } changed(); } }
+export async function setOn(on) { const m = music(); m.on = on; save(); updateAmbience(); if (on) { await sync(); if (!mus.now?.playing) await start(); poller(); } else { clearTimeout(mus.timer); try { const d = await deviceFor(m); await sp.pause(m, d.id); } catch { /* nothing playing */ } changed(); } }
 // ✓ Fits and ✗ Not here: remember it for this kind of scene. Five ✗ in the same moment or heat add it to Never during.
 export async function feedback(good) {
     const m = music(), uri = mus.now?.uri, snap = sceneNow() ?? mus.latest; if (!uri || !snap) return;
@@ -343,7 +481,7 @@ export async function importSheet(file) {
         if (got.newPlaylist) m.playlists[got.newPlaylist.id].count = Object.values(m.songs).filter(s => s.pl?.includes(got.newPlaylist.id)).length;
         for (const [uri, t] of Object.entries(got.tags)) { if (hasTags(t) || t.note) m.tags[uri] = t; else delete m.tags[uri]; }
         for (const [id, t] of Object.entries(got.ptags)) { if (hasTags(t)) m.ptags[id] = t; else delete m.ptags[id]; }
-        Object.assign(m.chars, got.chars);
+        for (const [k, c] of Object.entries(got.chars)) m.chars[k] = { ...c, ...(m.chars[k]?.x ? { x: m.chars[k].x } : {}) }; // keeps the Extras ticks
         save();
         mus.lastImport = { at: Date.now(), file: file.name, songs: Object.keys(got.tags).length, added: Object.keys(got.newSongs).length, playlists: Object.keys(got.ptags).length, chars: Object.keys(got.chars).length, unknown: [...got.unknown].slice(0, 12), unmatched: got.unmatched.slice(0, 8) };
         say(`Imported ${file.name}.`);
@@ -351,13 +489,15 @@ export async function importSheet(file) {
 }
 export function setTag(uri, kind, value) {
     const m = music(), t = cleanTags(m.tags[uri] ?? emptyTags());
-    if (['f', 'p', 'mo', 'd', 'c', 'nv', 'cm'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
+    if (['f', 'p', 'mo', 'd', 'c', 'nv', 'cm', 'st'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
     else if (kind === 'h') t.h = t.h === value ? '' : value;
     else if (kind === 'e') t.e = t.e === Number(value) ? 0 : Number(value);
     else if (['th', 'fav', 'off'].includes(kind)) t[kind] = !t[kind];
     else if (kind === 'm') t.m = String(value).split(',').map(s => norm(s)).filter(Boolean).map(s => MOOD_LIST.find(x => norm(x.label) === s || x.id === s)?.id).filter(Boolean);
     else if (kind === 'cue') t.cue = String(value).split(',');
     else if (kind === 'cw') t.cw = String(value).split(/[,\s]+/);
+    else if (kind === 'pk') t.pk = value;
+    else if (kind === 'yr') t.yr = value;
     m.tags[uri] = cleanTags(t); save(); changed();
 }
 
@@ -394,7 +534,13 @@ export function initMusic() {
 const ENERGY_WORDS = ['', 'hushed', 'slow', 'steady', 'driving', 'frantic'];
 const FAMILY_WORDS = { happy: 'bright', bold: 'swaggering', closeness: 'tender', attachment: 'yearning', cold: 'cold', sad: 'melancholy', scared: 'uneasy', angry: 'harsh', cruel: 'menacing', calm: 'calm', masks: 'guarded', energy: 'restless', headspace: 'dreamlike', desire: 'sultry' };
 export function musicLine() {
-    const m = music(); if ((!m.feel && !m.tell) || !m.on || !mus.now?.playing) return '';
+    const m = music();
+    // In-story radio: the opposite of a film score. The characters hear it, so Claude is told what's on.
+    if (m.on && mus.now?.playing && radioOn(m) && !mus.radio.empty) {
+        const yr = cleanTags(m.tags[mus.now.uri] ?? {}).yr;
+        return `Music in the scene: ${mus.radio.kind} is playing "${mus.now.name}" by ${mus.now.artist || 'unknown'}${yr ? ` (${yr})` : ''}. Everyone present can hear it. It can be noticed, mentioned, hummed, danced to or switched off when that fits, but it doesn't take over the scene. Don't quote its lyrics.`;
+    }
+    if ((!m.feel && !m.tell) || !m.on || !mus.now?.playing) return '';
     const t = usableSongs(m).find(s => s.uri === mus.now.uri)?.tags;
     const words = t ? [ENERGY_WORDS[t.e] ?? '', ...t.f.slice(0, 2).map(f => FAMILY_WORDS[f])].filter(Boolean) : [];
     let tellIt = false;

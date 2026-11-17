@@ -6,6 +6,7 @@
 // families from the catalogue); app/note.js decides what's on and engine/prompt.js places the lines.
 
 import { MOODS } from '../data/catalogue.js';
+import { ERA_PEOPLE } from '../data/catalogue/era.js';
 const MOOD_CAT = new Map(MOODS.map(m => [m.id, m.category]));
 
 // Era → period group, for the lenses.
@@ -565,8 +566,27 @@ const OLD = new Set(['midcentury', 'seventies', 'eighties']);
 const WM_TINTS = { gaze: 'her open looking at a man gets her called fast, or worse' };
 // A person lens shows when they have one of its ids or a feeling in one of its families at clear or above, one of
 // its ties toward the other person, or the need it names has run low.
-const personHas = (moods, lens, ties = {}, needs = []) => Object.entries(moods).some(([id, v]) => v >= 41 && ((lens.ids ?? []).includes(id) || (lens.cats ?? []).includes(MOOD_CAT.get(id))))
-    || (lens.ties ?? []).some(id => (ties[id] ?? 0) >= 41) || (lens.need ? needs.includes(lens.need) : false);
+// Returns how strongly it applies (0 when it doesn't): the value of the matching item, a little higher for a single
+// item named by the line than for a whole family of feelings. prefs: their turn-ons; a turn-on counts above 40.
+// [score, id]: the id is what woke it, so two lines about the same trait of the same person don't both go.
+const personScore = (moods, lens, ties = {}, needs = [], prefs = {}) => [
+    ...Object.entries(moods).filter(([id, v]) => v >= 41 && (lens.ids ?? []).includes(id)).map(([id, v]) => [v + 10, id]),
+    ...Object.entries(moods).filter(([id, v]) => v >= 41 && (lens.cats ?? []).includes(MOOD_CAT.get(id))).map(([id, v]) => [v, id]),
+    ...(lens.turns ?? []).filter(id => (prefs[id] ?? 0) > 40).map(id => [prefs[id] + 5, `turn:${id}`]),
+    ...(lens.ties ?? []).filter(id => (ties[id] ?? 0) >= 41).map(id => [ties[id], `tie:${id}`]),
+    ...(lens.need && needs.includes(lens.need) ? [[60, `need:${lens.need}`]] : [])].sort((a, b) => b[0] - a[0])[0] ?? [0, ''];
+const ALL_PEOPLE = [...PEOPLE, ...ERA_PEOPLE];
+// "Kept apart" (Settings for one person: shut away from ordinary 1960s American life, like Lamb in Sinyala).
+// WORLD lines assume a job, money, a household, neighbours or public life, so they're dropped for that person.
+// MEDICAL lines (how doctors, asylums and psychiatry treated someone like them) count a little more instead, so
+// what's left leans on medicine, roles, personality, Mind and moods.
+const WORLD = new Set(['ambition', 'alone', 'money', 'job', 'served', 'record', 'selling', 'trade', 'serving', 'college', 'dealing', 'wed', 'famous',
+    'listed', 'badge', 'boss', 'staff', 'teaching', 'typing_pool', 'homemaker', 'nursing', 'the_doctor', 'divorce', 'lonely', 'bored', 'idle',
+    'frugal', 'spender', 'company_man', 'nosy', 'judging', 'compartment', 'scientist', 'corrupt', 'cult', 'live_fast']);
+const MEDICAL = new Set(['anger', 'nerves', 'sick', 'hurt', 'pills', 'madness', 'low', 'odd', 'scarred_mind', 'autism', 'restless', 'vain', 'psychopath',
+    'stormy', 'nerves_pills', 'complex', 'starving', 'labelled_desire', 'committed', 'signed_for', 'trial', 'the_patient', 'missing', 'narcissism',
+    'histrionic', 'anxiety_her', 'depression', 'trauma_war', 'paranoid', 'freud', 'erotomania', 'self_harm', 'eating', 'autistic', 'adhd',
+    'hypersexual', 'cold_bed', 'kink_hidden']);
 const fillIn = (text, map) => text.replace(/\{(\w+)\}/g, (m, k) => map[k] ?? m);
 // The harshest clause of a Power line ("called hysterical and committed") only goes in when the one holding
 // power is in a cold, cruel, angry or controlling mood (ctx.harsh). Otherwise it's the world, not how he treats her.
@@ -583,7 +603,7 @@ function seededOrder(list, seed) {
     for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(next() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
     return out;
 }
-export const ERA_LINE_CHOICES = [1, 2, 3, 4, 5, 6];
+export const ERA_LINE_CHOICES = [1, 2, 3, 4, 5, 6, 8, 10];
 const AMERICAN = id => !/britain|scotland/.test(id);
 // manSub / womanDom: the name of the person, or ''. cap: how many lines at most (default 3). seed: the reply
 // number, which picks which lines show when more apply than fit. Power, when it applies, always comes first.
@@ -597,33 +617,42 @@ export function eraLenses(ctx) {
         const tints = !OLD.has(group) ? [] : (ctx.tints ?? []).map(k => shape === 'mw' ? POWER_TINTS[k] : shape === 'wm' ? WM_TINTS[k] : '').filter(Boolean).slice(0, 2);
         power = ['Power', fillIn(text, { top: name[ctx.top], low: name[low] }) + (tints.length ? `. Here, ${tints.join('; ')}` : '')];
     }
-    if (ctx.manSub) out.push([LENSES.manSub.label, fillIn(LENSES.manSub[group], { who: ctx.manSub })]);
-    else if (ctx.womanDom) out.push([LENSES.womanDom.label, fillIn(LENSES.womanDom[group], { who: ctx.womanDom })]);
-    if (ctx.romance && gender.n === gender.u && ['he', 'she'].includes(gender.n)) out.push([LENSES.queer.label, LENSES.queer[`${group}${gender.n === 'he' ? 'Men' : 'Women'}`] ?? LENSES.queer[group]]);
-    if (ctx.medicine) out.push([LENSES.medicine.label, LENSES.medicine[group]]);
-    if (ctx.romance && new Set([gender.n, gender.u]).size === 2 && [gender.n, gender.u].includes('she') && [gender.n, gender.u].includes('he')) out.push([LENSES.sex.label, LENSES.sex[group]]);
-    if (ctx.money) out.push([LENSES.money.label, LENSES.money[group]]);
-    for (const key of ['affair', 'secrets', 'discipline', 'vice', 'faith', 'law']) if (ctx[key]) out.push([LENSES[key].label, LENSES[key][group]]);
+    if (ctx.manSub) out.push([LENSES.manSub.label, fillIn(LENSES.manSub[group], { who: ctx.manSub }), 90]);
+    else if (ctx.womanDom) out.push([LENSES.womanDom.label, fillIn(LENSES.womanDom[group], { who: ctx.womanDom }), 90]);
+    if (ctx.romance && gender.n === gender.u && ['he', 'she'].includes(gender.n)) out.push([LENSES.queer.label, LENSES.queer[`${group}${gender.n === 'he' ? 'Men' : 'Women'}`] ?? LENSES.queer[group], 90]);
+    if (ctx.medicine) out.push([LENSES.medicine.label, LENSES.medicine[group], 80]);
+    if (ctx.romance && new Set([gender.n, gender.u]).size === 2 && [gender.n, gender.u].includes('she') && [gender.n, gender.u].includes('he')) out.push([LENSES.sex.label, LENSES.sex[group], 70]);
+    if (ctx.money) out.push([LENSES.money.label, LENSES.money[group], 70]);
+    for (const key of ['affair', 'secrets', 'discipline', 'vice', 'faith', 'law']) if (ctx[key]) out.push([LENSES[key].label, LENSES[key][group], 75]);
     if (group === 'midcentury' && AMERICAN(ctx.era)) {
         const man = ['n', 'u'].find(k => gender[k] === 'he'), woman = ['n', 'u'].find(k => gender[k] === 'she');
-        for (const [key, lens] of Object.entries(SIXTIES)) if (ctx[key]) out.push([lens.label, man && woman && lens.mw ? fillIn(lens.mw, { man: name[man], woman: name[woman] }) : lens.any]);
+        for (const [key, lens] of Object.entries(SIXTIES)) if (ctx[key]) out.push([lens.label, man && woman && lens.mw ? fillIn(lens.mw, { man: name[man], woman: name[woman] }) : lens.any, 70]);
         for (const k of ['n', 'u']) {
-            const g = gender[k], who = name[k], other = name[k === 'n' ? 'u' : 'n'], st = ctx.moods?.[k] ?? {}; if (!['he', 'she'].includes(g)) continue;
-            for (const lens of PEOPLE) if (lens[g] && personHas(st, lens, ctx.ties?.[k], ctx.needs?.[k])) out.push([lens.label, fillIn(lens[g], { who, other })]);
+            const g = gender[k], who = name[k], other = name[k === 'n' ? 'u' : 'n'], st = ctx.moods?.[k] ?? {}; const mode = ctx.skip?.[k], apart = mode === 'apart'; if (!['he', 'she'].includes(g) || (mode && !apart)) continue;
+            // Strongest first, and one line per thing that woke it: a trait two lines both read goes to the better match.
+            const hits = ALL_PEOPLE.filter(lens => lens[g] && !(apart && WORLD.has(lens.key))).map(lens => [lens, ...personScore(st, lens, ctx.ties?.[k], ctx.needs?.[k], ctx.prefs?.[k])]).filter(([, score]) => score).sort((a, b) => b[1] - a[1]);
+            const used = new Set();
+            for (const [lens, score, by] of hits) { if (used.has(by)) continue; used.add(by); out.push([lens.label, fillIn(lens[g], { who, other }), score + (k === 'n' ? 5 : 0) + (apart && MEDICAL.has(lens.key) ? 10 : 0)]); }
             const age = ctx.ages?.[k], cm = ctx.heights?.[k], wed = ['married_status', 'engaged_status'].some(id => (st[id] ?? 0) >= 41) || ctx.wed;
             const byAge = age ? AGE_LINES.find(([test]) => test(age, wed)) : null;
-            if (byAge) out.push(['Age', fillIn(byAge[g === 'he' ? 1 : 2], { who, age })]);
-            if (cm && HEIGHT_LINES[g][0](cm)) out.push(['Height', fillIn(HEIGHT_LINES[g][1], { who })]);
+            if (byAge) out.push(['Age', fillIn(byAge[g === 'he' ? 1 : 2], { who, age }), 50]);
+            if (cm && HEIGHT_LINES[g][0](cm)) out.push(['Height', fillIn(HEIGHT_LINES[g][1], { who }), 45]);
         }
         const dyn = DYN_LINES[ctx.dynGroup];
-        if (dyn) out.push(['Their dynamic', man && woman ? fillIn(dyn.mw, { man: name[man], woman: name[woman] }) : dyn.any]);
+        if (dyn) out.push(['Their dynamic', man && woman ? fillIn(dyn.mw, { man: name[man], woman: name[woman] }) : dyn.any, 65]);
         const older = ctx.ages?.n && ctx.ages?.u ? ctx.ages.n - ctx.ages.u : 0, elder = older >= 8 ? 'n' : older <= -8 ? 'u' : '';
         if (elder && ctx.romance && man && woman) out.push(['Age gap', elder === man ? `an older man like ${name[man]} with a much younger woman raises few eyebrows and some envy; people assume he chose and she was lucky` : `an older woman like ${name[woman]} with a younger man is a scandal and a joke: people call her desperate and him a kept boy`]);
     }
-    const cap = ERA_LINE_CHOICES.includes(Number(ctx.cap)) ? Number(ctx.cap) : 3, room = cap - (power ? 1 : 0);
-    // More than fit: a different handful each reply, so a long period story keeps meeting new sides of it.
-    const rest = out.length > room ? seededOrder(out, ctx.seed).slice(0, room) : out;
-    return [...(power ? [power] : []), ...rest].map(([label, text]) => `- ${label}: ${text}.`);
+    const cap = ERA_LINE_CHOICES.includes(Number(ctx.cap)) ? Number(ctx.cap) : 3;
+    // Order: Power first; then the single strongest line always goes (the thing most on their cards right now);
+    // the rest take turns, stronger ones more often. Scores fall into bands of 20 (a strong trait, a clear one, a
+    // scene detail...), and within a band the reply number shuffles them, so a long story keeps meeting new sides.
+    const band = x => Math.floor((x[2] ?? 50) / 20);
+    const ranked = seededOrder(out, ctx.seed).sort((a, b) => band(b) - band(a));
+    const lead = [...out].sort((a, b) => (b[2] ?? 50) - (a[2] ?? 50))[0];
+    const order = lead ? [lead, ...ranked.filter(x => x !== lead)] : ranked;
+    const lines = [...(power ? [[...power, 100]] : []), ...order].map(([label, text, score], i) => ({ label, text, score: score ?? 50, sent: i < cap }));
+    return ctx.all ? lines : lines.filter(x => x.sent).map(({ label, text }) => `- ${label}: ${text}.`);
 }
 
 // What turns a lens on. Ids from the relationship tags, traits and turn-ons that already exist.

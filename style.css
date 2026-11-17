@@ -661,6 +661,29 @@
 .mw-author-role button.is-on{background:color-mix(in srgb,var(--mw-accent) 26%,transparent);border-color:var(--mw-accent);color:var(--mw-text);font-weight:600}
 .mw-voices{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:#ffffff08;font-size:13px}
 .mw-voices b{color:var(--mw-text);font-weight:600}.mw-voices span{color:var(--mw-muted)}
+/* 1.70: ✕ beside the top chips, a softer steady glow for turn-ons the other person shows, the dock's close button,
+   author blends, the period lines list and the dynamic catalogue. Big targets only, nothing drags. */
+.mw-chip-wrap{display:inline-flex;align-items:stretch;gap:2px}
+.mw-panel .mw-chip-x{min-width:34px;padding:0 8px;border-radius:12px;border:1px solid #ffffff1f;background:#ffffff08;color:var(--mw-faint);font-size:13px;cursor:pointer}
+.mw-panel .mw-chip-x:hover,.mw-panel .mw-chip-x:focus-visible{color:var(--mw-text);border-color:#e88a9a88;background:#e88a9a1f}
+.mw-panel .mw-chip-undo{min-height:36px;align-self:center}
+.mw-panel .mw-chip.is-shown{border-color:color-mix(in srgb,var(--mw-accent) 70%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--mw-accent) 35%,transparent),0 0 14px color-mix(in srgb,var(--mw-accent) 30%,transparent)}
+.mw-panel .mw-dock .mw-dock-close{color:var(--mw-faint)}
+.mw-blends,.mw-era-now{margin:8px 0;padding:8px 12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff14}
+.mw-blends>summary,.mw-era-now>summary{display:flex;justify-content:space-between;gap:10px;min-height:36px;align-items:center;cursor:pointer;list-style:none}
+.mw-blends>summary small,.mw-era-now>summary small{color:var(--mw-muted)}
+.mw-blend-list{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.mw-blend{display:inline-flex;align-items:stretch;border-radius:12px;border:1px solid #ffffff22;overflow:hidden}
+.mw-blend.is-on{border-color:var(--mw-moon);box-shadow:0 0 12px #efd59c33}
+.mw-panel .mw-blend-use{min-height:40px;padding:0 14px;border:0;background:#ffffff0a;color:var(--mw-text);font-size:13px;cursor:pointer}
+.mw-panel .mw-blend-x{min-width:40px;border:0;border-left:1px solid #ffffff1a;background:#ffffff05;color:var(--mw-faint);cursor:pointer}
+.mw-blend-save{display:flex;gap:8px;margin:8px 0}.mw-blend-save input{flex:1;min-width:0;min-height:38px}
+.mw-era-who{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:0 14px}.mw-era-who small{color:var(--mw-muted)}
+.mw-panel .mw-era-who button{min-height:38px;padding:0 14px;border-radius:12px;border:1px solid #c9b8f066;background:#c9b8f01a;color:var(--mw-text);cursor:pointer}.mw-panel .mw-era-who button span{color:var(--mw-muted);font-size:.9em}
+.mw-era-list{margin:6px 0 4px;padding-left:20px;display:grid;gap:8px;font-size:12.5px;color:var(--mw-muted)}
+.mw-era-list li.is-sent{color:var(--mw-text)}.mw-era-list b{color:var(--mw-text)}
+.mw-dyn-pickrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.mw-dyn-pickrow .mw-dyn-pick{flex:1;min-width:0}
+.mw-dyn-mine .mw-subhead{margin:10px 0 4px}
 /* ♫ Music tab (panel/music-tab.js): a small night sky of its own. The song is a planet (the cover art) in the
    colour of the followed person's leading feeling, with an orbit ring and a moon that circles while it plays.
    Drawers open on little glowing orbs; lit playlists are stars. Big tap targets only, nothing drags. */

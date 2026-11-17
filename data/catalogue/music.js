@@ -20,7 +20,7 @@ export const MOMENTS = [
     { id: 'making_up', label: 'Making up', moods: ['forgiving', 'contrite', 'reunited'], places: [], dyn: [] },
     { id: 'confession', label: 'Confession', moods: ['mask_slip', 'cant_hold_it_in', 'opening_up', 'confession_close', 'confessing_to_no_one'], places: [], dyn: [] },
     { id: 'breakdown', label: 'Breakdown', moods: ['spiralling', 'quietly_breaking', 'broken', 'in_shock'], places: [], dyn: [] },
-    { id: 'seduction', label: 'Seduction', moods: ['flirty', 'seductive', 'heated'], places: [], dyn: ['heat'] },
+    { id: 'seduction', label: 'Seduction', moods: ['seductive', 'heated', 'sensual'], places: [], dyn: ['heat'] },
     { id: 'afterglow', label: 'Afterglow', moods: ['afterglow', 'aftercare_mode', 'sated'], places: [], dyn: [], test: s => s.facts.has('spent') },
     { id: 'sleep', label: 'Sleep', moods: ['sleepy', 'sleepy_contentment'], places: ['sleep_room'], dyn: [], test: s => s.night && s.energy <= 2 },
     { id: 'quiet', label: 'Quiet together', moods: ['cuddly', 'feels_safe', 'homey', 'peaceful'], places: ['cosy', 'domestic'], dyn: [], test: s => s.energy <= 2 },
@@ -35,6 +35,10 @@ export const MOMENTS = [
     { id: 'sedated', label: 'Sedated / drugged drift', moods: ['dazed', 'brain_fog', 'zoned_out', 'dissociating', 'subspace'], places: [], dyn: [] },
     { id: 'high', label: 'High / using', moods: ['euphoric_high', 'strung_out', 'comedown', 'hazy_drunk', 'drinking_to_forget'], places: [], dyn: [] },
     { id: 'driving', label: 'Driving', moods: [], places: ['in_a_car', 'drive_in'], dyn: [] },
+    // 1.69.2: the sweet side, so a shy confession or a giggly flirt isn't read as foreplay.
+    { id: 'love_confession', label: 'Love confession', moods: ['giddy_in_love', 'openhearted', 'butterflies_kiss', 'sweet_on_them'], places: [], dyn: [] },
+    { id: 'flirting', label: 'Flirting / teasing', moods: ['flirty', 'coy', 'teasing_them', 'tender_teasing', 'cheeky', 'shy_desire'], places: [], dyn: [] },
+    { id: 'sweet_moment', label: 'Sweet / wholesome', moods: ['smitten', 'giddy', 'playful', 'tickled', 'goofy', 'charmed', 'romantic', 'melting', 'cherishing', 'daydream_happy'], places: [], dyn: [] },
 ];
 
 // The kind of scene, which leads the song pick (engine/music.js modeOf). The first that matches wins, in this order,
@@ -44,12 +48,18 @@ export const MODES = [
     { id: 'intimate', label: 'Intimate', moments: ['seduction', 'afterglow'], families: ['desire'] },
     { id: 'danger', label: 'Danger', moments: ['hunted', 'escape', 'violence', 'argument'], families: ['scared', 'angry'] },
     { id: 'sorrow', label: 'Sorrow', moments: ['grief', 'breakdown', 'confession'], families: ['sad'] },
+    { id: 'sweet', label: 'Sweet', moments: ['love_confession', 'flirting', 'sweet_moment'], families: ['happy', 'closeness'] },
     { id: 'tender', label: 'Tender', moments: ['afterglow', 'sleep', 'quiet', 'making_up', 'reunion'], families: ['closeness', 'calm', 'attachment'] },
     { id: 'dark', label: 'Dark', moments: ['captivity', 'experiment', 'conditioning', 'sedated', 'stalking', 'worship'], families: ['cruel', 'cold', 'scared'] },
     { id: 'party', label: 'Party', moments: ['party', 'high', 'driving', 'first_meeting'], families: ['happy', 'energy', 'bold'] },
 ];
 // What the story's own words can switch on (engine/scene-words.js): word list → Moment.
-export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving' };
+export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving', sweet: 'sweet_moment', confess: 'love_confession', flirt: 'flirting' };
+// Sweet or intimate? Light desire (a flirt, a shy want) counts half towards heat. Sweet moods and the story's sweet words
+// (a confession, giggling, holding hands, a kiss on the cheek) weigh against heat: when they outweigh it, the scene is
+// Sweet, not Intimate, unless it's plainly a sex scene or you set it yourself.
+export const LIGHT_DESIRE = ['flirty', 'coy', 'teasing_them', 'shy_desire', 'lust_at_first_sight', 'admiration_to_desire', 'intellectual_chemistry', 'aesthetic_fascination', 'checking_out', 'kiss_hungry', 'desperate_closeness'];
+export const SWEET_MOODS = ['giddy_in_love', 'smitten', 'playful', 'cheeky', 'giddy', 'charmed', 'flattered', 'tickled', 'goofy', 'mirthful', 'daydream_happy', 'cosy_happiness', 'happy', 'romantic', 'sweet_on_them', 'butterflies_kiss', 'tender_teasing', 'affectionate', 'melting', 'openhearted', 'soft', 'warm', 'fond_exasperation', 'cherishing', 'new_relationship_energy', 'flirty', 'coy', 'shy_desire', 'teasing_them'];
 
 // Heat: what a song is for in an intimate scene. A song tagged Sex scene only plays in one.
 export const HEAT = [
@@ -72,12 +82,12 @@ export const ENERGY_PUSH = { hunted: 1.2, escape: 1, violence: 1.2, party: 0.8, 
 export const POINTS = {
     char: 4, charScene: 2.5, otherChar: -6, mood: 4, moodMax: 2, family1: 2.5, family2: 1.5, place: 3, moment: 3, dynamic: 2, heat: 4, heatNear: 2, slowOutside: -3,
     modeFit: 4, modeMiss: -7, meaning: 5, both: 2, modeMissIntimate: -16, sound: 1, soundMax: 3,
-    energySame: 2, energyNear: 1, energyFar: -1, favourite: 0.5, recent: -4, theme: 3, fits: 1, fitsMax: 3, notHere: -1.5, notHereMin: -6,
+    energySame: 2, energyNear: 1, energyFar: -1, favourite: 0.5, recent: -4, theme: 3, cue: 5, fits: 1, fitsMax: 3, notHere: -1.5, notHereMin: -6,
 };
 // Below this, nothing fits well enough and the fallbacks take over.
 export const GOOD_ENOUGH = 5;
 // How many songs at the top are sent to Spotify at once, so it keeps playing fitting songs even if the page sleeps.
-export const LINEUP = 8;
+export const LINEUP = 12;
 
 // Settings in the Music tab, as tap choices.
 export const CHANGE_CHOICES = [['end', 'Only when a song ends'], ['big', 'On big shifts'], ['any', 'On any shift']];

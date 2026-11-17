@@ -333,7 +333,7 @@ function composePrompt(state, name, extras = {}) {
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra,
             ...(condition.length ? [`${u}'s body right now, from earlier replies: ${condition.map(pt).join(', ')}. It stays until the story heals or changes it.`] : []),
             ...(split ? [] : ['', playerRule]),
-            ...(prefs ? [pronounize(`${u}'s turn-ons belong in the story whether or not ${n} knows them, one or two at a time, each given a few replies to build before the next comes in.${prefKnown('known') ? ` The ones ${n} knows about, ${n} uses on purpose and knowingly, in character: the right words, timing and touch, teasing with them, holding them back, rewarding with them, and watching what they do to ${u}.` : ''}${prefKnown('suspected') ? ` The ones ${n} suspects, ${n} tests quietly and reads ${u}'s reaction.` : ''}${livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) ? ` The ones ${n} doesn't know about still turn up, every few replies, through how ${n} and others already look, sound and act, by chance as far as anyone in the story can tell. Nobody changes to match, and ${n} only learns them from how ${u} reacts.` : ''} Let a turn-off crop up sometimes for friction.`, n, u)] : []),
+            ...(prefs ? [turnOnsLine(n, u, { known: prefKnown('known'), suspected: prefKnown('suspected'), unknown: livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) })] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
@@ -509,4 +509,9 @@ export async function budgetPrompt(state, name, budget, countTokens, extras = {}
     return { prompt, fixed, tokens: tokens + fixedTokens, liveTokens: tokens, fixedTokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
         selectedIds: [...all.map(m => m.id), ...[state, extras.player?.state, ...liveCast(extras).map(p => p.state)].flatMap(activePersonalities).map(p => `${p.system}:${p.type}`), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
             .flatMap(({ name: subject, relation, tags }) => tags.map(tag => `${subject}:${relationshipKey(relation, tag.id)}`))], omittedIds: [], omitted: 0 };
+}
+
+// How the player's turn-ons come into the story, by how much the character knows. Exported for tests/pronouns.mjs.
+export function turnOnsLine(n, u, { known = false, suspected = false, unknown = false } = {}) {
+    return pronounize(`${u}'s turn-ons belong in the story whether or not ${n} knows them, one or two at a time, each given a few replies to build before the next comes in.${known ? ` The ones ${n} knows about, ${n} uses on purpose and knowingly, in character: the right words, timing and touch, teasing with them, holding them back, rewarding with them, and watching what they do to ${u}.` : ''}${suspected ? ` The ones ${n} suspects, ${n} tests quietly and reads ${u}'s reaction.` : ''}${unknown ? ` The ones ${n} doesn't know about still turn up, every few replies, through how ${n} and others already look, sound and act, by chance as far as anyone in the story can tell. Nobody changes to match, and ${n} only learns them from how ${u} reacts.` : ''} Let a turn-off crop up sometimes for friction.`, n, u);
 }

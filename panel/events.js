@@ -367,6 +367,12 @@ export async function onPanelClick(e) {
         if (button.dataset.tieOffer && st) { const rel = userRelation(st, true); rel.moods ??= {}; rel.moods[id] = 50; await persist(st); }
         await editBond(b => { b.offered = [...(b.offered ?? []), id]; }); return;
     }
+    // The dynamic catalogue: browse every dynamic, or back to just your picks; "I pick" can show all of them.
+    if (['dyn-browse', 'dyn-browse-done', 'dyn-pick-all'].includes(button.dataset.action)) {
+        if (button.dataset.action === 'dyn-pick-all') ui.dynPickAll = !ui.dynPickAll;
+        else { ui.dynBrowse = button.dataset.action === 'dyn-browse'; ui.openGroups = { ...(ui.openGroups ?? {}), 'details[data-anchor="dyn-pool"]': true }; }
+        render(); if (button.dataset.action === 'dyn-browse-done') ui.panel.querySelector('[data-anchor="dyn-pool"]')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); return;
+    }
     if (['dyn-pool-save', 'dyn-pool-load', 'dyn-pool-clear', 'bond-reread'].includes(button.dataset.action)) {
         const ch = target(), key = `char:${ch?.avatar}`, act = button.dataset.action;
         if (act === 'bond-reread') { await readBond(ch); return; }
@@ -490,6 +496,55 @@ export async function onPanelClick(e) {
     if (button.dataset.authorRole) {
         const id = button.dataset.authorRole, role = button.dataset.role;
         await changeState(s => { s.authorRole = { ...(s.authorRole ?? {}) }; if (role) s.authorRole[id] = role; else delete s.authorRole[id]; }); return;
+    }
+    // The ✕ beside a chip at the top: takes that mood, trait or turn-on off, with one step back.
+    if (button.dataset.chipOff || button.dataset.action === 'chip-undo') {
+        const kind = tabKind(), u = ui.chipUndo;
+        if (button.dataset.action === 'chip-undo') {
+            if (!u) return; ui.chipUndo = null;
+            await changeState(s => { if (u.turn) s.prefs = { ...(s.prefs ?? {}), [u.id]: u.v }; else { s.moods[u.id] = u.v; if (u.pin) s.pins[u.id] = true; markCut(s, u.id, 0, u.v); } }); return;
+        }
+        const raw = button.dataset.chipOff, turn = raw.startsWith('turn:'), id = turn ? raw.slice(5) : raw, st = viewState(); if (!st) return;
+        const v = turn ? st.prefs?.[id] ?? 0 : st.moods?.[id] ?? 0; if (!v) return;
+        ui.chipUndo = { who: ui.who, kind, id, v, turn, pin: !turn && Boolean(st.pins?.[id]), label: turn ? TURN_BY_ID[id]?.label ?? id : BY_ID[id]?.label ?? id };
+        await changeState(s => { if (turn) { s.prefs = { ...(s.prefs ?? {}) }; delete s.prefs[id]; } else { const was = s.moods[id] ?? 0; s.moods[id] = 0; s.pins[id] = false; markCut(s, id, was, 0); } }); return;
+    }
+    // Author blends (Story tab), saved per character: use one, delete one (with one step back), or save what's on now.
+    if (button.dataset.blendUse !== undefined || button.dataset.blendDel !== undefined || ['blend-save', 'blend-undo'].includes(button.dataset.action)) {
+        const ch = target(); if (!ch) return;
+        const key = `char:${ch.avatar}`, all = settings().authorBlends, list = [...(all[key] ?? [])], save = () => { all[key] = list; ctx().saveSettingsDebounced(); };
+        if (button.dataset.blendUse !== undefined) {
+            const b = list[Number(button.dataset.blendUse)]; if (!b) return;
+            await changeState(s => {
+                for (const m of MOODS) if (m.books && (s.moods[m.id] ?? 0) > 0) s.moods[m.id] = 0;
+                for (const [id, v] of Object.entries(b.authors)) if (BY_ID[id]?.books) { s.moods[id] = v; if (!s.loadout.includes(id)) s.loadout.push(id); }
+                s.authorRole = { ...(b.roles ?? {}) };
+            });
+            run.status = `Using the ${b.name} blend.`; renderStatus(); return;
+        }
+        if (button.dataset.blendDel !== undefined) {
+            const i = Number(button.dataset.blendDel), [gone] = list.splice(i, 1); if (!gone) return;
+            ui.blendUndo = { avatar: ch.avatar, blend: gone, at: i }; save(); render(); return;
+        }
+        if (button.dataset.action === 'blend-undo') {
+            const u = ui.blendUndo; if (!u || u.avatar !== ch.avatar) return;
+            list.splice(Math.min(u.at, list.length), 0, u.blend); ui.blendUndo = null; save(); render(); return;
+        }
+        const st = viewState(), authors = Object.fromEntries(MOODS.filter(m => m.books && (st?.moods?.[m.id] ?? 0) > 0).map(m => [m.id, st.moods[m.id]]));
+        if (!Object.keys(authors).length) return;
+        const typed = String(ui.panel.querySelector('[data-blend-name]')?.value ?? '').replace(/[<>]/g, '').trim().slice(0, 40);
+        const name = typed || Object.keys(authors).map(id => BY_ID[id].label.split(' ').at(-1)).slice(0, 3).join(' + ');
+        const roles = Object.fromEntries(Object.entries(st.authorRole ?? {}).filter(([id]) => authors[id]));
+        const same = list.findIndex(b => b.name.toLowerCase() === name.toLowerCase());
+        if (same >= 0) list[same] = { name, authors, roles }; else list.push({ name, authors, roles });
+        ui.blendUndo = null; save(); run.status = `Saved the ${name} blend for ${ch.name}.`; render(); renderStatus(); return;
+    }
+    // Period lines about one of the pair: everyday life, kept apart from it ('apart'), or none (true). Taps go round.
+    if (button.dataset.eraSkip) {
+        const ch = target(); if (!ch) return;
+        const key = `char:${ch.avatar}`, k = button.dataset.eraSkip, cur = { ...(settings().eraSkip[key] ?? {}) };
+        if (!cur[k]) cur[k] = 'apart'; else if (cur[k] === 'apart') cur[k] = true; else delete cur[k];
+        settings().eraSkip[key] = cur; ctx().saveSettingsDebounced(); await syncPrompt(); render(); return;
     }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.

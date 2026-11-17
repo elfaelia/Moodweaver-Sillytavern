@@ -3,7 +3,7 @@
 import moodSection from '../data/catalogue/mood.js';
 import stateSection from '../data/catalogue/state.js';
 import { DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
-import { COMBOS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, WORD_MOMENTS } from '../data/catalogue/music.js';
+import { COMBOS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
 import { readScene } from './scene-words.js';
 
 // ---- The names the sheet and the panel use ----
@@ -46,22 +46,38 @@ export function meaningsOf(moods = {}) {
 // One song's (or one playlist's) tags. Character names are kept as typed (compared without case);
 // {{char}} and {{user}} stand for whoever the main character and your persona are in the chat.
 // nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (✗ Not here adds these).
-export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, note: '' });
+export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], note: '' });
 const ids = (list, ok) => [...new Set((Array.isArray(list) ? list : []).filter(x => typeof x === 'string' && ok(x)))];
 export function cleanTags(t = {}) {
     return {
         f: ids(t.f, x => Boolean(LABEL.f[x])), cm: ids(t.cm, x => MEANING_IDS.has(x)), m: ids(t.m, x => Boolean(MOOD_FAMILY[x])), p: ids(t.p, x => PLACE_IDS.has(x)), mo: ids(t.mo, x => Boolean(LABEL.mo[x])), d: ids(t.d, x => DYN_IDS.has(x)),
         h: LABEL.h[t.h] ? t.h : '', e: [1, 2, 3, 4, 5].includes(Number(t.e)) ? Number(t.e) : 0,
         c: [...new Set((Array.isArray(t.c) ? t.c : []).map(x => String(x).trim()).filter(Boolean).slice(0, 12))],
-        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, note: String(t.note ?? '').slice(0, 300),
+        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), note: String(t.note ?? '').slice(0, 300),
     };
 }
-export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off));
+// ---- Lyric cues ----
+// Short phrases that nod to a song when the story says them ("like a dog" → I Wanna Be Your Dog). Lower case, 1 to 4
+// words, up to 8 per song; a trailing * means any ending ("salivat*").
+export const cleanCues = list => [...new Set((Array.isArray(list) ? list : []).map(x => String(x).toLowerCase().replace(/[^a-z0-9'*\s-]/g, ' ').replace(/\s+/g, ' ').trim()).filter(x => x.replace(/\*/g, '').length >= 3 && x.split(' ').length <= 5))].slice(0, 8);
+const cueRe = new Map();
+const cueRegex = c => {
+    if (!cueRe.has(c)) cueRe.set(c, new RegExp(`(?<![a-z0-9'])${c.split(' ').map(w => w.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*$/, "[a-z']*").replace(/\*/g, '')).join("[\\s,.;:!?\"'-]+")}(?![a-z0-9])`, 'i'));
+    return cueRe.get(c);
+};
+// The songs whose cues the text says: [{ uri, cue }].
+export function cueHits(songs, text) {
+    const t = String(text ?? '').replace(/[\u2018\u2019]/g, "'"); if (!t.trim()) return [];
+    const out = [];
+    for (const s of songs) for (const c of s.tags?.cue ?? []) if (cueRegex(c).test(t)) { out.push({ uri: s.uri, cue: c }); break; }
+    return out;
+}
+export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length));
 // A song's own tags on top of its playlists': lists add up, a song's own Heat, Energy and Off win.
 export function mergeTags(own, ...fromPlaylists) {
     const all = [...fromPlaylists.filter(Boolean), own].filter(Boolean), out = emptyTags();
     for (const t of all) {
-        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
+        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
         if (t.h) out.h = t.h; if (t.e) out.e = t.e; if (t.th) out.th = true; if (t.fav) out.fav = true; if (t.off) out.off = true;
     }
     return out;
@@ -77,6 +93,7 @@ export function mergeTags(own, ...fromPlaylists) {
 //   everyone: [{ names: [name, token…], moods }] for everyone in the scene; a song tagged for one of them matches
 //   that person's own moods, even when the music follows someone else (heat counts both of you, whoever the music follows)
 //   texts: [{ text, weight }] the newest reply and your last message, read for what is actually happening }
+const LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
 export function snapshot(input = {}) {
     const moodVal = {};
     for (const p of input.people ?? []) for (const [id, v] of Object.entries(p.moods ?? {})) {
@@ -94,20 +111,26 @@ export function snapshot(input = {}) {
     const weighed = top.slice(0, 4);
     let energy = weighed.length ? weighed.reduce((s, [id, v]) => s + (FAMILY_ENERGY[MOOD_FAMILY[id]] ?? 2.5) * v, 0) / weighed.reduce((s, [, v]) => s + v, 0) : 2.5;
     for (const id of places) energy += ENERGY_PUSH[id] ?? 0;
-    // Desire counts for everyone in the scene: a foreplay scene is one whoever the music follows.
-    let desire = Math.max(0, ...top.filter(([id]) => MOOD_FAMILY[id] === 'desire').map(([, v]) => v));
-    for (const p of input.everyone ?? []) for (const [id, v] of Object.entries(p.moods ?? {})) if (MOOD_FAMILY[id] === 'desire' && v > desire) desire = v;
+    // Desire counts for everyone in the scene: a foreplay scene is one whoever the music follows. Light desire (a flirt,
+    // a shy want) counts half, so a giggly confession with a little want in it doesn't read as foreplay.
+    const all = [...top, ...(input.everyone ?? []).flatMap(p => Object.entries(p.moods ?? {}).filter(([, v]) => v > 0))];
+    const desires = all.filter(([id]) => MOOD_FAMILY[id] === 'desire').map(([id, v]) => LIGHT.has(id) ? v / 2 : v).sort((a, b) => b - a);
+    const desire = desires[0] ?? 0, desireSum = (desires[0] ?? 0) + (desires[1] ?? 0);
+    const sweetMood = Math.max(0, ...all.filter(([id]) => SWEET.has(id)).map(([, v]) => v));
     const horny = Number.isFinite(input.horny) ? input.horny : 0;
     const words = readScene(input.texts ?? []);
     // Slow burn starts early: one desire feeling at 31+, or two that add up to 55+, either of you.
-    const desires = [...top.filter(([id]) => MOOD_FAMILY[id] === 'desire').map(([, v]) => v), ...(input.everyone ?? []).flatMap(p => Object.entries(p.moods ?? {}).filter(([id, v]) => MOOD_FAMILY[id] === 'desire' && v > 0).map(([, v]) => v))].sort((a, b) => b - a);
-    const desireSum = (desires[0] ?? 0) + (desires[1] ?? 0);
     let heat = SEX_FACTS.some(id => facts.has(id)) || (horny >= 81 && desire >= 61) || words.on.has('sex') ? 'sex' : desire >= 31 || desireSum >= 55 || horny >= 41 || words.on.has('intimate') ? 'slow' : '';
+    // Sweet or intimate? What pulls towards bed against what's sweet, playful or wholesome. Sweet wins a tie.
+    const heatPull = words.score.intimate + desire / 20 + Math.max(0, horny - 20) / 25;
+    const sweetPull = words.score.sweet + words.score.confess + words.score.flirt * 0.5 + sweetMood / 20;
+    const sweet = sweetPull >= 2 && (words.on.has('sweet') || words.on.has('confess') || sweetMood >= 41 || words.score.flirt >= 2);
+    if (heat === 'slow' && sweet && sweetPull >= heatPull) heat = '';
     // You can say what kind of scene this is in the Music tab; Intimate then means at least a slow burn.
     if (input.force === 'intimate' && !heat) heat = 'slow';
     if (input.force && input.force !== 'intimate' && heat === 'slow') heat = '';
     const snap = { moodVal, top: top.map(([id]) => id), fams, places, facts, night, heat, dyn: input.dyn || '', under: input.under || '', meters: input.meters ?? {}, replies: input.replies ?? 99,
-        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, mode: '' };
+        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, mode: '', sweet: sweet && !heat, pull: { heat: Math.round(heatPull * 10) / 10, sweet: Math.round(sweetPull * 10) / 10 } };
     const moments = new Set();
     for (const mo of MOMENTS) {
         const hit = mo.moods.some(id => (moodVal[id] ?? 0) >= 41) || mo.places.some(id => places.has(id)) || (mo.dyn.length && (mo.dyn.includes(snap.dyn) || mo.dyn.includes(snap.under)));
@@ -118,6 +141,10 @@ export function snapshot(input = {}) {
     for (const [kind, mo] of Object.entries(WORD_MOMENTS)) if (words.on.has(kind)) moments.add(mo);
     if (heat === 'slow') moments.add('seduction');
     if (heat) { moments.delete('sleep'); moments.delete('party'); }
+    if (heat || !snap.sweet) for (const mo of ['love_confession', 'flirting', 'sweet_moment']) if (!words.on.has(Object.keys(WORD_MOMENTS).find(k => WORD_MOMENTS[k] === mo))) moments.delete(mo);
+    if (snap.sweet && !heat && words.score.confess >= 1) moments.add('love_confession');
+    // A love confession is Sweet, not the sad kind of Confession, unless sadness leads.
+    if (moments.has('love_confession') && snap.fams[0] !== 'sad') moments.delete('confession');
     if (heat === 'sex') moments.delete('seduction');
     for (const id of moments) energy += ENERGY_PUSH[id] ?? 0;
     if (heat) energy = Math.min(energy, heat === 'sex' ? 4 : 3.4);
@@ -128,10 +155,15 @@ export function snapshot(input = {}) {
     return snap;
 }
 // The kind of scene, which leads the pick: a song made for another kind of scene drops right down the list.
-// Intimate beats danger beats sorrow beats tender beats dark beats party.
+// Intimate beats danger beats sorrow beats sweet beats tender beats dark beats party. Sweet only counts when the
+// scene really reads sweet (words or sweet moods, see snapshot), and never while cruelty or fear leads the moods.
 export function modeOf(snap) {
     if (snap.heat) return 'intimate';
-    for (const mode of MODES) if (mode.id !== 'intimate' && mode.moments.some(mo => snap.moments.has(mo))) return mode.id;
+    for (const mode of MODES) {
+        if (mode.id === 'intimate') continue;
+        if (mode.id === 'sweet') { if (snap.sweet && !['cruel', 'scared', 'angry'].includes(snap.fams[0])) return 'sweet'; continue; }
+        if (mode.moments.some(mo => snap.moments.has(mo))) return mode.id;
+    }
     return '';
 }
 const MODE_BY_ID = Object.fromEntries(MODES.map(m => [m.id, m]));
@@ -139,6 +171,14 @@ const MODE_BY_ID = Object.fromEntries(MODES.map(m => [m.id, m]));
 export function fitsMode(tags, mode) {
     const m = MODE_BY_ID[mode]; if (!m) return true;
     if (mode === 'intimate') return Boolean(tags.h) || tags.f.includes('desire') || tags.mo.some(x => m.moments.includes(x)) || tags.m.some(id => MOOD_FAMILY[id] === 'desire');
+    // Sweet: its moments, or a romance song with no heat and a warm feeling (so older sheets work too).
+    if (mode === 'sweet') {
+        if (tags.h) return false;
+        if (tags.mo.some(x => m.moments.includes(x))) return true;
+        if (tags.mo.some(x => GRIM.has(x)) || ['cruel', 'scared', 'angry'].includes(tags.f[0])) return false;
+        if (!m.families.includes(tags.f[0]) || tags.f.slice(0, 2).some(f => ['scared', 'cruel', 'angry', 'cold'].includes(f)) || tags.mo.some(x => ['party', 'grief', 'breakdown'].includes(x))) return false;
+        return tags.d.includes('romance') || tags.m.some(id => SWEET.has(id) && !LIGHT.has(id));
+    }
     return tags.mo.some(x => m.moments.includes(x)) || (!tags.mo.length && tags.f.slice(0, 2).some(f => m.families.includes(f)));
 }
 // Each person's own feelings (21 or more), under every name and token they go by.
@@ -197,6 +237,10 @@ export function scoreSong(tags, snap, opts = {}) {
     if (tags.e) { const d = Math.abs(tags.e - snap.energy); add(d === 0 ? POINTS.energySame : d === 1 ? POINTS.energyNear : POINTS.energyFar * (d - 1)); }
     if (tags.fav) add(POINTS.favourite);
     if (opts.recent?.has(opts.uri)) add(POINTS.recent);
+    // Lyric cue: the story just said one of this song's phrases. A nudge, never a takeover, and only when the song
+    // also fits this kind of scene (app/music.js keeps the cooldown).
+    const cued = opts.cued?.get?.(opts.uri);
+    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode))); if (cueOn) add(POINTS.cue, `“${cued}”`);
     if (tags.th && mine === true && opts.themeOn !== 'off') {
         const appears = snap.appear.some(a => chars.includes(a)), big = (snap.moodVal[snap.top[0]] ?? 0) >= 81;
         if (appears || (opts.themeOn === 'always' ? true : big)) add(POINTS.theme, 'theme');
@@ -212,7 +256,7 @@ export function scoreSong(tags, snap, opts = {}) {
         for (const k of keys) l += opts.learn[k] ?? 0;
         if (l) add(Math.max(POINTS.notHereMin, Math.min(POINTS.fitsMax, l)), l > 0 ? 'you said it fits' : '');
     }
-    return { score: Math.round(score * 10) / 10, why };
+    return { score: Math.round(score * 10) / 10, why, cue: cueOn };
 }
 // songs: [{ uri, tags (merged), learn }] → best first, unplayable ones left out.
 export function rank(songs, snap, opts = {}) {
@@ -231,8 +275,15 @@ export function pick(ranked, rng = Math.random) {
 // The pick, then the best of the rest, so Spotify keeps playing fitting songs by itself.
 export function lineup(ranked, first, size = LINEUP) {
     if (!first) return [];
-    // Only songs for the same kind of scene and close behind the pick, so Spotify never wanders off on its own.
-    return [first.uri, ...ranked.filter(x => x.uri !== first.uri && (x.fits || !first.fits) && x.score >= Math.max(first.score - 3, GOOD_ENOUGH)).slice(0, size - 1).map(x => x.uri)];
+    // Songs for the same kind of scene and close behind the pick first, so Spotify never wanders off on its own.
+    const out = [first.uri, ...ranked.filter(x => x.uri !== first.uri && (x.fits || !first.fits) && x.score >= Math.max(first.score - 3, GOOD_ENOUGH)).slice(0, size - 1).map(x => x.uri)];
+    // Never let the music run dry: fill up with the rest of this kind of scene's songs, best first, then go round
+    // them again (a repeat beats silence). Only when no song at all fits this kind do the next best others fill in.
+    const kind = ranked.filter(x => x.fits || !first.fits).map(x => x.uri);
+    for (const u of kind) { if (out.length >= size) break; if (!out.includes(u)) out.push(u); }
+    if (out.length < size && kind.length) for (let i = 0; out.length < size && i < size * 2; i++) { const u = kind[i % kind.length]; if (u !== out.at(-1)) out.push(u); }
+    for (const x of ranked) { if (out.length >= size) break; if (!out.includes(x.uri)) out.push(x.uri); }
+    return out;
 }
 export { GOOD_ENOUGH };
 

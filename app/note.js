@@ -208,13 +208,17 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
         || (t.items ?? '').split(' ').some(w => carried.has(w))
         || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
-    const lenses = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched,
+    const eraAll = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched, all: true,
+        prefs: { n: state.prefs ?? {}, u: mine?.enabled ? mine.prefs ?? {} : {} }, skip: settings().eraSkip?.[`char:${ch.avatar}`] ?? {},
         cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0, moods: { n: state.moods ?? {}, u: mine?.enabled ? mine.moods ?? {} : {} },
         ages: { n: cleanAge(state.age), u: mine?.enabled ? cleanAge(mine.age) : '' }, heights: { n: heightCm(state.height), u: mine?.enabled ? heightCm(mine.height) : 0 },
         ties: { n: relMoods, u: yourSide }, needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
         dynGroup: bd?.dynamic.group ?? '', wed: strongIn(pairMoods, ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience']),
         medicine: touched.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
-        money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(l => pronounize(l, n, u)) : [];
+        money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(x => ({ ...x, text: pronounize(x.text, n, u) })) : [];
+    // Every period line that applies, with the ones sent marked, for the Story tab's "Period lines now".
+    run.eraNow = { avatar: ch.avatar, lines: eraAll };
+    const lenses = eraAll.filter(x => x.sent).map(x => `- ${x.label}: ${x.text}.`);
     const links = [];
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));

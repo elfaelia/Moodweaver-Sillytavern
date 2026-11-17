@@ -179,15 +179,22 @@ export function sectionContent(state, kind, ch, active) {
     const onHere = sectionCount(state, kind), what = SECTION_LABEL[kind];
     const sparks = ['turn', 'intimacy'].includes(kind) && ui.who === 'char' && bondData(ch).on ? computeBond(bondData(ch), Infinity, 'one', 'the other', null, bondList(ch)).sparks.filter(x => kind === 'turn' ? !x.trait : x.trait) : [];
     const lit = new Set(sparks.filter(x => x.fresh && x.id).map(x => x.id)), litTraits = new Set(sparks.filter(x => x.fresh && x.trait).map(x => x.trait));
-    const chips = turnsSet.map(([id, v]) => `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '✧' : v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`).join('')
-        + shown.map(m => `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '✧ ' : ''}${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`).join('');
+    // The other person showing one of these turn-ons right now (they're younger, he's in a uniform) glows it softly,
+    // steadier than the ✧ of a reply that just set one off.
+    const shows = new Map(kind === 'turn' && ['char', 'user'].includes(ui.who) ? [...chatSigns(ch)[ui.who]].filter(([, x]) => x.is.length && x.v > 0).map(([id, x]) => [id, `Shows now: ${x.is.join(', ')}`]) : []);
+    // A small ✕ beside each chip takes it off; the chip itself still scrolls to its row (Settings › Panel can hide the ✕).
+    const xOn = settings().chipRemove !== false;
+    const xWrap = (id, label, chip) => xOn ? `<span class="mw-chip-wrap">${chip}<button type="button" class="mw-chip-x" data-chip-off="${esc(id)}" aria-label="Take ${esc(label)} off" title="Take ${esc(label)} off">✕</button></span>` : chip;
+    const undo = ui.chipUndo && ui.chipUndo.who === ui.who && ui.chipUndo.kind === kind ? `<button type="button" class="mw-chip-btn mw-chip-undo" data-action="chip-undo">↶ Put ${esc(ui.chipUndo.label)} back</button>` : '';
+    const chips = turnsSet.map(([id, v]) => xWrap(`turn:${id}`, TURN_BY_ID[id].label, `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''} ${shows.has(id) && !lit.has(id) ? 'is-shown' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : shows.has(id) ? `${esc(shows.get(id))}. ` : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '✧' : v > 0 ? '♡' : '✕'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`)).join('')
+        + shown.map(m => xWrap(m.id, m.label, `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '✧ ' : ''}${state.pins[m.id] ? '◆ ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`)).join('');
     const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
         : kind === 'turn' ? 'Lit ✧ means the last reply touched it.'
         : ui.who === 'user' && ['mood', 'trait', 'psyche', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
         : kind === 'intimacy' ? 'These lead in intimate scenes and stay quiet otherwise.'
         : kind === 'psyche' ? 'Clear and stronger ones go with every reply; fainter ones only when the scene touches them. Star ★ one to send it every reply. Some can lean healthier or darker.' : '';
     return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` · <button class="mw-clear" data-action="clear" title="Turn off this tab’s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
-        <div class="mw-chips">${chips || `<p>${empty}</p>`}</div>
+        <div class="mw-chips">${chips || `<p>${empty}</p>`}${undo}</div>
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
         ${kind === 'turn' ? signsBlock(ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '✕' : '✧'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
@@ -197,9 +204,43 @@ export function sectionContent(state, kind, ch, active) {
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
     ${kind === 'story' ? voicesBlock(state) : ''}
-    ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>` : ''}
+    ${kind === 'story' ? blendsBlock(state, ch) : ''}
+    ${kind === 'story' ? eraBlock(state, ch) : ''}
     ${['mood', 'trait', 'psyche', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
+}
+// Period lines: how many go a reply, whose cards they read (Lamb stuck somewhere the period doesn't reach can be
+// left out), and every line that applies right now, with the ones sent marked, so nothing is a mystery.
+function eraBlock(state, ch) {
+    const eraOn = MOODS.some(m => m.category === 'era' && (state.moods?.[m.id] ?? 0) > 0);
+    const pick = `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
+    if (!eraOn) return `${pick}<p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>`;
+    const skip = settings().eraSkip?.[`char:${ch.avatar}`] ?? {}, names = { n: shortName(ch.name), u: shortName(playerName()) };
+    // One button per person, tapped round three ways: everyday 1960s life, kept apart from it (no job, money or
+    // neighbour lines; medicine, roles, personality and Mind lead), or no lines about them at all.
+    const MODE = { '': ['✓', 'everyday life'], apart: ['◐', 'kept apart'], off: ['○', 'no lines'] };
+    const modeOf = k => skip[k] === 'apart' ? 'apart' : skip[k] ? 'off' : '';
+    const who = `<div class="mw-era-who" role="group" aria-label="What the period lines say about each of you"><small>Lines about</small>${['n', 'u'].map(k => { const [mark, word] = MODE[modeOf(k)]; return `<button type="button" data-era-skip="${k}" aria-label="${esc(names[k])}: ${word}. Tap to change">${mark} ${esc(names[k])} <span>· ${word}</span></button>`; }).join('')}</div>
+        ${['n', 'u'].some(k => modeOf(k) === 'apart') ? '<p class="mw-fine mw-era-note">Kept apart: no lines about a job, money, a household, neighbours or public life; medical, role, personality and Mind lines lead instead.</p>' : ''}`;
+    const now = run.eraNow?.avatar === ch.avatar ? run.eraNow.lines : [];
+    const sent = now.filter(x => x.sent).length;
+    const list = now.length ? `<ol class="mw-era-list">${now.map(x => `<li class="${x.sent ? 'is-sent' : ''}"><b>${x.sent ? '✓ ' : ''}${esc(x.label)}</b> ${esc(x.text)}</li>`).join('')}</ol>` : '<p class="mw-fine">Nothing on the cards touches the period right now.</p>';
+    return `${pick}${who}
+        <details class="mw-era-now" data-anchor="era-now"><summary><span>Period lines now</span><small>${now.length ? `${now.length} apply · ${sent} sent` : 'none'}</small></summary>
+            <p class="mw-fine">✓ went with the latest note. Power always goes first, then the one most on their cards right now; the rest take turns, stronger ones more often.</p>${list}</details>`;
+}
+// Saved author blends for this character: tap one to put its authors (and who writes narration or dialogue)
+// back on, ✕ to delete it. Folded into one line, and hidden until there's an author on or a blend saved.
+function blendsBlock(state, ch) {
+    const blends = settings().authorBlends?.[`char:${ch.avatar}`] ?? [], authors = MOODS.filter(m => m.books && state.moods[m.id] > 0);
+    if (settings().blendsOn === false || (!blends.length && !authors.length && !ui.blendUndo)) return '';
+    const current = blends.find(b => Object.keys(b.authors).length === authors.length && authors.every(m => b.authors[m.id] === state.moods[m.id] && (b.roles?.[m.id] ?? '') === (state.authorRole?.[m.id] ?? '')));
+    const chip = (b, i) => `<span class="mw-blend ${b === current ? 'is-on' : ''}"><button type="button" class="mw-blend-use" data-blend-use="${i}" title="${esc(Object.keys(b.authors).map(id => BY_ID[id]?.label).filter(Boolean).join(', '))}">${esc(b.name)}</button><button type="button" class="mw-blend-x" data-blend-del="${i}" aria-label="Delete ${esc(b.name)}">✕</button></span>`;
+    return `<details class="mw-blends" data-anchor="author-blends"><summary><span>✒ Author blends</span><small>${current ? esc(current.name) : blends.length ? `${blends.length} saved` : 'none saved'}</small></summary>
+        ${blends.length ? `<div class="mw-blend-list">${blends.map(chip).join('')}</div>` : ''}
+        ${ui.blendUndo?.avatar === ch.avatar ? `<button type="button" class="mw-chip-btn" data-action="blend-undo">↶ Bring back ${esc(ui.blendUndo.blend.name)}</button>` : ''}
+        ${authors.length ? `<div class="mw-blend-save"><input type="text" data-blend-name maxlength="40" placeholder="Name this blend" aria-label="Name for this author blend"><button type="button" class="mw-chip-btn" data-action="blend-save">Save ${authors.length} author${authors.length === 1 ? '' : 's'}</button></div>` : ''}
+        <p class="mw-fine">Saved for ${esc(shortName(ch.name))} only. Using one swaps out the authors that are on now.</p></details>`;
 }
 // Who writes what, at a glance, once any author is on: narration, dialogue, or both.
 function voicesBlock(state) {

@@ -6,14 +6,15 @@ import { bondAxes, bondData, bondList, liveFor } from './replies.js';
 import { KEY, ctx, run, ui } from './state.js';
 import { BY_ID } from '../data/catalogue.js';
 import { computeBond } from '../engine/bond.js';
-import { GOOD_ENOUGH, MODES, cleanTags, describe, emptyTags, hasTags, learnKeys, lineup, mergeTags, norm, pick, rank, shiftOf, snapshot } from '../engine/music.js';
+import { GOOD_ENOUGH, MODES, MOOD_LIST, cleanTags, cueHits, describe, emptyTags, hasTags, learnKeys, lineup, mergeTags, norm, pick, rank, shiftOf, snapshot } from '../engine/music.js';
 import { readSheet, sheetFile } from '../engine/sheet.js';
 import { readCsv, readXlsx } from '../engine/xlsx.js';
 import { shortName } from '../engine/util.js';
+import { plainStory } from '../engine/scene-words.js';
 import * as sp from './spotify.js';
 
 const DEFAULTS = { on: false, clientId: '', redirect: '', auth: null, pending: null, playlists: {}, songs: {}, tags: {}, ptags: {}, chars: {}, learn: {},
-    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, device: '', deviceName: '', recent: [], loadedAt: 0 };
+    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, cues: true, cueAt: {}, device: '', deviceName: '', recent: [], loadedAt: 0 };
 // Everything is kept in SillyTavern's extension settings (on your computer), so every device shares it.
 export function music() {
     const all = ctx().extensionSettings[KEY] ??= {};
@@ -27,7 +28,7 @@ export function music() {
     return m;
 }
 // Not saved: what's playing and why.
-export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '' };
+export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '', cues: new Map() };
 function save() { ctx().saveSettingsDebounced(); }
 sp.onSignInChange(save);
 let redraw = () => {};
@@ -75,6 +76,9 @@ export function sceneNow() {
     const everyone = [{ names: [ch.name, shortName(ch.name), '{{char}}'], moods: st?.moods ?? {} }, ...(you?.enabled !== false ? [{ names: [playerName(), shortName(playerName()), '{{user}}'], moods: you?.moods ?? {} }] : [])];
     const lastReply = [...chat].reverse().find(x => x && !x.is_user && !x.is_system), lastYou = [...chat].reverse().find(x => x && x.is_user);
     const texts = [{ text: lastReply?.mes ?? '', weight: 1 }, { text: lastYou?.mes ?? '', weight: 0.6 }];
+    // Story mode reads one reply further back too, so the scene's turn (a confession building, a chase starting)
+    // carries, the way a film cue follows the scene and not one line.
+    if (follow === 'story') { const prevReply = chat.filter(x => x && !x.is_user && !x.is_system).at(-2); if (prevReply) texts.push({ text: prevReply.mes ?? '', weight: 0.4 }); }
     if (mus.forced && mus.forced.chat !== ctx().chatId) mus.forced = null;
     const snap = snapshot({ people, who, facts, dyn, under, meters, horny: Number.isFinite(live?.hornyValue) ? live.hornyValue : null, night: live?.sky?.time === 'night', replies, appear, everyone, texts, force: mus.forced?.mode ?? '' });
     snap.story = follow === 'story';
@@ -89,9 +93,33 @@ export function usableSongs(m = music()) {
     return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).length))
         .map(([uri, s]) => ({ uri, song: s, g: s.g ?? [], learn: m.learn[uri], tags: mergeTags(cleanTags(m.tags[uri] ?? {}), ...(s.pl ?? []).filter(id => on.has(id)).map(id => m.ptags[id] && cleanTags(m.ptags[id]))) }));
 }
+// ---- Lyric cues ----
+// When the story says a song's cue ("salivating like a dog"), that song gets a nudge for this reply and the next two,
+// only if it fits the scene. Once it has played for a cue, its cues rest for a few hours so it doesn't keep coming back.
+const CUE_REPLIES = 3, CUE_REST = 3 * 3600 * 1000;
+const replyCount = () => (ctx().chat ?? []).filter(x => x && !x.is_user && !x.is_system).length;
+function readCues(m) {
+    if (!m.cues) { mus.cues.clear(); return []; }
+    const chat = ctx().chat ?? [], at = replyCount(), id = ctx().chatId;
+    for (const [uri, c] of mus.cues) if (c.chat !== id || at - c.at >= CUE_REPLIES) mus.cues.delete(uri);
+    const lastReply = [...chat].reverse().find(x => x && !x.is_user && !x.is_system), lastYou = [...chat].reverse().find(x => x && x.is_user);
+    const text = `${plainStory(lastReply?.mes)}\n${plainStory(lastYou?.mes)}`;
+    const fresh = cueHits(usableSongs(m), text).filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST);
+    for (const h of fresh) mus.cues.set(h.uri, { cue: h.cue, at, chat: id });
+    return fresh.map(h => h.uri);
+}
+const cuedNow = m => m.cues ? new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue])) : new Map();
+// A cued song that plays uses up its cue for a while.
+function cuePlayed(m, uri) {
+    if (!uri || !mus.cues.has(uri)) return;
+    // Every version of the song (same title) rests too, so a cover doesn't follow straight after.
+    const title = norm(m.songs[uri]?.n ?? '');
+    for (const u of [...mus.cues.keys()]) if (u === uri || (title && norm(m.songs[u]?.n ?? '') === title)) { m.cueAt[u] = Date.now(); mus.cues.delete(u); }
+    { for (const [u, t] of Object.entries(m.cueAt)) if (Date.now() - t > CUE_REST) delete m.cueAt[u]; } }
+
 function ranked(snap, m = music(), exclude = []) {
     const songs = usableSongs(m).filter(s => !exclude.includes(s.uri)), recent = new Set(m.recent.slice(-20));
-    let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound });
+    let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m) });
     // Nothing fits well: the character's own default playlist (Characters tab), then simply the best there is.
     if (!list.length || list[0].score < GOOD_ENOUGH) {
         const own = m.chars[norm(snap.name.split(' & ')[0])]?.pl;
@@ -117,12 +145,12 @@ async function playList(m, uris, why, snap, cut = false) {
     await sp.shuffleOff(m, device.id); await sp.repeatOff(m, device.id);
     await sp.play(m, uris, device.id);
     if (cut && mus.now && m.fade && device.supports_volume) setTimeout(() => void sp.volume(m, vol, device.id).catch(() => null), 500);
-    mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why;
+    mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why; mus.userPaused = false; mus.wasPlaying = true;
     const s = m.songs[uris[0]];
     mus.now = { uri: uris[0], name: s?.n ?? '', artist: s?.a ?? '', art: '', ms: s?.ms ?? 0, started: Date.now(), progress: 0, playing: true };
     remember(m, uris[0]); say(''); setTimeout(() => void sync(), 1500);
 }
-function remember(m, uri) { if (!uri) return; m.recent = [...m.recent.filter(u => u !== uri), uri].slice(-40); save(); }
+function remember(m, uri) { if (!uri) return; cuePlayed(m, uri); m.recent = [...m.recent.filter(u => u !== uri), uri].slice(-40); save(); }
 // Start (or restart) with the best songs for the scene right now.
 export async function start(exclude = []) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
@@ -143,15 +171,20 @@ export async function afterReply() {
     const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}`, swiped = mark === mus.chatMark && (last?.swipe_id ?? 0) > 0;
     mus.chatMark = mark;
     if (mus.forced && !swiped && --mus.forced.left <= 0) mus.forced = null;
+    const freshCues = readCues(m);
     if (!mus.now) { await sync(); if (!mus.now) return start(); }
+    // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
+    if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
     if (mus.locked || swiped) { changed(); return; }
     const shift = shiftOf(mus.anchor, snap, famHeld), list = ranked(snap, m);
+    // The story just said a song's cue and that song now leads: that counts as a real shift (the hold time still applies).
+    const cueShift = list[0]?.cue && freshCues.includes(list[0].uri) && list[0].uri !== mus.now.uri;
     if (!list.length) return;
     const now = list.find(x => x.uri === mus.now.uri), current = now?.score ?? -Infinity, held = (Date.now() - mus.cutAt) / 1000 >= m.hold;
     // The scene turned into another kind (a kiss, a chase, a death) and this song is wrong for it: change now,
     // whatever the hold time or "Only when a song ends" says. Otherwise the usual rules.
     const wrong = snap.mode && (!now || !now.fits) && list[0].fits && (Date.now() - mus.cutAt) > 15000;
-    if (wrong || (m.change !== 'end' && (m.change === 'any' ? shift.any : shift.big) && held && list[0].score >= current + 4)) {
+    if (wrong || (m.change !== 'end' && (m.change === 'any' ? shift.any : shift.big || cueShift) && held && list[0].score >= current + 4)) {
         const first = pick(list);
         try { await playList(m, lineup(list, first), first.why, snap, true); } catch (err) { say(err.message, true); }
     } else changed();
@@ -161,14 +194,24 @@ export async function sync() {
     const m = music(); if (!sp.signedIn(m)) return;
     let p; try { p = await sp.player(m); } catch (err) { if (err.code === 'signin') say(err.message, true); return; }
     clearTimeout(mus.timer);
-    if (!p?.item) { if (mus.now) mus.now.playing = false; changed(); return; }
+    if (!p?.item) { if (mus.now) mus.now.playing = false; changed(); if (ranDry(m, null)) void start(); return; }
     const uri = p.item.uri, art = p.item.album?.images?.at(-1)?.url ?? p.item.album?.images?.[0]?.url ?? '';
     if (uri !== mus.now?.uri) { remember(m, uri); if (mus.now && !mus.lineup.includes(uri)) mus.why = []; }
     mus.now = { uri, name: p.item.name ?? '', artist: (p.item.artists ?? []).map(a => a.name).join(', '), art, ms: p.item.duration_ms ?? 0, progress: p.progress_ms ?? 0, started: Date.now() - (p.progress_ms ?? 0), playing: Boolean(p.is_playing), device: p.device?.name ?? '' };
     if (p.device?.id) { m.device = p.device.id; m.deviceName = p.device.name ?? ''; }
     const left = (p.item.duration_ms ?? 0) - (p.progress_ms ?? 0);
+    if (ranDry(m, p)) { void start(); return; }
     if (p.is_playing && m.on && left > 0) mus.timer = setTimeout(() => void songEnding(), Math.max(1000, left - 3500));
     changed();
+}
+// The music stopped by itself (the line-up ran out while the page slept), not because you paused it: start again.
+// A song stopped part-way through counts as paused by you, in Moodweaver or in Spotify, and is left alone.
+function ranDry(m, p) {
+    if (!m.on || mus.userPaused || mus.locked || !mus.lineup?.length || (Date.now() - (mus.cutAt ?? 0)) < 20000) return false;
+    if (!p) return Boolean(mus.wasPlaying);
+    if (p.is_playing) { mus.wasPlaying = true; return false; }
+    const atEdge = (p.progress_ms ?? 0) <= 1500 || (p.item.duration_ms ?? 0) - (p.progress_ms ?? 0) <= 4000;
+    return Boolean(mus.wasPlaying) && atEdge && mus.lineup.includes(p.item.uri);
 }
 // A few seconds before a song ends: if what's next in the line-up no longer suits the scene, start a fresh line-up
 // so the next song is the best one for where the story is now.
@@ -188,7 +231,7 @@ async function songEnding() {
 // ---- Buttons ----
 export async function togglePlay() {
     const m = music();
-    try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) await sp.pause(m, d.id); else await sp.resume(m, d.id); setTimeout(() => void sync(), 600); }
+    try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) { mus.userPaused = true; mus.wasPlaying = false; await sp.pause(m, d.id); } else { mus.userPaused = false; await sp.resume(m, d.id); } setTimeout(() => void sync(), 600); }
     catch (err) { say(err.message, true); }
 }
 export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
@@ -282,11 +325,12 @@ export async function importSheet(file) {
 }
 export function setTag(uri, kind, value) {
     const m = music(), t = cleanTags(m.tags[uri] ?? emptyTags());
-    if (['f', 'p', 'mo', 'd', 'c', 'nv'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
+    if (['f', 'p', 'mo', 'd', 'c', 'nv', 'cm'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
     else if (kind === 'h') t.h = t.h === value ? '' : value;
     else if (kind === 'e') t.e = t.e === Number(value) ? 0 : Number(value);
     else if (['th', 'fav', 'off'].includes(kind)) t[kind] = !t[kind];
-    else if (kind === 'm') t.m = String(value).split(',').map(s => s.trim()).filter(Boolean);
+    else if (kind === 'm') t.m = String(value).split(',').map(s => norm(s)).filter(Boolean).map(s => MOOD_LIST.find(x => norm(x.label) === s || x.id === s)?.id).filter(Boolean);
+    else if (kind === 'cue') t.cue = String(value).split(',');
     m.tags[uri] = cleanTags(t); save(); changed();
 }
 

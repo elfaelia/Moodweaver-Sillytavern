@@ -20,6 +20,9 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="whyOn" ${settings().whyOn !== false ? 'checked' : ''}> Show why: a faint line under moods and facts the story moved (raised by the story, from drunk, wearing off)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="musicTab" ${settings().musicTab !== false ? 'checked' : ''}> Show Music on the dock (hidden, songs you switched on keep playing)</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="dockClose" ${settings().dockClose !== false ? 'checked' : ''}> Close button on the dock</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> ✕ on the chips at the top, to take a mood or trait off</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendsOn" ${settings().blendsOn !== false ? 'checked' : ''}> Author blends on the Story tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="authorStyle" ${settings().authorStyle !== false ? 'checked' : ''}> Show how each author writes</label>
             <p class="mw-fine">Wants you already set still reach the story.</p></details>
         <details class="mw-advanced" data-settings="sent" open><summary>What is sent to the model</summary>

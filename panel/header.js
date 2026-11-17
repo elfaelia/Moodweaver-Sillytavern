@@ -77,9 +77,11 @@ export function tabBar(counts) {
 export function dockBar(counts) {
     const here = ui.who === 'story' ? 'story' : dockOf(ui.tab), have = new Set(tabsFor(ui.who === 'story' ? 'char' : ui.who).map(([k]) => k));
     const dock = DOCK.filter(([key]) => key !== 'music' || musicShown());
-    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length},minmax(0,1fr))">${dock.map(([key, icon, label, tabs]) => {
+    // A close button at the end of the dock (Settings › Panel can hide it), so closing is a thumb's reach away.
+    const close = settings().dockClose !== false;
+    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length},minmax(0,1fr))${close ? ' minmax(0,.8fr)' : ''}">${dock.map(([key, icon, label, tabs]) => {
         const n = tabs.filter(t => have.has(t)).reduce((sum, t) => sum + (counts[t] ?? 0), 0);
-        return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}</span><span>${label}</span>${n && key !== 'story' ? `<i>${n}</i>` : ''}</button>`; }).join('')}</nav>`;
+        return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}</span><span>${label}</span>${n && key !== 'story' ? `<i>${n}</i>` : ''}</button>`; }).join('')}${close ? '<button type="button" class="mw-dock-close" data-action="close" aria-label="Close Moodweaver"><span class="mw-dock-icon" aria-hidden="true">⌄</span><span>Close</span></button>' : ''}</nav>`;
 }
 // The tab one swipe away: dir 1 is the next, -1 the one before. Stays put at either end.
 export function tabStep(dir) {

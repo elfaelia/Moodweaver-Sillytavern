@@ -134,6 +134,10 @@ const st = freshState({}); st.moods.defiant = 70; st.loadout = ['defiant'];
 console.log((await budgetPrompt(st, 'Damien', 2000, async t => t.length / 4)).prompt);
 ```
 
+Period person lines live in two places: `PEOPLE` in `engine/era-lenses.js` (by family of feelings) and `ERA_PEOPLE` in `data/catalogue/era.js` (by single trait, Mind item, bed role or turn-on). Each has `ids`, `cats`, `turns`, `ties` or `need`, and a `he` and a `she` text. `eraLenses` scores each by the strength of what woke it, keeps one line per waking id, puts Power first and then the strongest, and rotates the rest by strength band; with `all: true` it returns every line with `sent` marked, which the Story tab shows.
+
+Lines that name both people go through `pronounize` (`engine/pronouns.js`), which turns later mentions into he/she only where the grammar is certain and otherwise keeps the name. After adding or changing dynamics, meter lines, combos, links or skill combos, run `node tests/pronouns.mjs` (add `--show` to see every line it changed); it renders them all for every pronoun pair and fails on grammar that can only be wrong. Write those lines with names, never with he/she/they for one person.
+
 1.51's word lists were checked by mapping every word the old version knew through both versions and reviewing each one that changed. 1.50 was checked against 1.49.6 with a browser harness that drives the panel through the same random walks on both versions and compares every note, saved chat and setting. It lives outside this folder.
 
 ## Ideas for later

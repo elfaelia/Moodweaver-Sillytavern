@@ -140,6 +140,7 @@ function tagEditor(m, uri) {
         ${group('place', 'Place', t.p.map(id => labelOf('p', id)), PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''))}
         ${group('never', 'Never during', t.nv.map(v => neverAll.find(([k]) => k === v)?.[1] ?? v), neverAll.map(([v, l]) => tag('nv', v, l, t.nv.includes(v))).join(''))}
         ${group('moods', 'Exact moods', t.m.map(id => labelOf('m', id)), `<label class="mw-music-note">Names separated by commas, as in the sheet<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>`)}
+        ${group('cues', 'Cues', t.cue, `<label class="mw-music-note">Short phrases, separated by commas, that nod to this song when the story says them (like a dog, salivat*). A * means any ending. The song gets a nudge for a few replies if it fits the scene.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label>`)}
         <div class="mw-mchips mw-music-flags">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div>
         ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
@@ -161,8 +162,8 @@ function settingsCard(m) {
     const body = `<p class="mw-music-label">Change songs</p><div class="mw-mchips">${CHANGE_CHOICES.map(([v, l]) => choice('change', v, m.change, l)).join('')}</div>
         <p class="mw-music-label">Shortest time before cutting a song</p><div class="mw-mchips">${HOLD_CHOICES.map(([v, l]) => choice('hold', v, m.hold, l)).join('')}</div>
         <p class="mw-music-label">Theme songs play</p><div class="mw-mchips">${THEME_CHOICES.map(([v, l]) => choice('themes', v, m.themes, l)).join('')}</div>
-        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="fade"', m.fade, 'Fade on a cut')}${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}${chip('data-music="flag" data-k="tell"', m.tell, 'Tell the story the song')}</div>
-        <p class="mw-fine">“Let the story feel the music” adds a few words on the music's feel, never its name (about 15 tokens). “Tell the story the song” gives Claude the song and artist, whatever the era, to score the scene by: never quoted, named or heard by anyone (about 70 tokens). Both are off by default: otherwise the music costs no tokens.</p>
+        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="fade"', m.fade, 'Fade on a cut')}${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}${chip('data-music="flag" data-k="tell"', m.tell, 'Tell the story the song')}${chip('data-music="flag" data-k="cues"', m.cues, 'Lyric cues')}</div>
+        <p class="mw-fine">“Let the story feel the music” adds a few words on the music's feel, never its name (about 15 tokens). “Tell the story the song” gives Claude the song and artist, whatever the era, to score the scene by: never quoted, named or heard by anyone (about 70 tokens). Both are off by default: otherwise the music costs no tokens. “Lyric cues” (on by default, no tokens): when the story says one of a song's cue phrases, that song gets a nudge for a few replies if it fits the scene, then rests for a few hours.</p>
         ${m.tell ? `<p class="mw-music-label">Tell it for</p><div class="mw-mchips">${[[1, 'First reply of a song'], [2, '2 replies'], [3, '3 replies'], [0, 'While it plays']].map(([v, l]) => choice('tellFor', v, Number(m.tellFor), l)).join('')}</div><p class="mw-fine">Short is safest: the song sets the mood as it starts, then the story moves on freely.</p>` : ''}
         <p class="mw-music-label">Playing on</p><p class="mw-music-note">${esc(m.deviceName || 'Whichever Spotify is open')}</p>
         ${mus.devices.length > 1 ? `<div class="mw-mchips">${mus.devices.map(d => chip(`data-music="device" data-id="${esc(d.id)}"`, d.id === m.device, d.name)).join('')}</div>` : ''}
@@ -216,6 +217,7 @@ export async function musicChange(e, redraw) {
     if (f === 'clientId') { if (m.clientId === el.value.trim()) return true; m.clientId = el.value.trim(); m.pending = null; ctx().saveSettingsDebounced(); redraw(); }
     else if (f === 'import' && el.files?.[0]) { await importSheet(el.files[0]); el.value = ''; redraw(); }
     else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
+    else if (f === 'cues') { setTag(el.dataset.uri, 'cue', el.value); redraw(); }
     else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
     else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
     return true;

@@ -203,6 +203,8 @@ const CLASHES = [
     [SUSPICIOUS, ['masks', 'secretive', 'lying', 'compartmentalising', 'false_self'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may smell what ${b} is hiding, or invent worse`, false, false, false, 'secret'],
     [ORDERLY, IMPULSIVE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: order meets impulse; it can grate, or loosen ${a} up`, false, false, false, 'allies'],
 ];
+// For tests/pronouns.mjs, which renders every line.
+export const LINK_LINES = { ROLE_LINKS, TIE_LINKS, CORE_BENDS };
 export const CLASH_CHOICES = ['off', 'sometimes', 'often'];
 const fits = (id, side) => side.includes(id) || side.includes(CAT.get(id));
 // The strongest mismatch at clear or above, whether or not this reply speaks about it: { line, group } or null.

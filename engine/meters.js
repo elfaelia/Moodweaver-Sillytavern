@@ -67,6 +67,21 @@ export const MORE_METERS = [
         (n, u) => `${n} wants to please ${u} and serve ${u}'s wishes, and measures ${n}self by ${u}'s approval`, null, 'How much they live to please you.'],
     ['rt', 'Restraint', false, 0, 'restraint', [[81, 'won’t let themselves'], [61, 'holding it in'], [41, 'careful'], [21, 'a little guarded'], [0, 'unguarded']],
         (n, u) => `${n} holds back what ${n} feels for ${u}, out of guilt, duty, propriety or fear of what it would cost; it shows in what ${n} almost does`, null, 'How much they hold back what they feel for you.'],
+    // Seven more (1.69), for push-pull love, shared crimes, history, sacrifice and who's steering whom.
+    ['sw', 'Sway', false, 0, 'sway', [[81, 'putty in their hands'], [61, 'easily swayed by them'], [41, 'bends for them'], [21, 'listens to them'], [0, 'unmoved']],
+        (n, u) => `${u} can steer ${n}: a look, a word or a sulk from ${u} changes what ${n} does, even while ${n} still gives the orders`, null, 'How much you can steer them, even when they hold the power.'],
+    ['cm', 'Complicity', false, 0, 'complicity', [[81, 'bound by what they’ve hidden'], [61, 'partners in it'], [41, 'covering for each other'], [21, 'looking the other way'], [0, 'clean hands']],
+        (n, u) => `${n} and ${u} are tied together by things they've done or hidden for each other: evidence cleaned up, alibis kept, and neither can leave without the other falling`, null, 'How tied together you are by crimes, cover-ups and secrets kept for each other.'],
+    ['uw', 'Unworthiness', false, 0, 'unworthy', [[81, 'sure they’d ruin them'], [61, 'thinks they’re bad for them'], [41, 'feels they don’t deserve them'], [21, 'a flicker of doubt'], [0, 'feels good enough']],
+        (n, u) => `${n} believes ${n} is bad for ${u}, dirty, cursed or dangerous, and acts on it: keeping ${u} out of ${n}'s world and refusing to let ${u} carry ${n}'s feelings`, null, 'How much they think they’re bad for you or don’t deserve you.'],
+    ['pa', 'Pushing away', false, 0, 'pushing away', [[81, 'trying to drive them off'], [61, 'pushing them away'], [41, 'keeping them back'], [21, 'a little avoidant'], [0, 'lets them close']],
+        (n, u) => `${n} is pushing ${u} away on purpose: cancelling, going cold, being crude or cruel or simply absent, so ${u} will stop coming back, and it isn't working on either of them`, null, 'How hard they’re trying to keep you away, whatever they feel.'],
+    ['ex', 'Exasperation', false, 0, 'exasperation', [[81, 'driven up the wall'], [61, 'exasperated'], [41, 'annoyed by them'], [21, 'mildly put out'], [0, 'unbothered']],
+        (n, u) => `${u} drives ${n} up the wall and ${n} keeps coming back for more: sighs, eye-rolls, complaints, and attention that never leaves ${u}`, null, 'How much you annoy them, which can sit right beside fascination or love.'],
+    ['hi', 'Shared past', false, 0, 'history', [[81, 'a lifetime together'], [61, 'deep history'], [41, 'years between them'], [21, 'some history'], [0, 'no history']],
+        (n, u) => `${n} and ${u} share a long past: old jokes, childhood places, things only the two of them remember, and that history pulls at everything they do now`, null, 'How much shared past weighs on you both: childhood, years, old promises.'],
+    ['sc', 'Sacrifice', false, 0, 'sacrifice', [[81, 'would give anything'], [61, 'would give up a lot'], [41, 'would give something up'], [21, 'would go out of their way'], [0, 'keeps what’s theirs']],
+        (n, u) => `${n} would give up something huge for ${u}, a life, a love, a future or ${n}'s own safety, and knows it, and resents or fears what that means`, null, 'What they would give up for you, and how close it comes to a real choice.'],
 ];
 const MORE_KEYS = MORE_METERS.map(([k]) => k);
 const DEF = Object.fromEntries(MORE_METERS.map(m => [m[0], m]));
@@ -77,7 +92,11 @@ export const MORE_PRESETS = [
     ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op', 'gd', 'lu']],
     ['Joe', ['ob', 'pe', 'je', 'pr', 'kn', 'hu', 'gu']],
     ['Bateman', ['re', 'hu', 'op', 'fa', 'je', 'lu']],
-    ['Rick', ['re', 'de', 'op', 'pr', 'gu', 'rs', 'ly']],
+    ['Rick', ['re', 'de', 'op', 'pr', 'gu', 'rs', 'ly', 'fa', 'ex', 'sc']],
+    ['Easterman & Lamb', ['po', 'pr', 'ob', 'pe', 'di', 'cd', 'sw', 'dv']],
+    ['Bateman & secretary', ['hu', 're', 'kn', 'cm', 'fa', 'ex', 'op']],
+    ['Joe (mentor)', ['gd', 'kn', 'fa', 'ob', 'co', 'cm', 're']],
+    ['Dealer friend', ['pr', 'uw', 'pa', 'hi', 'lu', 'je', 'vo', 'se', 'de']],
     // By kind of relationship rather than by character.
     ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu', 'fe']],
     ['Experiment', ['cl', 'cd', 'fa', 'kn', 'ca', 'di', 'co']],
@@ -86,6 +105,8 @@ export const MORE_PRESETS = [
     ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je', 'ri']],
     ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly', 'dv']],
     ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co']],
+    ['Childhood friends', ['hi', 'ly', 'pr', 'je', 'pa', 'uw']],
+    ['Partners in crime', ['cm', 'se', 'ly', 'kn', 'co']],
 ];
 export function cleanMore(raw) {
     const x = raw && typeof raw === 'object' ? raw : {};

@@ -112,6 +112,13 @@ const NUDGES = [
     [['ashamed', 'guilty_lust', 'hiding_arousal', 'sexual_shame', 'sinful_desire', 'self_directed_rage'], { sh: 2 }],
     [['embarrassed', 'feeling_small', 'guilt_sick'], { sh: 1 }],
     [['worshipful', 'devoted', 'wants_praise', 'desperate_for_approval', 'performing_obedience', 'devotion_quiet', 'fawning', 'helpful', 'service_giving'], { dv: 1 }],
+    // 1.69: sway, complicity, unworthiness, pushing away, exasperation (shared past and sacrifice come from the story only)
+    [['charmed', 'indulgent'], { sw: 1 }],
+    [['covering_for_them', 'hiding_evidence', 'plausible_deniability'], { cm: 1 }],
+    [['worthless', 'ashamed', 'self_directed_rage'], { uw: 1 }],
+    [['push_pull', 'avoidant', 'withdrawn'], { pa: 2 }],
+    [['exasperated', 'fond_exasperation'], { ex: 2 }],
+    [['irritable', 'grudging_fondness'], { ex: 1 }],
     // feelings with a family default that aren't really about the player
     [['unbothered', 'dead_eyed', 'empty', 'numbed_out', 'emotionally_starved_cold', 'caught_out', 'devoted_to_a_ghost', 'status_panic', 'fear_of_owing', 'out_of_place', 'squeamish', 'waiting_for_bad_news', 'disoriented', 'spooked', 'stage_fright', 'second_guessing', 'hangry', 'angry_at_the_dead', 'hiding_it_from_family', 'partying_it_off', 'confessing_to_no_one', 'hiding_evidence', 'righteous', 'vindicated'], {}],
 ];

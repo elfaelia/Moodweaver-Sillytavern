@@ -655,6 +655,12 @@
 .mw-range-moons{margin:8px 0 6px}.mw-want-controls .mw-range-moons{flex:1;min-width:0;margin:4px 0}
 .mw-range-moons .mw-moon[disabled]{opacity:.45;cursor:default}
 .mw-needs,.mw-bond-grid{grid-template-columns:1fr}
+/* An author's part (panel/rows.js roleButtons): three wide buttons, easy to hit. */
+.mw-author-role{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 4px}
+.mw-author-role button{min-height:38px;border-radius:10px;border:1px solid #ffffff1f;background:#ffffff0a;color:var(--mw-muted);font-size:13px;cursor:pointer}
+.mw-author-role button.is-on{background:color-mix(in srgb,var(--mw-accent) 26%,transparent);border-color:var(--mw-accent);color:var(--mw-text);font-weight:600}
+.mw-voices{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 10px;padding:10px 12px;border-radius:12px;background:#ffffff08;font-size:13px}
+.mw-voices b{color:var(--mw-text);font-weight:600}.mw-voices span{color:var(--mw-muted)}
 /* ♫ Music tab (panel/music-tab.js): a small night sky of its own. The song is a planet (the cover art) in the
    colour of the followed person's leading feeling, with an orbit ring and a moon that circles while it plays.
    Drawers open on little glowing orbs; lit playlists are stars. Big tap targets only, nothing drags. */

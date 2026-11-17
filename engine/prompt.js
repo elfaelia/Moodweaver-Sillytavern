@@ -54,7 +54,9 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
         const side = state?.psyLean?.[m.id] === 'light' ? 'light' : 'dark';
         return `${name}, ${side === 'light' ? 'healthy' : 'unhealthy'} side: ${m.cue} Here it shows like this: ${m[side]}`; }
     // An author at clear or above gets the full brief of how they write, so the voice is unmistakable; fainter ones the short cue.
-    if (isAuthor(m)) return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}: ${value >= 41 && m.style ? m.style : m.cue}`;
+    // One set for narration or dialogue only sends just that part of the brief, marked, so nothing else leaks over.
+    if (isAuthor(m)) { const role = state?.authorRole?.[m.id];
+        return `${m.label}${m.books ? ` (${m.books.replaceAll('; ', ', ')})` : ''}${role ? `, ${role} only` : ''}: ${value >= 41 && m.style ? briefFor(m.style, role) : m.cue}`; }
     if (m.category === 'era') return `${m.label}${state?.targets?.year ? `, exactly ${pt(state.targets.year)}` : ''}: ${m.cue}`;
     // Lower-case the label for mid-sentence reading, but keep acronyms like AI.
     if (['writing', 'craft'].includes(m.category) && m.id.startsWith('prose_')) return `${m.label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase())}: ${m.cue}`;
@@ -64,6 +66,18 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
         return (m.cue.toLowerCase().startsWith(m.label.toLowerCase()) ? m.cue : `${m.label.toLowerCase()}: ${m.cue}`).replaceAll('{other}', other);
     return (PROMPT_NAME[m.id] ?? (m.category === 'attraction' ? m.cue : m.label.toLowerCase())).replaceAll('{other}', other);
 };
+// Said once when narration and dialogue have their own authors. Opus 5.5 follows a split best when each side
+// is defined by what it covers, and told what the other side must not borrow.
+const AUTHOR_SPLIT = `Narration and dialogue are split between authors here. An author marked narration only shapes everything outside quotation marks: description, action, what the eye lingers on, inner life, sentence shape and paragraphing. An author marked dialogue only shapes what people say aloud: their vocabulary and slang, rhythm, interruptions, what they dodge or leave unsaid, and how they flirt, threaten, joke and ask for things. Everyone still talks like themselves, their era, class and history; the dialogue author decides how that sounds on the page, not who they are or what they want. Keep each voice on its own side: speech doesn't pick up the narration's sentence rhythm, and the narration doesn't start talking like the characters. Authors with no mark shape both.`;
+// The parts of an author's brief ("Prose: … Dialogue: … Minds: … People: … Hallmarks: …") that a role keeps:
+// dialogue only keeps how people talk; narration only drops it.
+const BRIEF_PART = /(?=\b(?:Prose|Dialogue|Minds|People|Hallmarks): )/;
+function briefFor(style, role) {
+    if (!role) return style;
+    const parts = style.split(BRIEF_PART).map(x => x.trim()).filter(Boolean), talk = parts.filter(x => x.startsWith('Dialogue: '));
+    if (role === 'dialogue') return talk.length ? talk.join(' ') : style;
+    return parts.filter(x => !x.startsWith('Dialogue: ')).join(' ') || style;
+}
 export const CATEGORY_NAME = { ...Object.fromEntries(CATEGORIES.map(([id, name]) => [id, name])), sims: 'Habits & quirks' };
 // The note calls these what they are, not where they came from.
 
@@ -163,6 +177,7 @@ const STANDING_FACTS = {
     fighting: /\b(fight(s|ing)?|punch\w*|hit(s|ting)?|attack\w*|gun|knife|blade|kill\w*|weapon|blood|grab(s|bed)?|struggle\w*)\b/i,
     standing: /\b(money|rich|poor|secret\w*|status|reputation|name|class|power|known|rank)\b/i,
 };
+const STEAM_RULES = new Set(['prose_steam_in_character', 'prose_bed_talk']);
 const PRIVATE_SCENE = /\b(shower\w*|bath(e|es|ed|ing|tub)?|naked|nude|undress\w*|strip\w*|bed|bedroom|sex\w*|cock|dick|penis|crotch|groin|trousers|pants|zipper|erection|hard-on|kiss\w*|moan\w*|thighs?)\b/i;
 const labelIn = (m, scene) => { const key = m.label.replace(/\s*\(.*\)\s*$/, '').toLowerCase(); return key.length > 3 && scene.toLowerCase().includes(key); };
 const factOn = (st, scene, gate) => m => {
@@ -384,7 +399,8 @@ function composePrompt(state, name, extras = {}) {
     const replaced = new Set(story.filter(m => ERA_LOCALE[m.id]).map(m => ERA_LOCALE[m.id].replaces));
     const eras = story.filter(m => m.category === 'era' && !replaced.has(m.id)), styles = story.filter(m => STYLE_CATEGORIES.has(m.category) && m.category !== 'craft');
     // Cleaner writing is the player's rules for the prose, so it goes last, as plain sentences, and outranks any author.
-    const rules = story.filter(m => m.category === 'craft' && m.id !== 'pattern_breaker').sort((x, y) => storyState.moods[y.id] - storyState.moods[x.id]);
+    // The two steam rules only go while the scene is intimate or someone's aroused, so they cost nothing otherwise.
+    const rules = story.filter(m => m.category === 'craft' && m.id !== 'pattern_breaker' && (!STEAM_RULES.has(m.id) || gate.intimate)).sort((x, y) => storyState.moods[y.id] - storyState.moods[x.id]);
     const breaker = story.some(m => m.id === 'pattern_breaker') ? patternLines(extras.patterns, storyState.moods.pattern_breaker) : [];
     // Dialect: the strongest regional era sets narration; a second one only covers its own speakers.
     const locales = [...new Set(eras.filter(m => ERA_LOCALE[m.id]).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map(m => ERA_LOCALE[m.id].locale))];
@@ -392,6 +408,8 @@ function composePrompt(state, name, extras = {}) {
     const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category) && !OWN_LINE.has(m.id));
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
+    // Narration and dialogue given to different authors (Story › an author's "Narration" or "Dialogue" button).
+    const roleSplit = styles.some(m => isAuthor(m) && storyState.authorRole?.[m.id]);
     // The period as one plain instruction and a short line, then what it does to the things in play.
     const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
     if (eras.length) {
@@ -428,9 +446,10 @@ function composePrompt(state, name, extras = {}) {
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
     if (styles.length) guide('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply, first line to last, with no drifting back to a default style. Use contractions (doesn't, can't, he's) the way people talk, in narration and dialogue.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
-        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []));
+        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []),
+        ...(roleSplit ? [AUTHOR_SPLIT] : []));
     // With the guide split off, a short line here keeps the voice in force right before the reply.
-    if (split && styles.length) out.push('', `Write this reply in the voice set in the guide (${styles.filter(m => storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 4).map(m => m.label).join(', ') || styles[0].label}), from the first line to the last.`);
+    if (split && styles.length) out.push('', `Write this reply in the voice set in the guide (${styles.filter(m => storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 4).map(m => `${m.label}${storyState.authorRole?.[m.id] ? ` for ${storyState.authorRole[m.id]}` : ''}`).join(', ') || styles[0].label}), from the first line to the last.`);
     if (breaker.length) out.push('', ...breaker);
     // The highest settings get named again at the end, where they carry the most weight.
     const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards' && m.category !== 'craft'), 'the story', N]]

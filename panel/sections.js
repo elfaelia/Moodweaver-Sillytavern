@@ -196,9 +196,18 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
+    ${kind === 'story' ? voicesBlock(state) : ''}
     ${kind === 'story' ? `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label><p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>` : ''}
     ${['mood', 'trait', 'psyche', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
+}
+// Who writes what, at a glance, once any author is on: narration, dialogue, or both.
+function voicesBlock(state) {
+    const on = MOODS.filter(m => m.books && state.moods[m.id] > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id]);
+    if (!on.length) return '';
+    const of = role => on.filter(m => (state.authorRole?.[m.id] ?? '') === role).map(m => esc(m.label)).join(', ');
+    const parts = [['Narration', of('narration')], ['Dialogue', of('dialogue')], ['Both', of('')]].filter(([, names]) => names);
+    return `<div class="mw-voices">${parts.map(([k, names]) => `<span><b>${k}:</b> ${names}</span>`).join('')}</div>`;
 }
 export function lastMoodRec(ch) {
     const list = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [];

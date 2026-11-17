@@ -60,13 +60,18 @@ function poleMoons(m, state) {
 const sideText = (m, state) => { const side = sideOf(m, state); return side ? `<p class="mw-side mw-side-${side}"><b>${SIDE_NAME[side]}:</b> ${esc(m[side])}</p>` : ''; };
 // An author's books, and (Settings › Panel) how they write, under the row.
 const authorLines = m => m.books ? `<small class="mw-books">${esc(m.books.replaceAll("; ", " · "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
+// Once an author is on: what they write. Whole voice (both), narration only, or dialogue only. Three wide buttons.
+const ROLE_CHOICES = [['', 'Both', 'Narration and dialogue'], ['narration', 'Narration', 'Everything outside the quotes'], ['dialogue', 'Dialogue', 'What people say aloud']];
+const roleButtons = (m, state) => !m.books || !(state.moods[m.id] > 0) ? '' : `<div class="mw-author-role" role="group" aria-label="What ${esc(m.label)} writes">${ROLE_CHOICES.map(([v, name, hint]) => {
+    const on = (state.authorRole?.[m.id] ?? '') === v;
+    return `<button type="button" class="${on ? 'is-on' : ''}" data-author-role="${m.id}" data-role="${v}" aria-pressed="${on}" title="${hint}">${name}</button>`; }).join('')}</div>`;
 export function row(m, state) {
     const value = state.moods[m.id], pin = state.pins[m.id];
     return `<div class="mw-mood" data-mood="${m.id}" data-aliases="${esc((MERGED_SEARCH_NAMES[m.id] ?? []).join(' '))}" style="--mw-accent:${m.color}">
         <div class="mw-row-head"><label id="mw-${m.id}">${esc(tagLabel(m))}</label><span data-level="${m.id}">${sideOf(m, state) ? `${sideOf(m, state) === 'dark' ? 'unhealthy' : 'healthy'} · ` : ''}${level(value)}</span>
         <button type="button" class="mw-pin ${pin ? 'is-pinned' : ''}" data-pin="${m.id}" aria-pressed="${pin}" aria-label="${pin ? 'Unpin' : 'Pin'} ${esc(tagLabel(m))}" title="Pin: the scene reader leaves it alone">${pin ? '◆' : '◇'}</button>${coreButton(m, state)}${listButton(m.id, state)}</div>
         ${twoSided(m) ? poleMoons(m, state) : moons(m, value)}
-        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${authorLines(m)}${sideText(m, state)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
+        ${whyLine(m, state)}<small${m.note ? ` title="${esc(`Sent to the AI: ${m.cue}`)}"` : ''}>${esc(m.note ?? m.cue)}</small>${roleButtons(m, state)}${authorLines(m)}${sideText(m, state)}${targetFields(m, state)}${value ? causeBox(`data-cause="${m.id}"`, state.causes?.[m.id]) + showsBox(m, state) : ''}</div>`;
 }
 // On an active feeling, how it shows on this person. Empty uses the default wording (the placeholder).
 const showsBox = (m, state) => analysed(m) && ON_PAGE[m.id] && settings().showsMode !== 'off' ? `<input type="text" class="mw-cause mw-shows" data-shows="${m.id}" maxlength="120" value="${esc(state.shows?.[m.id] ?? '')}" placeholder="${settings().showsMode === 'mine' ? 'your wording (default is off): ' : 'shows as: '}${esc(ON_PAGE[m.id])}" title="How it shows on ${esc(subjectName())}. Leave empty for: ${esc(ON_PAGE[m.id])}" aria-label="How it shows on them">` : '';

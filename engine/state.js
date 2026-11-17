@@ -1,6 +1,6 @@
 // One person's saved moods, traits, wants and notes: a fresh state, cleaning saved values, and
 // moving values saved by older versions to where they live now.
-import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, sectionOf } from '../data/catalogue.js';
+import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, isAuthor, sectionOf } from '../data/catalogue.js';
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
@@ -132,6 +132,10 @@ export function clearOpposites(st, id) {
 }
 // Which way a mind setting leans: 'light' (healthier) or 'dark'; missing means middling.
 export const cleanLean = x => Object.fromEntries(Object.entries(x && typeof x === 'object' ? x : {}).filter(([id, v]) => BY_ID[id]?.light && ['light', 'dark'].includes(v)));
+// Which part of the writing an author shapes: 'narration' (everything outside the quotes) or 'dialogue' (what
+// people say aloud). Missing means both, as before.
+export const AUTHOR_ROLES = ['narration', 'dialogue'];
+export const cleanAuthorRole = x => Object.fromEntries(Object.entries(x && typeof x === 'object' ? x : {}).filter(([id, v]) => isAuthor(BY_ID[id]) && AUTHOR_ROLES.includes(v)));
 export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && ['trait', 'psyche'].includes(sectionOf(BY_ID[id])) && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
 // How long each fact that runs its course has run (engine/moodpace.js factStep). fromStory: facts and
 // feelings the story put on, which it takes off again when its list leaves them out (app/replies.js).
@@ -147,7 +151,7 @@ export function extendCatalogue(state) {
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
     state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
     state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs);
-    state.psyLean = cleanLean(state.psyLean);
+    state.psyLean = cleanLean(state.psyLean); state.authorRole = cleanAuthorRole(state.authorRole);
     state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
     // fromStory was storyFacts in 1.58 (facts only).
     state.fromStory = [...new Set([state.fromStory, state.storyFacts].flatMap(x => Array.isArray(x) ? x : []))].filter(id => BY_ID[id]); delete state.storyFacts;
@@ -218,7 +222,7 @@ export function freshState(base = {}) {
         personality: cleanPersonality(base.personality),
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
-        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), core: cleanCore(base.core, base.moods ?? {}), psyLean: cleanLean(base.psyLean),
+        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), core: cleanCore(base.core, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
         skills: cleanSkills(base.skills), skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),

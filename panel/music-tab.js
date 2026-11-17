@@ -1,6 +1,6 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { characterNames, exportSheet, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, setOn, setTag, signOut, start, sync, toggleLock, togglePlay, togglePlaylist, usableSongs } from '../app/music.js';
+import { characterNames, exportSheet, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, reRoll, setOn, setTag, signOut, start, sync, toggleLock, togglePlay, togglePlaylist, usableSongs } from '../app/music.js';
 import { canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
@@ -66,6 +66,9 @@ function kindRow(snap) {
 function nowCard(m, tone) {
     const n = mus.now, snap = mus.latest, playing = Boolean(n?.playing && m.on);
     const why = (mus.why ?? []).filter(Boolean).slice(0, 4);
+    // Lyric cues the story just said: one line, so you can see a cue was heard and why it did or didn't play.
+    const seen = new Set(), heard = (mus.heard ?? []).filter(h => h.name && !seen.has(norm(h.name)) && seen.add(norm(h.name))).slice(0, 3);
+    const heardLine = heard.length ? `<p class="mw-music-note">Heard in the story: ${heard.map(h => `“${esc(h.cue)}” → ${esc(h.name)}${h.uri === mus.now?.uri ? ' (playing)' : h.resting ? ' (resting)' : h.fits ? ' (nudged)' : " (doesn't fit this scene)"}`).join(' · ')}</p>` : '';
     const elapsed = n ? (n.playing ? Date.now() - n.started : n.progress) : 0, pct = n?.ms ? Math.max(0, Math.min(100, elapsed / n.ms * 100)) : 0, left = n?.ms ? Math.max(0, n.ms - elapsed) : 0;
     return `<section class="mw-music-hero ${playing ? 'is-playing' : ''}" style="${toneVars(tone)}">
         <button type="button" class="mw-music-power" data-music="toggle-on" aria-pressed="${Boolean(m.on)}"><span aria-hidden="true"></span>${m.on ? 'Music on' : 'Music off'}</button>
@@ -78,10 +81,12 @@ function nowCard(m, tone) {
             <button type="button" class="mw-music-round is-main" data-music="play" aria-label="${n?.playing ? 'Pause' : 'Play'}">${icon(n?.playing ? 'pause' : 'play')}</button>
             <button type="button" class="mw-music-round" data-music="next" aria-label="Next best song">${icon('next')}</button>
         </div>
+        <button type="button" class="mw-music-reroll" data-music="reroll"${mus.busy ? ' disabled' : ''}>↻ Re-roll for the story now</button>
         ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button></div>` : ''}
         ${kindRow(snap)}
         ${why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
         ${snap ? `<p class="mw-music-scene">${esc(describe(snap, snap.name))}</p>` : ''}
+        ${heardLine}
         ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : mus.status ? `<p class="mw-music-note">${esc(mus.status)}</p>` : ''}
         ${mus.loading ? `<p class="mw-music-note">${esc(mus.loading)}</p>` : ''}
     </section>`;
@@ -140,7 +145,7 @@ function tagEditor(m, uri) {
         ${group('place', 'Place', t.p.map(id => labelOf('p', id)), PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''))}
         ${group('never', 'Never during', t.nv.map(v => neverAll.find(([k]) => k === v)?.[1] ?? v), neverAll.map(([v, l]) => tag('nv', v, l, t.nv.includes(v))).join(''))}
         ${group('moods', 'Exact moods', t.m.map(id => labelOf('m', id)), `<label class="mw-music-note">Names separated by commas, as in the sheet<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>`)}
-        ${group('cues', 'Cues', t.cue, `<label class="mw-music-note">Short phrases, separated by commas, that nod to this song when the story says them (like a dog, salivat*). A * means any ending. The song gets a nudge for a few replies if it fits the scene.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label>`)}
+        ${group('cues', 'Cues', [...t.cue, ...t.cw], `<label class="mw-music-note">Phrases: each one alone nods to this song when the story says it (like a dog). Separate with commas.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label><label class="mw-music-note">Theme words: any two of these close together count (dog*, leash*, collar*, salivat*). A * means any ending.<input type="text" data-music-field="cuewords" data-uri="${esc(uri)}" value="${esc(t.cw.join(', '))}" autocapitalize="off" spellcheck="false"></label><p class="mw-fine">The song gets a nudge for a few replies if it fits the scene, then rests for 3 hours once it has played.</p>`)}
         <div class="mw-mchips mw-music-flags">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div>
         ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
@@ -189,6 +194,7 @@ export async function musicClick(e, redraw) {
     else if (a === 'toggle-on') await setOn(!m.on);
     else if (a === 'play') await togglePlay();
     else if (a === 'next') await nextBest();
+    else if (a === 'reroll') { const p = reRoll(); redraw(); await p; }
     else if (a === 'lock') toggleLock();
     else if (a === 'kind') forceMode(el.dataset.v || '');
     else if (a === 'fits') await feedback(true);
@@ -218,6 +224,7 @@ export async function musicChange(e, redraw) {
     else if (f === 'import' && el.files?.[0]) { await importSheet(el.files[0]); el.value = ''; redraw(); }
     else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
     else if (f === 'cues') { setTag(el.dataset.uri, 'cue', el.value); redraw(); }
+    else if (f === 'cuewords') { setTag(el.dataset.uri, 'cw', el.value); redraw(); }
     else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
     else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
     return true;

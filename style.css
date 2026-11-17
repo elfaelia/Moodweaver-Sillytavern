@@ -727,6 +727,9 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-panel .mw-music-round:active{transform:scale(.94)}
 .mw-music-verdict{display:flex;justify-content:center;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
 .mw-panel .mw-music-verdict button{min-height:40px;padding:8px 14px;border-radius:999px;font-size:13px;background:#0e0b1799}
+.mw-panel .mw-music-reroll{display:block;width:100%;max-width:320px;min-height:48px;margin:14px auto 0;padding:10px 18px;border-radius:999px;font-size:15px;letter-spacing:.02em;background:#efd59c14;border:1px solid #efd59c66;color:inherit;box-shadow:0 0 14px #efd59c22}
+.mw-panel .mw-music-reroll:active{transform:scale(.97)}
+.mw-panel .mw-music-reroll:disabled{opacity:.55}
 .mw-music-why{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px;margin:12px 6px 0}
 .mw-music-why small{width:100%;font:600 10px/1 var(--mw-sans);letter-spacing:.14em;text-transform:uppercase;color:var(--mw-faint);margin-bottom:2px}
 .mw-music-why span{padding:4px 10px;border-radius:999px;font-size:11.5px;color:color-mix(in srgb,var(--mw-tone) 70%,#fff);background:color-mix(in srgb,var(--mw-tone) 10%,transparent);border:1px solid color-mix(in srgb,var(--mw-tone) 28%,transparent)}

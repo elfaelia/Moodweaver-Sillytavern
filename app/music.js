@@ -28,7 +28,7 @@ export function music() {
     return m;
 }
 // Not saved: what's playing and why.
-export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '', cues: new Map() };
+export const mus = { forced: null, story: null, told: null, now: null, anchor: null, latest: null, lastFam: '', lineup: [], timer: 0, poll: 0, busy: false, status: '', error: '', cutAt: 0, locked: false, chatMark: '', present: '', devices: [], lastImport: null, loading: '', cues: new Map(), heard: [] };
 function save() { ctx().saveSettingsDebounced(); }
 sp.onSignInChange(save);
 let redraw = () => {};
@@ -47,7 +47,7 @@ export const followName = who => who === 'user' ? shortName(playerName()) : shor
 // ---- The scene ----
 export const modeLabel = id => (MODES.find(x => x.id === id)?.label ?? id).toLowerCase();
 const factsOf = st => Object.fromEntries(Object.entries(st?.moods ?? {}).filter(([id, v]) => v > 0 && BY_ID[id]?.kind === 'state'));
-export function sceneNow() {
+export function sceneNow(deep = false) {
     const ch = target(); if (!ch) return null;
     const st = getState(ch), you = getUserState(), m = music(), follow = m.follow;
     const people = [], who = [];
@@ -78,7 +78,8 @@ export function sceneNow() {
     const texts = [{ text: lastReply?.mes ?? '', weight: 1 }, { text: lastYou?.mes ?? '', weight: 0.6 }];
     // Story mode reads one reply further back too, so the scene's turn (a confession building, a chase starting)
     // carries, the way a film cue follows the scene and not one line.
-    if (follow === 'story') { const prevReply = chat.filter(x => x && !x.is_user && !x.is_system).at(-2); if (prevReply) texts.push({ text: prevReply.mes ?? '', weight: 0.4 }); }
+    // ↻ Re-roll reads it too, whatever the music follows.
+    if (follow === 'story' || deep) { const prevReply = chat.filter(x => x && !x.is_user && !x.is_system).at(-2); if (prevReply) texts.push({ text: prevReply.mes ?? '', weight: follow === 'story' ? 0.4 : 0.5 }); }
     if (mus.forced && mus.forced.chat !== ctx().chatId) mus.forced = null;
     const snap = snapshot({ people, who, facts, dyn, under, meters, horny: Number.isFinite(live?.hornyValue) ? live.hornyValue : null, night: live?.sky?.time === 'night', replies, appear, everyone, texts, force: mus.forced?.mode ?? '' });
     snap.story = follow === 'story';
@@ -98,17 +99,21 @@ export function usableSongs(m = music()) {
 // only if it fits the scene. Once it has played for a cue, its cues rest for a few hours so it doesn't keep coming back.
 const CUE_REPLIES = 3, CUE_REST = 3 * 3600 * 1000;
 const replyCount = () => (ctx().chat ?? []).filter(x => x && !x.is_user && !x.is_system).length;
-function readCues(m) {
+function readCues(m, deep = false) {
     if (!m.cues) { mus.cues.clear(); return []; }
     const chat = ctx().chat ?? [], at = replyCount(), id = ctx().chatId;
     for (const [uri, c] of mus.cues) if (c.chat !== id || at - c.at >= CUE_REPLIES) mus.cues.delete(uri);
     const lastReply = [...chat].reverse().find(x => x && !x.is_user && !x.is_system), lastYou = [...chat].reverse().find(x => x && x.is_user);
-    const text = `${plainStory(lastReply?.mes)}\n${plainStory(lastYou?.mes)}`;
+    const prevReply = deep ? chat.filter(x => x && !x.is_user && !x.is_system).at(-2) : null;
+    const text = `${plainStory(lastReply?.mes)}\n${plainStory(lastYou?.mes)}${prevReply ? `\n${plainStory(prevReply.mes)}` : ''}`;
     const fresh = cueHits(usableSongs(m), text).filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST);
     for (const h of fresh) mus.cues.set(h.uri, { cue: h.cue, at, chat: id });
     return fresh.map(h => h.uri);
 }
 const cuedNow = m => m.cues ? new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue])) : new Map();
+// Half the time a fitting cued song is the pick; otherwise the usual pick (which may still be it).
+const CUE_CHANCE = 0.5;
+function pickCued(list, only = null) { const c = list.filter(x => x.cue && (!only || only.includes(x.uri)) && x.uri !== mus.now?.uri); return c.length && Math.random() < CUE_CHANCE ? c[0] : null; }
 // A cued song that plays uses up its cue for a while.
 function cuePlayed(m, uri) {
     if (!uri || !mus.cues.has(uri)) return;
@@ -120,6 +125,8 @@ function cuePlayed(m, uri) {
 function ranked(snap, m = music(), exclude = []) {
     const songs = usableSongs(m).filter(s => !exclude.includes(s.uri)), recent = new Set(m.recent.slice(-20));
     let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m) });
+    // What the cues did, for the Now playing card: heard, and whether the song fits this scene.
+    mus.heard = [...mus.cues].map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
     // Nothing fits well: the character's own default playlist (Characters tab), then simply the best there is.
     if (!list.length || list[0].score < GOOD_ENOUGH) {
         const own = m.chars[norm(snap.name.split(' & ')[0])]?.pl;
@@ -152,12 +159,13 @@ async function playList(m, uris, why, snap, cut = false) {
 }
 function remember(m, uri) { if (!uri) return; cuePlayed(m, uri); m.recent = [...m.recent.filter(u => u !== uri), uri].slice(-40); save(); }
 // Start (or restart) with the best songs for the scene right now.
-export async function start(exclude = []) {
+export async function start(exclude = [], deep = false) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
-    const snap = sceneNow() ?? snapshot({}); mus.latest = snap;
+    const snap = sceneNow(deep) ?? snapshot({}); mus.latest = snap;
+    readCues(m, deep); // Play and Next hear the story too, not only a new reply.
     const list = ranked(snap, m, exclude);
     if (!list.length) return say('No songs yet: tick a playlist and tap Load songs, or import a song sheet.', true);
-    const first = pick(list);
+    const first = pickCued(list) ?? pick(list);
     try { await playList(m, lineup(list, first), first.why, snap, Boolean(mus.now)); m.on = true; save(); }
     catch (err) { say(err.message, true); }
 }
@@ -178,14 +186,14 @@ export async function afterReply() {
     if (mus.locked || swiped) { changed(); return; }
     const shift = shiftOf(mus.anchor, snap, famHeld), list = ranked(snap, m);
     // The story just said a song's cue and that song now leads: that counts as a real shift (the hold time still applies).
-    const cueShift = list[0]?.cue && freshCues.includes(list[0].uri) && list[0].uri !== mus.now.uri;
+    const cueShift = list.some(x => x.cue && freshCues.includes(x.uri) && x.uri !== mus.now.uri);
     if (!list.length) return;
     const now = list.find(x => x.uri === mus.now.uri), current = now?.score ?? -Infinity, held = (Date.now() - mus.cutAt) / 1000 >= m.hold;
     // The scene turned into another kind (a kiss, a chase, a death) and this song is wrong for it: change now,
     // whatever the hold time or "Only when a song ends" says. Otherwise the usual rules.
     const wrong = snap.mode && (!now || !now.fits) && list[0].fits && (Date.now() - mus.cutAt) > 15000;
-    if (wrong || (m.change !== 'end' && (m.change === 'any' ? shift.any : shift.big || cueShift) && held && list[0].score >= current + 4)) {
-        const first = pick(list);
+    if (wrong || (m.change !== 'end' && held && (cueShift || ((m.change === 'any' ? shift.any : shift.big) && list[0].score >= current + 4)))) {
+        const first = (cueShift && pickCued(list, freshCues)) || pick(list);
         try { await playList(m, lineup(list, first), first.why, snap, true); } catch (err) { say(err.message, true); }
     } else changed();
 }
@@ -235,6 +243,24 @@ export async function togglePlay() {
     catch (err) { say(err.message, true); }
 }
 export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
+// ↻ Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
+// lit playlists while SillyTavern was closed, read the last two replies and your last message again (scene kind,
+// moods, heat, lyric cues) and start a fresh line-up with a different song from the one that was on.
+// "This scene is…" you set yourself and lyric-cue rests are kept; ✕ Not here and Never during still count.
+export async function reRoll() {
+    const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
+    if (mus.busy) return; mus.busy = true;
+    try {
+        if (Object.entries(m.playlists).some(([id, p]) => p.on && p.owned && !id.startsWith('csv:'))) {
+            mus.loading = 'Looking for new songs in your playlists…'; changed();
+            try { await loadPlaylists(); } catch { /* offline: use the songs already here */ }
+        }
+        mus.story = null; mus.anchor = null; mus.lineup = []; mus.cues.clear(); mus.why = []; mus.lastFam = ''; mus.loading = '';
+        if (mus.forced && mus.forced.chat !== ctx().chatId) mus.forced = null;
+        await start(mus.now ? [mus.now.uri] : [], true);
+        if (!mus.error) say(`Re-rolled from the last two replies · ${usableSongs(m).length} songs to pick from.`);
+    } finally { mus.busy = false; mus.loading = ''; changed(); }
+}
 // The kind of scene, said by you: holds for the next 6 replies (or until you tap Auto), then Moodweaver reads it again.
 export function forceMode(mode) {
     mus.forced = mode ? { mode, left: 6, chat: ctx().chatId } : null;
@@ -331,6 +357,7 @@ export function setTag(uri, kind, value) {
     else if (['th', 'fav', 'off'].includes(kind)) t[kind] = !t[kind];
     else if (kind === 'm') t.m = String(value).split(',').map(s => norm(s)).filter(Boolean).map(s => MOOD_LIST.find(x => norm(x.label) === s || x.id === s)?.id).filter(Boolean);
     else if (kind === 'cue') t.cue = String(value).split(',');
+    else if (kind === 'cw') t.cw = String(value).split(/[,\s]+/);
     m.tags[uri] = cleanTags(t); save(); changed();
 }
 

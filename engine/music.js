@@ -46,14 +46,14 @@ export function meaningsOf(moods = {}) {
 // One song's (or one playlist's) tags. Character names are kept as typed (compared without case);
 // {{char}} and {{user}} stand for whoever the main character and your persona are in the chat.
 // nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (✗ Not here adds these).
-export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], note: '' });
+export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], note: '' });
 const ids = (list, ok) => [...new Set((Array.isArray(list) ? list : []).filter(x => typeof x === 'string' && ok(x)))];
 export function cleanTags(t = {}) {
     return {
         f: ids(t.f, x => Boolean(LABEL.f[x])), cm: ids(t.cm, x => MEANING_IDS.has(x)), m: ids(t.m, x => Boolean(MOOD_FAMILY[x])), p: ids(t.p, x => PLACE_IDS.has(x)), mo: ids(t.mo, x => Boolean(LABEL.mo[x])), d: ids(t.d, x => DYN_IDS.has(x)),
         h: LABEL.h[t.h] ? t.h : '', e: [1, 2, 3, 4, 5].includes(Number(t.e)) ? Number(t.e) : 0,
         c: [...new Set((Array.isArray(t.c) ? t.c : []).map(x => String(x).trim()).filter(Boolean).slice(0, 12))],
-        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), note: String(t.note ?? '').slice(0, 300),
+        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), cw: cleanCueWords(t.cw), note: String(t.note ?? '').slice(0, 300),
     };
 }
 // ---- Lyric cues ----
@@ -65,19 +65,54 @@ const cueRegex = c => {
     if (!cueRe.has(c)) cueRe.set(c, new RegExp(`(?<![a-z0-9'])${c.split(' ').map(w => w.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*$/, "[a-z']*").replace(/\*/g, '')).join("[\\s,.;:!?\"'-]+")}(?![a-z0-9])`, 'i'));
     return cueRe.get(c);
 };
-// The songs whose cues the text says: [{ uri, cue }].
+// Theme words: single words or stems from the song's lyrics and themes (dog*, leash*, salivat*, collar*). Any two
+// different ones within CUE_NEAR words of each other (about a sentence) count, one of them not an everyday word, so the narrator's own wording works ("his mouth is
+// watering like a dog under a dinner table"). Words that turn up in nearly every reply never count.
+export const CUE_NEAR = 15;
+const CUE_STOP = new Set(('love heart eye eyes dark darkness night kiss hand hands girl girls boy boys man men woman women baby time life die dies died dying dead death cold light look looks looked feel feels felt want wants wanted need needs know say says said smile smiles tear tears cry cries cried breath breathe skin lip lips mouth body head face hair voice room bed door wall walls floor window chair table '
+    + 'doctor doctors nurse patient patients hospital ward needle syringe clinic facility cell experiment test file notes chart pill pills medicine sedative strap straps restraint restraints the and you your his her him she he it its this that with for from').split(' '));
+// Everyday prose words. A pair of theme words needs at least one word that isn't one of these, so "step closer" or
+// "rain on the glass" never sets a song off, while "dog" with "watering" does.
+const CUE_COMMON = new Set('a about above ache aches across act after afternoon again against age ago air all almost alone along already also always am among an and anger animal another answer any anyone anything apart appear are arm arms around as ash ask asleep at ate away back bad bag ball bar bare barely be bear beat beautiful became because become been before began begin behind being believe bell belly below beneath beside best better between big bird bit bite bites bitter black blank blind blink blood blow blue board boat bone book books boot boots born both bottle bottom bound box brain bread break breakfast breath breathing bright bring broke broken brother brown bruise brush brushes build bulb burn burning burns busy but button buy buzz buzzing by call calm came can candle candles car care careful carefully carry case catch caught ceiling center chance change cheap cheek cheeks chest chew child children chill chin choose church cigarette circle city clean clear click climb clock close closed closer closes cloth clothes cloud clouds coat coffee cold collar color colour come comes coming cool corner corridor could count country course cover crack cross crowd cruel cup curl curtain cut dad dance danger dark darkness day dear deep desk did different dim dinner dirt dirty do does dog done door doors down drank draw drawn dream dress drew drink drinks drive drop dry dull dust each ear early ears earth easy eat eats edge eight either else empty end enough even evening ever every everyone everything exam examine examined examines except eye face faces fact fail fall false family far fast fat father fear feet fell few field fill final finally find fine finger fingers fingertip fingertips finish fire first fish fist five flat flesh flew floor flower fly fog fold follow food foot for force forehead forget fork forward found four free freezing fresh friend from front full fun funny game garden gave gaze gazes gently get gift give glad glance glances glass glow go god goes gold gone good got grab grabs gray great green grew grey grip grips ground group grow guess gun had half hall hallway hand hang happen happy hard hardly has hat have he hear heard heartbeat heat heavy held hell help her here hers herself hide high hill him himself hip hips his hit hold holds hole home hope horse hot hour hours house how however huge hum humming hundred hunger hungry hurt hurts idea if ill in inch inside instead into iron is it its itself jacket job join just keep kept key keys kid kind king knee knees knew knife lady laid lake lamp land language large last late laugh lay lead lean leaned leans learn least leave led left leg legs less let letter letters lick licks lie lift light lights like line lip list listen little live lock locks long loose lose lost lot loud low lower lunch made make many mark marks matter may me meal mean meat meet member memory middle might mile milk mind minute minutes miss mist mister moment moments money month moon more morning most mother move moves much music must my name names napkin near nearly neck never new next nice nine no nod nods noise none nor nose not note nothing notice now number observation observe observed observes observing of off offer office often oh oil ok old on once one only open opens or order other our out outside over own page pages pain paint pair pale palm palms paper part party pass past path pay pen people perhaps person photograph pick picture piece pink place plain plan plant plate play please pocket point poor pour pours power present press presses pretty procedure pull pulls pulse push pushes put question quick quiet quietly quite race radio rain raise ran rather reach reaches read ready real really reason record red remember rest rests ribs rich ride right ring rise river road rock roll roof rope rose rough round row run rush sad safe same sand sat save saw scene scent school sea seat second seconds see seem seen send sense set seven shade shadow shadows shake shaking shall shape share sharp she sheet shine ship shirt shiver shoe shoes shook shop short should shoulder shoulders shout show shut side sigh sighs sight sign silence silent silver simple simply since sing single sip sips sister sit sits six size sky sleep sleeve slip slow slowly small smell smells smoke smokes smooth snow so soft softly some someone something sometimes son song soon sore sorry sort sound south space speak special spend spine spoke spoon spot spread spring square stair stairs stand stands star stare stares stars start state stay steady step steps stick still sting stings stomach stone stood stop store storm story straight strange street stroke strokes strong study subject subjects such sudden suddenly sugar summer sun supper sure surface swallow swallows sweat sweet swing take taken talk tall taste tastes tea teach tears teeth tell ten tender than thank that the their them then there these they thick thin thing think third this those though thought three threw throat through throw thumb tick ticking tie tight till tilt tilts tiny tired to today together told tomorrow tongue tonight too took top touch touches toward towards town trace traces track train tray tree tremble trembling trip trouble true trust truth try tune turn turned turns twice two under understand unlock until up upon us use used usual very view visit voice voices waist wait wake walk walked walks wall walls warm warmth was wash watch watches watching water wave way we wear weather week weight well went were wet what wheel when where whether which while whiskey whisper white who whole whose why wide wild will win wind window windows wine wing winter wire wise wish with within without woke wonder wood word words work world worry would wrist wrists write wrong yard year yellow yes yesterday yet you young'.split(' '));
+// A plural counts as its word (dogs is as everyday as dog), but a theme word written with its own ending (watering,
+// drooling) was chosen for that form and isn't an everyday word.
+const cueCommon = w => { const s = w.replace('*', ''); return CUE_COMMON.has(s) || (!w.endsWith('*') && /[^s]s$/.test(s) && CUE_COMMON.has(s.slice(0, -1))); };
+export const cleanCueWords = list => [...new Set((Array.isArray(list) ? list : []).map(x => String(x).toLowerCase().trim().replace(/[^a-z'*-]/g, ''))
+    .filter(x => /^[a-z][a-z'-]*\*?$/.test(x) && x.replace('*', '').length >= 3 && !CUE_STOP.has(x.replace('*', ''))))].slice(0, 16);
+// A short stem (beg*, moth*) would catch began or mother, so under 5 letters a * only adds the usual endings.
+const cueWordHit = (w, tok) => {
+    if (w.endsWith('*') && w.length > 5) return tok.startsWith(w.slice(0, -1));
+    w = w.replace('*', '');
+    return tok === w || tok === `${w}s` || tok === `${w}es` || tok === `${w}'s` || tok === `${w}ed` || tok === `${w}d` || tok === `${w}ing` || tok === `${w}${w.at(-1)}ing` || tok === `${w}${w.at(-1)}ed`;
+};
+// The songs whose cues the text says: [{ uri, cue }]. A phrase counts alone; theme words count in pairs.
 export function cueHits(songs, text) {
     const t = String(text ?? '').replace(/[\u2018\u2019]/g, "'"); if (!t.trim()) return [];
-    const out = [];
-    for (const s of songs) for (const c of s.tags?.cue ?? []) if (cueRegex(c).test(t)) { out.push({ uri: s.uri, cue: c }); break; }
+    const toks = t.toLowerCase().match(/[a-z][a-z'-]*/g) ?? [], at = new Map();
+    toks.forEach((w, i) => { const k = w.replace(/'s$/, ''); for (const x of new Set([w, k])) { if (!at.has(x)) at.set(x, []); at.get(x).push(i); } });
+    const uniq = [...at.keys()], out = [];
+    for (const s of songs) {
+        const phrase = (s.tags?.cue ?? []).find(c => cueRegex(c).test(t));
+        if (phrase) { out.push({ uri: s.uri, cue: phrase }); continue; }
+        const found = [];
+        for (const w of s.tags?.cw ?? []) { const pos = uniq.filter(tok => cueWordHit(w, tok)).flatMap(tok => at.get(tok)); if (pos.length) found.push([w, pos]); }
+        if (found.length < 2) continue;
+        let pair = null;
+        for (let a = 0; a < found.length && !pair; a++) for (let b = a + 1; b < found.length && !pair; b++) {
+            const [x, y] = [found[a][0].replace('*', ''), found[b][0].replace('*', '')];
+            if (x.startsWith(y) || y.startsWith(x) || (cueCommon(found[a][0]) && cueCommon(found[b][0]))) continue; // draw + drawn is one word; two everyday words prove nothing
+            if (found[a][1].some(p => found[b][1].some(q => p !== q && Math.abs(p - q) <= CUE_NEAR))) pair = `${x} + ${y}`;
+        }
+        if (pair) out.push({ uri: s.uri, cue: pair });
+    }
     return out;
 }
-export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length));
+export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length || t.cw?.length));
 // A song's own tags on top of its playlists': lists add up, a song's own Heat, Energy and Off win.
 export function mergeTags(own, ...fromPlaylists) {
     const all = [...fromPlaylists.filter(Boolean), own].filter(Boolean), out = emptyTags();
     for (const t of all) {
-        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
+        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue', 'cw']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
         if (t.h) out.h = t.h; if (t.e) out.e = t.e; if (t.th) out.th = true; if (t.fav) out.fav = true; if (t.off) out.off = true;
     }
     return out;
@@ -261,7 +296,12 @@ export function scoreSong(tags, snap, opts = {}) {
 // songs: [{ uri, tags (merged), learn }] → best first, unplayable ones left out.
 export function rank(songs, snap, opts = {}) {
     const sound = opts.sound?.[snap.mode || 'any'];
-    return songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
+    const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
+    // A song the story just echoed (and that fits the scene) joins the front-runners: half a point behind the best,
+    // so it's a real chance, not a certainty.
+    const best = list.find(x => !x.cue)?.score;
+    if (best !== undefined && list.some(x => x.cue)) { for (const x of list) if (x.cue) x.score = Math.max(x.score, Math.round((best - 0.5) * 10) / 10); list.sort((a, b) => b.score - a.score); }
+    return list;
 }
 // One pick from the songs within a point of the best, more often the higher ones. rng is Math.random unless a test passes its own.
 export function pick(ranked, rng = Math.random) {

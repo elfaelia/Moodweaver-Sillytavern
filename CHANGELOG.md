@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.71.2: ↻ Re-roll
+
+- **A big "↻ Re-roll for the story now" button under the play controls.** For when you come back after SillyTavern was closed, or the music just feels stale. One tap:
+  1. looks in your lit Spotify playlists for songs added since last time and loads them (sheet songs you imported are already there);
+  2. forgets the old scene, the old line-up and the old smoothed-over mood, so nothing from before the break carries over;
+  3. reads the newest reply, the reply before it, and your last message again: the kind of scene, moods, heat and lyric cues;
+  4. starts a fresh line-up, with a different song from the one that was on.
+- What you set yourself still counts: a "This scene is…" choice, ✕ Not here, Never during, Off, and the 3-hour rest after a cued song has played.
+- **Theme words written with their own ending now count as unusual words.** "watering" or "drooling" in a song's Cue words was being treated like the everyday "water" or "drool", so "watering … like a dog" needed the exact phrase. Now dog + watering is enough by itself. The false-positive tests came out the same as before.
+
+## 1.71.1: looser lyric cues that follow themes, and Play listens too
+
+- **Cues now follow themes, not just exact phrases.** Each song has a second list, Cue words: the images and themes of its lyrics (I Wanna Be Your Dog has dog, hound, leash, collar, beg, drool, water, fetch, whimper and more). When any two different cue words of one song turn up within about 15 words of each other in the newest reply or your last message, that counts as a cue, just like a phrase. One word alone never does, and at least one of the two has to be an unusual word, so everyday pairs like "hand" and "night" can't set songs off. Word endings are allowed: "drool*" catches drools, drooled, drooling.
+- **Every song's lyrics were looked at again for this,** for their themes and images and not only their title lines, and cue words were added for nearly all of them.
+- **Play and Next hear the story too.** Before, cues were only read when a new reply came in, so pressing Play right after a cued line did nothing. Now Play, Next and the start of a line-up read the last reply and your last message first.
+- **A cued song is a real contender now.** A cued song that fits the scene is lifted to just under the leading song, and on Play, Next, or a cue that changes the scene, it has an even (50/50) chance of being picked. So it often comes on, but not every time, and the 3-hour rest after it plays still stops repeats.
+- **The Now card says what it heard.** A line "Heard in the story: “like a dog” → I Wanna Be Your Dog" shows whether that song is playing, resting, nudged, or doesn't fit this scene.
+- **The sheet has a new Cue words column** (after Cues), and ✎ Tags › Cues has a second box for them. Re-import the new tagged sheet to get them.
+
 ## 1.71.0: lyric cues
 
 - **When the story echoes a song, that song gets a nudge.** Each song can have a few cue phrases ("like a dog", "salivat*" for I Wanna Be Your Dog; "lithium" for Lithium; "eyes without a face"). When the newest reply or your last message says one, that song scores 5 points more for that reply and the next two. It's a nudge, not a takeover: the song still has to fit the kind of scene (no I Wanna Be Your Dog in a sweet confession), and Not here, Never during and Off still win. If the cued song now leads, it counts as a real shift, so it can come in on the next cut (the hold time still applies; "Only when a song ends" waits for the end).

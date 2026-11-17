@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.68.0: music that scores the story
+
+- **✦ Story, a film-score mode.** Follow now has a fourth choice beside {{char}}, {{user}} and both. Story blends both of your moods, smoothed over a few replies so one swing doesn't yank the music around, gives the dynamic between you double weight, and favours songs about the two of you. The cue only changes when the scene itself changes (a new kind of scene, place or moment), the way a film holds its music through a scene instead of jumping at every feeling.
+- **Tell the story the song (Music settings, off by default).** When it's on, Claude is told the exact song playing, title and artist, whatever the story's era, as the scene's score: let its mood, pace and imagery colour the writing, never quote or paraphrase it, never name it, no one in the story hears it, and the story keeps moving. "Tell it for" sets how long: the first 1, 2 or 3 replies of each song, or the whole song. About 60 tokens on those replies only.
+- **The song playing sits at the top.** In Your songs, the song now playing is pinned first and glows softly, so ✎ editing it is one tap.
+- **A shorter tag editor.** One section open at a time, behind bright full-width bars (Side, Feeling, Meaning, Moment, Dynamic, Heat, Place, Never during, Exact moods). Tapping a bar opens it and closes the others. Character shows only {{char}}, {{user}}, Any and this chat's two people (plus anyone already ticked), with "All names…" to see the rest. The song's research note shows at the top. Picking a song to edit scrolls straight up to the editor.
+- **Meanings: songs that are two feelings at once.** 21 meanings like Grieving a love, Laughing through heartbreak, Devotion that is madness, Tender menace, Sweet but sinister, Possessive tenderness and Wanting what's wrong. A song with a meaning scores higher when someone in the scene really feels both halves at once (each at 31 or more). New Meaning column on the song sheet and a Meaning section in the editor.
+- **New moments:** Watching / stalking, Worship, Conditioning / brainwashing, Sedated / drugged drift and High / using. Sedated songs lean slow and quiet.
+- **The tagged sheet is redone from research.** All 408 songs in your newest playlist export were looked up (lyrics meaning, what that exact recording or cover sounds like, and film, TV and game uses), then a second pass checked the thin ones. Same file name, Easterman-song-sheet-tagged.xlsx, so it replaces the old one.
+
+## 1.67.1: Not here means not here
+
+- **✕ Not here is final for that kind of scene.** One tap and the song never plays in that kind of scene again (Intimate, Danger, Sorrow, Tender, Dark or Party). Every other version of it with the same title goes too, like the Arcade Fire and Sara Lov "My Body Is a Cage". Before, it only nudged the song down a little, and the other version could take its place straight away. To undo it, open the song's ✎ Tags › Never during and tap the scene kind off.
+- **Tell it what kind of scene this is.** Under the controls, "This scene reads as…" shows what Moodweaver thinks is happening. Tap Intimate, Danger, Sorrow, Tender, Dark or Party to set it yourself. It holds for the next 6 replies, then goes back to Auto. Tap Auto to hand it back sooner.
+- **Slow burn is noticed sooner.** One desire feeling at 31 or more (either of you), or two that add up to 55, now counts. More tender touches in the reply count too, like brushing the hair from a face, cupping a cheek or a thumb across a lip.
+- The song sheet's Never during column has the scene kinds too ("Intimate scenes", "Dark scenes"…).
+
+## 1.67.0: songs that fit the scene
+
+- **The kind of scene leads.** Every scene is now one of Intimate, Danger, Sorrow, Tender, Dark or Party, and a song made for another kind drops right down the list. A song tagged Sex scene never plays outside one, and a bright, happy song with nothing sultry about it never plays in an intimate scene, so no more It's My Party during foreplay.
+- **The story's own words count.** The newest reply (and your last message) is read for what is actually happening: kissing, undressing and the like make it Intimate even before the moods catch up. Chases, blood, funerals, sleep, parties and driving switch on their moments the same way. No tokens.
+- **Heat counts both of you,** whoever the music follows.
+- **Whose side a song is on.** A song tagged for Lamb still plays while the music follows Easterman, matched to Lamb's own moods (and the other way round). Songs for someone not in the scene still drop away.
+- **Wrong song, changed now.** When the scene turns into another kind and the song playing is wrong for it, it changes straight away, whatever the hold time or "Only when a song ends" says (🔒 Lock still keeps it).
+- **Tighter line-ups.** Only songs for the same kind of scene, close behind the pick, are queued on Spotify, so it doesn't wander off by itself.
+- **Sounds like.** New Sound column on the song sheet (Spotify's genres, filled in from Exportify CSVs). ✦ Fits teaches which sounds suit which kind of scene, so a Fits on Glory Box in a slow-burn scene brings up more trip hop there.
+
 ## 1.66.0: a night-sky Music tab
 
 - The Music tab is redesigned to match the rest of the panel. The song now playing sits in the middle as a glowing planet (its album art), with a dashed orbit and a small moon that circles while music plays and stops when it pauses.

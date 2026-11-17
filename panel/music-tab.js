@@ -1,10 +1,10 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { characterNames, exportSheet, feedback, finishSignIn, followName, importSheet, loadPlaylists, mus, music, nextBest, setOn, setTag, signOut, start, sync, toggleLock, togglePlay, togglePlaylist, usableSongs } from '../app/music.js';
+import { characterNames, exportSheet, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, setOn, setTag, signOut, start, sync, toggleLock, togglePlay, togglePlaylist, usableSongs } from '../app/music.js';
 import { canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
-import { DYN_GROUPS, ENERGY, FAMILIES, HEAT, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm } from '../engine/music.js';
+import { DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm } from '../engine/music.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { moodTone } from '../engine/tone.js';
 import { getState, getUserState } from '../app/chat.js';
@@ -56,6 +56,13 @@ const ICONS = {
     next: '<path d="M6 6.5v11l8-5.5z" fill="currentColor"/><path d="M17.5 6.5v11"/>',
 };
 const icon = k => `<svg class="mw-music-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
+// "This scene is…": what kind of scene Moodweaver thinks it is, and a tap to tell it (holds for 6 replies).
+function kindRow(snap) {
+    const now = mus.forced?.mode ?? '', seen = snap?.mode ?? '';
+    const chipFor = (id, label) => `<button type="button" class="mw-mchip" data-music="kind" data-v="${id}" aria-pressed="${id ? now === id : !now}">${esc(label)}${!now && id && id === seen ? ' ·' : ''}</button>`;
+    return `<div class="mw-music-kind"><small>${now ? `This scene is ${esc(MODES.find(x => x.id === now)?.label ?? now)} for ${mus.forced.left} more ${mus.forced.left === 1 ? 'reply' : 'replies'}` : `This scene reads as ${seen ? esc(MODES.find(x => x.id === seen)?.label ?? seen) : 'nothing in particular'} · tap to set it yourself`}</small>
+        <div class="mw-mchips">${chipFor('', 'Auto')}${MODES.map(x => chipFor(x.id, x.label)).join('')}</div></div>`;
+}
 function nowCard(m, tone) {
     const n = mus.now, snap = mus.latest, playing = Boolean(n?.playing && m.on);
     const why = (mus.why ?? []).filter(Boolean).slice(0, 4);
@@ -72,6 +79,7 @@ function nowCard(m, tone) {
             <button type="button" class="mw-music-round" data-music="next" aria-label="Next best song">${icon('next')}</button>
         </div>
         ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button></div>` : ''}
+        ${kindRow(snap)}
         ${why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
         ${snap ? `<p class="mw-music-scene">${esc(describe(snap, snap.name))}</p>` : ''}
         ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : mus.status ? `<p class="mw-music-note">${esc(mus.status)}</p>` : ''}
@@ -81,10 +89,11 @@ function nowCard(m, tone) {
 // Whose moods pick the music: three little planets, the same orbs as the people at the top of the panel.
 function followCard(m, t) {
     const orb = (who, name, tag, tone, two) => `<button type="button" class="mw-music-who" data-music="set" data-k="follow" data-v="${who}" aria-pressed="${m.follow === who}" style="${toneVars(tone)}">
-        <span class="mw-music-who-orbs">${two ? `<i style="${toneVars(t.char)}">${esc(followName('char')[0] ?? '')}</i><i style="${toneVars(t.user)}">${esc(followName('user')[0] ?? '')}</i>` : `<i>${esc(String(name)[0] ?? '')}</i>`}</span>
+        <span class="mw-music-who-orbs">${two ? `<i style="${toneVars(t.char)}">${esc(followName('char')[0] ?? '')}</i><i style="${toneVars(t.user)}">${esc(followName('user')[0] ?? '')}</i>` : `<i>${esc(who === 'story' ? '✦' : String(name)[0] ?? '')}</i>`}</span>
         <b>${esc(name)}</b><small>${tag}</small></button>`;
-    return `<section class="mw-music-follow"><p class="mw-music-label">Follow whose moods</p><div class="mw-music-whos">
-        ${orb('char', followName('char'), '{{char}}', t.char)}${orb('user', followName('user'), '{{user}}', t.user)}${orb('both', 'Both', 'together', t.char, true)}</div></section>`;
+    return `<section class="mw-music-follow"><p class="mw-music-label">Music follows</p><div class="mw-music-whos">
+        ${orb('char', followName('char'), '{{char}}', t.char)}${orb('user', followName('user'), '{{user}}', t.user)}${orb('both', 'Both', 'their moods', t.char, true)}${orb('story', '✦ Story', 'like a film score', t.char)}</div>
+        ${m.follow === 'story' ? '<p class="mw-fine">Story: the music scores the whole scene, like a film. It holds one cue through a scene and changes when the scene does (a new place, kind of scene, someone arriving, heat), not with every passing feeling.</p>' : ''}</section>`;
 }
 // You may have hundreds of playlists: the ticked ones are lit stars on top, the rest are found by searching (or a
 // tap on "Show all"), in one quiet list.
@@ -108,30 +117,43 @@ function sheetCard(m, asDrawer = true) {
         ${imp ? `<p class="mw-music-note">Last import (${esc(imp.file)}): ${imp.songs} songs tagged${imp.added ? `, ${imp.added} songs added` : ''}${imp.playlists ? `, ${imp.playlists} playlists` : ''}${imp.chars ? `, ${imp.chars} characters` : ''}.${imp.unknown.length ? ` Not recognised: ${esc(imp.unknown.join(', '))}.` : ''}${imp.unmatched.length ? ` Not found: ${esc(imp.unmatched.join(', '))}.` : ''}</p>` : ''}`;
     return asDrawer ? drawer('sheet', '◐', 'Song sheet', 'Sort and tag songs in a spreadsheet', body, ui.musicOpen?.sheet) : `<section class="mw-music-follow">${body}</section>`;
 }
+// The tag editor: one section open at a time (a tap on its bar opens it and closes the others), each bar saying
+// what is lit inside, so the editor stays short. Bars are big, bright and plainly tappable.
 function tagEditor(m, uri) {
     const s = m.songs[uri]; if (!s) return '';
     const t = cleanTags(m.tags[uri] ?? emptyTags()), tag = (k, v, label, on) => chip(`data-music="tag" data-uri="${esc(uri)}" data-k="${k}" data-v="${esc(v)}"`, on, label);
-    const group = (title, body, open = true) => `<details class="mw-music-tags" data-music-group="${esc(title)}" ${open ? 'open' : ''}><summary>${title}</summary><div class="mw-mchips">${body}</div></details>`;
-    const names = ['{{char}}', '{{user}}', 'Any', ...characterNames()];
-    return `<div class="mw-music-editor"><div class="mw-music-editor-head"><span class="mw-music-orb" aria-hidden="true">♪</span><span class="mw-music-dt"><b>${esc(s.n)}</b><small>${esc(s.a)}</small></span><button type="button" class="mw-music-quiet" data-music="close-edit">Done</button></div>
-        <p class="mw-music-note">Tap to light or dim. This song also gets its playlists' tags; what you set here adds to them.</p>
-        ${group('Feeling', FAMILIES.map(f => tag('f', f.id, f.label, t.f.includes(f.id))).join(''))}
-        ${group('Moment', MOMENTS.map(x => tag('mo', x.id, x.label, t.mo.includes(x.id))).join(''))}
-        ${group('Energy and heat', ENERGY.map(x => tag('e', x.id, x.label, t.e === x.id)).join('') + HEAT.map(x => tag('h', x.id, x.label, t.h === x.id)).join(''))}
-        ${group('Character', names.map(n => tag('c', n, n, t.c.some(c => norm(c) === norm(n)))).join(''))}
-        ${group('Dynamic', DYN_GROUPS.map(x => tag('d', x.id, x.label, t.d.includes(x.id))).join(''), false)}
-        ${group('Place', PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''), false)}
-        ${group('Never during', [...FAMILIES.map(x => tag('nv', `f:${x.id}`, x.label, t.nv.includes(`f:${x.id}`))), ...MOMENTS.map(x => tag('nv', `mo:${x.id}`, x.label, t.nv.includes(`mo:${x.id}`))), ...HEAT.map(x => tag('nv', `h:${x.id}`, x.label, t.nv.includes(`h:${x.id}`)))].join(''), false)}
-        <label class="mw-music-note">Exact moods (names separated by commas, as in the sheet)<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>
-        <div class="mw-mchips">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div></div>`;
+    const open = ui.musicGroup ?? 'feeling';
+    const group = (id, title, lit, body) => `<div class="mw-music-group${open === id ? ' is-open' : ''}"><button type="button" class="mw-music-gbar" data-music="group" data-v="${id}" aria-expanded="${open === id}"><b>${title}</b><small>${lit.length ? esc(lit.slice(0, 3).join(', ')) + (lit.length > 3 ? ` +${lit.length - 3}` : '') : 'none'}</small><span aria-hidden="true">${open === id ? '–' : '+'}</span></button>${open === id ? `<div class="mw-mchips">${body}</div>` : ''}</div>`;
+    // Names: the chat's two, {{char}}/{{user}}/Any and whoever is already ticked; the rest on request.
+    const here = [followName('char'), followName('user')], ticked = t.c.filter(c => !['{{char}}', '{{user}}', 'any'].includes(norm(c)));
+    const all = characterNames(), base = [...new Set(['{{char}}', '{{user}}', 'Any', ...here, ...ticked])];
+    const names = ui.musicAllNames ? [...new Set([...base, ...all])] : base;
+    const neverAll = [...MODES.map(x => [`k:${x.id}`, `${x.label} scenes`]), ...FAMILIES.map(x => [`f:${x.id}`, x.label]), ...MOMENTS.map(x => [`mo:${x.id}`, x.label]), ...HEAT.map(x => [`h:${x.id}`, x.label])];
+    const nowOn = mus.now?.uri === uri;
+    return `<div class="mw-music-editor${nowOn ? ' is-now' : ''}"><div class="mw-music-editor-head"><span class="mw-music-orb" aria-hidden="true">${nowOn ? '♫' : '♪'}</span><span class="mw-music-dt"><b>${esc(s.n)}</b><small>${nowOn ? 'Playing now · ' : ''}${esc(s.a)}</small></span><button type="button" class="mw-music-quiet" data-music="close-edit">Done</button></div>
+        ${group('side', 'Whose song', t.c, names.map(n => tag('c', n, n, t.c.some(c => norm(c) === norm(n)))).join('') + (all.length > base.length ? `<button type="button" class="mw-mchip is-more" data-music="allnames">${ui.musicAllNames ? 'Fewer names' : `All ${all.length} names…`}</button>` : ''))}
+        ${group('feeling', 'Feeling', t.f.map(id => labelOf('f', id)), FAMILIES.map(f => tag('f', f.id, f.label, t.f.includes(f.id))).join(''))}
+        ${group('meaning', 'Meaning', t.cm.map(id => labelOf('cm', id)), MEANINGS.map(x => tag('cm', x.id, x.label, t.cm.includes(x.id))).join(''))}
+        ${group('moment', 'Moment', t.mo.map(id => labelOf('mo', id)), MOMENTS.map(x => tag('mo', x.id, x.label, t.mo.includes(x.id))).join(''))}
+        ${group('dynamic', 'Dynamic', t.d.map(id => labelOf('d', id)), DYN_GROUPS.map(x => tag('d', x.id, x.label, t.d.includes(x.id))).join(''))}
+        ${group('heat', 'Energy and heat', [t.e ? `energy ${t.e}` : '', t.h ? labelOf('h', t.h) : ''].filter(Boolean), ENERGY.map(x => tag('e', x.id, x.label, t.e === x.id)).join('') + HEAT.map(x => tag('h', x.id, x.label, t.h === x.id)).join(''))}
+        ${group('place', 'Place', t.p.map(id => labelOf('p', id)), PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''))}
+        ${group('never', 'Never during', t.nv.map(v => neverAll.find(([k]) => k === v)?.[1] ?? v), neverAll.map(([v, l]) => tag('nv', v, l, t.nv.includes(v))).join(''))}
+        ${group('moods', 'Exact moods', t.m.map(id => labelOf('m', id)), `<label class="mw-music-note">Names separated by commas, as in the sheet<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>`)}
+        <div class="mw-mchips mw-music-flags">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div>
+        ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
 function songsCard(m) {
     const term = norm(ui.musicSearch ?? ''), songs = usableSongs(m);
     const hits = (term ? songs.filter(x => norm(`${x.song.n} ${x.song.a}`).includes(term)) : songs).slice(0, 40);
     const tagged = songs.filter(x => m.tags[x.uri]).length;
+    // What's playing sits on top and glows, one tap from its tags.
+    const now = mus.now?.uri ? songs.find(x => x.uri === mus.now.uri) ?? (m.songs[mus.now.uri] ? { uri: mus.now.uri, song: m.songs[mus.now.uri] } : null) : null;
+    const nowRow = now ? `<div class="mw-music-rows"><button type="button" class="mw-music-row is-song is-now" data-music="edit" data-uri="${esc(now.uri)}" aria-pressed="${ui.musicSong === now.uri}"><span class="mw-music-tick" aria-hidden="true">♫</span><span class="mw-music-name"><b>${esc(now.song.n)}</b><small>Playing now · ${esc(now.song.a)}</small></span></button></div>` : '';
     const body = `${ui.musicSong ? tagEditor(m, ui.musicSong) : ''}
         <input type="search" class="mw-music-search" data-music-field="search" value="${esc(ui.musicSearch ?? '')}" placeholder="✧  Find a song or artist" aria-label="Find a song">
-        <div class="mw-music-rows">${hits.map(x => `<button type="button" class="mw-music-row is-song" data-music="edit" data-uri="${esc(x.uri)}" aria-pressed="${ui.musicSong === x.uri}"><span class="mw-music-tick" aria-hidden="true">${m.tags[x.uri] ? '✦' : '·'}</span><span class="mw-music-name"><b>${esc(x.song.n)}</b><small>${esc(x.song.a)}</small></span></button>`).join('')}</div>
+        ${nowRow}
+        <div class="mw-music-rows">${hits.filter(x => x.uri !== mus.now?.uri).map(x => `<button type="button" class="mw-music-row is-song" data-music="edit" data-uri="${esc(x.uri)}" aria-pressed="${ui.musicSong === x.uri}"><span class="mw-music-tick" aria-hidden="true">${m.tags[x.uri] ? '✦' : '·'}</span><span class="mw-music-name"><b>${esc(x.song.n)}</b><small>${esc(x.song.a)}</small></span></button>`).join('')}</div>
         ${songs.length > hits.length ? `<p class="mw-music-note">Showing ${hits.length} of ${songs.length}. Search to find others.</p>` : ''}`;
     return drawer('songs', '♪', 'Songs', `${plural(songs.length, 'song')} · ${tagged} with their own tags`, body, ui.musicOpen?.songs || ui.musicSong);
 }
@@ -139,13 +161,16 @@ function settingsCard(m) {
     const body = `<p class="mw-music-label">Change songs</p><div class="mw-mchips">${CHANGE_CHOICES.map(([v, l]) => choice('change', v, m.change, l)).join('')}</div>
         <p class="mw-music-label">Shortest time before cutting a song</p><div class="mw-mchips">${HOLD_CHOICES.map(([v, l]) => choice('hold', v, m.hold, l)).join('')}</div>
         <p class="mw-music-label">Theme songs play</p><div class="mw-mchips">${THEME_CHOICES.map(([v, l]) => choice('themes', v, m.themes, l)).join('')}</div>
-        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="fade"', m.fade, 'Fade on a cut')}${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}</div>
-        <p class="mw-fine">“Let the story feel the music” adds one short line (about 15 tokens) describing the music's feel, never its name, so Claude can match the mood. Off by default: the music otherwise costs no tokens at all.</p>
+        <p class="mw-music-label">Extras</p><div class="mw-mchips">${chip('data-music="flag" data-k="fade"', m.fade, 'Fade on a cut')}${chip('data-music="flag" data-k="feel"', m.feel, 'Let the story feel the music')}${chip('data-music="flag" data-k="tell"', m.tell, 'Tell the story the song')}</div>
+        <p class="mw-fine">“Let the story feel the music” adds a few words on the music's feel, never its name (about 15 tokens). “Tell the story the song” gives Claude the song and artist, whatever the era, to score the scene by: never quoted, named or heard by anyone (about 70 tokens). Both are off by default: otherwise the music costs no tokens.</p>
+        ${m.tell ? `<p class="mw-music-label">Tell it for</p><div class="mw-mchips">${[[1, 'First reply of a song'], [2, '2 replies'], [3, '3 replies'], [0, 'While it plays']].map(([v, l]) => choice('tellFor', v, Number(m.tellFor), l)).join('')}</div><p class="mw-fine">Short is safest: the song sets the mood as it starts, then the story moves on freely.</p>` : ''}
         <p class="mw-music-label">Playing on</p><p class="mw-music-note">${esc(m.deviceName || 'Whichever Spotify is open')}</p>
         ${mus.devices.length > 1 ? `<div class="mw-mchips">${mus.devices.map(d => chip(`data-music="device" data-id="${esc(d.id)}"`, d.id === m.device, d.name)).join('')}</div>` : ''}
         <div class="mw-music-pair"><button type="button" class="mw-music-quiet" data-music="devices">Find my Spotify devices</button><button type="button" class="mw-music-quiet" data-music="signout">Sign out of Spotify</button></div>`;
     return drawer('settings', '☾', 'Music settings', `${(CHANGE_CHOICES.find(([v]) => v === m.change) ?? [, ''])[1]}`, body, ui.musicOpen?.settings);
 }
+// After picking a song, bring its editor into view.
+function toEditor() { requestAnimationFrame(() => ui.panel?.querySelector('.mw-music-editor')?.scrollIntoView({ block: 'start', behavior: 'smooth' })); }
 export function musicView() {
     const m = music();
     if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
@@ -164,17 +189,21 @@ export async function musicClick(e, redraw) {
     else if (a === 'play') await togglePlay();
     else if (a === 'next') await nextBest();
     else if (a === 'lock') toggleLock();
+    else if (a === 'kind') forceMode(el.dataset.v || '');
     else if (a === 'fits') await feedback(true);
     else if (a === 'nothere') await feedback(false);
-    else if (a === 'edit-now') { ui.musicSong = mus.now?.uri ?? ''; ui.musicOpen = { ...(ui.musicOpen ?? {}), songs: true }; redraw(); }
-    else if (a === 'edit') { ui.musicSong = ui.musicSong === el.dataset.uri ? '' : el.dataset.uri; redraw(); }
+    else if (a === 'edit-now') { ui.musicSong = mus.now?.uri ?? ''; ui.musicOpen = { ...(ui.musicOpen ?? {}), songs: true }; redraw(); toEditor(); }
+    else if (a === 'edit') { ui.musicSong = ui.musicSong === el.dataset.uri ? '' : el.dataset.uri; redraw(); toEditor(); }
     else if (a === 'close-edit') { ui.musicSong = ''; redraw(); }
+    else if (a === 'edit-now-row') { ui.musicSong = mus.now?.uri ?? ''; redraw(); toEditor(); }
     else if (a === 'tag') setTag(el.dataset.uri, el.dataset.k, el.dataset.v);
     else if (a === 'playlist') { togglePlaylist(el.dataset.id); redraw(); }
     else if (a === 'plall') { ui.musicPlAll = !ui.musicPlAll; redraw(); }
     else if (a === 'load') await loadPlaylists();
     else if (a === 'export') exportSheet();
-    else if (a === 'set') { m[el.dataset.k] = ['hold'].includes(el.dataset.k) ? Number(el.dataset.v) : el.dataset.v; save(); redraw(); }
+    else if (a === 'set') { m[el.dataset.k] = ['hold', 'tellFor'].includes(el.dataset.k) ? Number(el.dataset.v) : el.dataset.v; save(); redraw(); }
+    else if (a === 'group') { ui.musicGroup = ui.musicGroup === el.dataset.v || (!ui.musicGroup && el.dataset.v === 'feeling') ? 'none' : el.dataset.v; redraw(); }
+    else if (a === 'allnames') { ui.musicAllNames = !ui.musicAllNames; redraw(); }
     else if (a === 'flag') { m[el.dataset.k] = !m[el.dataset.k]; save(); redraw(); }
     else if (a === 'devices') { await sync(); try { const { devices } = await import('../app/spotify.js'); mus.devices = await devices(m); } catch (err) { mus.error = err.message; } redraw(); }
     else if (a === 'device') { m.device = el.dataset.id; m.deviceName = mus.devices.find(d => d.id === el.dataset.id)?.name ?? ''; save(); if (m.on) await start(); redraw(); }

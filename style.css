@@ -781,3 +781,21 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 
 .mw-panel .mw-music-icon{width:22px;height:22px;display:block}
 .mw-panel .mw-music-round.is-main .mw-music-icon{width:30px;height:30px}
+
+.mw-panel .mw-music-kind{margin-top:12px;text-align:center}
+.mw-panel .mw-music-kind small{display:block;color:var(--mw-muted);font-size:12px;margin-bottom:6px}
+.mw-panel .mw-music-kind .mw-mchips{justify-content:center}
+/* 1.68: one-at-a-time tag sections with bright bars, the playing song glowing, four "Music follows" choices. */
+.mw-panel .mw-music-group{margin-top:8px;border-radius:14px;background:#ffffff08;border:1px solid var(--mw-line-2)}
+.mw-panel .mw-music-group.is-open{border-color:#9fd3c966;background:#9fd3c90c}
+.mw-panel .mw-music-gbar{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;width:100%;min-height:52px;padding:10px 14px;margin:0;border:0;border-radius:14px;background:transparent;color:var(--mw-text);text-align:left;font:600 14px/1.2 var(--mw-sans)}
+.mw-panel .mw-music-gbar small{color:var(--mw-muted);font-weight:400;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-panel .mw-music-gbar span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#ffffff14;color:var(--mw-moon);font-size:18px}
+.mw-panel .mw-music-group .mw-mchips{padding:2px 12px 12px}
+.mw-panel .mw-music-flags{margin-top:12px}
+.mw-panel .mw-mchip.is-more{border-style:dashed}
+.mw-panel .mw-music-row.is-now,.mw-panel .mw-music-editor.is-now{border-color:#efd59c88;box-shadow:0 0 0 1px #efd59c55,0 0 18px #efd59c33;animation:mw-nowglow 3.2s ease-in-out infinite}
+.mw-panel .mw-music-row.is-now .mw-music-tick{color:var(--mw-moon);text-shadow:0 0 10px #efd59caa}
+@keyframes mw-nowglow{50%{box-shadow:0 0 0 1px #efd59c88,0 0 26px #efd59c55}}
+.mw-panel .mw-music-whos{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (prefers-reduced-motion:reduce){.mw-panel .mw-music-row.is-now,.mw-panel .mw-music-editor.is-now{animation:none}}

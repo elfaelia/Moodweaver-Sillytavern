@@ -162,6 +162,7 @@ export const devices = async store => (await call(store, 'GET', '/me/player/devi
 export const play = (store, uris, device, positionMs = 0) => call(store, 'PUT', '/me/player/play', { query: device ? { device_id: device } : undefined, body: { uris, ...(positionMs > 0 ? { position_ms: Math.round(positionMs) } : {}) } });
 // A song's sections (where the chorus or drop is). Spotify closed this to apps made after late 2024, so it may refuse.
 export const analysis = (store, uri) => call(store, 'GET', `/audio-analysis/${String(uri).split(':').pop()}`);
+export const seek = (store, ms, device) => call(store, 'PUT', '/me/player/seek', { query: { position_ms: Math.max(0, Math.round(ms)), ...(device ? { device_id: device } : {}) } });
 export const resume = (store, device) => call(store, 'PUT', '/me/player/play', { query: device ? { device_id: device } : undefined });
 export const pause = (store, device) => call(store, 'PUT', '/me/player/pause', { query: device ? { device_id: device } : undefined });
 export const volume = (store, v, device) => call(store, 'PUT', '/me/player/volume', { query: { volume_percent: Math.round(Math.max(0, Math.min(100, v))), ...(device ? { device_id: device } : {}) } });

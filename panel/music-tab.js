@@ -1,6 +1,6 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { EXTRAS, ambienceBeds, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { EXTRAS, ambienceBeds, markPeak, nowAt, playChosen, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
@@ -78,6 +78,28 @@ function extrasLines(m) {
     }
     return out.map(l => `<p class="mw-music-note">${l}</p>`).join('');
 }
+// Under Re-roll: one short, quiet line (what was cued, a sting, the radio, the ambience). A tap opens the full detail.
+function noteFold(m, heard, heardLine) {
+    const extras = extrasLines(m), status = mus.status ?? '';
+    if (!heard.length && !extras && !status) return '';
+    const short = [];
+    const playingCue = heard.find(h => h.uri === mus.now?.uri), top = heard[0];
+    if (mus.sting && Date.now() - mus.sting.at < 5 * 60 * 1000) short.push(`⚡ ${mus.sting.beat.toLowerCase()}`);
+    if (playingCue) short.push(`♪ cued: ${playingCue.name}`);
+    else if (top) short.push(`♪ “${top.cue}” → ${top.name}${top.resting ? ` · resting ${Math.ceil((top.restLeft ?? 0) / 60000)}m` : top.fits ? '' : " · doesn't fit"}`);
+    else if (status) short.push(status.split(' · ')[0].replace(/\.$/, ''));
+    if (radioOn(m)) short.push('📻');
+    const beds = extraOn('amb', m) && m.on ? ambienceBeds(mus.latest, m) : [];
+    if (beds.length) short.push(needsTap() ? '☁ tap for ambience' : '☁');
+    const open = Boolean(ui.musicNotes);
+    return `<button type="button" class="mw-music-fold" data-music="notes" aria-expanded="${open}"><span>${esc(short.join('  ·  ') || 'Details')}</span><i aria-hidden="true">${open ? '–' : '+'}</i></button>
+        ${open ? `<div class="mw-music-folded">${heardLine}${extras}${status ? `<p class="mw-music-note">${esc(status)}</p>` : ''}</div>` : ''}`;
+}
+// A small gold diamond on the path where the song's peak is (yours, from the sheet, or one Moodweaver found).
+function peakMark(m, n) {
+    const sec = cleanTags(m.tags[n.uri] ?? {}).pk || m.peaks?.[n.uri] || 0;
+    return sec && n.ms ? `<b class="mw-music-peak" style="left:${Math.min(100, sec * 1000 / n.ms * 100).toFixed(1)}%" title="Peak ${peakText(sec)}"></b>` : '';
+}
 const restText = ms => { const min = Math.ceil((ms ?? 0) / 60000); return min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m more` : `${min} min more`; };
 function nowCard(m, tone) {
     const n = mus.now, snap = mus.latest, playing = Boolean(n?.playing && m.on);
@@ -91,16 +113,16 @@ function nowCard(m, tone) {
         <div class="mw-music-planet ${n ? '' : 'is-idle'}" aria-hidden="true"><span class="mw-music-ring"><i></i></span>${n?.art ? `<img class="mw-music-ball" src="${esc(n.art)}" alt="">` : '<span class="mw-music-ball">♫</span>'}</div>
         <h3 class="mw-music-title">${esc(n?.name || (m.on ? 'Waiting for the next scene' : 'The music is resting'))}</h3>
         <p class="mw-music-sub">${n ? `${esc(n.artist ?? '')}${n.device ? ` · on ${esc(n.device)}` : ''}` : m.on ? 'A song starts after the next reply.' : 'Switch it on and the scene picks the songs.'}</p>
-        ${n?.ms ? `<div class="mw-music-track" aria-hidden="true"><i style="width:${pct.toFixed(1)}%;animation-duration:${Math.round(left)}ms;animation-play-state:${playing ? 'running' : 'paused'}"></i></div>` : ''}
+        ${n?.ms ? `<button type="button" class="mw-music-seek" data-music="seekbar" aria-label="Tap the path to jump to that spot in the song"><span class="mw-music-track"><i style="width:${pct.toFixed(1)}%;animation-duration:${Math.round(left)}ms;animation-play-state:${playing ? 'running' : 'paused'}"></i>${peakMark(m, n)}</span></button>
+        <div class="mw-music-seekrow"><button type="button" class="mw-mchip" data-music="back15">−15s</button><button type="button" class="mw-mchip" data-music="markpeak" title="Save where the song is now as its peak">◆ Mark peak here</button><button type="button" class="mw-mchip" data-music="fwd15">+15s</button></div>` : ''}
         <div class="mw-music-transport">
             <button type="button" class="mw-music-round" data-music="lock" aria-pressed="${mus.locked}" aria-label="${mus.locked ? 'Unlock: let the scene change songs again' : 'Lock: keep this music'}">${icon(mus.locked ? 'lock' : 'unlock')}</button>
             <button type="button" class="mw-music-round is-main" data-music="play" aria-label="${n?.playing ? 'Pause' : 'Play'}">${icon(n?.playing ? 'pause' : 'play')}</button>
             <button type="button" class="mw-music-round" data-music="next" aria-label="Next best song">${icon('next')}</button>
         </div>
         <button type="button" class="mw-music-reroll" data-music="reroll"${mus.busy ? ' disabled' : ''}>↻ Re-roll for the story now</button>
-        ${heardLine}
-        ${extrasLines(m)}
-        ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : mus.status ? `<p class="mw-music-note">${esc(mus.status)}</p>` : ''}
+        ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : ''}
+        ${noteFold(m, heard, heardLine)}
         ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button></div>` : ''}
         ${kindRow(snap)}
         ${why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
@@ -152,7 +174,7 @@ function tagEditor(m, uri) {
     const names = ui.musicAllNames ? [...new Set([...base, ...all])] : base;
     const neverAll = [...MODES.map(x => [`k:${x.id}`, `${x.label} scenes`]), ...FAMILIES.map(x => [`f:${x.id}`, x.label]), ...MOMENTS.map(x => [`mo:${x.id}`, x.label]), ...HEAT.map(x => [`h:${x.id}`, x.label])];
     const nowOn = mus.now?.uri === uri;
-    return `<div class="mw-music-editor${nowOn ? ' is-now' : ''}"><div class="mw-music-editor-head"><span class="mw-music-orb" aria-hidden="true">${nowOn ? '♫' : '♪'}</span><span class="mw-music-dt"><b>${esc(s.n)}</b><small>${nowOn ? 'Playing now · ' : ''}${esc(s.a)}</small></span><button type="button" class="mw-music-quiet" data-music="close-edit">Done</button></div>
+    return `<div class="mw-music-editor${nowOn ? ' is-now' : ''}"><div class="mw-music-editor-head"><span class="mw-music-orb" aria-hidden="true">${nowOn ? '♫' : '♪'}</span><span class="mw-music-dt"><b>${esc(s.n)}</b><small>${nowOn ? 'Playing now · ' : ''}${esc(s.a)}</small></span>${nowOn ? '' : `<button type="button" class="mw-music-playit" data-music="playit" data-uri="${esc(uri)}" aria-label="Play it now">${icon('play')}</button>`}<button type="button" class="mw-music-quiet" data-music="close-edit">Done</button></div>
         ${group('side', 'Whose song', t.c, names.map(n => tag('c', n, n, t.c.some(c => norm(c) === norm(n)))).join('') + (all.length > base.length ? `<button type="button" class="mw-mchip is-more" data-music="allnames">${ui.musicAllNames ? 'Fewer names' : `All ${all.length} names…`}</button>` : ''))}
         ${group('feeling', 'Feeling', t.f.map(id => labelOf('f', id)), FAMILIES.map(f => tag('f', f.id, f.label, t.f.includes(f.id))).join(''))}
         ${group('meaning', 'Meaning', t.cm.map(id => labelOf('cm', id)), MEANINGS.map(x => tag('cm', x.id, x.label, t.cm.includes(x.id))).join(''))}
@@ -177,7 +199,7 @@ function songsCard(m) {
     const body = `${ui.musicSong ? tagEditor(m, ui.musicSong) : ''}
         <input type="search" class="mw-music-search" data-music-field="search" value="${esc(ui.musicSearch ?? '')}" placeholder="✧  Find a song or artist" aria-label="Find a song">
         ${nowRow}
-        <div class="mw-music-rows">${hits.filter(x => x.uri !== mus.now?.uri).map(x => `<button type="button" class="mw-music-row is-song" data-music="edit" data-uri="${esc(x.uri)}" aria-pressed="${ui.musicSong === x.uri}"><span class="mw-music-tick" aria-hidden="true">${m.tags[x.uri] ? '✦' : '·'}</span><span class="mw-music-name"><b>${esc(x.song.n)}</b><small>${esc(x.song.a)}</small></span></button>`).join('')}</div>
+        <div class="mw-music-rows">${hits.filter(x => x.uri !== mus.now?.uri).map(x => `<div class="mw-music-songrow"><button type="button" class="mw-music-row is-song" data-music="edit" data-uri="${esc(x.uri)}" aria-pressed="${ui.musicSong === x.uri}"><span class="mw-music-tick" aria-hidden="true">${m.tags[x.uri] ? '✦' : '·'}</span><span class="mw-music-name"><b>${esc(x.song.n)}</b><small>${esc(x.song.a)}</small></span></button><button type="button" class="mw-music-playit" data-music="playit" data-uri="${esc(x.uri)}" aria-label="Play ${esc(x.song.n)} now">${icon('play')}</button></div>`).join('')}</div>
         ${songs.length > hits.length ? `<p class="mw-music-note">Showing ${hits.length} of ${songs.length}. Search to find others.</p>` : ''}`;
     return drawer('songs', '♪', 'Songs', `${plural(songs.length, 'song')} · ${tagged} with their own tags`, body, ui.musicOpen?.songs || ui.musicSong);
 }
@@ -253,6 +275,12 @@ export async function musicClick(e, redraw) {
     else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
     else if (a === 'amblevel') setAmbLevel(el.dataset.v);
     else if (a === 'sound') redraw();
+    else if (a === 'playit') { await playChosen(el.dataset.uri); redraw(); }
+    else if (a === 'seekbar') { const r = el.querySelector('.mw-music-track').getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); await seekTo(f * (mus.now?.ms ?? 0)); redraw(); }
+    else if (a === 'back15') { await seekBy(-15); redraw(); }
+    else if (a === 'fwd15') { await seekBy(15); redraw(); }
+    else if (a === 'markpeak') { markPeak(); redraw(); }
+    else if (a === 'notes') { ui.musicNotes = !ui.musicNotes; redraw(); }
     return true;
 }
 export async function musicChange(e, redraw) {

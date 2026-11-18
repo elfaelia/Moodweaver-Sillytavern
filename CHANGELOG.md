@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.72.6: no lullabies in foreplay, jump within a song, mark peaks yourself
+
+- **Fixed: Avril 14th in foreplay.** It counted as an intimate song only because it's tagged for Afterglow (lying together after). Now a song whose only tie to intimacy is Afterglow fits the afterglow itself, not foreplay or sex while the heat is still building. 14 songs are affected (Avril 14th, Stones, Wonderful Tonight, Five String Serenade, Turning Page (Instrumental), Eternal Flame, It's Only Time and others); songs tagged with heat, desire or Seduction are unchanged.
+- **Jump within the playing song.** Tap anywhere on the song's path to jump there, or use the big −15s and +15s chips under it. No dragging.
+- **◆ Mark peak here.** Tap it while the song is at its chorus or drop, and that spot becomes the song's peak (saved in its tags and in the sheet's Peak column when you export). A small gold diamond shows the peak on the path. Change or clear it in ✎ Tags › Sting, peak and year (empty the box to clear).
+
+## 1.72.5: edits keep the song, ▶ pick a song yourself, a quieter Now card
+
+- **Fixed: editing a message no longer changes the song.** Moodweaver re-reads the board when you edit a message, and it was treating that like a new reply. Now an edit (same message, same place in the chat) updates the moods and ambience but never cuts the song, just like a swipe.
+- **Fixed: the cue rest no longer knocks out the song it started.** The 10-minute rest only stops a cued song coming back. While it's still playing, it keeps its cue, so it still counts as fitting the scene.
+- **▶ Pick a song yourself.** Every song in ✦ Songs has a big ▶ beside it (and the tag editor has one too). Search, tap ▶, and it plays straight away, whatever its rest or the scene, and holds until it ends: no reply, cue or sting cuts it. Then the scene picks again. The Now card says "you picked it".
+- **A quieter Now card.** Everything under Re-roll (what was heard, the Re-roll note, the radio, stings, ambience) is now one short line, like "♪ “like a dog” → I Wanna Be Your Dog · resting 9m". Tap it to open the full detail, tap again to close it. Errors still show in full.
+
 ## 1.72.4: the strongest cue wins
 
 - **Fixed: "like a dog" lost to weaker cues.** The dog line was heard, but when several songs were cued at once, the one that fitted the scene best on paper won, even if its cue was two everyday words ("pull + pinned" picked Change). Now an exact cue phrase ("like a dog", "on a leash") always beats a pair of theme words, then the newest message wins, then the best fit.

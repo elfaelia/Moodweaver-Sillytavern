@@ -149,7 +149,14 @@ function readCues(m, deep = false) {
     const hitList = [...hits.values()];
     return hitList.filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST).map(h => h.uri);
 }
-const cuedNow = m => m.cues ? new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue])) : new Map();
+// The rest only stops a song coming BACK: while the song a cue started is still playing, it keeps its cue, so it still
+// fits the scene and isn't cut for having "used up" its cue.
+const cuedNow = m => {
+    if (!m.cues) return new Map();
+    const out = new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue]));
+    if (mus.cuedSong && mus.cuedSong.uri === mus.now?.uri) out.set(mus.cuedSong.uri, mus.cuedSong.cue);
+    return out;
+};
 // When the story has just cued a song that fits the scene and isn't resting, it is almost always the pick (9 in 10);
 // ↻ Re-roll always takes it. The 3-hour rest after it plays is what stops it coming back again and again.
 const CUE_CHANCE = 0.9;
@@ -163,6 +170,7 @@ function pickCued(list, only = null, chance = CUE_CHANCE) {
 function cuePlayed(m, uri) {
     if (!uri || !mus.cues.has(uri)) return;
     // Every version of the song (same title) rests too, so a cover doesn't follow straight after.
+    mus.cuedSong = { uri, cue: mus.cues.get(uri).cue };
     const title = norm(m.songs[uri]?.n ?? '');
     for (const u of [...mus.cues.keys()]) if (u === uri || (title && norm(m.songs[u]?.n ?? '') === title)) { m.cueAt[u] = Date.now(); mus.cues.delete(u); }
     { for (const [u, t] of Object.entries(m.cueAt)) if (Date.now() - t > CUE_REST) delete m.cueAt[u]; } }
@@ -289,15 +297,19 @@ export async function afterReply() {
     const famHeld = snap.fams[0] && snap.fams[0] === mus.lastFam ? snap.fams[0] : mus.anchor?.fams[0];
     mus.lastFam = snap.fams[0] ?? ''; mus.latest = snap;
     // A swipe or a regenerate of the same reply doesn't count as the story moving on.
-    const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}`, swiped = mark === mus.chatMark && (last?.swipe_id ?? 0) > 0;
-    mus.chatMark = mark;
+    // An edit of a message already there (same chat length, same newest message) isn't the story moving on either: the
+    // board and ambience update, but the song isn't changed for it.
+    const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}`, stamp = `${last?.send_date ?? ''}|${last?.swipe_id ?? 0}`;
+    const edited = mark === mus.chatMark && stamp === mus.lastStamp, swiped = edited || (mark === mus.chatMark && (last?.swipe_id ?? 0) > 0);
+    mus.chatMark = mark; mus.lastStamp = stamp;
     if (mus.forced && !swiped && --mus.forced.left <= 0) mus.forced = null;
     const freshCues = readCues(m);
     if (!mus.now) { await sync(); if (!mus.now) return start(); }
     // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
     if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
     updateAmbience(snap);
-    if (mus.locked || swiped) { changed(); return; }
+    // A song you picked yourself plays to its end: no reply, cue or sting cuts it.
+    if (mus.locked || swiped || (mus.chosen && mus.chosen === mus.now?.uri)) { changed(); return; }
     // The words of this turn: the newest reply, and your message if it came just before it.
     const turn = [last?.is_user ? '' : last?.mes, chat.at(-2)?.is_user ? chat.at(-2).mes : ''].filter(Boolean).join('\n');
     // In-story radio: switched on, kept on (for a while, or while the story keeps mentioning it), or switched off.
@@ -386,6 +398,20 @@ export async function togglePlay() {
     try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) { mus.userPaused = true; mus.wasPlaying = false; await sp.pause(m, d.id); } else { mus.userPaused = false; await sp.resume(m, d.id); } updateAmbience(); setTimeout(() => void sync(), 600); }
     catch (err) { say(err.message, true); }
 }
+// Jump within the playing song: to a spot (ms), or by a step (−15 s, +15 s).
+export async function seekTo(ms) {
+    const m = music(), n = mus.now; if (!n?.ms) return;
+    const at = Math.max(0, Math.min(n.ms - 2000, Math.round(ms)));
+    try { const d = await deviceFor(m); await sp.seek(m, at, d.id); n.started = Date.now() - at; n.progress = at; changed(); setTimeout(() => void sync(), 800); } catch (err) { say(err.message, true); }
+}
+export const nowAt = () => { const n = mus.now; return n ? (n.playing ? Date.now() - n.started : n.progress ?? 0) : 0; };
+export const seekBy = sec => seekTo(nowAt() + sec * 1000);
+// ◆ Mark peak here: the playing song's peak becomes where it is now (saved in its tags and the sheet's Peak column).
+export function markPeak() {
+    const uri = mus.now?.uri; if (!uri) return;
+    const sec = Math.max(1, Math.round(nowAt() / 1000)); setTag(uri, 'pk', String(sec));
+    say(`Peak set at ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} for ${mus.now.name}. Change or clear it in ✎ Tags › Sting, peak and year.`);
+}
 export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
 // ↻ Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
 // lit playlists while SillyTavern was closed, read the last 6 messages again (scene kind,
@@ -421,6 +447,16 @@ function poolText(m) {
 export function forceMode(mode) {
     mus.forced = mode ? { mode, left: 6, chat: ctx().chatId } : null;
     const m = music(); if (m.on && sp.signedIn(m)) void start(); else changed();
+}
+// ▶ on a song: you pick it. It plays now (whatever its rest or the scene) and holds until it ends, then the scene
+// picks again from there.
+export async function playChosen(uri) {
+    const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
+    if (!m.songs[uri]) return;
+    const snap = mus.latest ?? sceneNow() ?? snapshot({}), list = ranked(snap, m, [uri]);
+    mus.chosen = uri;
+    try { await playList(m, [uri, ...lineup(list, list[0] ?? null).filter(u => u !== uri)].slice(0, 12), ['you picked it'], snap, Boolean(mus.now)); m.on = true; save(); }
+    catch (err) { mus.chosen = null; say(err.message, true); }
 }
 export function toggleLock() { mus.locked = !mus.locked; changed(); }
 export async function setOn(on) { const m = music(); m.on = on; save(); updateAmbience(); if (on) { await sync(); if (!mus.now?.playing) await start(); poller(); } else { clearTimeout(mus.timer); try { const d = await deviceFor(m); await sp.pause(m, d.id); } catch { /* nothing playing */ } changed(); } }

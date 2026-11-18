@@ -836,3 +836,16 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-music-extra .mw-fine{margin:2px 2px 8px}.mw-music-lit{color:var(--mw-moon);font-weight:400}
 .mw-panel .mw-music-note .mw-music-inline{display:inline-block;width:auto;min-height:40px;margin:4px 0 0;padding:6px 14px}
 .mw-music-extra.is-under{margin-left:14px;padding-left:12px;border-left:2px solid var(--mw-line-2)}
+/* One quiet line under Re-roll; a tap opens the detail */
+.mw-panel .mw-music-fold{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;margin:6px 0 2px;padding:6px 14px;border:0;border-radius:12px;background:transparent;color:var(--mw-muted);font-size:12.5px;text-align:left;cursor:pointer}
+.mw-music-fold span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mw-music-fold i{font-style:normal;opacity:.7}
+.mw-music-folded{margin:0 4px 4px;padding:2px 10px;border-left:2px solid var(--mw-line-2);text-align:left}
+/* ▶ Play this song now: a big round button beside each song */
+.mw-music-songrow{display:flex;align-items:center}.mw-music-songrow+.mw-music-songrow{border-top:1px solid var(--mw-line)}.mw-music-songrow .mw-music-row{flex:1;min-width:0}
+.mw-panel .mw-music-playit{flex:none;width:48px;height:48px;margin:0 6px;border-radius:50%;border:1px solid var(--mw-line-2);background:#ffffff08;color:var(--mw-moon);display:grid;place-items:center;padding:0}
+.mw-music-playit .mw-music-icon{width:20px;height:20px}
+/* Tap the song's path to jump; −15s / +15s and Mark peak beneath it */
+.mw-panel .mw-music-seek{display:block;width:100%;min-height:40px;padding:12px 0;margin:4px 0 0;border:0;background:none;cursor:pointer}
+.mw-music-seek .mw-music-track{display:block;margin:0 auto}
+.mw-music-peak{position:absolute;top:-4px;width:9px;height:9px;margin-left:-4px;transform:rotate(45deg);background:var(--mw-moon);opacity:.85;border-radius:1px}
+.mw-music-seekrow{display:flex;justify-content:center;gap:8px;margin:2px 0 6px;flex-wrap:wrap}

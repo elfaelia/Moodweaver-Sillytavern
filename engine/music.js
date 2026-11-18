@@ -226,9 +226,14 @@ export function modeOf(snap) {
 }
 const MODE_BY_ID = Object.fromEntries(MODES.map(m => [m.id, m]));
 // Is this song made for that kind of scene? Its Moment, Heat or Feeling says so.
-export function fitsMode(tags, mode) {
+export function fitsMode(tags, mode, snap = null) {
     const m = MODE_BY_ID[mode]; if (!m) return true;
-    if (mode === 'intimate') return Boolean(tags.h) || tags.f.includes('desire') || tags.mo.some(x => m.moments.includes(x)) || tags.m.some(id => MOOD_FAMILY[id] === 'desire');
+    if (mode === 'intimate') {
+        if (tags.h || tags.f.includes('desire') || tags.mo.includes('seduction') || tags.m.some(id => MOOD_FAMILY[id] === 'desire')) return true;
+        // A song whose only tie to intimacy is Afterglow (a hushed piano piece for lying together after) fits the
+        // afterglow, not foreplay or sex while the heat is still building.
+        return tags.mo.includes('afterglow') && (!snap || snap.moments?.has('afterglow') || !snap.heat);
+    }
     // Sweet: its moments, or a romance song with no heat and a warm feeling (so older sheets work too).
     if (mode === 'sweet') {
         if (tags.h) return false;
@@ -269,7 +274,7 @@ export function scoreSong(tags, snap, opts = {}) {
     const bright = ['happy', 'energy'].includes(tags.f[0]) && !tags.f.includes('desire') && !tags.h && !tags.mo.includes('seduction');
     if (snap.heat && bright) return { score: -Infinity, why: [] };
     let score = 0; const why = [], add = (n, w) => { score += n; if (w && n > 0) why.push(w); };
-    if (snap.mode) { if (fitsMode(tags, snap.mode)) add(POINTS.modeFit, MODE_BY_ID[snap.mode].label); else add(snap.mode === 'intimate' ? POINTS.modeMissIntimate : POINTS.modeMiss); }
+    if (snap.mode) { if (fitsMode(tags, snap.mode, snap)) add(POINTS.modeFit, MODE_BY_ID[snap.mode].label); else add(snap.mode === 'intimate' ? POINTS.modeMissIntimate : POINTS.modeMiss); }
     // Character: whose side the song is on. The person the music follows counts most; the other one of you in the
     // scene still counts (a song about Lamb's devotion plays while following Easterman, matched to Lamb's moods).
     const chars = tags.c.map(norm), anyone = !chars.length || chars.includes('any');
@@ -298,7 +303,7 @@ export function scoreSong(tags, snap, opts = {}) {
     // Lyric cue: the story just said one of this song's phrases. A nudge, never a takeover, and only when the song
     // also fits this kind of scene (app/music.js keeps the cooldown).
     const cued = opts.cued?.get?.(opts.uri);
-    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode))); if (cueOn) add(POINTS.cue, `“${cued}”`);
+    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode, snap))); if (cueOn) add(POINTS.cue, `“${cued}”`);
     if (tags.th && mine === true && opts.themeOn !== 'off') {
         const appears = snap.appear.some(a => chars.includes(a)), big = (snap.moodVal[snap.top[0]] ?? 0) >= 81;
         if (appears || (opts.themeOn === 'always' ? true : big)) add(POINTS.theme, 'theme');
@@ -319,7 +324,7 @@ export function scoreSong(tags, snap, opts = {}) {
 // songs: [{ uri, tags (merged), learn }] → best first, unplayable ones left out.
 export function rank(songs, snap, opts = {}) {
     const sound = opts.sound?.[snap.mode || 'any'];
-    const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
+    const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode, snap), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
     // A song the story just echoed (and that fits the scene) joins the front-runners: half a point behind the best,
     // so it's a real chance, not a certainty.
     const best = list.find(x => !x.cue)?.score;

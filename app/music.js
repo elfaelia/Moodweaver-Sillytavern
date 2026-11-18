@@ -139,19 +139,26 @@ function readCues(m, deep = false) {
     if (!m.cues) { mus.cues.clear(); return []; }
     const chat = ctx().chat ?? [], at = replyCount(), id = ctx().chatId;
     for (const [uri, c] of mus.cues) if (c.chat !== id || at - c.at >= CUE_REPLIES) mus.cues.delete(uri);
-    const lastReply = [...chat].reverse().find(x => x && !x.is_user && !x.is_system), lastYou = [...chat].reverse().find(x => x && x.is_user);
-    const prevReply = deep ? chat.filter(x => x && !x.is_user && !x.is_system).at(-2) : null;
-    const text = `${plainStory(lastReply?.mes)}\n${plainStory(lastYou?.mes)}${prevReply ? `\n${plainStory(prevReply.mes)}` : ''}`;
+    // A new reply: the newest reply and your last message. ↻ Re-roll (deep): the last 6 messages, yours and theirs, so a
+    // line from a little while ago that's still the scene counts. Newer messages win a tie.
+    const story = chat.filter(x => x && !x.is_system && x.mes), msgs = deep ? story.slice(-6).reverse() : [story.filter(x => !x.is_user).at(-1), story.filter(x => x.is_user).at(-1)].filter(Boolean);
+    const songs = usableSongs(m), hits = new Map();
+    msgs.forEach((x, back) => { for (const h of cueHits(songs, plainStory(x.mes))) if (!hits.has(h.uri)) hits.set(h.uri, { ...h, back }); });
     // Resting songs are kept too, so the Now card can say a cue was heard but its song is resting; they don't score.
-    const hits = cueHits(usableSongs(m), text);
-    for (const h of hits) mus.cues.set(h.uri, { cue: h.cue, at, chat: id });
-    return hits.filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST).map(h => h.uri);
+    for (const h of hits.values()) mus.cues.set(h.uri, { cue: h.cue, at, chat: id, strength: h.strength, back: h.back });
+    const hitList = [...hits.values()];
+    return hitList.filter(h => Date.now() - (m.cueAt[h.uri] ?? 0) > CUE_REST).map(h => h.uri);
 }
 const cuedNow = m => m.cues ? new Map([...mus.cues].filter(([uri]) => Date.now() - (m.cueAt[uri] ?? 0) > CUE_REST).map(([uri, c]) => [uri, c.cue])) : new Map();
 // When the story has just cued a song that fits the scene and isn't resting, it is almost always the pick (9 in 10);
 // ↻ Re-roll always takes it. The 3-hour rest after it plays is what stops it coming back again and again.
 const CUE_CHANCE = 0.9;
-function pickCued(list, only = null, chance = CUE_CHANCE) { const c = list.filter(x => x.cue && (!only || only.includes(x.uri)) && x.uri !== mus.now?.uri); return c.length && Math.random() < chance ? c[0] : null; }
+// The strongest cue wins (an exact phrase like "like a dog" beats two theme words), then the newest, then the best fit.
+const cueRank = x => { const c = mus.cues.get(x.uri) ?? {}; return (c.strength ?? 1) * 10 - (c.back ?? 0); };
+function pickCued(list, only = null, chance = CUE_CHANCE) {
+    const c = list.filter(x => x.cue && (!only || only.includes(x.uri)) && x.uri !== mus.now?.uri).map((x, i) => [x, cueRank(x), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(([x]) => x);
+    return c.length && Math.random() < chance ? c[0] : null;
+}
 // A cued song that plays uses up its cue for a while.
 function cuePlayed(m, uri) {
     if (!uri || !mus.cues.has(uri)) return;
@@ -170,7 +177,7 @@ function ranked(snap, m = music(), exclude = []) {
         mus.radio.empty = !period.length; if (period.length) list = period;
     }
     // What the cues did, for the Now playing card: heard, and whether the song fits this scene.
-    mus.heard = [...mus.cues].map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, restLeft: Math.max(0, CUE_REST - (Date.now() - (m.cueAt[uri] ?? 0))), fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
+    mus.heard = [...mus.cues].sort((a, b) => (b[1].strength ?? 1) - (a[1].strength ?? 1) || (a[1].back ?? 0) - (b[1].back ?? 0)).map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, restLeft: Math.max(0, CUE_REST - (Date.now() - (m.cueAt[uri] ?? 0))), fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
     // Nothing fits well: the character's own default playlist (Characters tab), then simply the best there is.
     if (!list.length || list[0].score < GOOD_ENOUGH) {
         const own = m.chars[norm(snap.name.split(' & ')[0])]?.pl;
@@ -381,7 +388,7 @@ export async function togglePlay() {
 }
 export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
 // ↻ Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
-// lit playlists while SillyTavern was closed, read the last two replies and your last message again (scene kind,
+// lit playlists while SillyTavern was closed, read the last 6 messages again (scene kind,
 // moods, heat, lyric cues) and start a fresh line-up with a different song from the one that was on.
 // "This scene is…" you set yourself and lyric-cue rests are kept; ✕ Not here and Never during still count.
 export async function reRoll() {
@@ -397,10 +404,10 @@ export async function reRoll() {
         await start(mus.now ? [mus.now.uri] : [], true, true);
         if (!mus.error) {
             const live = (mus.heard ?? []).filter(h => !h.resting && h.fits);
-            const cueNote = !m.cues ? 'lyric cues are off' : live.length ? `cued: ${live[0].name}` : mus.heard?.length ? 'a cue was heard but its song is resting or doesn\'t fit this scene' : 'no lyric cues in the last two replies';
+            const cueNote = !m.cues ? 'lyric cues are off' : live.length ? `cued: ${live[0].name}` : mus.heard?.length ? 'a cue was heard but its song is resting or doesn\'t fit this scene' : 'no lyric cues in the last 6 messages';
             const n = usableSongs(m).length;
             say(n < 15 ? `Only ${n} ${n === 1 ? 'song' : 'songs'} to choose from, so the scene can't pick well. ${poolText(m)} Open ✦ Playlists below and light the playlist with your songs (or import your song sheet again).`
-                : `Re-rolled from the last two replies · ${n} songs · ${cueNote}.`);
+                : `Re-rolled from the last 6 messages · ${n} songs · ${cueNote}.`);
         }
     } finally { mus.busy = false; mus.loading = ''; changed(); }
 }

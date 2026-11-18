@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.72.4: the strongest cue wins
+
+- **Fixed: "like a dog" lost to weaker cues.** The dog line was heard, but when several songs were cued at once, the one that fitted the scene best on paper won, even if its cue was two everyday words ("pull + pinned" picked Change). Now an exact cue phrase ("like a dog", "on a leash") always beats a pair of theme words, then the newest message wins, then the best fit.
+- **Weak cues are gone.** Everyday words of roleplay prose (pull, pinned, something, little, forgot, photograph, watch, hold, touch…) no longer count as the unusual half of a pair, a word with a * counts as everyday when an everyday word starts with it (someth* → something), and a one-word cue phrase that's an everyday word ("just") no longer fires.
+- **↻ Re-roll reads the last 6 messages**, yours and theirs, instead of two replies and your last message. A new reply still reads just the newest reply and your last message.
+- **"Heard in the story" lists the strongest cues first**, so the one that matters is never cut off the end.
+
 ## 1.72.3: the playlist link survives sheets and Spotify hiccups
 
 - **Importing a song sheet now keeps every song linked to its playlist.** Each row's "From playlist" cell (Spider. Eye. Lamb. in your sheet) links the song back to your Spotify playlist of that name, so replacing the sheet can never leave songs outside your lit playlist.

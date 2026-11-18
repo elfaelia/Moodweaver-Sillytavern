@@ -21,6 +21,7 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="musicTab" ${settings().musicTab !== false ? 'checked' : ''}> Show Music on the dock (hidden, songs you switched on keep playing)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="dockClose" ${settings().dockClose !== false ? 'checked' : ''}> Close button on the dock</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceShow" ${settings().diceShow === true ? 'checked' : ''}> Show the dice rolls on the Skills tab (spoils some surprises)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> ✕ on the chips at the top, to take a mood or trait off</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendsOn" ${settings().blendsOn !== false ? 'checked' : ''}> Author blends on the Story tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="authorStyle" ${settings().authorStyle !== false ? 'checked' : ''}> Show how each author writes</label>
@@ -35,6 +36,7 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="splitNote" ${settings().splitNote !== false ? 'checked' : ''}> Split the note so the unchanging part can be cached</label>
             <p class="mw-fine">The explanations, the info board's layout, the hidden line's format and the author notes go once near the top of the prompt, where caching can reuse them every reply for much less. What's true right now (moods, facts, needs, the last board) and anything meant to change the scene still goes last, right before the reply, where it lands hardest. The top part only changes when you change settings, so it stays cached. Turn this off to send everything last in one block, as before.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="factOpposites" ${settings().factOpposites !== false ? 'checked' : ''}> Opposite facts switch each other off</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceOn" ${settings().diceOn !== false ? 'checked' : ''}> Dice checks for skills in play (a d20 plus the skill level decides how attempts go)</label>
             <p class="mw-fine">Putting on Hot takes off Cold, Hard takes off Soft, Drunk takes off Tipsy, and so on, whether you set it or the story does. Pinned facts stay.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="factsWhenRelevant" ${settings().factsWhenRelevant !== false ? 'checked' : ''}> Send who-they-are facts only when the scene touches them</label>
             <p class="mw-fine">Looks, style, voice, job and past go when the scene brings them up, when they’re set to overwhelming or maximum, and every few replies as a reminder. Age, height and what’s happening right now always go. Saves tokens when your card already says the same.</p>
@@ -107,7 +109,7 @@ export async function clearAllPins() {
         meta.bond[key] = bond;
     }
     const b = cleanBoardMeta(meta.board); b.needs = {}; b.fix = {}; b.keep = { state: [], physical: [] }; meta.board = b;
-    await persist(); await syncPrompt(); render();
+    render(); await persist(); await syncPrompt();
     return pinWords(n);
 }
 // ---- Clear everything for one person, with a way back ----

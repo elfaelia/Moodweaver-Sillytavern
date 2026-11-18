@@ -3,7 +3,7 @@ import { currentPeer, ensureRelation, getCast, getKnowledge, getPair, getState, 
 import { setLaunch } from '../app/launcher.js';
 import { syncPrompt } from '../app/note.js';
 import { analyse, cancelAnalysis, readBond } from '../app/reader.js';
-import { boardMemoryCount, bondAxes, bondData, bondList, bondOverlaps, editBoard, editBond, feedsMeters, liveChat, liveFor, moodTarget, untouchedMemory, userRelation } from '../app/replies.js';
+import { boardMemoryCount, bondAxes, bondData, bondList, bondOverlaps, editBoard, editBond, feedsMeters, liveChat, liveFor, moodTarget, pronounsFor, untouchedMemory, userRelation } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { KEY, ctx, newId, put, run, ui } from '../app/state.js';
 import { EDIT_FIELDS, NO_BOARD, latestBoard, liveBoard, needWord } from '../engine/board.js';
@@ -19,12 +19,14 @@ import { MOOD_PACE } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
 import { musicChange, musicClick, musicInput } from './music-tab.js';
+import { findList } from './find.js';
 import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, tapRangeMoon } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { dockOf, tabStep, tabsFor } from './header.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
+import { periodFor, periodOff, periodWho } from './period-tab.js';
 import { filterPersonality } from './personality-tab.js';
 import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
@@ -34,6 +36,13 @@ import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests } from '..
 
 // A feeling ended by hand (lit before, 0 now) is remembered with the chat length, so the info board can't bring it
 // back and the next replies are told it's gone. Setting it again by hand forgets that.
+// Open the tab a row lives on and bring it into view (the chips at the top and Search every tab both use this).
+function jumpTo(id) {
+    clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = id.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[id]); render(); fillLazy(ui.panel);
+    const row = ui.panel.querySelector(`[data-mood="${CSS.escape(id)}"]`); if (!row) return;
+    const category = row.closest('details'); if (category) category.open = true;
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input')?.focus({ preventScroll: true });
+}
 function markCut(s, id, was, next) {
     if (BY_ID[id]?.kind !== 'mood') return;
     s.cut ??= {};
@@ -50,6 +59,7 @@ export function onPanelInput(e) {
         else { put(ui.panel, '[data-follow-out]', `${v}%`); e.target.style.setProperty('--mw-fill', `${(v - 10) / .9}%`); }
         return;
     }
+    if (e.target.hasAttribute('data-find')) { ui.findText = e.target.value; const list = ui.panel.querySelector('[data-find-list]'); if (list) list.innerHTML = findList(ui.findText); return; }
     if (e.target.hasAttribute('data-dyn-search')) {
         const q = e.target.value.trim().toLowerCase();
         ui.panel.querySelectorAll('.mw-dyn-group').forEach(g => {
@@ -182,7 +192,7 @@ export async function onPanelChange(e) {
     }
     if (input.dataset.reader === 'profile') {
         settings().readerProfile = input.value; const main = getState(); if (main) main.profile = input.value;
-        ctx().saveSettingsDebounced(); await persist(main); render(); return;
+        ctx().saveSettingsDebounced(); render(); await persist(main); return;
     }
     if (input.hasAttribute('data-auto-read')) { await changeState(s => { s.mode = input.checked ? 'dynamic' : 'manual'; s.lastFingerprint = ''; s.lastUserCount = -1; }); return; }
     if (input.dataset.personality) {
@@ -201,9 +211,9 @@ export async function onPanelChange(e) {
         const peer = currentPeer(); if (!peer) return;
         const other = keyForTarget(peer.key);
         const pair = getPair(personKeyOfSubject(), other, true, other.startsWith('name:') ? { [other]: peer.name } : {});
-        pair.moods[input.dataset.pairSlider] = Number(input.value); await persist(); await syncPrompt(); render(); return;
+        pair.moods[input.dataset.pairSlider] = Number(input.value); render(); await persist(); await syncPrompt(); return;
     }
-    if (input.hasAttribute('data-pair-enabled')) { const pair = currentPeer()?.pair; if (pair) { pair.enabled = input.checked; await persist(); await syncPrompt(); render(); } return; }
+    if (input.hasAttribute('data-pair-enabled')) { const pair = currentPeer()?.pair; if (pair) { pair.enabled = input.checked; render(); await persist(); await syncPrompt(); } return; }
     if (input.hasAttribute('data-compare-with') || input.hasAttribute('data-compare-favours') || input.dataset.compareSlider) {
         const peer = currentPeer(); if (!peer) return;
         await changeState(() => {
@@ -226,7 +236,7 @@ export async function onPanelChange(e) {
         const relation = selectedRelation(); if (!relation) return;
         const knowledge = getKnowledge(target(), true), key = relationshipKey(relation, input.dataset.relKnowledge);
         if (input.value === 'scene') delete knowledge[key]; else knowledge[key] = knowledgeEntry({ ...knowledge[key], mode: input.value });
-        await persist(); await syncPrompt(); render(); return;
+        render(); await persist(); await syncPrompt(); return;
     }
     if (input.dataset.target) return;
     const knowledgeId = input.dataset.knowledge || input.dataset.knowledgeSource;
@@ -237,7 +247,7 @@ export async function onPanelChange(e) {
         // A turn-on set by hand starts fresh: only what the story notices from here on can raise it again.
         if (knowledgeId.startsWith('turn:') && input.dataset.knowledge) next.from = (ctx().chat ?? []).length;
         if (next.mode === 'scene' && next.from === undefined) delete knowledge[knowledgeId]; else knowledge[knowledgeId] = next;
-        await persist(); await syncPrompt(); render(); return;
+        render(); await persist(); await syncPrompt(); return;
     }
     if (input.dataset.invCarried !== undefined || input.dataset.invText !== undefined || input.dataset.invNote !== undefined) {
         const id = input.dataset.invCarried ?? input.dataset.invText ?? input.dataset.invNote;
@@ -258,7 +268,7 @@ export async function onPanelChange(e) {
         if (input.dataset.mem !== undefined) memory.value = Number(input.value);
         else if (input.dataset.memText !== undefined) { const t = input.value.replace(/\s+/g, ' ').trim().slice(0, 160); if (t) memory.text = t; }
         else memory.who = input.value;
-        await persist(); await syncPrompt(); render(); return;
+        render(); await persist(); await syncPrompt(); return;
     }
     if (input.dataset.setting) { settings()[input.dataset.setting] = Number(input.value); settings(); ctx().saveSettingsDebounced(); await syncPrompt(); render(); return; }
     const field = input.dataset.field;
@@ -266,7 +276,7 @@ export async function onPanelChange(e) {
     if (field === 'cast') { ui.selectedCastId = input.value; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; render(); return; }
     if (field === 'castInScene') {
         const person = selectedCast(); if (!person) return;
-        person.inScene = input.checked; await persist(); await syncPrompt(); render(); return;
+        person.inScene = input.checked; render(); await persist(); await syncPrompt(); return;
     }
     if (field === 'castName') {
         const person = selectedCast(), name = castName(input.value);
@@ -280,7 +290,7 @@ export async function onPanelChange(e) {
             for (const key of ['hate', 'compareA', 'compareB']) if (s?.targets?.[key] === old) s.targets[key] = name;
             for (const relation of s?.relationships ?? []) if (relation.target.toLowerCase() === old.toLowerCase()) relation.target = name;
         }
-        await persist(); await syncPrompt(); render(); return;
+        render(); await persist(); await syncPrompt(); return;
     }
     if (field === 'recipe') { const recipe = (ui.who === 'story' ? STORY_RECIPES : RECIPES)[input.value]; if (recipe) await changeState(s => { for (const [k, v] of Object.entries(recipe)) if (!s.pins[k] && BY_ID[k]) { s.moods[k] = v; if (!s.loadout.includes(k)) s.loadout.push(k); } }); return; }
     if (field) await changeState(s => {
@@ -359,7 +369,7 @@ export async function onPanelClick(e) {
         const count = ids.rel.size + ids.shared.size + ids.story.size;
         run.status = count ? `Turned off ${count} extra cop${count === 1 ? 'y' : 'ies'}. Each idea now lives in one place.` : 'Nothing doubled up to tidy.';
         if (ids.story.size && story) story.revision = (story.revision || 0) + 1;
-        await persist(ids.rel.size ? st : null); await syncPrompt(); render(); renderStatus(); return;
+        render(); await persist(ids.rel.size ? st : null); await syncPrompt(); renderStatus(); return;
     }
     // A tie the dynamic suggests: take it (set at 50 on his side toward you) or let it go. Either way it isn't offered again.
     if (button.dataset.tieOffer || button.dataset.tieSkip) {
@@ -415,7 +425,7 @@ export async function onPanelClick(e) {
         // A level set by hand starts fresh progress toward the next. Tapping the level it's already at takes the skill off them.
         const id = button.dataset.skillSet, v = Number(button.dataset.v) || 0;
         await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
-            if (v > 0 && s.skills[id] !== v) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
+            if (v !== 0 && s.skills[id] !== v) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
     }
     if (button.dataset.skillPin) { const id = button.dataset.skillPin; await changeState(s => { const p = cleanPins(s.skillPins); if (p[id]) delete p[id]; else p[id] = true; s.skillPins = p; }); return; }
     if (button.dataset.skillJump) { fillLazy(ui.panel); const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
@@ -431,7 +441,7 @@ export async function onPanelClick(e) {
     if (button.dataset.boardAddcast) {
         try {
             const person = addCastMember(getCast(), button.dataset.boardAddcast, newCastId(), [playerName(), ...members().map(ch => ch.name)]);
-            run.status = `${person.name} added to the cast, in this scene.`; await persist(); await syncPrompt(); render();
+            run.status = `${person.name} added to the cast, in this scene.`; render(); await persist(); await syncPrompt();
         } catch (error) { run.status = error.message; renderStatus(); }
         return;
     }
@@ -450,7 +460,7 @@ export async function onPanelClick(e) {
     if (button.dataset.invRemove) { const id = button.dataset.invRemove; await changeState(s => { s.inventory = (s.inventory ?? []).filter(i => i.id !== id); }); return; }
     if (button.dataset.memRemove) {
         const pair = currentPeer()?.pair; if (!pair) return;
-        pair.memories = (pair.memories ?? []).filter(m => m.id !== button.dataset.memRemove); await persist(); await syncPrompt(); render(); return;
+        pair.memories = (pair.memories ?? []).filter(m => m.id !== button.dataset.memRemove); render(); await persist(); await syncPrompt(); return;
     }
     if (button.dataset.mode) { await changeState(s => { s.mode = button.dataset.mode; }); return; }
     if (button.dataset.wing !== undefined) { await changeState(s => { s.enneagram = cleanEnneagram({ ...cleanEnneagram(s.enneagram), wing: button.dataset.wing }); }); return; }
@@ -461,7 +471,7 @@ export async function onPanelClick(e) {
         // Kept in the record (so the reply isn't applied again), with nothing left to apply.
         rec.m = {}; rec.f = []; rec.undone = true; st.revision = (st.revision || 0) + 1;
         run.status = back.length ? `Undid what the last reply did to ${back.length} feeling${back.length === 1 ? '' : 's'}.` : 'Nothing to undo: those feelings were changed by hand since.';
-        await persist(st); await syncPrompt(); render(); renderStatus(); return;
+        render(); await persist(st); await syncPrompt(); renderStatus(); return;
     }
     if (button.dataset.scope) { const k = button.dataset.scope; await changeState(s => { s.readScope = cleanScope({ ...s.readScope, [k]: !cleanScope(s.readScope)[k] }); }); return; }
     if (button.dataset.readerMsgs) { settings().sceneMessages = Number(button.dataset.readerMsgs); ctx().saveSettingsDebounced(); render(); return; }
@@ -539,12 +549,16 @@ export async function onPanelClick(e) {
         if (same >= 0) list[same] = { name, authors, roles }; else list.push({ name, authors, roles });
         ui.blendUndo = null; save(); run.status = `Saved the ${name} blend for ${ch.name}.`; render(); renderStatus(); return;
     }
-    // Period lines about one of the pair: everyday life, kept apart from it ('apart'), or none (true). Taps go round.
-    if (button.dataset.eraSkip) {
+    // The Period tab: one line on or off for this person, a whole category, or a quick preset.
+    if (button.dataset.periodLine || button.dataset.periodCat || button.dataset.periodPreset) {
         const ch = target(); if (!ch) return;
-        const key = `char:${ch.avatar}`, k = button.dataset.eraSkip, cur = { ...(settings().eraSkip[key] ?? {}) };
-        if (!cur[k]) cur[k] = 'apart'; else if (cur[k] === 'apart') cur[k] = true; else delete cur[k];
-        settings().eraSkip[key] = cur; ctx().saveSettingsDebounced(); await syncPrompt(); render(); return;
+        const key = `char:${ch.avatar}`, k = periodWho(), all = settings().periodOff ??= {};
+        const off = periodOff(ch, k), mine = periodFor(pronounsFor(ch, bondData(ch))[k]);
+        if (button.dataset.periodLine) { const id = button.dataset.periodLine; if (off.has(id)) off.delete(id); else off.add(id); }
+        else if (button.dataset.periodCat) for (const l of mine.filter(l => l.cat === button.dataset.periodCat)) { if (button.dataset.periodTo === 'off') off.add(l.id); else off.delete(l.id); }
+        else { off.clear(); const p = button.dataset.periodPreset; for (const l of mine) if (p === 'none' || (p === 'apart' && l.world)) off.add(l.id); }
+        all[key] = { ...(all[key] ?? {}), [k]: [...off] };
+        render(); ctx().saveSettingsDebounced(); await syncPrompt(); return;
     }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
@@ -561,11 +575,21 @@ export async function onPanelClick(e) {
             if (next) { s.psyLean[id] = side; if (!s.loadout.includes(id)) s.loadout.push(id); } else delete s.psyLean[id];
             if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); }); return;
     }
-    if (button.dataset.jump) {
-        clearPanelSearch(ui.panel, '.mw-search'); ui.search = ''; if (ui.who !== 'story') ui.tab = button.dataset.jump.startsWith('turn:') ? 'turn' : sectionOf(BY_ID[button.dataset.jump]); render(); fillLazy(ui.panel);
-        const row = ui.panel.querySelector(`[data-mood="${button.dataset.jump}"]`); if (!row) return;
-        const category = row.closest('details'); if (category) category.open = true;
-        row.scrollIntoView({ block: 'center', behavior: 'smooth' }); row.querySelector('input')?.focus({ preventScroll: true }); return;
+    if (button.dataset.jump) { jumpTo(button.dataset.jump); return; }
+    // A result in Search every tab: open its tab and take you to it.
+    if (button.dataset.findGo) {
+        const go = button.dataset.findGo, [kind] = go.split(':'), rest = go.slice(kind.length + 1);
+        ui.findOpen = false; ui.settingsOpen = false;
+        if (kind === 'm') { if (BY_ID[rest]?.kind === 'story') ui.who = 'story'; else if (ui.who === 'story') ui.who = 'char'; jumpTo(rest); return; }
+        if (kind === 'turn') { if (ui.who === 'story') ui.who = 'char'; jumpTo(go); return; }
+        if (ui.who === 'story') ui.who = 'char';
+        if (kind === 'period') { if (!['char', 'user'].includes(ui.who)) ui.who = 'char'; ui.tab = 'period'; render(); const row = ui.panel.querySelector(`[data-period-line="${CSS.escape(rest)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+        if (kind === 'skill') { ui.tab = 'skills'; render(); fillLazy(ui.panel); const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(rest)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+        ui.tab = 'rel'; if (kind === 'dyn') ui.dynBrowse = true; render();
+        const box = ui.panel.querySelector(kind === 'dyn' ? '[data-dyn-search]' : '[data-relation-search]');
+        if (box) { const fold = box.closest('details'); if (fold) fold.open = true; box.value = kind === 'dyn' ? rest.split(/\{+[a-z]+\}+/i).map(x => x.trim()).sort((a, b) => b.length - a.length)[0].toLowerCase() : rest; box.dispatchEvent(new Event('input', { bubbles: true })); box.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+        else run.status = kind === 'dyn' ? 'Dynamics are on the bond with you: pick yourself in the people list first.' : 'Relationship tags open from a person in the people list.';
+        renderStatus(); return;
     }
     switch (button.dataset.action) {
         case 'relation-add': {
@@ -576,7 +600,7 @@ export async function onPanelClick(e) {
                 const name = validRelationName(typed);
                 const relation = cloneRelationships([{ id: newCastId(), target: name }])[0];
                 relationshipList().push(relation); ui.selectedPeer = name; ui.removingRelation = ''; run.status = '';
-                await persist(viewState()); await syncPrompt(); render();
+                render(); await persist(viewState()); await syncPrompt();
             } catch (error) { run.status = error.message; renderStatus(); }
             break;
         }
@@ -588,6 +612,7 @@ export async function onPanelClick(e) {
             ui.who = next.who; ui.selectedPeer = fromKey ?? ''; ui.removingRelation = ''; ui.tab = 'rel';
             render(); await syncPrompt(); break;
         }
+        case 'find': ui.findOpen = !ui.findOpen; render(); if (ui.findOpen) { ui.panel.scrollTo({ top: 0 }); ui.panel.querySelector('[data-find]')?.focus(); } break;
         case 'settings': ui.settingsOpen = true; render(); ui.panel.scrollTo({ top: 0 }); break;
         // The token pill opens Settings at What is sent, where the meter splits the count.
         case 'tokens': { ui.settingsOpen = true; render(); renderPreview(); const sent = ui.panel.querySelector('[data-settings="sent"]'); if (sent) { sent.open = true; sent.scrollIntoView({ block: 'start' }); } break; }
@@ -596,7 +621,7 @@ export async function onPanelClick(e) {
             const ch = target(), pair = getPair(`char:${ch?.avatar}`, 'user'), n = boardMemoryCount(ch); if (!pair || !n) break;
             if (!confirm(`Delete the ${n} memor${n === 1 ? 'y' : 'ies'} the board saved for ${ch.name} and ${playerName()}? Memories you added or edited stay.`)) break;
             pair.memories = pair.memories.filter(m => !untouchedMemory(m));
-            run.status = `Deleted ${n} saved memor${n === 1 ? 'y' : 'ies'}.`; await persist(); await syncPrompt(); render(); break;
+            run.status = `Deleted ${n} saved memor${n === 1 ? 'y' : 'ies'}.`; render(); await persist(); await syncPrompt(); break;
         }
         case 'unpin-all': {
             const n = pinCounts(), words = n ? pinWords(n) : ''; if (!words) break;
@@ -618,8 +643,8 @@ export async function onPanelClick(e) {
             await changeState(s => { s.wants = cleanWants([...s.wants, { id: newId(), kind, text: t, value: 50 }]); });
             ui.panel.querySelector(`[data-want-new="${kind}"]`)?.focus(); break;
         }
-        case 'scene-mark': { const meta = ctx().chatMetadata[KEY]; if (!meta) break; meta.sceneStart = Math.max(0, ctx().chat.length - 1); run.status = 'New scene marked. The reader ignores everything before it.'; await persist(); render(); break; }
-        case 'scene-clear': { const meta = ctx().chatMetadata[KEY]; if (meta) delete meta.sceneStart; await persist(); render(); break; }
+        case 'scene-mark': { const meta = ctx().chatMetadata[KEY]; if (!meta) break; meta.sceneStart = Math.max(0, ctx().chat.length - 1); run.status = 'New scene marked. The reader ignores everything before it.'; render(); await persist(); break; }
+        case 'scene-clear': { const meta = ctx().chatMetadata[KEY]; if (meta) delete meta.sceneStart; render(); await persist(); break; }
         case 'browse': ui.browsing = true; ui.search = ''; render(); ui.panel.querySelector('.mw-search')?.focus(); break;
         case 'browse-done': ui.browsing = false; ui.search = ''; render(); break;
         case 'inv-add': {
@@ -633,14 +658,14 @@ export async function onPanelClick(e) {
             const other = keyForTarget(peer.key);
             const pair = getPair(personKeyOfSubject(), other, true, other.startsWith('name:') ? { [other]: peer.name } : {});
             (pair.memories ??= []).push({ id: newId(), text: t, value: 50, who: 'both' });
-            await persist(); await syncPrompt(); render(); break;
+            render(); await persist(); await syncPrompt(); break;
         }
         case 'cast-new': ui.castAction = ui.castAction === 'adding' ? '' : 'adding'; render(); ui.panel.querySelector('[data-cast-new]')?.focus(); break;
         case 'relation-rename': {
             try {
                 const relation = selectedRelation(); if (!relation) break;
                 relation.target = validRelationName(ui.panel.querySelector('[data-relation-target]')?.value ?? '', relation.id);
-                await persist(viewState()); await syncPrompt(); render();
+                render(); await persist(viewState()); await syncPrompt();
             } catch (error) { run.status = error.message; renderStatus(); }
             break;
         }
@@ -649,20 +674,20 @@ export async function onPanelClick(e) {
         case 'pair-clear-confirm': {
             const peer = currentPeer(); const meta = ctx().chatMetadata[KEY];
             if (peer && meta?.pairs) delete meta.pairs[pairId(personKeyOfSubject(), keyForTarget(peer.key))];
-            ui.removingRelation = ''; await persist(); await syncPrompt(); render(); break;
+            ui.removingRelation = ''; render(); await persist(); await syncPrompt(); break;
         }
         case 'relation-cancel': ui.removingRelation = ''; render(); break;
         case 'relation-remove-confirm': {
             const relation = selectedRelation(); if (!relation) break;
             const list = relationshipList(); list.splice(list.indexOf(relation), 1);
             ui.removingRelation = '';
-            await persist(viewState()); await syncPrompt(); render(); break;
+            render(); await persist(viewState()); await syncPrompt(); break;
         }
         case 'cast-add': {
             try {
                 const person = addCastMember(getCast(), ui.panel.querySelector('[data-cast-new]')?.value ?? '', newCastId(), [playerName(), ...members().map(ch => ch.name)]);
                 ui.selectedCastId = person.id; ui.who = 'cast'; ui.selectedPeer = ''; ui.castAction = ''; run.status = `${person.name} added to this chat’s cast.`;
-                await persist(); await syncPrompt(); render();
+                render(); await persist(); await syncPrompt();
             } catch (error) { run.status = error.message; renderStatus(); }
             break;
         }
@@ -671,7 +696,7 @@ export async function onPanelClick(e) {
         case 'cast-remove-confirm': {
             const person = selectedCast(); if (!person) break;
             const cast = getCast(); cast.splice(cast.indexOf(person), 1); ui.selectedCastId = ''; ui.castAction = '';
-            await persist(); await syncPrompt(); render(); break;
+            render(); await persist(); await syncPrompt(); break;
         }
         case 'cast-default':
             saveCastDefault(); ui.castAction = ''; run.status = `Cast saved for ${target().name}’s future chats.`; render(); break;
@@ -679,7 +704,7 @@ export async function onPanelClick(e) {
         case 'cast-load-confirm': {
             if (!loadCastDefault()) break;
             run.status = 'Saved cast loaded. Switch on whoever is in this scene.';
-            await persist(); await syncPrompt(); render(); break;
+            render(); await persist(); await syncPrompt(); break;
         }
         case 'top': ui.panel.scrollTo({ top: 0, behavior: 'smooth' }); break;
         case 'close': { ui.panel.close(); const l = document.getElementById('moodweaver-launcher'); if (l && !l.hidden) l.focus({ preventScroll: true }); break; }

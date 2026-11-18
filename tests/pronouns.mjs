@@ -9,6 +9,7 @@ import { COMBOS } from '../engine/reactive.js';
 import { LINK_LINES } from '../engine/links.js';
 import { SKILL_COMBOS } from '../data/catalogue/skills.js';
 import { turnOnsLine } from '../engine/prompt.js';
+import { PERIOD } from '../data/catalogue/period.js';
 
 const N = 'Doctor Easterman', U = 'Lamb', show = process.argv.includes('--show');
 const lines = [
@@ -19,6 +20,10 @@ const lines = [
     ...LINK_LINES.TIE_LINKS.map((r, i) => [`tie link ${i + 1}`, r[3]]),
     ...LINK_LINES.CORE_BENDS.map((r, i) => [`core link ${i + 1}`, (n, u) => r[2](n, u, 'the slow burn')]),
     ...SKILL_COMBOS.map(r => [`skill combo ${r[0]}+${r[1]}`, (n, u) => r[2].replaceAll('{n}', n).replaceAll('{u}', u)]),
+    // Period lines: {who} is one of them, {other} the other, either way round.
+    ...PERIOD.flatMap(l => ['he', 'she', 'any'].filter(g => l[g] && /\{other\}/.test(l[g])).flatMap(g => [
+        [`period ${l.id} (${g}, about N)`, (n, u) => l[g].replaceAll('{who}', n).replaceAll('{other}', u).replaceAll('{age}', '30')],
+        [`period ${l.id} (${g}, about U)`, (n, u) => l[g].replaceAll('{who}', u).replaceAll('{other}', n).replaceAll('{age}', '30')]])),
     ['turn-ons line', (n, u) => turnOnsLine(n, u, { known: true, suspected: true, unknown: true })],
 ];
 // "her" is also the possessive ("her wants"), so it only counts before words that can't be nouns.

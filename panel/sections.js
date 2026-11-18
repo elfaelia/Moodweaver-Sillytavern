@@ -18,7 +18,7 @@ import { reactiveBlock } from './wants-tab.js';
 import { personalityView } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
 import { FAVS, TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, turnGroupKey } from '../engine/turns.js';
-import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
+import { periodEra } from '../engine/period.js';
 
 function knowledgePanel(state, ch) {
     const active = activeMoods(state).filter(m => m.kind !== 'story');
@@ -205,29 +205,14 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
     ${kind === 'story' ? voicesBlock(state) : ''}
     ${kind === 'story' ? blendsBlock(state, ch) : ''}
-    ${kind === 'story' ? eraBlock(state, ch) : ''}
+    ${kind === 'story' ? eraBlock(state) : ''}
     ${['mood', 'trait', 'psyche', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
 }
-// Period lines: how many go a reply, whose cards they read (Lamb stuck somewhere the period doesn't reach can be
-// left out), and every line that applies right now, with the ones sent marked, so nothing is a mystery.
-function eraBlock(state, ch) {
-    const eraOn = MOODS.some(m => m.category === 'era' && (state.moods?.[m.id] ?? 0) > 0);
-    const pick = `<label class="mw-field mw-era-lines">Period lines per reply<select data-setting-choice="eraLines" aria-label="Period lines per reply">${ERA_LINE_CHOICES.map(String).map(v => `<option value="${v}" ${settings().eraLines === v ? 'selected' : ''}>${v}</option>`).join('')}</select></label>`;
-    if (!eraOn) return `${pick}<p class="mw-fine mw-era-note">How the period shapes what’s in play. They take turns from reply to reply.</p>`;
-    const skip = settings().eraSkip?.[`char:${ch.avatar}`] ?? {}, names = { n: shortName(ch.name), u: shortName(playerName()) };
-    // One button per person, tapped round three ways: everyday 1960s life, kept apart from it (no job, money or
-    // neighbour lines; medicine, roles, personality and Mind lead), or no lines about them at all.
-    const MODE = { '': ['✓', 'everyday life'], apart: ['◐', 'kept apart'], off: ['○', 'no lines'] };
-    const modeOf = k => skip[k] === 'apart' ? 'apart' : skip[k] ? 'off' : '';
-    const who = `<div class="mw-era-who" role="group" aria-label="What the period lines say about each of you"><small>Lines about</small>${['n', 'u'].map(k => { const [mark, word] = MODE[modeOf(k)]; return `<button type="button" data-era-skip="${k}" aria-label="${esc(names[k])}: ${word}. Tap to change">${mark} ${esc(names[k])} <span>· ${word}</span></button>`; }).join('')}</div>
-        ${['n', 'u'].some(k => modeOf(k) === 'apart') ? '<p class="mw-fine mw-era-note">Kept apart: no lines about a job, money, a household, neighbours or public life; medical, role, personality and Mind lines lead instead.</p>' : ''}`;
-    const now = run.eraNow?.avatar === ch.avatar ? run.eraNow.lines : [];
-    const sent = now.filter(x => x.sent).length;
-    const list = now.length ? `<ol class="mw-era-list">${now.map(x => `<li class="${x.sent ? 'is-sent' : ''}"><b>${x.sent ? '✓ ' : ''}${esc(x.label)}</b> ${esc(x.text)}</li>`).join('')}</ol>` : '<p class="mw-fine">Nothing on the cards touches the period right now.</p>';
-    return `${pick}${who}
-        <details class="mw-era-now" data-anchor="era-now"><summary><span>Period lines now</span><small>${now.length ? `${now.length} apply · ${sent} sent` : 'none'}</small></summary>
-            <p class="mw-fine">✓ went with the latest note. Power always goes first, then the one most on their cards right now; the rest take turns, stronger ones more often.</p>${list}</details>`;
+// Period lines now live on each person's Period tab (Self section); the Story tab just points there.
+function eraBlock(state) {
+    const era = MOODS.filter(m => m.category === 'era' && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
+    return era && periodEra(era.id) ? '<p class="mw-fine mw-era-note">❦ Period lines for each of you are on their own Period tab, under Self.</p>' : '';
 }
 // Saved author blends for this character: tap one to put its authors (and who writes narration or dialogue)
 // back on, ✕ to delete it. Folded into one line, and hidden until there's an author on or a blend saved.

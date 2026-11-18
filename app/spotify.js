@@ -11,7 +11,7 @@
 // The sign-in is kept in SillyTavern's settings (on your computer), so it works on every device after that.
 
 const AUTH = 'https://accounts.spotify.com/authorize', TOKEN = 'https://accounts.spotify.com/api/token', API = 'https://api.spotify.com/v1';
-export const SCOPES = ['playlist-read-private', 'playlist-read-collaborative', 'user-library-read', 'user-read-playback-state', 'user-modify-playback-state', 'user-read-currently-playing'];
+export const SCOPES = ['playlist-read-private', 'playlist-read-collaborative', 'playlist-modify-private', 'playlist-modify-public', 'user-library-read', 'user-read-playback-state', 'user-modify-playback-state', 'user-read-currently-playing'];
 const PENDING = 'moodweaver-spotify-signin';
 
 // ---- SHA-256, for pages that aren't a "secure context" (http on a home network has no crypto.subtle) ----
@@ -163,6 +163,13 @@ export const play = (store, uris, device, positionMs = 0) => call(store, 'PUT', 
 // A song's sections (where the chorus or drop is). Spotify closed this to apps made after late 2024, so it may refuse.
 export const analysis = (store, uri) => call(store, 'GET', `/audio-analysis/${String(uri).split(':').pop()}`);
 export const seek = (store, ms, device) => call(store, 'PUT', '/me/player/seek', { query: { position_ms: Math.max(0, Math.round(ms)), ...(device ? { device_id: device } : {}) } });
+// Can this sign-in change playlists? (Sign-ins from before 1.72.7 can't: they need signing in once more.)
+export const canEdit = store => /playlist-modify/.test(store.auth?.scope ?? '');
+// Takes a song out of one of your playlists on Spotify (Spotify renamed /tracks to /items in 2026).
+export async function removeFromPlaylist(store, id, uri) {
+    try { return await call(store, 'DELETE', `/playlists/${encodeURIComponent(id)}/items`, { body: { items: [{ uri }] } }); }
+    catch (err) { if (![404, 400].includes(err.status)) throw err; return call(store, 'DELETE', `/playlists/${encodeURIComponent(id)}/tracks`, { body: { tracks: [{ uri }] } }); }
+}
 export const resume = (store, device) => call(store, 'PUT', '/me/player/play', { query: device ? { device_id: device } : undefined });
 export const pause = (store, device) => call(store, 'PUT', '/me/player/pause', { query: device ? { device_id: device } : undefined });
 export const volume = (store, v, device) => call(store, 'PUT', '/me/player/volume', { query: { volume_percent: Math.round(Math.max(0, Math.min(100, v))), ...(device ? { device_id: device } : {}) } });

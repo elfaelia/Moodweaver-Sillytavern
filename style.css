@@ -131,7 +131,7 @@
 .mw-dock-icon{font-size:19px;line-height:1;font-variant-emoji:text;transition:transform .3s cubic-bezier(.3,1.6,.5,1),text-shadow .3s}
 .mw-panel .mw-dock button[aria-pressed=true]{background:#c9b8f01f;color:var(--mw-text)}
 .mw-dock button[aria-pressed=true] .mw-dock-icon{color:var(--mw-moon);transform:translateY(-2px) scale(1.12);text-shadow:0 0 12px #efd59c99}
-.mw-dock button>i{position:absolute;top:4px;right:calc(50% - 22px)}
+.mw-dock-icon{position:relative;display:block;width:24px;text-align:center}.mw-dock-icon>i{position:absolute;top:-6px;left:calc(100% - 4px);min-width:17px;padding:0 5px;border-radius:9px;background:#ffffff1a;color:var(--mw-text);font:600 10px/17px var(--mw-round);font-style:normal;text-align:center}
 
 /* A new tab slides in from the side it lives on */
 .mw-view[data-anim=next]{animation:mw-in-next .28s ease-out}.mw-view[data-anim=prev]{animation:mw-in-prev .28s ease-out}
@@ -678,8 +678,6 @@
 .mw-panel .mw-blend-use{min-height:40px;padding:0 14px;border:0;background:#ffffff0a;color:var(--mw-text);font-size:13px;cursor:pointer}
 .mw-panel .mw-blend-x{min-width:40px;border:0;border-left:1px solid #ffffff1a;background:#ffffff05;color:var(--mw-faint);cursor:pointer}
 .mw-blend-save{display:flex;gap:8px;margin:8px 0}.mw-blend-save input{flex:1;min-width:0;min-height:38px}
-.mw-era-who{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0;padding:0 14px}.mw-era-who small{color:var(--mw-muted)}
-.mw-panel .mw-era-who button{min-height:38px;padding:0 14px;border-radius:12px;border:1px solid #c9b8f066;background:#c9b8f01a;color:var(--mw-text);cursor:pointer}.mw-panel .mw-era-who button span{color:var(--mw-muted);font-size:.9em}
 .mw-era-list{margin:6px 0 4px;padding-left:20px;display:grid;gap:8px;font-size:12.5px;color:var(--mw-muted)}
 .mw-era-list li.is-sent{color:var(--mw-text)}.mw-era-list b{color:var(--mw-text)}
 .mw-dyn-pickrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end}.mw-dyn-pickrow .mw-dyn-pick{flex:1;min-width:0}
@@ -849,3 +847,60 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-music-seek .mw-music-track{display:block;margin:0 auto}
 .mw-music-peak{position:absolute;top:-4px;width:9px;height:9px;margin-left:-4px;transform:rotate(45deg);background:var(--mw-moon);opacity:.85;border-radius:1px}
 .mw-music-seekrow{display:flex;justify-content:center;gap:8px;margin:2px 0 6px;flex-wrap:wrap}
+
+/* 1.72.7: ⓘ why toggle, 🗑 remove a song, copy songs without tags */
+.mw-music-verdict [data-music="notes"] { flex: 0 0 auto; min-width: 44px; }
+.mw-music-verdict [data-music="notes"][aria-pressed="true"] { background: rgba(232, 200, 120, .18); border-color: rgba(232, 200, 120, .55); }
+.mw-music-remove { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.mw-music-remove .mw-music-quiet { min-height: 44px; }
+.mw-music-remove .is-danger { background: rgba(200, 70, 80, .22); border-color: rgba(220, 90, 100, .6); color: #ffd9dc; }
+.mw-music-copy { width: 100%; box-sizing: border-box; margin-top: 6px; font-size: 13px; line-height: 1.4; background: rgba(0, 0, 0, .25); color: inherit; border: 1px solid rgba(255, 255, 255, .15); border-radius: 10px; padding: 8px; }
+/* 1.73 Search every tab */
+.mw-find{margin:6px 12px 10px;padding:10px;border-radius:16px;background:#ffffff0a;border:1px solid var(--mw-line-2);display:grid;gap:8px}
+.mw-find input{width:100%;min-height:42px;box-sizing:border-box}
+.mw-find-list{display:grid;gap:6px;max-height:55vh;overflow:auto}
+.mw-panel .mw-find-hit{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:10px 12px;min-height:44px;border-radius:12px;border:1px solid #ffffff14;background:#ffffff08;color:var(--mw-text);cursor:pointer}
+.mw-find-hit small{color:var(--mw-moon);font-size:11px;align-self:center}
+.mw-find-hit span{grid-column:1/-1;color:var(--mw-muted);font-size:12px;line-height:1.35}
+
+/* 1.73 Bonds meters as a constellation: stars instead of moons, the lit ones joined by a line */
+.mw-moons.mw-stars{position:relative;gap:0;margin:6px 0 4px}
+.mw-stars .mw-star-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.mw-stars .mw-star-lines polyline{fill:none;stroke:var(--mw-moon);stroke-width:1.6;opacity:.85;filter:drop-shadow(0 0 3px #efd59c88)}
+.mw-stars .mw-star-lines.is-cool polyline{stroke:#9fc4ff;filter:drop-shadow(0 0 3px #9fc4ff88)}
+.mw-panel .mw-stars .mw-moon,.mw-panel .mw-stars .mw-moon.is-lit{position:relative;z-index:1;background:none !important;border-radius:12px;min-height:30px}
+.mw-panel .mw-stars-arc .mw-moon{min-height:44px}
+.mw-stars .mw-moon>span{width:6px;height:6px;background:#ffffff59 !important;transform:translateY(var(--mw-rise,0px));box-shadow:none !important}
+.mw-stars .mw-moon.is-lit>span{width:9px;height:9px;background:var(--mw-moon) !important;box-shadow:0 0 8px #efd59caa !important}
+.mw-stars .mw-moon.is-now>span{width:13px;height:13px;background:radial-gradient(circle at 35% 35%,#fff,var(--mw-moon) 55%) !important;box-shadow:0 0 0 7px #efd59c26,0 0 16px #efd59ccc !important;transform:translateY(var(--mw-rise,0px))}
+.mw-stars .mw-moon.mw-pole-dark.is-lit>span{background:#9fc4ff !important;box-shadow:0 0 8px #9fc4ffaa !important}
+.mw-stars .mw-moon.mw-pole-dark.is-now>span{background:radial-gradient(circle at 35% 35%,#fff,#9fc4ff 55%) !important;box-shadow:0 0 0 7px #9fc4ff26,0 0 16px #9fc4ffcc !important}
+.mw-stars .mw-moon.is-new>span{width:9px;height:9px;background:none !important;border:1.5px dashed #ffffff55 !important;box-shadow:none !important}
+.mw-stars .mw-moon.is-new.is-now>span{width:11px;height:11px;border-color:#ffffffaa !important;transform:translateY(var(--mw-rise,0px))}
+.mw-panel .mw-stars .mw-moon:active>span{transform:translateY(var(--mw-rise,0px)) scale(.8)}
+.mw-stars-arc .mw-moon:nth-of-type(1)>span{--mw-rise:10px}.mw-stars-arc .mw-moon:nth-of-type(2)>span{--mw-rise:5px}.mw-stars-arc .mw-moon:nth-of-type(3)>span{--mw-rise:0px}.mw-stars-arc .mw-moon:nth-of-type(4)>span{--mw-rise:-3px}.mw-stars-arc .mw-moon:nth-of-type(5)>span{--mw-rise:-4px}.mw-stars-arc .mw-moon:nth-of-type(6)>span{--mw-rise:-3px}.mw-stars-arc .mw-moon:nth-of-type(7)>span{--mw-rise:0px}.mw-stars-arc .mw-moon:nth-of-type(8)>span{--mw-rise:5px}.mw-stars-arc .mw-moon:nth-of-type(9)>span{--mw-rise:10px}
+
+/* 1.73 Skills below zero, and the dice */
+.mw-pips.mw-pips-bad{grid-template-columns:auto repeat(5,minmax(0,1fr));align-items:center;margin-top:-2px}
+.mw-pips-bad small{color:var(--mw-muted);font-size:11px;padding-right:6px}
+.mw-pips-bad .mw-pip.is-lit{background:#d9708a44}.mw-pips-bad .mw-pip.is-now{background:#d9708a;color:#1b1726}
+.mw-chip i.is-bad{background:#d9708a88}
+.mw-dice{margin:8px 0;padding:8px 10px;border-radius:12px;background:#ffffff08;border:1px solid var(--mw-line)}
+.mw-dice summary{cursor:pointer;font-size:12.5px}.mw-dice ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--mw-muted);display:grid;gap:4px}
+
+/* ❦ Period tab (panel/period-tab.js): the 1950s–60s lines for one person, by category. Each line is one big
+   button: tap to switch it off (dimmed, ○) or back on (✓). */
+.mw-period{padding:0 14px 14px}.mw-period .mw-explainer{padding:0;margin:6px 0 8px}
+.mw-period-warn{padding:8px 12px;border-radius:12px;background:#e5ca7f14;border:1px solid #e5ca7f40}
+.mw-period-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.mw-panel .mw-period-presets button{min-height:46px;padding:6px 8px;border-radius:12px;border:1px solid #d9b98c55;background:#d9b98c14;color:var(--mw-text);cursor:pointer;line-height:1.2}
+.mw-panel .mw-period-presets button span{display:block;color:var(--mw-muted);font-size:.78em;margin-top:2px}
+.mw-period-cat{margin:8px 0;padding:8px 12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff14}
+.mw-period-cat>summary{display:flex;justify-content:space-between;gap:10px;min-height:40px;align-items:center;cursor:pointer;list-style:none;font-weight:600}
+.mw-period-cat>summary small{color:var(--mw-muted);font-weight:400}
+.mw-panel .mw-period-catbtn{min-height:38px;width:100%;margin:4px 0 6px;border-radius:12px;border:1px dashed #d9b98c66;background:transparent;color:var(--mw-muted);cursor:pointer}
+.mw-period-sub{margin:12px 0 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#d9b98c}
+.mw-panel .mw-period-line{display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid #d9b98c40;background:#d9b98c10;color:var(--mw-text);cursor:pointer}
+.mw-panel .mw-period-line b{display:block;margin-bottom:3px}.mw-panel .mw-period-line b i{font-style:normal;font-weight:400;font-size:.8em;color:var(--mw-muted);margin-left:6px}
+.mw-panel .mw-period-line span{display:block;font-size:12.5px;line-height:1.45;color:var(--mw-muted)}
+.mw-panel .mw-period-line.is-off{opacity:.45;border-style:dashed;background:transparent}

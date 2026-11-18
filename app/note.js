@@ -11,7 +11,7 @@ import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
 import { knowledgeEntry } from '../engine/state.js';
 import { fill as fillDynamic } from '../engine/dynamics.js';
-import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, MONEY_ROLES, MONEY_STANDING, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, LENS_TRIGGERS, eraLenses } from '../engine/era-lenses.js';
+import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SCENE, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, periodLines } from '../engine/period.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { coreLink, moodClash, moodLink, roleLink, tieLink } from '../engine/links.js';
 import { cleanAge, heightCm } from '../engine/turns.js';
@@ -22,6 +22,7 @@ import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
 import { pronounize } from '../engine/pronouns.js';
 import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
+import { checkLines } from '../engine/checks.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
 import { aftermathLines, contagionLine } from '../engine/echoes.js';
 
@@ -80,8 +81,11 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
-        const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st) }));
-        const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length)];
+        const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
+        // Dice for the skills in play (Settings › What is sent › Dice checks): rolled once per reply, swipes keep them.
+        const dice = settings().diceOn !== false ? checkLines(skillFolk, history.length, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
+        run.rolls = { avatar: ch.avatar, list: dice.rolls };
+        const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length), ...dice.lines];
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
@@ -163,7 +167,8 @@ function withLinks(standing, links) {
 // Feelings that show someone leading right now, or giving way (catering to her, eager to please, yielding).
 const LEADING_MOODS = ['demanding', 'commanding', 'taking_charge', 'controlling', 'assertive', 'power_drunk', 'bratty_defiance', 'dominant_hunger', 'in_control', 'territorial'];
 const YIELDING_MOODS = ['submissive_longing', 'fawning', 'performing_obedience', 'wants_to_be_taken', 'indulgent', 'melting', 'worshipful', 'wants_praise', 'pleading', 'cowed', 'desperate_for_approval', 'devotion_quiet', 'helpful', 'soft'];
-const HARSH_MOODS = ['controlling', 'commanding', 'punitive', 'paternalistic_control', 'contemptuous', 'icy_contempt', 'dismissive', 'clinical_cruelty', 'judgemental_misogyny', 'domestic_tyrant'];
+// Feelings of the desire family, for telling whether a scene is sexual right now.
+const DESIRE = MOODS.filter(m => m.category === 'desire').map(m => m.id);
 function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const g = pronounsFor(ch, bond), rel = userRelation(state), relMoods = rel && rel.enabled !== false ? rel.moods ?? {} : {};
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')], pairMoods = pair && pair.enabled !== false ? pair.moods ?? {} : {};
@@ -187,38 +192,45 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const romance = Boolean(bd && (bd.r >= 30 || ['romance', 'heat'].includes(bd.dynamic.group))) || strongIn(pairMoods, ROMANCE_PAIRS) || strongIn(state.moods, ['horny', 'heated', 'craving', 'desperate_for_it']);
     const people = [[n, g.n, state], [u, g.u, mine]];
     const kinky = (st, traits, turns) => strongIn(st?.moods, traits) || turns.some(id => (st?.prefs?.[id] ?? 0) > 40);
-    const manSub = people.find(([, gen, st]) => gen === 'he' && kinky(st, SUB_TRAITS, SUB_TURNS))?.[0] ?? '';
-    const womanDom = people.find(([, gen, st]) => gen === 'she' && kinky(st, DOM_TRAITS, DOM_TURNS))?.[0] ?? '';
-    // Darker, gendered tags that colour the Power line in an older period (and count as power on their own).
+    // Darker tags between them (keeping someone, possessiveness, gaslighting, stalking, contempt) put the character
+    // in charge when nothing else has decided it.
     const dyn = bd?.dynamic.key ?? '', on = (moods, ids) => strongIn(moods, ids);
     const tints = [
-        (on(relMoods, ['captor_of', 'keeps_them']) || on(pairMoods, ['held_by_threat', 'gilded_cage', 'captor_captive']) || ['Captor', 'Gilded cage', 'Closing the circle', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Breaking in'].includes(dyn)) && 'trapped',
-        (on(state.moods, ['male_gaze', 'female_gaze', 'leering', 'checking_out'])) && 'gaze',
-        (on(relMoods, ['possessive', 'theyre_mine', 'wants_to_own', 'controls']) || on(pairMoods, ['mutually_possessive']) || ['Owned', 'Trophy', 'Claimed', 'Possession', 'Possessive worship'].includes(dyn)) && 'possessive',
-        (on(relMoods, ['manipulates']) || on(state.moods, ['gaslighting']) || ['Gaslit', 'Kept small', 'Puppet strings'].includes(dyn)) && 'gaslight',
-        (on(relMoods, ['stalks', 'watches_over']) || ['Stalker’s courtship', 'Watcher'].includes(dyn)) && 'stalking',
-        (on(state.moods, ['domestic_tyrant', 'womaniser', 'judgemental_misogyny'])) && 'contempt',
+        on(relMoods, ['captor_of', 'keeps_them']) || on(pairMoods, ['held_by_threat', 'gilded_cage', 'captor_captive']) || ['Captor', 'Gilded cage', 'Closing the circle', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Breaking in'].includes(dyn),
+        on(relMoods, ['possessive', 'theyre_mine', 'wants_to_own', 'controls']) || on(pairMoods, ['mutually_possessive']) || ['Owned', 'Trophy', 'Claimed', 'Possession', 'Possessive worship'].includes(dyn),
+        on(relMoods, ['manipulates']) || on(state.moods, ['gaslighting']) || ['Gaslit', 'Kept small', 'Puppet strings'].includes(dyn),
+        on(relMoods, ['stalks', 'watches_over']) || ['Stalker’s courtship', 'Watcher'].includes(dyn),
+        on(state.moods, ['domestic_tyrant', 'womaniser', 'judgemental_misogyny']),
     ].filter(Boolean);
     if (!top && tints.length && byMood >= 0) top = 'n';
-    // Harsh only when whoever holds power is in that kind of mood right now.
-    const harshIn = st => MOODS.some(m => (st?.moods?.[m.id] ?? 0) >= 41 && (['angry', 'cruel', 'cold'].includes(m.category) || HARSH_MOODS.includes(m.id)));
-    const harsh = top === 'n' ? harshIn(state) : top === 'u' ? harshIn(mine) : false;
-    // A lens shows when something on either person's cards, between them or on the Story tab touches it.
+    // Is the scene sexual right now, and who is leading in it? Their moods first (taking charge against giving way),
+    // then the Control meter, then a top or bottom bed role, and only then whoever holds power in general. So a man
+    // with a submissive streak who is on top in this scene is read as leading it.
+    const heat = Boolean(bd && bd.dynamic.group === 'heat') || strongIn(state.moods, DESIRE) || strongIn(mine?.moods, DESIRE);
+    const bedRole = (strongIn(state.moods, DOM_TRAITS) ? 1 : 0) + (strongIn(mine?.moods, SUB_TRAITS) ? 1 : 0) - (strongIn(mine?.moods, DOM_TRAITS) ? 1 : 0) - (strongIn(state.moods, SUB_TRAITS) ? 1 : 0);
+    const bedTop = !heat ? '' : Math.abs(byMood) >= 20 ? (byMood > 0 ? 'n' : 'u') : bd && Math.abs(bd.p) >= 30 ? (bd.p > 0 ? 'n' : 'u') : bedRole ? (bedRole > 0 ? 'n' : 'u') : top;
+    // What else is in play: something either of them carries, holds, feels, or that sits on the Story tab.
     const carried = new Set(people.flatMap(([, , st]) => (st?.inventory ?? []).filter(i => i?.carried).flatMap(i => String(i.text ?? '').toLowerCase().split(/[^a-z]+/))));
-    const touched = Object.fromEntries(Object.entries(LENS_TRIGGERS).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
+    const scene = Object.fromEntries(Object.entries(SCENE).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
         || (t.items ?? '').split(' ').some(w => carried.has(w))
         || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
-    const eraAll = era ? eraLenses({ era, n, u, gn: g.n, gu: g.u, top, harsh, romance, manSub, womanDom, tints, ...touched, all: true,
-        prefs: { n: state.prefs ?? {}, u: mine?.enabled ? mine.prefs ?? {} : {} }, skip: settings().eraSkip?.[`char:${ch.avatar}`] ?? {},
-        cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0, moods: { n: state.moods ?? {}, u: mine?.enabled ? mine.moods ?? {} : {} },
-        ages: { n: cleanAge(state.age), u: mine?.enabled ? cleanAge(mine.age) : '' }, heights: { n: heightCm(state.height), u: mine?.enabled ? heightCm(mine.height) : 0 },
-        ties: { n: relMoods, u: yourSide }, needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
-        dynGroup: bd?.dynamic.group ?? '', wed: strongIn(pairMoods, ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience']),
-        medicine: touched.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
-        money: touched.money || strongIn(relMoods, MONEY_ROLES) || strongIn(yourSide, MONEY_ROLES) || strongIn(state.moods, MONEY_STANDING) || strongIn(mine?.moods, MONEY_STANDING) }).map(x => ({ ...x, text: pronounize(x.text, n, u) })) : [];
-    // Every period line that applies, with the ones sent marked, for the Story tab's "Period lines now".
+    // Lines switched off on each person's Period tab.
+    const offs = settings().periodOff?.[`char:${ch.avatar}`] ?? {};
+    const you = mine?.enabled ? mine : null;
+    const eraAll = era ? periodLines({ era, n, u, g, top, bedTop, heat, romance,
+        wed: strongIn(pairMoods, ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience']),
+        medicine: scene.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
+        sub: { n: kinky(state, SUB_TRAITS, SUB_TURNS), u: Boolean(you) && kinky(you, SUB_TRAITS, SUB_TURNS) },
+        dom: { n: kinky(state, DOM_TRAITS, DOM_TURNS), u: Boolean(you) && kinky(you, DOM_TRAITS, DOM_TURNS) },
+        scene, moods: { n: state.moods ?? {}, u: you?.moods ?? {} }, prefs: { n: state.prefs ?? {}, u: you?.prefs ?? {} },
+        ties: { n: { ...pairMoods, ...relMoods }, u: { ...pairMoods, ...yourSide } },
+        needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
+        ages: { n: cleanAge(state.age), u: you ? cleanAge(you.age) : 0 }, heights: { n: heightCm(state.height), u: you ? heightCm(you.height) : 0 },
+        off: { n: new Set(offs.n ?? []), u: new Set(offs.u ?? []) }, cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0 })
+        .map(x => ({ ...x, text: pronounize(x.text, n, u) })) : [];
+    // Every period line that applies, with the ones sent marked, for the Period tab's "Lines now".
     run.eraNow = { avatar: ch.avatar, lines: eraAll };
-    const lenses = eraAll.filter(x => x.sent).map(x => `- ${x.label}: ${x.text}.`);
+    const lenses = eraAll.filter(x => x.sent).map(x => `- ${x.label}: ${x.text}`);
     const links = [];
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));

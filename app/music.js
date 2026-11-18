@@ -15,7 +15,7 @@ import * as amb from './ambience.js';
 import * as sp from './spotify.js';
 
 const DEFAULTS = { on: false, clientId: '', redirect: '', auth: null, pending: null, playlists: {}, songs: {}, tags: {}, ptags: {}, chars: {}, learn: {},
-    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, cues: true, cueAt: {}, ambLevel: 2, stingAt: {}, peaks: {}, device: '', deviceName: '', recent: [], loadedAt: 0 };
+    follow: 'char', change: 'big', sound: {}, hold: 120, fade: true, themes: 'big', feel: false, tell: false, tellFor: 2, cues: true, cueAt: {}, tagEdited: {}, removed: {}, bundle: '', ambLevel: 2, stingAt: {}, peaks: {}, device: '', deviceName: '', recent: [], loadedAt: 0 };
 // Everything is kept in SillyTavern's extension settings (on your computer), so every device shares it.
 export function music() {
     const all = ctx().extensionSettings[KEY] ??= {};
@@ -126,8 +126,9 @@ export function usableSongs(m = music()) {
     // A playlist counts as lit when it, or one with the same name (a sheet import and the Spotify playlist), is ticked.
     const litNames = new Set(Object.values(m.playlists).filter(p => p.on).map(p => norm(p.name)));
     const on = new Set(Object.entries(m.playlists).filter(([, p]) => p.on || litNames.has(norm(p.name))).map(([id]) => id));
-    // A tagged song whose playlists are all gone (deleted, renamed away, or never loaded) still counts, like a sheet song.
-    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).some(id => m.playlists[id])))
+    // A tagged song whose playlists are all gone (deleted, renamed away, or never loaded) still counts, like a sheet song,
+    // as long as the playlist it came from (by name) is lit.
+    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).some(id => m.playlists[id]) && (!s.pln || litNames.has(norm(s.pln)))))
         .map(([uri, s]) => ({ uri, song: s, g: s.g ?? [], learn: m.learn[uri], tags: mergeTags(cleanTags(m.tags[uri] ?? {}), ...(s.pl ?? []).filter(id => on.has(id)).map(id => m.ptags[id] && cleanTags(m.ptags[id]))) }));
 }
 // ---- Lyric cues ----
@@ -470,14 +471,14 @@ export async function feedback(good) {
         const title = norm(String(m.songs[uri]?.n ?? mus.now?.name ?? '').replace(/\s*[-(\[].*$/, ''));
         const versions = Object.entries(m.songs).filter(([u, s]) => u === uri || (title && norm(String(s.n).replace(/\s*[-(\[].*$/, '')) === title)).map(([u]) => u);
         const never = [snap.mode ? `k:${snap.mode}` : '', snap.heat ? `h:${snap.heat}` : '', ...[...snap.moments].slice(0, 2).map(x => `mo:${x}`)].filter(Boolean);
-        for (const u of versions) { const t = cleanTags(m.tags[u] ?? emptyTags()); t.nv = [...new Set([...t.nv, ...(snap.mode ? [`k:${snap.mode}`] : never)])]; m.tags[u] = t; }
+        for (const u of versions) { const t = cleanTags(m.tags[u] ?? emptyTags()); t.nv = [...new Set([...t.nv, ...(snap.mode ? [`k:${snap.mode}`] : never)])]; m.tags[u] = t; youEdited(m, u); }
         save(); say(`Noted: ${versions.length > 1 ? `no version of this song` : 'this song'} will play in ${snap.mode ? `a ${modeLabel(snap.mode)} scene` : 'scenes like this'} again. Finding something better…`);
         return start(versions);
     }
     const learn = m.learn[uri] ??= {};
     for (const k of learnKeys(snap)) {
         learn[k] = Math.max(-6, Math.min(3, (learn[k] ?? 0) + (good ? 1 : -1.5)));
-        if (!good && learn[k] <= -6 && /^(mo|h):/.test(k)) { const t = cleanTags(m.tags[uri] ?? emptyTags()); if (!t.nv.includes(k)) { t.nv.push(k); m.tags[uri] = t; } }
+        if (!good && learn[k] <= -6 && /^(mo|h):/.test(k)) { const t = cleanTags(m.tags[uri] ?? emptyTags()); if (!t.nv.includes(k)) { t.nv.push(k); m.tags[uri] = t; youEdited(m, uri); } }
     }
     // The song's sound (its Spotify genres) counts for this kind of scene too, so songs that sound like it rise.
     const g = m.songs[uri]?.g ?? [], kind = snap.mode || 'any', sound = m.sound[kind] ??= {};
@@ -514,7 +515,9 @@ export async function loadSongs() {
             const complete = songs.length > 0 && (!total || songs.length >= total * 0.9) && (songs.length >= had * 0.5 || had < 20);
             if (!complete) mus.partial = { name: p.name, got: songs.length, total: total || had };
             if (complete) for (const s of Object.values(m.songs)) if (s.pl?.includes(id)) s.pl = s.pl.filter(x => x !== id);
-            for (const t of songs) { const old = m.songs[t.uri]; m.songs[t.uri] = { n: t.n, a: t.a, al: t.al, ms: t.ms, ...(old?.g ? { g: old.g } : {}), pl: [...new Set([...(old?.pl ?? []), id])] }; }
+            // A removed song stays gone, unless you add it back on Spotify to a playlist Moodweaver took it out of.
+            for (const t of songs) { const rm = m.removed[t.uri]; if (rm) { if ((rm.pl ?? []).includes(id)) delete m.removed[t.uri]; else continue; } }
+            for (const t of songs) { if (m.removed[t.uri]) continue; const old = m.songs[t.uri]; m.songs[t.uri] = { n: t.n, a: t.a, al: t.al, ms: t.ms, ...(old?.g ? { g: old.g } : {}), ...(old?.pln ? { pln: old.pln } : {}), pl: [...new Set([...(old?.pl ?? []), id])] }; }
             if (complete) { p.snap = p.snapNew; p.count = songs.length; }
         }
         // Songs in no playlist and with no tags of their own are dropped.
@@ -524,6 +527,51 @@ export async function loadSongs() {
 }
 export function togglePlaylist(id) { const m = music(), p = m.playlists[id]; if (!p) return; p.on = !p.on; save(); changed(); if (p.on && p.owned && !id.startsWith('csv:') && sp.signedIn(m)) void loadSongs(); }
 
+// ---- Your songs, kept up to date without the sheet ----
+// Songs you tagged or changed in Moodweaver (✎ Tags, ✕ Not here) are yours: built-in tags never overwrite them.
+const youEdited = (m, uri) => { m.tagEdited[uri] = Date.now(); };
+// The tagged song list that comes with each version (data/song-tags.js). When a new version brings new or updated
+// tags, they're merged in by themselves on load: new songs are added and linked to their playlist, songs you never
+// changed get the new tags, and songs you changed or removed are left as they are. No import needed.
+export async function applyBundle(force = false) {
+    let B; try { B = (await import('../data/song-tags.js')).SONG_TAGS; } catch { return; }
+    const m = music(); if (!B?.version || (!force && m.bundle === B.version)) return;
+    const plFor = name => Object.entries(m.playlists).filter(([, p]) => norm(p.name) === norm(name)).sort((a, b) => Number(a[0].startsWith('csv:')) - Number(b[0].startsWith('csv:')))[0]?.[0];
+    let added = 0, updated = 0;
+    for (const [uri, x] of Object.entries(B.songs)) {
+        if (m.removed[uri]) continue;
+        if (!m.songs[uri]) { m.songs[uri] = { n: x.n, a: x.a, al: x.al ?? '', ms: x.ms ?? 0, pl: [], ...(x.g?.length ? { g: x.g } : {}) }; added++; }
+        if (x.pl) m.songs[uri].pln = x.pl;
+        const id = x.pl && plFor(x.pl); if (id && !m.songs[uri].pl?.includes(id)) m.songs[uri].pl = [...(m.songs[uri].pl ?? []), id];
+        if (!m.tagEdited[uri]) {
+            // Before 1.72.7 your own changes weren't marked, so anything that's clearly yours is kept on top: Never
+            // during (✕ Not here), Favourite, Off, Theme and a peak you set.
+            const t = cleanTags(x.t), old = cleanTags(m.tags[uri] ?? {});
+            t.nv = [...new Set([...t.nv, ...old.nv])]; t.fav ||= old.fav; t.off ||= old.off; t.th ||= old.th; if (old.pk) t.pk = old.pk;
+            if (JSON.stringify(cleanTags(t)) !== JSON.stringify(old)) { m.tags[uri] = cleanTags(t); updated++; }
+        }
+    }
+    m.bundle = B.version; save();
+    if (added || updated) say(`Your song tags are up to date (${B.version}): ${added} songs added, ${updated} updated. Songs you changed yourself were kept.`);
+}
+// 🗑 Remove a song: out of your Spotify playlists (the ones you made), out of Moodweaver, and never added back by a
+// sheet or built-in tags. If it's playing, the next best song plays.
+export async function removeSong(uri) {
+    const m = music(), s = m.songs[uri]; if (!s) return;
+    const spotify = (s.pl ?? []).filter(id => !id.startsWith('csv:') && id !== 'liked' && m.playlists[id]?.owned);
+    if (spotify.length && !sp.canEdit(m)) return say('To remove songs from your Spotify playlists, Moodweaver needs permission to edit them: tap “Sign in again” in Music settings once, then try again.', true);
+    try { for (const id of spotify) await sp.removeFromPlaylist(m, id, uri); }
+    catch (err) { return say(`Spotify wouldn’t remove it: ${err.message}`, true); }
+    const name = s.n; m.removed[uri] = { at: Date.now(), pl: spotify }; delete m.songs[uri]; delete m.tags[uri]; delete m.tagEdited[uri];
+    for (const id of spotify) if (m.playlists[id]) m.playlists[id].count = Math.max(0, (m.playlists[id].count ?? 1) - 1);
+    save(); say(`Removed “${name}”${spotify.length ? ' from your Spotify playlist' : ''}.`);
+    if (mus.now?.uri === uri) await nextBest();
+}
+// Songs with no tags yet, as plain text to paste to Claude for tagging (then they arrive with the next version).
+export function untaggedText() {
+    const m = music();
+    return usableSongs(m).filter(x => !hasTags(m.tags[x.uri])).map(x => `${x.song.n} — ${x.song.a} — ${x.uri}`).join('\n');
+}
 // ---- The song sheet ----
 export function exportSheet() {
     const bytes = sheetFile(music(), characterNames()), blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -538,6 +586,8 @@ export async function importSheet(file) {
         const tables = /\.csv$/i.test(file.name) || file.type === 'text/csv' ? { [file.name]: readCsv(new TextDecoder().decode(bytes)) } : await readXlsx(bytes);
         const got = readSheet(tables, m, characterNames(), file.name);
         if (got.newPlaylist) m.playlists[got.newPlaylist.id] ??= { name: got.newPlaylist.name, on: true, owned: true, count: 0, csv: true };
+        for (const uri of Object.keys(got.newSongs)) if (m.removed[uri]) delete got.newSongs[uri];
+        for (const uri of Object.keys(got.tags)) if (m.removed[uri]) delete got.tags[uri];
         for (const [uri, s] of Object.entries(got.newSongs)) { const old = m.songs[uri]; m.songs[uri] = { ...s, ...(old ?? {}), pl: [...new Set([...(old?.pl ?? []), ...(s.pl ?? [])])] }; }
         // Link each song back to the playlist named in its "From playlist" cell (your Spotify one first, else a sheet one),
         // so replacing the sheet never leaves songs outside your lit playlist.
@@ -545,7 +595,12 @@ export async function importSheet(file) {
         for (const [uri, name] of Object.entries(got.songPl ?? {})) { const ids = plIds(name), s = m.songs[uri]; if (s && ids.length) s.pl = [...new Set([...(s.pl ?? []), ids[0]])]; }
         for (const [uri, g] of Object.entries(got.sound ?? {})) if (m.songs[uri]) { if (g.length) m.songs[uri].g = g; else delete m.songs[uri].g; }
         if (got.newPlaylist) m.playlists[got.newPlaylist.id].count = Object.values(m.songs).filter(s => s.pl?.includes(got.newPlaylist.id)).length;
-        for (const [uri, t] of Object.entries(got.tags)) { if (hasTags(t) || t.note) m.tags[uri] = t; else delete m.tags[uri]; }
+        // Rows that differ from the built-in tags are your own changes: later versions keep them.
+        let B = null; try { B = (await import('../data/song-tags.js')).SONG_TAGS; } catch { /* none built in */ }
+        for (const [uri, t] of Object.entries(got.tags)) {
+            if (hasTags(t) || t.note) m.tags[uri] = t; else delete m.tags[uri];
+            const built = B?.songs?.[uri]?.t; if (!built || JSON.stringify(cleanTags(t)) !== JSON.stringify(cleanTags(built))) youEdited(m, uri);
+        }
         for (const [id, t] of Object.entries(got.ptags)) { if (hasTags(t)) m.ptags[id] = t; else delete m.ptags[id]; }
         for (const [k, c] of Object.entries(got.chars)) m.chars[k] = { ...c, ...(m.chars[k]?.x ? { x: m.chars[k].x } : {}) }; // keeps the Extras ticks
         save();
@@ -564,7 +619,7 @@ export function setTag(uri, kind, value) {
     else if (kind === 'cw') t.cw = String(value).split(/[,\s]+/);
     else if (kind === 'pk') t.pk = value;
     else if (kind === 'yr') t.yr = value;
-    m.tags[uri] = cleanTags(t); save(); changed();
+    m.tags[uri] = cleanTags(t); youEdited(m, uri); save(); changed();
 }
 
 // ---- Sign-in ----
@@ -588,7 +643,7 @@ export function poller() {
     mus.poll = setInterval(() => { if (music().on && document.visibilityState === 'visible' && sp.signedIn(music())) void sync(); }, 45000);
 }
 export function initMusic() {
-    music(); poller();
+    music(); poller(); void applyBundle();
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && music().on && sp.signedIn(music())) void sync(); });
     void checkReturn().then(() => { if (music().on && sp.signedIn(music())) void sync(); });
 }

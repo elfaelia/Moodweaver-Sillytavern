@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.73.0: period lines rewritten, a Period tab, dice, search, constellations
+
+- **Period lines, rewritten from scratch.** Every old period line and combo is gone. In their place are 156 new lines for 1950s–60s America, in plain sentences, most with one version for a man and one for a woman: power and roles, how men and women are seen (the good and the bad side of it for both), money and work, home and marriage, dating, sex and who leads in bed, secret tastes, affairs, body, looks and age gaps, medicine and the mind, reputation, personality, vices and places. Researched against Kinsey, the credit and equal pay laws, the Pill and Griswold, divorce law, the diagnostic manuals of 1952 and 1968, the tranquilliser years and more (sources at the top of data/catalogue/period.js). Doctors are treated as doctors, and men caring for women count as providing.
+- **❦ Period tab** under Self, for each of you. It shows only the lines written for that person's gender (and the ones for anyone), by category with sub-headings. Tap a line to switch it off for that person; each category has an all on/off switch; ✓ All on, ◐ Kept apart and ○ All off are presets. Lines per reply and the lines that apply right now moved here from the Story tab. Your old "Lines about" choice carries over.
+- **Fixed: lines about submitting while leading.** Bed lines now follow who is actually leading in the scene (their moods, then the Control meter, then a bed role), so a man with a submissive streak who is on top in foreplay gets a line about leading, not kneeling.
+- **Skills below zero.** Every skill has a "Bad at it" row, shaky (−1) to hopeless (−5). Claude is told they really are bad at it, and practice brings it back quickly.
+- **Dice checks.** Before each reply a d20 is rolled for the skills in play, plus the level. Contests (a lie against reading people, sneaking against watching, persuading, pressuring, holding, attacking) and plain checks against 12, botch to brilliant. Claude is told the outcome in advance and plays it. If your character is fooled, the lie reads as true to you too. Swipes keep the roll. Settings › What is sent › Dice checks; Settings › Panel › Show dice rolls.
+- **⌕ Search every tab**, beside ⚙: feelings, traits, Mind, Intimacy, facts, story settings, turn-ons, skills, dynamics, relationship tags and period lines. Tap a result to go straight to it.
+- **Constellation bond meters.** The main meters are an arc of stars joined by a faint line up to the current level; the smaller meters are a slim row of stars (one-sided from the left, two-sided from the centre).
+- **More Mind settings, researched:** eight complexes (Jocasta, Laius, Don Juan, Icarus, Jonah, Adonis, Ophelia, Hero), dysthymia, cyclothymia, PMDD, functional neurological disorder, dissociative fugue, a new "Impulse and obsession" group (explosive rage, kleptomania, gambling, sex compulsion, limerence, maladaptive daydreaming), and ten 1950s–60s diagnoses (anxiety neurosis, hysterical personality, passive-dependent, passive-aggressive, explosive personality, asthenic personality, sociopathic personality, homosexuality as a diagnosis, the blamed mother, marital maladjustment).
+- **Affair tags.** Romance tropes now have Affair, Cheating, The other woman / other man and Found out.
+- **Facts about you from every kind.** The hidden line can now add facts about your character from body, bed, substances, looks and clothes, voice, standing and secrets, and work.
+- **Faster removal.** Taking off a trait or mood redraws the panel straight away and saves after.
+- **Even dock.** The Info icon is a clear ◈ and every dock button has the same width, so there's no gap after Music.
+
+## 1.72.7: ⓘ for why, 🗑 remove songs, tags built in
+
+- **The "why is this playing" text is hidden.** The Now card shows only the song, its path and the buttons. Tap ⓘ (beside ✦ Fits, ✕ Not here and ✎ Tags) to show what was heard, why the song was picked and how the scene reads; tap it again to hide it. Errors still show.
+- **🗑 Remove a song.** In ✎ Tags, tap 🗑 Remove this song, then tap again to confirm (or Keep it). It comes out of your own Spotify playlists and out of Moodweaver, and never comes back from a reload, a sheet import or a new version, unless you add it back on Spotify yourself. Spotify needs a new permission for this: Music settings shows "Sign in again" until you have signed in once more.
+- **Song tags are built in.** The tagged songs now come inside the extension (data/song-tags.js) and merge in by themselves on load. New songs are added, songs you never changed get the new tags, and anything you changed in Moodweaver is kept (your Never during, Favourite, Off, Theme and peaks are always kept). No more exporting and importing to get new tags.
+- **Copy songs without tags.** Song sheet › ✧ Copy songs without tags gives a plain list to paste to Claude; they come back tagged in the next version.
+- Built-in songs only count while their playlist (by name) is lit, so lighting another playlist doesn't bring them all in.
+
 ## 1.72.6: no lullabies in foreplay, jump within a song, mark peaks yourself
 
 - **Fixed: Avril 14th in foreplay.** It counted as an intimate song only because it's tagged for Afterglow (lying together after). Now a song whose only tie to intimacy is Afterglow fits the afterglow itself, not foreplay or sex while the heat is still building. 14 songs are affected (Avril 14th, Stones, Wonderful Tonight, Five String Serenade, Turning Page (Instrumental), Eternal Flame, It's Only Time and others); songs tagged with heat, desire or Seduction are unchanged.

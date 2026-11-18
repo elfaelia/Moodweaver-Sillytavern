@@ -12,15 +12,17 @@ const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLo
 export { SKILL_GROUPS };
 export const SKILL_BY_ID = Object.fromEntries(SKILL_GROUPS.flatMap(g => g.rows.map(r => [r.id, { ...r, prompt: r.prompt || r.label.toLowerCase(), group: g.name, color: g.color }])));
 
-// 1–10, worded so the number and the word agree; the rule line in the note says what a level does.
-const SKILL_LEVELS = [[10, 'master'], [9, 'expert'], [7, 'skilled'], [5, 'competent'], [3, 'amateur'], [1, 'novice']];
-export const skillWord = v => SKILL_LEVELS.find(([min]) => v >= min)?.[1] ?? 'off';
-const level = v => Math.max(0, Math.min(10, Math.round(Number(v) || 0)));
+// 1–10, worded so the number and the word agree; the rule line in the note says what a level does. Below zero
+// (-1 to -5) someone is actively bad at it: a hopeless liar, a cook whose food tastes wrong.
+const SKILL_LEVELS = [[10, 'master'], [9, 'expert'], [7, 'skilled'], [5, 'competent'], [3, 'amateur'], [1, 'novice'], [-1, 'shaky'], [-2, 'poor'], [-3, 'bad'], [-4, 'terrible'], [-5, 'hopeless']];
+export const skillWord = v => v === 0 ? 'off' : SKILL_LEVELS.find(([min]) => v >= min)?.[1] ?? 'hopeless';
+export const SKILL_MIN = -5;
+const level = v => Math.max(SKILL_MIN, Math.min(10, Math.round(Number(v) || 0)));
 const known = id => SKILL_BY_ID[id] ? id : SKILL_BY_ID[SKILL_MERGED[id]] ? SKILL_MERGED[id] : '';
 // Levels by id. Skills from older versions move to the one that replaced them; the higher level wins.
 export function cleanSkills(obj = {}) {
     const out = {};
-    for (const [id, v] of Object.entries(obj && typeof obj === 'object' ? obj : {})) { const to = known(id); if (to && level(v) > 0) out[to] = Math.max(out[to] ?? 0, level(v)); }
+    for (const [id, v] of Object.entries(obj && typeof obj === 'object' ? obj : {})) { const to = known(id); if (to && level(v) !== 0) out[to] = out[to] === undefined ? level(v) : Math.max(out[to], level(v)); }
     return out;
 }
 export const cleanPins = obj => Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {}).filter(([id, v]) => v && SKILL_BY_ID[id]).map(([id]) => [id, true]));
@@ -81,9 +83,10 @@ export function growSkills(state, text = '', used = '') {
         if (pins[id]) continue;
         const sk = SKILL_BY_ID[id], [uses, idle] = xp[id] ?? [0, 0];
         if ((s && calledFor(sk.words, s)) || (u && named(sk, u))) {
-            const next = uses + 1, up = lv < 10 && next >= pace.per * lv;
+            // Practice: a bad skill climbs out of the hole three times slower, and from -1 straight to novice.
+            const next = uses + 1, up = lv < 10 && next >= pace.per * (lv < 0 ? 3 * -lv : lv);
             xp[id] = [up ? 0 : next, 0];
-            if (up) levels[id] = [lv, lv + 1];
+            if (up) levels[id] = [lv, lv === -1 ? 1 : lv + 1];
         } else {
             const down = lv > 1 && idle + 1 >= pace.rust;
             xp[id] = [down ? 0 : uses, down ? 0 : idle + 1];
@@ -106,7 +109,7 @@ export function ungrowSkills(state, rec) {
 export function skillProgress(state, id) {
     const pace = SKILL_PACE[cleanSkillPace(state?.skillPace)], lv = cleanSkills(state?.skills)[id];
     if (!pace.per || !lv || lv >= 10 || cleanPins(state?.skillPins)[id]) return null;
-    return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * lv];
+    return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? 3 * -lv : lv)];
 }
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 // people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
@@ -125,6 +128,7 @@ export function skillLines(people = [], u = 'the player’s character', seed = 0
     const lit = people.filter(p => p.lit?.length);
     if (!lit.length) return out;
     out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level}/10 (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
+    if (lit.some(p => p.lit.some(x => x.level < 0))) out.push('Below zero means genuinely bad at it, worse than untrained: attempts go wrong in specific, visible ways (a bad liar gets caught out by tells, a bad cook serves food that tastes off, a bad driver scrapes the car), and they may not see it themselves.');
     const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
     if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));
     out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps.`);

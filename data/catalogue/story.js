@@ -332,6 +332,10 @@ export default [
         { id: "love_too_late", label: "Love too late", cue: "the feelings are admitted only when it’s too late to act on them" },
         { id: "he_falls_first", label: "He falls first", cue: "he’s gone for her before she notices, and it shows in everything he does" },
         { id: "bully_romance", label: "Bully romance", cue: "he torments her and wants her; cruelty is how he courts" },
+        { id: "trope_affair", label: "Affair", cue: "an affair sits at the heart of the story: stolen hours, careful lies, and the constant risk of being found out" },
+        { id: "trope_cheating", label: "Cheating", cue: "someone is unfaithful, and the story follows the guilt, the hiding and what it does to everyone involved" },
+        { id: "trope_other_one", label: "The other woman or man", cue: "one of them is the secret lover of someone who is married or taken, and has to live with being kept hidden" },
+        { id: "trope_found_out", label: "Found out", cue: "the affair or betrayal comes out, and the scene turns on the confrontation and its fallout" },
     ] },
     { id: "plot", name: "Plot tropes", icon: "⚑", color: "#a8c8d8", kind: "story", order: 46, rows: [
         { id: "time_loop", label: "Time loop", cue: "the same stretch of time keeps repeating", prompt: true },

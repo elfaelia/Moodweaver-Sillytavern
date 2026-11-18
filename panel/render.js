@@ -1,4 +1,5 @@
 // Drawing the panel, keeping search filters and scroll position, and the status lines.
+import { findView } from './find.js';
 import { autoOpened, currentPeer, getKnowledge, getState, identity, keyForTarget, members, migratePairs, openRelationGroups, peers, persist, personKeyOfSubject, playerName, selectedCast, subjectName, swapTarget, target, viewState } from '../app/chat.js';
 import { syncPrompt } from '../app/note.js';
 import { readerProfile } from '../app/reader.js';
@@ -19,6 +20,7 @@ import { factsContent, sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
 import { filterSkills, skillsView } from './skills-tab.js';
 import { wantsView, youView } from './wants-tab.js';
+import { periodView } from './period-tab.js';
 import { filterPersonality } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
 import { relationshipView } from './relationships-tab.js';
@@ -127,18 +129,19 @@ function drawPanel() {
     const anim = at === was ? '' : order.indexOf(at) > order.indexOf(was) ? 'next' : 'prev'; ui.drawnTab = at;
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
-        : `${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
+        : `${findView()}${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
         <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live, boardPeople(ch)) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
         : ui.who !== 'story' && ui.tab === 'music' ? musicView()
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
+        : ['char', 'user'].includes(ui.who) && ui.tab === 'period' ? periodView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
             peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation })
         : sectionContent(state, kind, ch, active)}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
-        <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">◷</i><b></b></button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
+        <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">◷</i><b></b></button><button type="button" class="mw-icon-btn" data-action="find" aria-pressed="${Boolean(ui.findOpen)}" aria-label="Search every tab" title="Search every tab">⌕</button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch, charState)}
@@ -166,6 +169,11 @@ export function moonify(root) {
         const box = document.createElement('div');
         box.className = `mw-moons mw-range-moons${Number(input.min) < 0 ? ' mw-poles' : ''}`; box.setAttribute('role', 'group');
         if (input.getAttribute('aria-label')) box.setAttribute('aria-label', input.getAttribute('aria-label'));
+        // On the Bonds tab the moons are drawn as a constellation: an arc of stars for the main meters, a straight
+        // row for the smaller ones, with a line joining the lit stars. Same taps, same values.
+        const bond = input.closest('.mw-bond-meter');
+        if (bond) box.classList.add('mw-stars', bond.classList.contains('mw-more-meter') ? 'mw-stars-line' : 'mw-stars-arc');
+        else if (/^mw-(rel|pair|compare)-slider/.test(input.id)) box.classList.add('mw-stars', 'mw-stars-line');
         input.after(box); drawMoons(input, box);
     }
 }
@@ -180,6 +188,18 @@ function drawMoons(input, box) {
         const at = MOON_FROM.reduce((k, f, i) => v >= f ? i : k, -1);
         box.innerHTML = `${btn(min, false, at < 0 || v <= min, 'is-new')}${MOON_AT.map((to, i) => btn(Math.max(min, to), at >= i && v > min, at === i && v > min, '', `${Math.round((i + 1) / 8 * 100)}%`)).join('')}`;
     }
+    if (box.classList.contains('mw-stars')) box.insertAdjacentHTML('afterbegin', starLines(box));
+}
+// The line that joins the lit stars, from the middle (or the left end for a one-sided meter) out to the value.
+// Star i sits at the middle of grid column i; on the arc it's raised by STAR_RISE[i] pixels (the CSS does the same).
+const STAR_RISE = [0, 5, 10, 13, 14, 13, 10, 5, 0];
+function starLines(box) {
+    const stars = [...box.querySelectorAll('.mw-moon')], now = stars.findIndex(b => b.classList.contains('is-now'));
+    const start = box.classList.contains('mw-poles') ? 4 : 0, arc = box.classList.contains('mw-stars-arc');
+    if (now < 0 || now === start) return '<svg class="mw-star-lines" aria-hidden="true"></svg>';
+    const [a, b] = now > start ? [start, now] : [now, start], pt = i => `${(i + 0.5) * 100},${arc ? 32 - STAR_RISE[i] : 15}`;
+    const pts = Array.from({ length: b - a + 1 }, (_, k) => pt(a + k)).join(' ');
+    return `<svg class="mw-star-lines${now < start ? ' is-cool' : ''}" viewBox="0 0 900 ${arc ? 44 : 30}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" vector-effect="non-scaling-stroke"/></svg>`;
 }
 // A tap on one of those moons: set the slider, fire its events, redraw the moons (a re-render may replace them anyway).
 export function tapRangeMoon(button) {
@@ -241,9 +261,11 @@ export function filterRows() {
     });
     const none = ui.panel.querySelector('.mw-no-results'); if (none) none.hidden = shown > 0 || !term;
 }
+// The panel redraws straight away and the chat is saved after, so a tap (taking something off especially, which
+// used to wait for the save) shows at once. Saving a long chat can take a moment on a phone.
 export async function changeState(mutator) {
     const s = viewState(); if (!s) return;
-    mutator(s); await persist(s); await syncPrompt(); render();
+    mutator(s); render(); await persist(s); await syncPrompt();
 }
 // Every press writes what happened under the Open mood panel button in Extensions, so a phone
 // with no console can still show why the panel isn't visible.

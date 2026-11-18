@@ -1,7 +1,16 @@
 // Moodweaver's global settings: defaults, and upgrading settings saved by older versions.
 import { KEY, ctx } from './state.js';
 import { clamp } from '../engine/util.js';
-import { ERA_LINE_CHOICES } from '../engine/era-lenses.js';
+import { ERA_LINE_CHOICES } from '../engine/period.js';
+import { PERIOD } from '../data/catalogue/period.js';
+// Before 1.73 each person had a three-way "Lines about" button; kept apart becomes every everyday-life line
+// switched off, and no lines becomes all of them off.
+function periodOffFrom(saved) {
+    const out = saved.periodOff && typeof saved.periodOff === 'object' ? saved.periodOff : {};
+    for (const [key, skip] of Object.entries(saved.eraSkip && typeof saved.eraSkip === 'object' ? saved.eraSkip : {}))
+        for (const k of ['n', 'u']) if (skip?.[k] && !out[key]?.[k]) (out[key] ??= {})[k] = PERIOD.filter(l => skip[k] !== 'apart' || l.world).map(l => l.id);
+    return out;
+}
 import { CLASH_CHOICES } from '../engine/links.js';
 
 const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true, musicTab: true, blendsOn: true, dockClose: true, chipRemove: true };
@@ -41,8 +50,8 @@ export function settings() {
         dynamicPools: saved.dynamicPools && typeof saved.dynamicPools === 'object' ? saved.dynamicPools : {},
         // Named author blends, per character: { 'char:<avatar>': [{ name, authors: { id: value }, roles: { id: role } }] }.
         authorBlends: saved.authorBlends && typeof saved.authorBlends === 'object' ? saved.authorBlends : {},
-        // Period lines left out about one of the pair, per character: { 'char:<avatar>': { n: true, u: true } }.
-        eraSkip: saved.eraSkip && typeof saved.eraSkip === 'object' ? saved.eraSkip : {},
+        // Period lines switched off on each person's Period tab, per character: { 'char:<avatar>': { n: [ids], u: [ids] } }.
+        periodOff: periodOffFrom(saved),
         boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false, blendPlan: saved.blendPlan === true, bondTrack: saved.bondTrack !== false, boardStrip: saved.boardStrip !== false,
         // Board memories and board pins are opt-in; board words count alongside the hidden line.
         boardMemories: saved.boardMemories === true, boardPins: saved.boardPins === true, boardWithWeave: saved.boardWithWeave !== false,
@@ -64,6 +73,6 @@ export function settings() {
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.
         eraLines: ERA_LINE_CHOICES.includes(Number(saved.eraLines)) ? String(saved.eraLines) : '3',
         // The Wants tab can be hidden (wants you already set still go to the story), and the faint "why" lines too.
-        wantsTab: saved.wantsTab !== false, musicTab: saved.musicTab !== false, blendsOn: saved.blendsOn !== false, dockClose: saved.dockClose !== false, chipRemove: saved.chipRemove !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,
+        wantsTab: saved.wantsTab !== false, musicTab: saved.musicTab !== false, blendsOn: saved.blendsOn !== false, dockClose: saved.dockClose !== false, diceOn: saved.diceOn !== false, diceShow: saved.diceShow === true, chipRemove: saved.chipRemove !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,
     });
 }

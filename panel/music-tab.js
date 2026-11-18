@@ -1,8 +1,8 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { EXTRAS, ambienceBeds, markPeak, nowAt, playChosen, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { EXTRAS, ambienceBeds, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
-import { canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
+import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
 import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm, peakText } from '../engine/music.js';
@@ -79,21 +79,13 @@ function extrasLines(m) {
     return out.map(l => `<p class="mw-music-note">${l}</p>`).join('');
 }
 // Under Re-roll: one short, quiet line (what was cued, a sting, the radio, the ambience). A tap opens the full detail.
-function noteFold(m, heard, heardLine) {
+function whyBlock(m, heardLine, why, snap) {
+    if (!ui.musicNotes) return '';
     const extras = extrasLines(m), status = mus.status ?? '';
-    if (!heard.length && !extras && !status) return '';
-    const short = [];
-    const playingCue = heard.find(h => h.uri === mus.now?.uri), top = heard[0];
-    if (mus.sting && Date.now() - mus.sting.at < 5 * 60 * 1000) short.push(`⚡ ${mus.sting.beat.toLowerCase()}`);
-    if (playingCue) short.push(`♪ cued: ${playingCue.name}`);
-    else if (top) short.push(`♪ “${top.cue}” → ${top.name}${top.resting ? ` · resting ${Math.ceil((top.restLeft ?? 0) / 60000)}m` : top.fits ? '' : " · doesn't fit"}`);
-    else if (status) short.push(status.split(' · ')[0].replace(/\.$/, ''));
-    if (radioOn(m)) short.push('📻');
-    const beds = extraOn('amb', m) && m.on ? ambienceBeds(mus.latest, m) : [];
-    if (beds.length) short.push(needsTap() ? '☁ tap for ambience' : '☁');
-    const open = Boolean(ui.musicNotes);
-    return `<button type="button" class="mw-music-fold" data-music="notes" aria-expanded="${open}"><span>${esc(short.join('  ·  ') || 'Details')}</span><i aria-hidden="true">${open ? '–' : '+'}</i></button>
-        ${open ? `<div class="mw-music-folded">${heardLine}${extras}${status ? `<p class="mw-music-note">${esc(status)}</p>` : ''}</div>` : ''}`;
+    const parts = [heardLine, extras, status ? `<p class="mw-music-note">${esc(status)}</p>` : '',
+        why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : '',
+        snap ? `<p class="mw-music-scene">${esc(describe(snap, snap.name))}</p>` : ''].filter(Boolean).join('');
+    return `<div class="mw-music-folded">${parts || '<p class="mw-music-note">Nothing to explain yet: the next reply picks a song.</p>'}</div>`;
 }
 // A small gold diamond on the path where the song's peak is (yours, from the sheet, or one Moodweaver found).
 function peakMark(m, n) {
@@ -122,11 +114,9 @@ function nowCard(m, tone) {
         </div>
         <button type="button" class="mw-music-reroll" data-music="reroll"${mus.busy ? ' disabled' : ''}>↻ Re-roll for the story now</button>
         ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : ''}
-        ${noteFold(m, heard, heardLine)}
-        ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button></div>` : ''}
+        ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button><button type="button" data-music="notes" aria-pressed="${Boolean(ui.musicNotes)}" aria-label="Why this song">ⓘ</button></div>` : ''}
+        ${whyBlock(m, heardLine, why, snap)}
         ${kindRow(snap)}
-        ${why.length ? `<div class="mw-music-why"><small>Picked for</small>${why.map(w => `<span>${esc(w)}</span>`).join('')}</div>` : ''}
-        ${snap ? `<p class="mw-music-scene">${esc(describe(snap, snap.name))}</p>` : ''}
         ${mus.loading ? `<p class="mw-music-note">${esc(mus.loading)}</p>` : ''}
     </section>`;
 }
@@ -158,11 +148,15 @@ function sheetCard(m, asDrawer = true) {
     const body = `<p class="mw-music-note">Tag songs in a spreadsheet with dropdowns (Google Sheets, Excel or Numbers), then bring it back. exportify.net CSVs work too.</p>
         <div class="mw-music-tiles"><button type="button" class="mw-music-tile" data-music="export"><span aria-hidden="true">☾</span><b>Export</b><small>the sheet to fill in</small></button>
         <label class="mw-music-tile mw-music-file"><span aria-hidden="true">☽</span><b>Import</b><small>a filled sheet or CSV</small><input type="file" data-music-field="import" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label></div>
+        <p class="mw-music-note">You don't need to import my tags any more: they come built in with each new version, and your own edits are kept.</p>
+        <button type="button" class="mw-music-quiet" data-music="untagged">✧ Copy songs without tags</button>
+        ${ui.musicUntagged != null ? (ui.musicUntagged ? `<p class="mw-fine">${plural(ui.musicUntagged.split('\n').length, 'song')} without tags. Paste this list to Claude: they come back tagged in the next version.</p><textarea class="mw-music-copy" readonly rows="6">${esc(ui.musicUntagged)}</textarea>` : `<p class="mw-fine">Every song has tags.</p>`) : ''}
         ${imp ? `<p class="mw-music-note">Last import (${esc(imp.file)}): ${imp.songs} songs tagged${imp.added ? `, ${imp.added} songs added` : ''}${imp.playlists ? `, ${imp.playlists} playlists` : ''}${imp.chars ? `, ${imp.chars} characters` : ''}.${imp.unknown.length ? ` Not recognised: ${esc(imp.unknown.join(', '))}.` : ''}${imp.unmatched.length ? ` Not found: ${esc(imp.unmatched.join(', '))}.` : ''}</p>` : ''}`;
     return asDrawer ? drawer('sheet', '◐', 'Song sheet', 'Sort and tag songs in a spreadsheet', body, ui.musicOpen?.sheet) : `<section class="mw-music-follow">${body}</section>`;
 }
 // The tag editor: one section open at a time (a tap on its bar opens it and closes the others), each bar saying
 // what is lit inside, so the editor stays short. Bars are big, bright and plainly tappable.
+const removable = (m, s) => (s.pl ?? []).some(id => !id.startsWith('csv:') && id !== 'liked' && m.playlists[id]?.owned);
 function tagEditor(m, uri) {
     const s = m.songs[uri]; if (!s) return '';
     const t = cleanTags(m.tags[uri] ?? emptyTags()), tag = (k, v, label, on) => chip(`data-music="tag" data-uri="${esc(uri)}" data-k="${k}" data-v="${esc(v)}"`, on, label);
@@ -187,6 +181,7 @@ function tagEditor(m, uri) {
         ${group('cues', 'Cues', [...t.cue, ...t.cw], `<label class="mw-music-note">Phrases: each one alone nods to this song when the story says it (like a dog). Separate with commas.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label><label class="mw-music-note">Theme words: any two of these close together count (dog*, leash*, collar*, salivat*). A * means any ending.<input type="text" data-music-field="cuewords" data-uri="${esc(uri)}" value="${esc(t.cw.join(', '))}" autocapitalize="off" spellcheck="false"></label><p class="mw-fine">When the story cues this song and it fits the scene, it almost always plays next (always on ↻ Re-roll), then rests for 10 minutes.</p>`)}
         ${group('sting', 'Sting, peak and year', [...t.st.map(id => BEATS.find(b => b.id === id)?.label ?? id), t.pk ? `peak ${peakText(t.pk)}` : '', t.yr ? String(t.yr) : ''].filter(Boolean), `<p class="mw-fine">Sting: a big beat this song can cut in on, straight away.</p>${BEATS.map(b => tag('st', b.id, b.label, t.st.includes(b.id))).join('')}<label class="mw-music-note">Peak: where its chorus or drop starts, like 1:05 (empty: Moodweaver finds or guesses it)<input type="text" inputmode="numeric" data-music-field="peak" data-uri="${esc(uri)}" value="${esc(peakText(t.pk))}" placeholder="1:05"></label><label class="mw-music-note">Year it first came out (for the in-story radio)<input type="text" inputmode="numeric" data-music-field="year" data-uri="${esc(uri)}" value="${t.yr || ''}" placeholder="1962"></label>`)}
         <div class="mw-mchips mw-music-flags">${tag('th', '1', '★ Theme song', t.th)}${tag('fav', '1', '♥ Favourite', t.fav)}${tag('off', '1', 'Off (never play)', t.off)}</div>
+        <div class="mw-music-remove">${ui.musicRemove === uri ? `<button type="button" class="mw-music-quiet is-danger" data-music="remove" data-uri="${esc(uri)}">Tap again to remove it${removable(m, s) ? ' from your Spotify playlist' : ''} for good</button><button type="button" class="mw-music-quiet" data-music="remove-cancel">Keep it</button>` : `<button type="button" class="mw-music-quiet" data-music="remove-ask" data-uri="${esc(uri)}">🗑 Remove this song</button>`}</div>
         ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
 function songsCard(m) {
@@ -212,7 +207,8 @@ function settingsCard(m) {
         ${m.tell ? `<p class="mw-music-label">Tell it for</p><div class="mw-mchips">${[[1, 'First reply of a song'], [2, '2 replies'], [3, '3 replies'], [0, 'While it plays']].map(([v, l]) => choice('tellFor', v, Number(m.tellFor), l)).join('')}</div><p class="mw-fine">Short is safest: the song sets the mood as it starts, then the story moves on freely.</p>` : ''}
         <p class="mw-music-label">Playing on</p><p class="mw-music-note">${esc(m.deviceName || 'Whichever Spotify is open')}</p>
         ${mus.devices.length > 1 ? `<div class="mw-mchips">${mus.devices.map(d => chip(`data-music="device" data-id="${esc(d.id)}"`, d.id === m.device, d.name)).join('')}</div>` : ''}
-        <div class="mw-music-pair"><button type="button" class="mw-music-quiet" data-music="devices">Find my Spotify devices</button><button type="button" class="mw-music-quiet" data-music="signout">Sign out of Spotify</button></div>`;
+        <div class="mw-music-pair"><button type="button" class="mw-music-quiet" data-music="devices">Find my Spotify devices</button><button type="button" class="mw-music-quiet" data-music="signout">Sign out of Spotify</button></div>
+        ${canEdit(m) ? '' : `<p class="mw-fine">To let 🗑 Remove take songs out of your Spotify playlists, Moodweaver needs one more permission. Sign out, then sign in again once.</p><button type="button" class="mw-music-quiet" data-music="signout">Sign in again (lets Moodweaver remove songs)</button>`}`;
     return drawer('settings', '☾', 'Music settings', `${(CHANGE_CHOICES.find(([v]) => v === m.change) ?? [, ''])[1]}`, body, ui.musicOpen?.settings);
 }
 // ✧ Extras: each one Off, on for Everyone, or on for Only some characters (ticked one by one, saved with them).
@@ -281,6 +277,14 @@ export async function musicClick(e, redraw) {
     else if (a === 'fwd15') { await seekBy(15); redraw(); }
     else if (a === 'markpeak') { markPeak(); redraw(); }
     else if (a === 'notes') { ui.musicNotes = !ui.musicNotes; redraw(); }
+    else if (a === 'remove-ask') { ui.musicRemove = el.dataset.uri; redraw(); }
+    else if (a === 'remove-cancel') { ui.musicRemove = null; redraw(); }
+    else if (a === 'remove') { const uri = el.dataset.uri; ui.musicRemove = null; await removeSong(uri); if (!m.songs[uri] && ui.musicSong === uri) ui.musicSong = null; redraw(); }
+    else if (a === 'untagged') {
+        ui.musicUntagged = untaggedText(); redraw();
+        const box = ui.panel?.querySelector('.mw-music-copy');
+        if (box) { box.focus(); box.select(); box.setSelectionRange(0, box.value.length); try { if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(box.value); else document.execCommand('copy'); } catch { /* the text stays selected to copy by hand */ } }
+    }
     return true;
 }
 export async function musicChange(e, redraw) {

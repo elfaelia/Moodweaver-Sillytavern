@@ -61,12 +61,12 @@ export function personCard(ch, state, live) {
 // the section. Swiping sideways walks through the tabs in this order. Body holds the live board (Needs) and
 // Facts; on your own character Needs becomes You and your facts live there. Wants can be hidden in Settings.
 const TABS = [['mood', '✦', 'Moods', '#c9b8f0'], ['rel', '♥', 'Bonds', '#ef9fbe'], ['turn', '⇋', 'Turn-ons', '#e7a6c4'], ['intimacy', '⚘', 'Intimacy', '#d49bc9'], ['music', '♫', 'Music', '#9fd3c9'],
-    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['wants', '☆', 'Wants', '#e5ca7f']];
+    ['needs', '◔', 'Needs', '#9fd3b4'], ['state', '⌂', 'Facts', '#9fc6c0'], ['trait', '❂', 'Traits', '#e3c38f'], ['psyche', '☯', 'Mind', '#b8a6e0'], ['skills', '✪', 'Skills', '#9fc0e8'], ['period', '❦', 'Period', '#d9b98c'], ['wants', '☆', 'Wants', '#e5ca7f']];
 // Music has its own place in the middle of the dock; Settings › Panel can hide it (songs keep playing).
-export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['music', '♫', 'Music', ['music']], ['body', '◔', 'Info', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'wants']], ['story', '✦', 'Story', []]];
+export const DOCK = [['heart', '☾', 'Mood', ['mood']], ['between', '♥', 'Relations', ['rel', 'turn', 'intimacy']], ['music', '♫', 'Music', ['music']], ['body', '◈', 'Info', ['needs', 'state']], ['self', '❂', 'Self', ['trait', 'psyche', 'skills', 'period', 'wants']], ['story', '✦', 'Story', []]];
 export const dockOf = tab => DOCK.find(([, , , tabs]) => tabs.includes(tab))?.[0] ?? 'heart';
 const musicShown = () => settings().musicTab !== false;
-export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'music' && !musicShown()) && !(k === 'state' && who === 'user'))
+export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings().wantsTab === false) && !(k === 'music' && !musicShown()) && !(k === 'state' && who === 'user') && !(k === 'period' && !['char', 'user'].includes(who)))
     .map(row => who === 'user' && row[0] === 'needs' ? ['needs', '◐', 'You', '#9fd3b4'] : row);
 // The chips for the open section (none when it holds a single tab).
 export function tabBar(counts) {
@@ -79,9 +79,9 @@ export function dockBar(counts) {
     const dock = DOCK.filter(([key]) => key !== 'music' || musicShown());
     // A close button at the end of the dock (Settings › Panel can hide it), so closing is a thumb's reach away.
     const close = settings().dockClose !== false;
-    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length},minmax(0,1fr))${close ? ' minmax(0,.8fr)' : ''}">${dock.map(([key, icon, label, tabs]) => {
+    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length + (close ? 1 : 0)},minmax(0,1fr))">${dock.map(([key, icon, label, tabs]) => {
         const n = tabs.filter(t => have.has(t)).reduce((sum, t) => sum + (counts[t] ?? 0), 0);
-        return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}</span><span>${label}</span>${n && key !== 'story' ? `<i>${n}</i>` : ''}</button>`; }).join('')}${close ? '<button type="button" class="mw-dock-close" data-action="close" aria-label="Close Moodweaver"><span class="mw-dock-icon" aria-hidden="true">⌄</span><span>Close</span></button>' : ''}</nav>`;
+        return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}${n && key !== 'story' ? `<i>${n}</i>` : ''}</span><span>${label}</span></button>`; }).join('')}${close ? '<button type="button" class="mw-dock-close" data-action="close" aria-label="Close Moodweaver"><span class="mw-dock-icon" aria-hidden="true">⌄</span><span>Close</span></button>' : ''}</nav>`;
 }
 // The tab one swipe away: dir 1 is the next, -1 the one before. Stays put at either end.
 export function tabStep(dir) {

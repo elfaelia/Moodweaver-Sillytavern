@@ -3,24 +3,32 @@ import { subjectName } from '../app/chat.js';
 import { panelSkillContext, skillScene } from '../app/note.js';
 import { liveChat } from '../app/replies.js';
 import { settings } from '../app/settings.js';
-import { ui } from '../app/state.js';
+import { run, ui } from '../app/state.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { fillLazy, searchText } from './render.js';
 import { SKILL_BY_ID, SKILL_GROUPS, SKILL_PACE, cleanPins, cleanSkillPace, cleanSkills, litSkills, skillProgress, skillWord, skillsOf } from '../engine/skills.js';
 
+// The last rolls (⚙ Settings › Panel › Show the dice rolls), for the main character's chat.
+function diceBox() {
+    const rolls = settings().diceShow && run.rolls?.list?.length ? run.rolls.list : [];
+    return rolls.length ? `<details class="mw-dice"><summary>🎲 Dice for the next reply <small>${rolls.length}</small></summary><ul>${rolls.map(r => `<li>${esc(r.text)}</li>`).join('')}</ul></details>` : '';
+}
 export function skillsView(state, ch) {
     const whose = esc(subjectName()), set = cleanSkills(state.skills), pins = cleanPins(state.skillPins), pace = cleanSkillPace(state.skillPace);
     const { scene, used } = skillScene(ch, liveChat()), going = litSkills(state, scene, used, 5, panelSkillContext(ch)), lit = new Map(going.map(x => [x.id, x.why]));
     const why = { used: 'Used in the last reply', scene: 'The scene calls for it', context: 'Fits what’s happening' };
     // Ten taps instead of a slider: tap a level to set it, tap the one it's at to take the skill off.
-    const pips = (s, value) => `<div class="mw-pips" role="group" aria-label="${esc(s.label)} level">${Array.from({ length: 10 }, (_, i) => i + 1).map(v => `<button type="button" class="mw-pip ${v <= value ? 'is-lit' : ''} ${v === value ? 'is-now' : ''}" data-skill-set="${s.id}" data-v="${v}" aria-pressed="${v === value}" aria-label="${v}, ${skillWord(v)}" title="${v}: ${skillWord(v)}${v === value ? ' (tap again to remove)' : ''}">${v}</button>`).join('')}</div>`;
+    // Under them, a shorter row for being bad at it: -1 (shaky) to -5 (hopeless).
+    const pip = (s, value, v) => `<button type="button" class="mw-pip ${(v > 0 ? v <= value && value > 0 : v >= value && value < 0) ? 'is-lit' : ''} ${v === value ? 'is-now' : ''}" data-skill-set="${s.id}" data-v="${v}" aria-pressed="${v === value}" aria-label="${v}, ${skillWord(v)}" title="${v}: ${skillWord(v)}${v === value ? ' (tap again to remove)' : ''}">${v}</button>`;
+    const pips = (s, value) => `<div class="mw-pips" role="group" aria-label="${esc(s.label)} level">${Array.from({ length: 10 }, (_, i) => pip(s, value, i + 1)).join('')}</div>
+        <div class="mw-pips mw-pips-bad" role="group" aria-label="${esc(s.label)}: bad at it"><small>Bad at it</small>${[-1, -2, -3, -4, -5].map(v => pip(s, value, v)).join('')}</div>`;
     const row = s => { const value = set[s.id] ?? 0, pinned = Boolean(pins[s.id]), prog = skillProgress(state, s.id);
         return `<div class="mw-mood mw-skill-row ${lit.has(s.id) ? 'is-lit' : ''} ${value ? 'is-set' : ''}" data-skill-row="${s.id}" data-search="${esc(`${s.label} ${s.cue}`)}">
         <div class="mw-row-head"><label>${lit.has(s.id) ? '✧ ' : ''}${esc(s.label)}</label><span data-skill-word>${value ? `${skillWord(value)} · ${value}/10` : 'not theirs'}</span>
             ${value ? `<button type="button" class="mw-need-pin" data-skill-pin="${s.id}" aria-pressed="${pinned}" title="${pinned ? 'Unpin: let it grow and slip with use again' : 'Pin: hold it at this level'}" aria-label="${pinned ? `Unpin ${esc(s.label)}` : `Pin ${esc(s.label)}`}">${pinned ? '◆' : '◇'}</button>` : ''}</div>
         ${pips(s, value)}
-        <small>${esc(s.cue)}${prog ? ` · ${prog[0]}/${prog[1]} uses to ${value + 1}` : ''}${lit.has(s.id) ? ` · <b>${why[lit.get(s.id)]}</b>` : ''}</small></div>`; };
-    const chips = skillsOf(state).map(x => `<button type="button" data-skill-jump="${x.id}" class="mw-chip ${lit.has(x.id) ? 'is-lit' : ''}" style="--mw-accent:${SKILL_BY_ID[x.id].color}" title="${lit.has(x.id) ? `${why[lit.get(x.id)]}. ` : ''}Adjust ${esc(x.label)}"><span>${lit.has(x.id) ? '✧ ' : ''}${x.pinned ? '◆ ' : ''}${esc(x.label)}</span><b>${x.level}</b><i style="width:${x.level * 10}%"></i></button>`).join('');
+        <small>${esc(s.cue)}${prog ? ` · ${prog[0]}/${prog[1]} uses to ${value === -1 ? 1 : value + 1}` : ''}${lit.has(s.id) ? ` · <b>${why[lit.get(s.id)]}</b>` : ''}</small></div>`; };
+    const chips = skillsOf(state).map(x => `<button type="button" data-skill-jump="${x.id}" class="mw-chip ${lit.has(x.id) ? 'is-lit' : ''}" style="--mw-accent:${SKILL_BY_ID[x.id].color}" title="${lit.has(x.id) ? `${why[lit.get(x.id)]}. ` : ''}Adjust ${esc(x.label)}"><span>${lit.has(x.id) ? '✧ ' : ''}${x.pinned ? '◆ ' : ''}${esc(x.label)}</span><b>${x.level}</b><i style="width:${Math.abs(x.level) * 10}%"${x.level < 0 ? ' class="is-bad"' : ''}></i></button>`).join('');
     // Their own list shows only the skills they have, open. "＋ Add skills" opens the whole catalogue, folded
     // by group and drawn when a group is opened (fillLazy), like the long lists on other tabs.
     const browsing = ui.browsing;
@@ -30,6 +38,7 @@ export function skillsView(state, ch) {
         return `<details data-skill-group="${esc(g.name)}" style="--mw-accent:${g.color}"><summary><span class="mw-category-icon">${g.icon}</span><span>${esc(g.name)}</span><small>${on ? `${on} of ${g.rows.length}` : g.rows.length}</small></summary><div class="mw-category-body" ${open ? '' : `data-lazy="${esc(key)}"`}>${open ? g.rows.map(row).join('') : ''}</div></details>`; }).join('');
     return `<div class="mw-summary"><div class="mw-section-label">${chips ? 'Skills' : 'No skills yet'}<span>${skillsOf(state).length} set</span></div>
         <div class="mw-chips">${chips || `<p>Nothing set. Tap “＋ Add skills” and pick what ${whose} can do.</p>`}</div>
+        ${diceBox()}
         <p class="mw-skill-now">${going.length ? `Going to Claude this reply: ${going.map(x => `${esc(x.label)} ${x.level}`).join(', ')}` : 'None this reply: skills go when the scene calls for them.'}</p></div>
     <div class="mw-tools"><input type="search" class="mw-search" data-skill-search placeholder="${browsing ? 'Search all skills…' : `Search ${whose}’s skills…`}" aria-label="Search skills">${browsing ? '<button data-action="browse-done" class="mw-primary">✓ Done</button>' : '<button data-action="browse" class="mw-primary">＋ Add skills</button>'}</div>
     ${browsing ? `<p class="mw-explainer">Tap a number to give ${whose} the skill at that level. Tap the lit number again to take it away.</p>` : `<p class="mw-explainer">Sent only when the scene calls for one. ✧ means it’s in play this reply. Skills grow slowly with use; ◆ pins one.</p>`}

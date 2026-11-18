@@ -11,7 +11,7 @@ export const SHARED_CATEGORIES = asRows(SHARED_GROUPS);
 export const RELATIONSHIP_CATEGORIES = asRows(RELATIONSHIP_GROUPS);
 const tags = cats => cats.flatMap(([category, , color, rows]) => rows.map(([id, label, cue, prompt]) => ({ id, label, cue, prompt, category, color })));
 export const RELATIONSHIP_TAGS = tags(RELATIONSHIP_CATEGORIES);
-const SHARED_TAGS = tags(SHARED_CATEGORIES);
+export const SHARED_TAGS = tags(SHARED_CATEGORIES);
 export const RELATIONSHIP_BY_ID = Object.fromEntries(RELATIONSHIP_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_BY_ID = Object.fromEntries(SHARED_TAGS.map(tag => [tag.id, tag]));
 export const SHARED_IDS = new Set(SHARED_TAGS.map(tag => tag.id));

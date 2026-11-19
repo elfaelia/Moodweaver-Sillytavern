@@ -10,7 +10,7 @@
   --mw-round:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,sans-serif;
   --mw-r:14px; --mw-pad:16px;
   position:fixed;inset:60px 18px auto auto;margin:0;padding:0;width:min(460px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 88px);
-  box-sizing:border-box;overflow:auto;overscroll-behavior:contain;overflow-anchor:none;
+  box-sizing:border-box;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;overflow-anchor:none;
   border:1px solid #c9b8f033;border-radius:22px;color:var(--mw-text);color-scheme:dark;text-align:left;z-index:3100;
   /* A quiet galaxy: dim stars (six small repeating tiles of odd sizes, so they never line up) and two faint nebula clouds, blue and violet. Kept small and dim so text on top stays easy to read. */
   background:radial-gradient(1px 1px at 37px 61px,#dfe6ff8c 50%,transparent) 0 0/137px 173px,radial-gradient(0.9px 0.9px at 101px 23px,#cfe0ff72 50%,transparent) 0 0/211px 157px,radial-gradient(1.2px 1.2px at 19px 140px,#ffffff59 50%,transparent) 0 0/97px 241px,radial-gradient(1.5px 1.5px at 150px 90px,#e8dcff4c 50%,transparent) 0 0/263px 199px,radial-gradient(1px 1px at 70px 30px,#ffffff42 50%,transparent) 0 0/181px 131px,radial-gradient(0.8px 0.8px at 5px 5px,#cfe0ff59 50%,transparent) 0 0/149px 113px,radial-gradient(60% 38% at 88% 18%,#4b5dff1f,transparent 70%),radial-gradient(70% 45% at 6% 78%,#9a4dff1a,transparent 70%),radial-gradient(50% 30% at 50% 50%,#2d3a9a12,transparent 70%),linear-gradient(180deg,#1a1630,#131026 240px,#100d20);
@@ -635,10 +635,6 @@
 .mw-pole-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--mw-muted);margin:-3px 2px 6px}
 .mw-panel .mw-side{margin:6px 0 2px;font-size:12.5px;line-height:1.45}
 .mw-panel .mw-side b{font-weight:600}.mw-side-dark b{color:#e08ea2}.mw-side-light b{color:#9fdcb4}
-.mw-pips{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:3px;margin:8px 0 6px}
-.mw-pip{min-height:30px;padding:0;border-radius:8px;border:1px solid var(--mw-line);background:transparent;color:var(--mw-muted);font-size:11.5px;cursor:pointer}
-.mw-pip.is-lit{background:color-mix(in srgb,var(--mw-accent,#9fc0e8) 38%,transparent);color:var(--mw-text);border-color:transparent}
-.mw-pip.is-now{background:var(--mw-accent,#9fc0e8);color:#1b1726;font-weight:700}
 .mw-skill-mine{margin:0 0 6px;padding:0 var(--mw-pad)}.mw-skill-mine .mw-subhead{display:flex;align-items:center;gap:6px;margin:10px 0 4px}
 .mw-you.mw-board{padding:0 var(--mw-pad) 8px}.mw-you .mw-board-block{margin-top:2px;padding:12px 14px;border-radius:var(--mw-r);background:#ffffff07;border:1px solid var(--mw-line)}
 .mw-you .mw-board-block h4{display:flex;align-items:center;gap:6px;margin:0 0 8px}.mw-you .mw-board-block h4 small{margin-left:auto}
@@ -881,9 +877,6 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-stars-arc .mw-moon:nth-of-type(1)>span{--mw-rise:10px}.mw-stars-arc .mw-moon:nth-of-type(2)>span{--mw-rise:5px}.mw-stars-arc .mw-moon:nth-of-type(3)>span{--mw-rise:0px}.mw-stars-arc .mw-moon:nth-of-type(4)>span{--mw-rise:-3px}.mw-stars-arc .mw-moon:nth-of-type(5)>span{--mw-rise:-4px}.mw-stars-arc .mw-moon:nth-of-type(6)>span{--mw-rise:-3px}.mw-stars-arc .mw-moon:nth-of-type(7)>span{--mw-rise:0px}.mw-stars-arc .mw-moon:nth-of-type(8)>span{--mw-rise:5px}.mw-stars-arc .mw-moon:nth-of-type(9)>span{--mw-rise:10px}
 
 /* 1.73 Skills below zero, and the dice */
-.mw-pips.mw-pips-bad{grid-template-columns:auto repeat(5,minmax(0,1fr));align-items:center;margin-top:-2px}
-.mw-pips-bad small{color:var(--mw-muted);font-size:11px;padding-right:6px}
-.mw-pips-bad .mw-pip.is-lit{background:#d9708a44}.mw-pips-bad .mw-pip.is-now{background:#d9708a;color:#1b1726}
 .mw-chip i.is-bad{background:#d9708a88}
 .mw-dice{margin:8px 0;padding:8px 10px;border-radius:12px;background:#ffffff08;border:1px solid var(--mw-line)}
 .mw-dice summary{cursor:pointer;font-size:12.5px}.mw-dice ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--mw-muted);display:grid;gap:4px}
@@ -904,3 +897,35 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-panel .mw-period-line b{display:block;margin-bottom:3px}.mw-panel .mw-period-line b i{font-style:normal;font-weight:400;font-size:.8em;color:var(--mw-muted);margin-left:6px}
 .mw-panel .mw-period-line span{display:block;font-size:12.5px;line-height:1.45;color:var(--mw-muted)}
 .mw-panel .mw-period-line.is-off{opacity:.45;border-style:dashed;background:transparent}
+
+/* ✪ Skills (panel/skills-tab.js): each skill is a small card. The name and level word on top, then a big − and ＋
+   either side of a little constellation (five dim red points for being bad at it, ten stars for being good),
+   then the description. The stars only show; the buttons do the work, so there are no small targets. */
+.mw-panel .mw-skill-row{padding:12px 14px 12px;margin:0 0 8px;border:1px solid #ffffff12;border-radius:16px;background:#ffffff05}
+.mw-panel .mw-skill-row.is-lit{box-shadow:inset 3px 0 0 var(--mw-accent,#9fc0e8);background:color-mix(in srgb,var(--mw-accent,#9fc0e8) 7%,transparent)}
+.mw-skill-top{display:flex;align-items:center;gap:8px;min-height:30px}
+.mw-skill-top>b{flex:1;min-width:0;font-weight:600;color:var(--mw-text)}
+.mw-panel .mw-skill-word{border:0;background:none;padding:4px 2px;font:inherit;font-size:12px;color:var(--mw-muted);cursor:pointer;text-decoration:underline dotted #ffffff40;text-underline-offset:3px}
+.mw-skill-row.is-bad .mw-skill-word{color:#e7a0b2}
+.mw-skill-step{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:10px;margin:8px 0 6px}
+.mw-panel .mw-skill-btn{width:44px;height:44px;min-height:0;margin:0;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--mw-accent,#9fc0e8) 45%,transparent);background:color-mix(in srgb,var(--mw-accent,#9fc0e8) 12%,transparent);color:var(--mw-text);font-size:22px;line-height:1;cursor:pointer}
+.mw-panel .mw-skill-btn:disabled{opacity:.3;cursor:default}
+.mw-skill-sky{display:flex;align-items:center;justify-content:space-between;min-width:0;height:28px;padding:0 10px;border-radius:14px;background:#0000002a}
+.mw-skill-sky b{width:8px}
+.mw-skill-sky i{flex:none;width:7px;height:7px;border-radius:50%;background:#ffffff22;transition:background .2s,box-shadow .2s,transform .2s}
+.mw-skill-sky i.is-lit{background:var(--mw-accent,#9fc0e8);box-shadow:0 0 6px color-mix(in srgb,var(--mw-accent,#9fc0e8) 70%,transparent)}
+.mw-skill-sky i.is-now{transform:scale(1.55);background:#fff8e0;box-shadow:0 0 9px var(--mw-accent,#9fc0e8)}
+.mw-skill-sky i.is-bad{width:6px;height:6px;border-radius:1px;transform:rotate(45deg);background:#d9708a2e}
+.mw-skill-sky i.is-bad.is-lit{background:#d9708a;box-shadow:0 0 6px #d9708a99}
+.mw-skill-sky i.is-bad.is-now{transform:rotate(45deg) scale(1.5);background:#ffc2cf;box-shadow:0 0 9px #d9708a}
+.mw-skill-cue{display:block;font-size:12px;line-height:1.45;color:var(--mw-muted)}
+
+/* ▦ Song counts (panel/music-tab.js countsCard): one bar per tag, as wide as its share of the songs. */
+.mw-count-group{margin:10px 0 4px}.mw-count-group h5{margin:0 0 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#9fd3c9}
+.mw-count-row{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) 2.6em;gap:8px;align-items:center;min-height:26px;font-size:12.5px}
+.mw-count-row span{color:var(--mw-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-count-row i{display:block;height:8px;border-radius:4px;background:linear-gradient(90deg,#9fd3c9 var(--w),#ffffff10 var(--w))}
+.mw-count-row b{text-align:right;color:var(--mw-muted);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Profile: pet names and catchphrases */
+.mw-profile-voice{display:grid;gap:8px;margin-top:12px}.mw-panel .mw-pf textarea{width:100%;margin:0;padding:8px 10px;font-size:13px;line-height:1.4;resize:vertical;min-height:44px}.mw-pf>span small{font:400 11px var(--mw-sans,inherit);letter-spacing:0;text-transform:none;color:var(--mw-muted);margin-left:4px}

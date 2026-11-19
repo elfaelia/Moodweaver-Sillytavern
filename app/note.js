@@ -222,7 +222,7 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         medicine: scene.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         sub: { n: kinky(state, SUB_TRAITS, SUB_TURNS), u: Boolean(you) && kinky(you, SUB_TRAITS, SUB_TURNS) },
         dom: { n: kinky(state, DOM_TRAITS, DOM_TURNS), u: Boolean(you) && kinky(you, DOM_TRAITS, DOM_TURNS) },
-        scene, moods: { n: state.moods ?? {}, u: you?.moods ?? {} }, prefs: { n: state.prefs ?? {}, u: you?.prefs ?? {} },
+        scene, dynGroup: bd?.dynamic.group ?? '', moods: { n: state.moods ?? {}, u: you?.moods ?? {} }, prefs: { n: state.prefs ?? {}, u: you?.prefs ?? {} },
         ties: { n: { ...pairMoods, ...relMoods }, u: { ...pairMoods, ...yourSide } },
         needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
         ages: { n: cleanAge(state.age), u: you ? cleanAge(you.age) : 0 }, heights: { n: heightCm(state.height), u: you ? heightCm(you.height) : 0 },

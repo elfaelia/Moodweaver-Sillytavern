@@ -21,6 +21,7 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="musicTab" ${settings().musicTab !== false ? 'checked' : ''}> Show Music on the dock (hidden, songs you switched on keep playing)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="dockClose" ${settings().dockClose !== false ? 'checked' : ''}> Close button on the dock</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="swipeTabs" ${settings().swipeTabs !== false ? 'checked' : ''}> Swipe sideways to change tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceShow" ${settings().diceShow === true ? 'checked' : ''}> Show the dice rolls on the Skills tab (spoils some surprises)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> ✕ on the chips at the top, to take a mood or trait off</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendsOn" ${settings().blendsOn !== false ? 'checked' : ''}> Author blends on the Story tab</label>

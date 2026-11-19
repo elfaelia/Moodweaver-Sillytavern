@@ -9,7 +9,7 @@ import { WILDCARDS } from '../data/catalogue/story.js';
 import { activePersonalities, activePersonality, personalityCue } from './personality.js';
 import { pronounize } from './pronouns.js';
 import { TWO_ROLE_SHARED, activeSharedTags, compareText, relationshipKey, relationshipSets, relationshipText } from './relationships.js';
-import { TURN_BY_ID, compareProfiles, favText, profileText } from './turns.js';
+import { TURN_BY_ID, compareProfiles, favText, petNames, profileText, sayings } from './turns.js';
 
 function directedCue(id, value, state, people) {
     if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
@@ -141,9 +141,20 @@ function listLines(state, list, other, people = {}, lit = null) {
 // Core traits: up to three, picked on the Traits tab, always true whatever the mood.
 const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
 const favLine = (st, scene, all) => { const t = favText(st, scene, all); return t ? [`Favourites (for choices, gifts, orders and small talk, never listed): ${pt(t)}`] : []; };
+// Pet names and sayings, sent every reply as part of who someone is. For the character they are what to use instead of
+// made-up endearments and stock lines; for the player's character, what the character should recognise and answer.
+const q = list => list.map(x => `"${pt(x)}"`).join(', ');
+function voiceLines(st, who, other, player = false) {
+    const pets = petNames(st), says = sayings(st), out = [];
+    if (pets.length) out.push(player ? `Pet names ${who} uses for ${other} (${other} knows them and reacts to being called them): ${q(pets)}`
+        : `Pet names ${who} uses for ${other} (when ${who} uses an endearment, it is one of these, picked to suit the moment; don't invent others or fall back on stock ones): ${q(pets)}`);
+    if (says.length) out.push(player ? `Things ${who} really says (the player's to use; ${other} knows them as ${who}'s phrases): ${q(says)}`
+        : `Things ${who} really says, word for word (work one in now and then where it fits naturally, at most one a reply and not every reply): ${q(says)}`);
+    return out;
+}
 function profileLines(st, core, other, people, scene = '', all = true) {
     const text = profileText(st);
-    return [...(text ? [`Profile: ${pt(text)}`] : []), ...favLine(st, scene, all),
+    return [...(text ? [`Profile: ${pt(text)}`] : []), ...favLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other))),
         ...(core.length ? [`Core of who they are, under any mood or dynamic: ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
@@ -321,7 +332,7 @@ function composePrompt(state, name, extras = {}) {
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 61 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through on the page.${followOn ? '' : ` Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.`}` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     const condition = (player?.condition ?? []).filter(Boolean).slice(0, 6);
-    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh)] : [];
+    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
     const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
     if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;

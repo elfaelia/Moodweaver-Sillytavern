@@ -657,19 +657,44 @@ export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?
 let factIndex = null;
 const factKey = s => String(s ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\s+/g, ' ').trim();
 const factNames = m => m.words ? [m.id.replace(/_/g, ' '), ...m.words] : [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')];
-export function factId(name) {
+// Words that mean two different facts: wet from water, or wet with arousal. Read from the words around it first
+// (wet hair, the rain, a shower → water; aroused, thighs, slick → arousal), then from whether the person is
+// heated right now (hot), then water. So "she's wet" in foreplay is arousal, and wet hair after a shower is not.
+const TWINS = { wet: ['wet', 'bedroom_wet'], soaked: ['soaked', 'bedroom_wet'], 'soaking wet': ['soaked', 'bedroom_wet'], dripping: ['soaked', 'bedroom_wet'] };
+const WATER = /\b(rain\w*|shower\w*|swim\w*|bath\w*|pool|sea|lake|river|ocean|storm\w*|puddle\w*|towel\w*|hair|coat|clothes|clothing|dress|shirt|umbrella|downpour|drench\w*|splash\w*|water|tub|sink|sweat\w*|tears?)\b/;
+const AROUSAL = /\b(arous\w*|thighs?|between|slick|need\w*|want\w*|desire\w*|heat|throb\w*|ach\w*|cunt|pussy|panties|knickers|underwear|for (him|her|them)|touch\w*|horny|turned on)\b/;
+function twin(key, around, hot) {
+    const [water, aroused] = TWINS[key];
+    if (WATER.test(around)) return water;
+    if (AROUSAL.test(around)) return aroused;
+    return hot ? aroused : water;
+}
+export function factId(name, hot = false) {
     if (!factIndex) {
         factIndex = new Map();
         for (const m of MOODS) if (m.kind === 'state' && (m.lasts || m.feels)) for (const key of factNames(m).map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
     }
-    return factIndex.get(factKey(name)) ?? null;
+    const key = factKey(name);
+    if (TWINS[key]) return twin(key, '', hot);
+    // "wet hair", "wet for him": a twin word with a few words around it.
+    const near = Object.keys(TWINS).find(k => ` ${key} `.includes(` ${k} `));
+    if (near && !factIndex.has(key)) return twin(near, key, hot);
+    return factIndex.get(key) ?? null;
 }
 // Facts a piece of text mentions by name (the board's Physical State line, the hidden line's "you" list).
-export function factsIn(text) {
+// hot: the person is heated right now, for the words that could mean water or arousal.
+export function factsIn(text, hot = false) {
     const t = ` ${factKey(text)} `, out = new Set();
     if (!t.trim()) return out;
     if (!factIndex) factId('');
-    for (const [key, id] of factIndex) if (t.includes(` ${key} `)) out.add(id);
+    for (const [key, id] of factIndex) if (!TWINS[key] && t.includes(` ${key} `)) out.add(id);
+    // Each twin word is read with the four words either side of it.
+    const words = t.trim().split(' ');
+    for (let i = 0; i < words.length; i++) for (const key of Object.keys(TWINS)) {
+        const len = key.split(' ').length;
+        if (words.slice(i, i + len).join(' ') !== key) continue;
+        out.add(twin(key, words.slice(Math.max(0, i - 4), i + len + 4).join(' '), hot));
+    }
     return out;
 }
 // Settings (Place & time facts) the board's Location names, by their words, longest first so "jazz club" isn't

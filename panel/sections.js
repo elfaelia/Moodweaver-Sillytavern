@@ -151,6 +151,9 @@ function profileCard(state, ch) {
         </div>
         <div class="mw-profile-favs"><span class="mw-profile-sub">Favourites <small>sent when the scene comes near them</small></span>
             <div class="mw-profile-grid">${FAVS.map(([k, label, hint]) => `<label class="mw-pf"><span>${esc(label.replace('Favourite ', ''))}</span><input type="text" data-fav="${k}" maxlength="60" enterkeyhint="done" placeholder="${esc(hint)}" value="${esc(state.favs?.[k] ?? '')}"></label>`).join('')}</div></div>
+        <div class="mw-profile-voice"><span class="mw-profile-sub">Their words <small>sent every reply</small></span>
+            <label class="mw-pf mw-pf-wide"><span>Pet names for ${esc(vs[1])}</span><textarea data-words="petNames" rows="2" maxlength="400" placeholder="doll, little lamb, sweetheart">${esc(state.petNames ?? '')}</textarea></label>
+            <label class="mw-pf mw-pf-wide"><span>Catchphrases <small>one per line</small></span><textarea data-words="sayings" rows="3" maxlength="400" placeholder="Now, now.&#10;You'll do as you're told, won't you?">${esc(state.sayings ?? '')}</textarea></label></div>
         <div class="mw-profile-core"><span>Core</span>${core.length ? core.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">★ ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">★ Star up to three traits</button>'}</div>
         ${gap ? `<p class="mw-profile-vs">${esc(shortName(subjectName()))} is ${esc(gap)} than ${esc(vs[1])}.</p>` : ''}
     </section>`;

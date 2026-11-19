@@ -73,6 +73,6 @@ export function settings() {
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.
         eraLines: ERA_LINE_CHOICES.includes(Number(saved.eraLines)) ? String(saved.eraLines) : '3',
         // The Wants tab can be hidden (wants you already set still go to the story), and the faint "why" lines too.
-        wantsTab: saved.wantsTab !== false, musicTab: saved.musicTab !== false, blendsOn: saved.blendsOn !== false, dockClose: saved.dockClose !== false, diceOn: saved.diceOn !== false, diceShow: saved.diceShow === true, chipRemove: saved.chipRemove !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,
+        wantsTab: saved.wantsTab !== false, musicTab: saved.musicTab !== false, blendsOn: saved.blendsOn !== false, dockClose: saved.dockClose !== false, swipeTabs: saved.swipeTabs !== false, diceOn: saved.diceOn !== false, diceShow: saved.diceShow === true, chipRemove: saved.chipRemove !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,
     });
 }

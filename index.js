@@ -74,8 +74,10 @@ function setup() {
     ui.panel.addEventListener('change', onPanelChange);
     ui.panel.addEventListener('click', onPanelClick);
     let touch = null;
-    ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target } : null; }, { passive: true });
-    ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe(touch, { x: t.clientX, y: t.clientY }); touch = null; }, { passive: true });
+    // A swipe is remembered from its start: where, when, and how far the panel was scrolled (a scroll is not a swipe).
+    ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target, at: Date.now(), top: ui.panel.scrollTop, left: ui.panel.scrollLeft, maxDy: 0 } : null; }, { passive: true });
+    ui.panel.addEventListener('touchmove', e => { const t = e.touches[0]; if (touch && t) touch.maxDy = Math.max(touch.maxDy, Math.abs(t.clientY - touch.y)); if (e.touches.length > 1) touch = null; }, { passive: true });
+    ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe({ ...touch, scrolled: ui.panel.scrollTop !== touch.top || ui.panel.scrollLeft !== touch.left, width: ui.panel.clientWidth }, { x: t.clientX, y: t.clientY, at: Date.now() }); touch = null; }, { passive: true });
     ui.panel.addEventListener('toggle', onGroupToggle, true);
     ui.panel.addEventListener('toggle', musicFold, true);
     // Music: songs from your Spotify playlists, picked for the scene after each reply (app/music.js).

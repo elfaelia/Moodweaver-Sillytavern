@@ -41,6 +41,12 @@ const SIGNS = Object.fromEntries(TURN_GROUPS.flatMap(g => g.subs.flatMap(sub => 
 // ---- Profile facts (the card on the Facts tab): age, height, interests ----
 export const cleanAge = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= 999 ? n : ''; };
 export const cleanHeight = v => String(v ?? '').replace(/[<>]/g, '').trim().slice(0, 14);
+// Pet names (what this person calls the other) and sayings (phrases they really use): one per line, or pet names
+// separated by commas. Kept as typed; split only when sent.
+export const cleanWords = (v, max = 400) => String(v ?? '').replace(/[<>]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, max);
+const wordList = (v, commas) => cleanWords(v).split(commas ? /[\n,;]+/ : /\n+/).map(x => x.trim().replace(/^["“'‘]+|["”'’]+$/g, '')).filter(Boolean).slice(0, 12);
+export const petNames = st => wordList(st?.petNames, true);
+export const sayings = st => wordList(st?.sayings, false);
 export const cleanInterests = v => String(v ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
 // Height as written ("6'1", "5 ft 10", "185 cm", "1.85 m", "185") → centimetres, or 0.
 export function heightCm(text) {

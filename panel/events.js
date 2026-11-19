@@ -32,7 +32,7 @@ import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, relationshipKey } from '../engine/relationships.js';
 import { cleanPins, cleanSkillPace, cleanSkills } from '../engine/skills.js';
-import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests } from '../engine/turns.js';
+import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests, cleanWords } from '../engine/turns.js';
 
 // A feeling ended by hand (lit before, 0 now) is remembered with the chat length, so the info board can't bring it
 // back and the next replies are told it's gone. Setting it again by hand forgets that.
@@ -139,6 +139,7 @@ export async function onPanelChange(e) {
     const input = e.target;
     // The profile card on Facts (and your You tab).
     if (input.dataset.fav) { const k = input.dataset.fav, v = input.value; await changeState(s => { s.favs = cleanFavs({ ...s.favs, [k]: v }); }); return; }
+    if (input.dataset.words) { const k = input.dataset.words, v = input.value; await changeState(s => { s[k] = cleanWords(v); }); return; }
     if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
     if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
@@ -308,9 +309,13 @@ function openTab(tab) {
     ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render();
 }
 // Swiping sideways on the panel walks through the tabs (not on sliders, text or lists that scroll sideways).
+// Only a clear, quick, flat swipe counts: across at least a third of the panel (and 90px), within 0.7 s, never
+// drifting up or down more than a third of the way across, and with no scrolling during it. ⚙ Settings › Panel
+// can turn swiping off.
 export function onPanelSwipe(start, end) {
-    const dx = end.x - start.x, dy = end.y - start.y;
-    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6 || ui.settingsOpen || ui.who === 'story') return;
+    const dx = end.x - start.x, far = Math.max(90, (start.width || 360) / 3);
+    if (settings().swipeTabs === false || Math.abs(dx) < far || (start.maxDy ?? Math.abs(end.y - start.y)) > Math.abs(dx) * 0.35 || start.scrolled
+        || (end.at && start.at && end.at - start.at > 700) || ui.settingsOpen || ui.who === 'story') return;
     if (start.target?.closest?.('input, textarea, select, .mw-tabbar, .mw-people, .mw-cast-row, .mw-moons, [data-noswipe]')) return;
     const next = tabStep(dx < 0 ? 1 : -1); if (next && next !== ui.tab) openTab(next);
 }

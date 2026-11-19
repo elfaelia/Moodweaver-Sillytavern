@@ -5,7 +5,7 @@ import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
-import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, labelOf, norm, peakText } from '../engine/music.js';
+import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, fitsMode, hasTags, labelOf, norm, peakText } from '../engine/music.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { moodTone } from '../engine/tone.js';
 import { getState, getUserState } from '../app/chat.js';
@@ -184,6 +184,31 @@ function tagEditor(m, uri) {
         <div class="mw-music-remove">${ui.musicRemove === uri ? `<button type="button" class="mw-music-quiet is-danger" data-music="remove" data-uri="${esc(uri)}">Tap again to remove it${removable(m, s) ? ' from your Spotify playlist' : ''} for good</button><button type="button" class="mw-music-quiet" data-music="remove-cancel">Keep it</button>` : `<button type="button" class="mw-music-quiet" data-music="remove-ask" data-uri="${esc(uri)}">🗑 Remove this song</button>`}</div>
         ${t.note ? `<p class="mw-fine">${esc(t.note)}</p>` : ''}</div>`;
 }
+// ▦ Song counts: how the songs in the lit playlists are tagged, so gaps show (plenty of sorrow, few intimate
+// songs). Scene kinds are counted the way the picker counts them; the rest by tag. Each list shows the biggest
+// first, as a bar, and leaves out anything with no songs.
+function countsCard(m) {
+    const songs = usableSongs(m), total = songs.length || 1, tags = songs.map(x => x.tags ?? emptyTags());
+    const bar = (label, n) => `<div class="mw-count-row"><span>${esc(label)}</span><i style="--w:${Math.round(n / total * 100)}%"></i><b>${n}</b></div>`;
+    const list = (title, rows, keepOrder = false) => { const shown = rows.filter(([, n]) => n); if (!shown.length) return '';
+        return `<div class="mw-count-group"><h5>${esc(title)}</h5>${(keepOrder ? shown : shown.sort((a, b) => b[1] - a[1])).map(([l, n]) => bar(l, n)).join('')}</div>`; };
+    const count = test => tags.filter(test).length;
+    const whose = {}; for (const t of tags) for (const c of t.c) { const k = ['{{char}}', '{{user}}', 'any'].includes(norm(c)) ? ({ '{{char}}': followName('char'), '{{user}}': followName('user'), any: 'Anyone' })[norm(c)] : c; whose[k] = (whose[k] ?? 0) + 1; }
+    const kinds = MODES.map(x => [x.label, count(t => fitsMode(t, x.id))]);
+    const body = `<p class="mw-music-note">Counted from the ${plural(songs.length, 'song')} in your lit playlists. A song can count in more than one place.</p>
+        ${list('Kind of scene', kinds, true)}
+        ${list('Tagging', [['With tags', count(t => hasTags(t))], ['No tags yet', count(t => !hasTags(t))], ['♥ Favourites', count(t => t.fav)], ['★ Theme songs', count(t => t.th)], ['Off', count(t => t.off)], ['With lyric cues', count(t => t.cue.length || t.cw.length)]], true)}
+        ${list('Heat', HEAT.map(x => [x.label, count(t => t.h === x.id)]), true)}
+        ${list('Energy', ENERGY.map(x => [x.label, count(t => t.e === x.id)]), true)}
+        ${list('Whose song', Object.entries(whose))}
+        ${list('Feeling', FAMILIES.map(x => [x.label, count(t => t.f.includes(x.id))]))}
+        ${list('Moment', MOMENTS.map(x => [x.label, count(t => t.mo.includes(x.id))]))}
+        ${list('Meaning', MEANINGS.map(x => [x.label, count(t => t.cm.includes(x.id))]))}
+        ${list('Dynamic', DYN_GROUPS.map(x => [x.label, count(t => t.d.includes(x.id))]))}
+        ${list('Place', PLACES.map(x => [x.label, count(t => t.p.includes(x.id))]))}`;
+    const top = kinds.slice(0, 3).map(([l, n]) => `${n} ${l.toLowerCase()}`).join(' · ');
+    return drawer('counts', '▦', 'Song counts', top, body, ui.musicOpen?.counts);
+}
 function songsCard(m) {
     const term = norm(ui.musicSearch ?? ''), songs = usableSongs(m);
     const hits = (term ? songs.filter(x => norm(`${x.song.n} ${x.song.a}`).includes(term)) : songs).slice(0, 40);
@@ -232,7 +257,7 @@ export function musicView() {
     const m = music();
     if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
     const t = tones(), lead = m.follow === 'user' ? t.user : t.char;
-    return `<div class="mw-music">${nowCard(m, lead)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
+    return `<div class="mw-music">${nowCard(m, lead)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${countsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
 }
 
 // ---- Taps ----

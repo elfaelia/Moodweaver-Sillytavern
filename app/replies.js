@@ -237,6 +237,12 @@ function touchesInterest(st, text) {
     const into = cleanInterests(st?.interests).toLowerCase().split(/[^a-z]+/).filter(x => x.length >= 5).map(x => x.slice(0, Math.max(5, x.length - 1))); if (!into.length) return false;
     return stripWeave(String(text ?? '')).toLowerCase().split(/[^a-z]+/).some(x => into.some(stem => x.startsWith(stem)));
 }
+// Heated right now: a desire feeling at clear or above, or one the latest line names (it may not be saved yet).
+// Used to read words like "wet" as arousal rather than water.
+const DESIRE_IDS = new Set(MOODS.filter(m => m.category === 'desire').map(m => m.id));
+function heated(st, names = []) {
+    return Object.entries(st?.moods ?? {}).some(([id, v]) => v >= 41 && DESIRE_IDS.has(id)) || (names ?? []).some(n => DESIRE_IDS.has(feelingId(n)));
+}
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
@@ -249,7 +255,7 @@ export function bondList(ch, chat = liveChat()) {
         const step = { f: w.f, r: w.r || sparkPull(w.sparked), t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
-        const you = w.you ? w.you.map(factId).filter(Boolean) : youBefore, hisFacts = w.moods.filter(x => x.delta > 0).map(x => factId(x.name)).filter(Boolean);
+        const you = w.you ? w.you.map(x => factId(x, heated(getUserState(), w.seems))).filter(Boolean) : youBefore, hisFacts = w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(getState(ch), w.moods.map(y => y.name)))).filter(Boolean);
         const newYou = you.filter(id => !youBefore.includes(id)); youBefore = you;
         // His own lit turn-ons, and yours he saw land, warm his desire a little when the line gave it no step.
         const lit = (w.sparked ?? []).filter(sp => !sp.off).length + (w.noticed ?? []).filter(x => (yourPrefs[sparkTarget(x, yourPrefs).id] ?? 0) > 0).length;
@@ -502,13 +508,13 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     if (!st.enabled) return { rec, notes };
     // Time this reply covers, and the facts the story names in it, for facts running their course.
     const board = parseBoard(m.mes), hours = replyHours(prev ? parseBoard(prev.mes) : null, board, REPLY_HOURS);
-    const factsNamed = new Set([...factsIn(board?.physical), ...factsIn(board?.state)]);
+    const hot = heated(st, w?.moods?.map(x => x.name)), factsNamed = new Set([...factsIn(board?.physical, hot), ...factsIn(board?.state, hot)]);
     const facts = feel => {
         if (!b.feed) return;
         // What the board's Physical State and Location name comes on first (the hidden line has had its say by now);
         // ones the story put on and the board has dropped come off, and a place goes when the Location changes.
         const fx = {};
-        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...factsIn(board?.physical), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
+        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...factsIn(board?.physical, hot), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
         const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc;
         Object.assign(fx, r.fx); if (Object.keys(fx).length) rec.fx = fx;
     };
@@ -521,7 +527,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             // A feeling you ended by hand stays ended for the next few replies whatever the line says (it's often just
             // copying an older board); after that the story can bring it back, and doing so forgets the cut.
             const at = ctx().chat?.indexOf(m) ?? -1, fresh = id => st.cut?.[id] !== undefined && (at < 0 || at - st.cut[id] < CUT_HOLD);
-            const resolve = name => { const fact = factId(name); if (fact) { factsNamed.add(fact); return fact; } const id = feelingId(name); return id && listed(id) && !fresh(id) ? id : null; };
+            const resolve = name => { const fact = factId(name, hot); if (fact) { factsNamed.add(fact); return fact; } const id = feelingId(name); return id && listed(id) && !fresh(id) ? id : null; };
             // The character's own switch, the pace cap, and arousal from the desire card reaching Horny
             // (the desire field used to take it, so Horny never moved while the card was on).
             const pace = movePace(writer), named = new Set();
@@ -600,10 +606,10 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     // off), then they run their course on the same clock. The list keeps the ones it names going.
     const me = getUserState();
     if (me?.enabled && b.feed) {
-        const listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x)])), seems = new Set((w?.seems ?? []).map(feelingId).filter(Boolean));
+        const meHot = heated(me, w?.seems), listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x, meHot)])), seems = new Set((w?.seems ?? []).map(feelingId).filter(Boolean));
         const ufx = {}, sf = structuredClone(me.fromStory ?? []), fc = structuredClone(me.factClock ?? {});
         const um = { ...(w?.you ? fromStory(me, listed, ufx, { full: true }) : {}), ...(w?.seems ? fromStory(me, seems, ufx, { kind: 'mood', full: true }) : {}) };
-        const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical)]));
+        const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical, meHot)]));
         for (const [id, [a, z]] of Object.entries(r.m)) um[id] = [um[id]?.[0] ?? a, z];
         Object.assign(ufx, r.fx);
         if (Object.keys(um).length) { rec.um = um; rec.ufx = ufx; me.revision = (me.revision || 0) + 1; notes.push(...Object.keys(um).filter(id => /^(the story|how the story)/.test(ufx[id] ?? '')).map(id => `${playerName()}: ${labelOf(me, id).toLowerCase()}${me.moods[id] ? '' : ' off'}`)); }

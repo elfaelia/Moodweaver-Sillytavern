@@ -52,9 +52,10 @@ function wake(line, c, k) {
     if (line.ties && line.ties.some(id => (c.ties[k]?.[id] ?? 0) >= 41)) hits.push(70);
     if (line.need && (c.needs[k] ?? []).includes(line.need)) hits.push(60);
     if (line.scene && line.scene.some(key => c.scene[key])) hits.push(line.w ?? 60);
+    if (line.dyn && line.dyn.includes(c.dynGroup)) hits.push(line.w ?? 55);
     return Math.max(0, ...hits);
 }
-const hasTriggers = line => ['ids', 'cats', 'turns', 'ties', 'need', 'scene'].some(key => line[key]);
+const hasTriggers = line => ['ids', 'cats', 'turns', 'ties', 'need', 'scene', 'dyn'].some(key => line[key]);
 // A small seeded shuffle, so the same reply always gets the same lines (a swipe or re-read shows the same ones)
 // while the next reply can bring different ones.
 function seededOrder(list, seed) {
@@ -70,7 +71,7 @@ const fill = (text, map) => text.replace(/\{(\w+)\}/g, (m, key) => map[key] ?? m
 
 // c: { era, n, u (names), g: { n, u } ('he' | 'she' | 'they'), top / bedTop ('n' | 'u' | ''), heat, romance, wed,
 //   medicine, sub / dom: { n, u } (has a submissive or dominant streak), scene: { key: true }, moods / prefs / ties /
-//   needs / ages / heights: { n, u }, off: { n, u } (Sets of line ids switched off on their Period tab), cap, seed }.
+//   needs / ages / heights: { n, u }, dynGroup (the pair's dynamic group key, '' when none), off: { n, u } (Sets of line ids switched off on their Period tab), cap, seed }.
 // Returns every line that applies right now, most important first, with the ones sent this reply marked.
 export function periodLines(c) {
     if (!periodEra(c.era)) return [];

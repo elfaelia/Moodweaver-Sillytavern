@@ -19,6 +19,7 @@
 //   ties   their own tie toward the other person, or one they share
 //   need   a need that has run low on the info board
 //   scene  something in play for both of them (engine/period.js SCENE keys: things carried, places, skills, tropes)
+//   dyn    the pair's dynamic is in one of these groups (data/catalogue/dynamics.js DYNAMIC_GROUPS keys)
 // when: every condition listed must hold (see engine/period.js WHEN). other: the other person's gender.
 // world: assumes ordinary public life (a job, money, neighbours, going out); "kept apart" switches these off.
 // w: the weight when nothing on the cards woke it (default 60). group: only one line of a group goes per reply.
@@ -38,6 +39,7 @@ export const PERIOD_CATS = [
     ['temper', 'Personality'],
     ['vices', 'Drink, smoke and drugs'],
     ['world', 'Out in the world'],
+    ['pair', 'The two of them'],
 ];
 
 const L = (cat, sub, id, label, texts, on = {}) => ({ cat, sub, id, label, ...texts, ...on });
@@ -369,7 +371,7 @@ export const PERIOD = [
     { ids: ['scarred', 'tattooed', 'needle_marks', 'stitched_up'] }),
     L('body', 'Looks', 'dressed', 'Being dressed', {
         any: 'People dress formally. Men wear hats and pressed suits, and women wear girdles, stockings and set hair, so seeing {who} undressed or undone is a real intimacy.' },
-    { scene: ['dress'], w: 55 }),
+    { ids: ['new_look', 'jackie_polish', 'sixties_suit', 'ivy_league', 'in_stockings', 'mod'], scene: ['dress'], w: 55 }),
     L('body', 'Looks', 'height', 'Height', {
         he: 'Short men get teased by other men, and {who} may feel he has to make up for it in other ways.',
         she: 'Tall girls are told to wear flats, stand less straight and find a taller man. {who}’s height makes her stand out in any room.' },
@@ -433,7 +435,7 @@ export const PERIOD = [
     L('mind', 'What doctors call it', 'nerves', 'Nerves', {
         he: 'Nerves in a man are a weakness to hide. A doctor might quietly prescribe Miltown, which is popular with businessmen.',
         she: 'Doctors expect women to have nerves. {who} might be given a tranquilliser like Miltown or Valium and told to rest and not upset her husband.' },
-    { cats: ['scared'], ids: ['general_anxiety', 'panic_attacks', 'agoraphobic', 'neurasthenia', 'nervous_breakdown', 'anxiety_neurosis', 'nervous_wreck'] }),
+    { cats: ['scared'], ids: ['ocd', 'hypochondriac', 'catastrophiser', 'social_anxiety', 'claustrophobic', 'phobic', 'insomniac', 'general_anxiety', 'panic_attacks', 'agoraphobic', 'neurasthenia', 'nervous_breakdown', 'anxiety_neurosis', 'nervous_wreck'] }),
     L('mind', 'What doctors call it', 'hysterical', 'Hysterical', {
         he: 'A man with stormy moods is called temperamental. People blame drink, the war or an artist’s nature before they think of {who} as ill.',
         she: 'A woman with strong feelings is quickly called hysterical. If {who} makes a scene, a husband or father can have her admitted for a rest cure.' },
@@ -441,7 +443,7 @@ export const PERIOD = [
     L('mind', 'What doctors call it', 'complex', 'A complex', {
         he: 'Freud is everywhere, and people love to talk about complexes. Someone is bound to say {who} has one and blame his mother for it.',
         she: 'Freud is everywhere. A psychiatrist would likely tell {who} that her troubles come from envying men or from her father, and that marriage and a baby would settle her.' },
-    { ids: ['god_complexed', 'messiah_complex', 'inferiority_complex', 'superiority_complex', 'oedipus_complex', 'electra_complex', 'mother_complex', 'father_complex', 'napoleon_complex', 'jocasta_complex', 'laius_complex', 'don_juan_complex', 'icarus_complex', 'jonah_complex', 'adonis_complex', 'ophelia_complex', 'hero_complex', 'id_driven', 'anal_retentive'] }),
+    { ids: ['mother_issues', 'father_issues', 'repetition_compulsion', 'repeats_old_hurt', 'god_complexed', 'messiah_complex', 'inferiority_complex', 'superiority_complex', 'oedipus_complex', 'electra_complex', 'mother_complex', 'father_complex', 'napoleon_complex', 'jocasta_complex', 'laius_complex', 'don_juan_complex', 'icarus_complex', 'jonah_complex', 'adonis_complex', 'ophelia_complex', 'hero_complex', 'id_driven', 'anal_retentive'] }),
     L('mind', 'What doctors call it', 'psychopath', 'The mask of sanity', {
         he: '{who} is the kind of man doctors call a psychopath. Cleckley’s The Mask of Sanity describes how such men pass for charming and normal, so most of them are never caught.',
         she: 'Nobody expects a woman to be a psychopath. A cold, charming woman gets believed, and that protects {who}.' },
@@ -461,7 +463,7 @@ export const PERIOD = [
     L('mind', 'What doctors call it', 'old_wounds', 'Old wounds', {
         he: 'Soldiers came home from the war with battle fatigue and were told to put it behind them. {who} is expected not to talk about what happened to him.',
         she: 'There is no name for what happened to {who}. She is told to put it behind her and not upset anyone.' },
-    { ids: ['traumatised', 'ptsd', 'complex_ptsd', 'shell_shocked', 'battle_fatigue', 'hypervigilant', 'memory_gaps', 'depersonalised', 'fugue', 'functional_neuro'] }),
+    { ids: ['dissociative', 'survivors_guilt', 'complicated_grief', 'learned_helplessness', 'fawns', 'freezes', 'survival_habits', 'traumatised', 'ptsd', 'complex_ptsd', 'shell_shocked', 'battle_fatigue', 'hypervigilant', 'memory_gaps', 'depersonalised', 'fugue', 'functional_neuro'] }),
     L('mind', 'What doctors call it', 'eating', 'Food and figure', {
         he: 'A man who won’t eat is beyond most people’s understanding. They would call it an ulcer or nerves.',
         she: 'Women are praised for watching their figure. Nobody calls {who} starving herself an illness until she faints.' },
@@ -638,4 +640,288 @@ export const PERIOD = [
     L('world', 'Life around them', 'far_out', 'Far from help', {
         any: 'Out here, help is far away. There is one phone line the neighbours listen in on, a sheriff who knows every family, and miles of dark road.' },
     { scene: ['nowhere'] }),
+
+    // Added in 1.74: moods, roles, ties, bed roles, kinks and dynamics that had no period line yet.
+    L('power', 'Held and kept', 'held_captive', 'Held against their will', {
+        he: 'If {who} went missing, police would likely treat a grown man as someone who chose to leave. There is no national list of missing people, and a locked door in a private house is nobody else’s business.',
+        she: 'If {who} went missing, people would first say she ran off with a man. There is no national list of missing people, and a locked door in a private house is nobody else’s business.' },
+    { ties: ['captive_of', 'captor_captive'], ids: ['captive', 'long_captivity'] }),
+    L('power', 'Held and kept', 'ward', 'A ward', {
+        any: 'As a ward, {who} has little say over money, schooling or where to live. Guardians are trusted, and almost nobody checks how a ward is treated at home.' },
+    { ties: ['ward_of'] }),
+    L('power', 'Held and kept', 'caretaker', 'Caring for them', {
+        he: 'A man nursing someone at home is unusual. People expect {who} to hire a nurse or hand the job to a woman, and they half admire and half pity him for doing it himself.',
+        she: 'Caring for the sick is seen as a woman’s natural work. Nobody will thank {who} for it or ask what it costs her; they will only notice if she falls short.' },
+    { ties: ['caretaker_of', 'nurses'] }),
+    L('power', 'Held and kept', 'pupil', 'A pupil', {
+        he: 'A young man learning under an older one is expected to show respect and wait his turn. Speaking out of line could cost {who} the reference he needs.',
+        she: 'A girl taught by an older man is expected to look up to him. If anything happens between them, most people will say {who} led him on.' },
+    { ties: ['student_of'] }),
+    L('power', 'Held and kept', 'admirer', 'A fan', {
+        any: 'Fan clubs, signed photographs and screaming crowds look silly or hysterical to older people. Following someone too closely gets {who} called a crank, not a fan.' },
+    { ties: ['fan_of', 'idolises'] }),
+    L('power', 'Held and kept', 'sex_trade', 'Sex for money or safety', {
+        he: 'Paying for sex is common and quietly accepted for men. The police arrest the woman, almost never {who}. A man who takes the money himself is called a gigolo or a hustler.',
+        she: 'Kept women, call girls and the bar girls who get men to buy drinks are all known types. If {who} trades herself for money, rent or safety, the law punishes her, not the man.' },
+    { ids: ['sex_as_currency', 'escort', 'stripper'], ties: ['bought_and_paid', 'sugar'] }),
+    L('power', 'Held and kept', 'owned_body', 'Their body is not their own', {
+        he: 'Nobody imagines a man’s body could belong to someone else. If {who} feels owned, there is no one he could tell who would understand.',
+        she: 'A wife’s body is treated as her husband’s. No state counts it as rape when a husband forces his wife, so {who} has no right to say no to him.' },
+    { ids: ['body_as_property', 'owned'] }),
+    L('dating', 'Holding on', 'mine', 'Theirs to keep', {
+        he: 'A man guarding what is his is seen as natural, even flattering. Few people would question {who} keeping a close eye on {other}.',
+        she: 'A woman who clings is called possessive and smothering. {who} is supposed to keep a man by being sweet, not by watching him.' },
+    { ties: ['theyre_mine', 'wants_to_own'], ids: ['staking_a_claim', 'possessive_nature', 'territorial'] }),
+    L('dating', 'Holding on', 'fixing', 'Wanting to fix them', {
+        he: 'Taking someone in hand and improving them is seen as a man’s right, especially with a wife or a girl. Few would find it strange that {who} wants to shape {other}.',
+        she: 'Reforming a bad man is a woman’s oldest romantic job. Magazines and films tell {who} that the right woman’s love can change him.' },
+    { ties: ['wants_to_fix', 'wants_to_mould'], ids: ['rescue_fixation', 'saviour_complex'] }),
+    L('dating', 'Holding on', 'no_letting_go', 'Can’t let go', {
+        he: 'There are no stalking laws. A man who keeps turning up, calls at all hours and won’t take no for an answer is often called persistent, even romantic.',
+        she: 'There are no stalking laws, but a woman who won’t let go is called unbalanced. If {who} keeps calling or turning up, people will say she is hysterical and send her to a doctor.' },
+    { ties: ['obsessed', 'cant_let_go', 'wants_to_capture'], ids: ['obsessed', 'fixated_watching', 'obsessive_collecting', 'limerent', 'cant_let_go'] }),
+    L('dating', 'Holding on', 'protecting', 'Protecting them', {
+        he: 'A man is expected to protect the people he loves and to fight, or even die, for them. Nobody questions {who} stepping in.',
+        she: 'A woman protects quietly, by keeping secrets and smoothing things over. If {who} stands up and fights for someone, people will be shocked.' },
+    { ties: ['protects', 'would_die_for'], ids: ['watching_over'] }),
+    L('dating', 'Holding on', 'needing', 'Needing them', {
+        he: 'A man who can’t bear to be apart from someone is called soft or tied to apron strings. {who} is expected to need no one.',
+        she: 'Needing a man completely is what women are told love looks like. Nobody would call {who} clingy, only devoted.' },
+    { ids: ['clingy', 'codependent', 'dependent_personality', 'separation_anxiety', 'holding_on_too_tight', 'inseparable'] }),
+    L('dating', 'Holding on', 'waiting', 'Waiting for them', {
+        he: 'Men aren’t supposed to pine. If {who} is waiting on someone, he hides it behind work or drink.',
+        she: 'Women are expected to wait: for letters, for the phone to ring, for a man to come home. {who} is admired for waiting and pitied if she waits too long.' },
+    { ids: ['missing_them', 'waiting_on_them', 'devoted_to_a_ghost'] }),
+    L('dating', 'Holding on', 'believes_loved', 'Sure they are loved', {
+        he: 'If {who} believes a woman loves him despite everything she says, people will call it persistence until the day it turns frightening.',
+        she: 'If {who} believes a man loves her when he says he doesn’t, doctors will call it hysteria and may suggest a rest in hospital.' },
+    { ids: ['erotomania', 'romantic_delusion'] }),
+    L('seen', 'What they think of each other', 'thinks_loose', 'Thinking them loose', {
+        any: 'Calling a woman cheap or fast is the quickest way to ruin her. If {who} thinks {other} is loose and says so in the right ear, it could cost {other} a job, a marriage or a home.' },
+    { ties: ['thinks_slutty', 'thinks_trashy'], other: 'she' }),
+    L('seen', 'What they think of each other', 'thinks_mad', 'Thinking them mad', {
+        any: 'Having someone declared mad is easy. A husband, parent or doctor can have a person committed with a signature or two, so {who} thinking {other} is unstable could be dangerous for {other}.' },
+    { ties: ['thinks_crazy'] }),
+    L('seen', 'What they think of each other', 'masks', 'Keeping a face on', {
+        he: 'A man keeps a stiff upper lip and doesn’t show his feelings. {who}’s blank face is just what people expect of him.',
+        she: 'A woman is expected to smile, be pleasant and keep her troubles to herself. Nobody wonders what is behind {who}’s smile.' },
+    { ids: ['poker_face', 'polite_smile', 'pretending_not_to_care', 'forced_cheer', 'performative', 'faking_it', 'playing_nice', 'putting_on_a_brave_face', 'acting_unaffected', 'stiff_upper_lip', 'gritted_politeness', 'holding_it_together_for_them', 'bottling_it', 'hiding_fear', 'masking_warmth', 'masking_coldness', 'borrowed_normality', 'charm_as_armour'] }),
+    L('seen', 'How men and women are seen', 'damsel', 'Needing rescue', {
+        he: 'A man who needs rescuing is laughed at. {who} would rather get hurt than let anyone see him helpless.',
+        she: 'Helpless women are the heroines of the films and the covers of the pulp magazines. People expect {who} to be rescued, not to save herself.' },
+    { ids: ['damsel'], turns: ['being_rescued'] }),
+    L('seen', 'How men and women are seen', 'next_door', 'The nice one', {
+        he: '{who} is the clean-cut young man everyone trusts. People will make excuses for him long after they would stop for anyone else.',
+        she: '{who} is the sort of girl families want their sons to marry: wholesome, friendly and sure to settle down. Any slip would shock people more than it would with another girl.' },
+    { ids: ['girl_next_door', 'boy_next_door', 'golden_boy'] }),
+    L('seen', 'How men and women are seen', 'leering', 'The older lech', {
+        he: '{who}’s leering is joked about, not stopped. Older men get away with a lot, and a girl who complains is told she must have led him on.',
+        she: 'An older woman chasing young men is a joke and a scandal. People would call {who} desperate behind her back.' },
+    { ids: ['dirty_old_man', 'sleazy'] }),
+    L('home', 'Cruelty at home', 'gaslight', 'Making them doubt themselves', {
+        any: 'Most people have seen the film Gaslight (1944), but nobody uses the word for real life yet. If {other} starts doubting their own mind, a doctor is far more likely to believe {who}.' },
+    { ids: ['gaslighting', 'gaslighter'], ties: ['manipulates'] }),
+    L('home', 'Cruelty at home', 'control', 'Keeping control', {
+        he: 'A husband who controls the money, the car and who his wife may see is just being the head of the house. Nobody would call what {who} does abuse.',
+        she: 'A woman who controls is called a nag or a battle-axe. If {who} keeps a man on a short leash, other men will laugh at him for it.' },
+    { ids: ['isolating', 'coercive', 'paternalistic_control', 'possessive_cruelty', 'controlling'], ties: ['wants_to_isolate', 'controls'] }),
+    L('home', 'Cruelty at home', 'closed_door', 'Behind a closed door', {
+        any: 'Cruelty behind a closed door is a private matter. Neighbours may hear it, but almost nobody calls the police, and the police rarely come between two people who live together. Nobody will step in for {other}.' },
+    { cats: ['cruel'], w: 45 }),
+    L('home', 'Cruelty at home', 'blackmail', 'Blackmail', {
+        any: 'Blackmail runs on secrets that could end a life: an affair, a past, a hidden taste, a Party card. With so much that can ruin a person, {who} has a great deal of leverage or a great deal to lose.' },
+    { ids: ['blackmailing', 'blackmailed'], ties: ['mutual_blackmail'] }),
+    L('bed', 'In private', 'pet_names', 'Daddy and baby', {
+        any: 'Pet names like ‘baby’ and ‘daddy’ are all over the popular songs, so nobody blinks in public. What {who} means by them in private is never spoken about.' },
+    { ids: ['daddy', 'mommy', 'little_girl', 'age_regressed'] }),
+    L('bed', 'In private', 'collars', 'Collars and leashes', {
+        any: 'Collars and leashes for people turn up only in mail-order catalogues and under-the-counter photographs, sent in plain brown wrappers. Mailing them is a federal crime if the Post Office catches it, so {who} keeps it hidden.' },
+    { ids: ['collared', 'leashed', 'pet_handler', 'owner', 'pet_doe', 'pet_pig', 'pet_cow', 'pet_pony'], turns: ['being_a_pet', 'pet_owner', 'collaring_ritual'] }),
+    L('bed', 'In private', 'tied', 'Being tied up', {
+        any: 'Bondage photographs, like Irving Klaw’s pictures of Bettie Page, were dragged before a Senate hearing in 1955 as a danger to the young. Being tied up is something {who} could never admit to wanting.' },
+    { ids: ['restrained', 'handcuffed', 'tied_to_the_bed', 'gagged', 'blindfolded', 'rope_burns'], turns: ['bondage_giving', 'bondage_receiving', 'decorative_bondage', 'cuffs_handcuffs', 'gags', 'blindfolds'] }),
+    L('bed', 'In private', 'in_the_dark', 'Lights off', {
+        he: 'Many couples make love with the lights off and their nightclothes half on. For {who} to see someone fully undressed means a great deal.',
+        she: 'Many wives undress in the bathroom and come to bed in a nightgown. Being seen fully naked, even by a husband, is a big step for {who}.' },
+    { ids: ['in_lingerie', 'in_a_slip', 'undressed', 'lights_off'] }),
+    L('bed', 'In private', 'thin_walls', 'Thin walls', {
+        any: 'Walls are thin, houses are full and few bedroom doors lock. Being found together could cost {who} everything, so keeping quiet is part of it.' },
+    { ids: ['nearly_caught', 'stay_quiet', 'being_watched_in_bed'] }),
+    L('bed', 'In private', 'marks', 'Marks', {
+        he: 'Marks on a man are joked about as a wild night or a fight. Nobody would ask {who} who gave them to him.',
+        she: 'High collars and scarves hide what happened last night. If anyone saw marks on {who}, they would assume a husband did it, and most would look away.' },
+    { ids: ['marked_up', 'bitten', 'choke_marks', 'split_lip'], turns: ['marking', 'marking_receiving'] }),
+    L('bed', 'In private', 'trading_lead', 'Taking turns to lead', {
+        any: 'Marriage manuals say the man should lead in bed and the woman should respond. Trading who leads, the way {who} does, is something nobody has words for yet.' },
+    { ids: ['switch', 'egalitarian_dynamic', 'role_reversal_dom', 'role_reversal_sub', 'dominant_bottom', 'submissive_top'] }),
+    L('bed', 'In private', 'swept_away', 'Swept away', {
+        he: 'Films show the hero kissing a woman who struggles until she melts. {who} has grown up on that picture of romance.',
+        she: 'Romance novels are full of women taken against their will who end up in love. Wanting that is common, and {who} could never say it aloud.' },
+    { ids: ['ravished', 'ravishing', 'predator', 'prey', 'captive_roleplay'], turns: ['cnc_giving', 'cnc_receiving', 'being_hunted'] }),
+    L('bed', 'In private', 'fight_kiss', 'Fighting and wanting', {
+        any: 'Films love a couple who fight until they kiss, and a slap followed by an embrace is a stock scene. What {who} feels sits very close to what the screen calls passion.' },
+    { ids: ['hate_as_desire', 'cruelty_as_intimacy', 'violent_desire', 'sex_as_punishment', 'revenge_sex'], ties: ['love_hate', 'fights_as_foreplay', 'hate_need'] }),
+    L('bed', 'In private', 'hiding_want', 'Hiding the want', {
+        he: 'A gentleman hides his wanting behind good manners. {who} has learned to keep his hands still and his face blank.',
+        she: 'Nice girls aren’t supposed to want it at all, so {who} has had a lifetime of practice hiding it.' },
+    { ids: ['hiding_arousal', 'repressed_voyeur'] }),
+    L('bed', 'In private', 'transference', 'Falling for the doctor', {
+        any: 'Freud’s idea of transference is well known: patients fall for their doctors, and good doctors don’t take advantage. Everyone knows some do, and that the patient is rarely believed.' },
+    { ids: ['transference', 'florence_nightingale_effect'] }),
+    L('tastes', 'What they want', 'uniforms', 'Uniforms', {
+        any: 'Uniforms are everywhere: soldiers, nurses, policemen, stewardesses, priests. Wanting the uniform is common, and admitting it, as {who} might, is not.' },
+    { turns: ['uniforms', 'uniformed_people', 'white_coats', 'clergy', 'doctors'] }),
+    L('tastes', 'What they want', 'older_ones', 'Wanting someone older', {
+        any: 'Wanting someone much older is usually read as looking for security or a father figure, and people will say so about {who}.' },
+    { turns: ['older_men', 'older_women'] }),
+    L('tastes', 'What they want', 'younger_ones', 'Wanting someone younger', {
+        he: 'An older man chasing younger women is accepted and even admired. Nobody thinks twice about {who}’s taste.',
+        she: 'An older woman wanting a younger man is a scandal, the stuff of The Graduate (1967). People would talk about {who}.' },
+    { turns: ['younger_men', 'younger_women'] }),
+    L('tastes', 'What they want', 'babies_want', 'Wanting a baby', {
+        he: 'Having children is a man’s duty and pride. Wanting a woman for her pregnant body is something {who} keeps to himself.',
+        she: 'Babies are what marriage is for, and the baby boom is in full swing. Everyone expects {who} to want children; wanting to be got pregnant is another matter, and never said.' },
+    { turns: ['breeding_giving', 'breeding_receiving', 'pregnant_bellies'] }),
+    L('tastes', 'What they want', 'sin', 'Sin and penance', {
+        any: 'Church is part of ordinary life, and Catholics go to confession every week. For {who}, the thrill and the guilt are wound tightly together.' },
+    { turns: ['sinfulness', 'penance', 'hierophilia'], ids: ['holy_masochism', 'penitent_role', 'confessor_role'] }),
+    L('tastes', 'What they want', 'kept_life', 'Being kept', {
+        he: 'A kept man is a gigolo, about the lowest thing a man can be in most people’s eyes. {who} would never admit to wanting it.',
+        she: 'Being a kept woman is both shameful and common. If it came out, {who} would be called a mistress or a gold digger.' },
+    { turns: ['being_kept'] }),
+    L('tastes', 'What they want', 'bad_ones', 'Wanting the bad ones', {
+        he: 'Men are allowed to like a bit of danger, but a woman with a bad name is not marriage material. {who} would be told to have his fun and marry someone else.',
+        she: 'Good girls are warned about bad boys in every film and song, and that is exactly the pull. Being seen with one could ruin {who}’s name.' },
+    { turns: ['danger', 'bad_reputations', 'bad_influences', 'criminals', 'hybristophilia'] }),
+    L('mind', 'What doctors call it', 'captor_bond', 'Bonded to the one who holds them', {
+        any: 'There is no name yet for falling for the person who holds you; ‘Stockholm syndrome’ is not coined until 1973. If {who} defends {other}, people will simply think {who} is weak, wicked or willing.' },
+    { ids: ['trauma_bonded', 'stockholm_syndrome', 'lima_syndrome'], ties: ['stockholm', 'trauma_bond'] }),
+    L('mind', 'What doctors call it', 'not_believed', 'Not believed', {
+        he: 'A man who keeps warning about danger is called a crank. People nod at {who} and change the subject.',
+        she: 'When a woman says something is wrong, people look at her nerves first. {who} can be right again and again and still be told she is imagining it.' },
+    { ids: ['cassandra_complex'] }),
+    L('mind', 'What doctors call it', 'fraud', 'Feeling like a fraud', {
+        he: 'A man is supposed to be sure of himself. If {who} feels like a fraud, there is nobody he can tell.',
+        she: 'A woman who gets ahead is often told it was luck or charm. {who} may half believe it.' },
+    { ids: ['impostor_feelings'] }),
+    L('mind', 'What doctors call it', 'old_labels', 'A label in the file', {
+        any: 'Psychiatrists have labels like ‘inadequate personality’ and ‘passive-aggressive’, and once one is written in {who}’s file it follows them to every job, court and doctor.' },
+    { ids: ['inadequate_personality', 'monomania', 'passive_dependent', 'passive_aggressive_old', 'explosive_personality', 'asthenic_personality', 'passive_aggressive_personality', 'self_defeating'] }),
+    L('mind', 'What doctors call it', 'freud_talk', 'Freud at parties', {
+        any: 'Everyone talks in Freud’s terms now. Words like ‘repressed’ and ‘projecting’ get used over cocktails, and a sharp friend might say them about {who} to their face.' },
+    { ids: ['represses', 'reaction_formation', 'projecting', 'intellectualising', 'displacement', 'sublimation', 'compartmentalising', 'rationalises', 'undoing_fixation', 'superego_ridden', 'oral_fixation', 'castration_anxiety'], w: 50 }),
+    L('mind', 'What doctors call it', 'brainwashed', 'Brainwashed', {
+        any: 'Since the Korean War, everyone knows the word ‘brainwashing’. If {who} seems changed, emptied out or strangely obedient, people will whisper it.' },
+    { ids: ['brainwashed', 'hypnotised', 'conditioned', 'trained_responses'] }),
+    L('mind', 'What doctors call it', 'stealing', 'Stealing', {
+        he: 'A man caught stealing is a thief, plain and simple. Nobody will call it an illness for {who}.',
+        she: 'Shoplifting by respectable women is called kleptomania and treated as a nervous illness. If {who} is caught in a department store, a doctor’s note may matter more than the police.' },
+    { ids: ['kleptomania', 'light_fingered'] }),
+    L('mind', 'What doctors call it', 'gambling', 'Gambling', {
+        any: 'Gambling is illegal almost everywhere outside Nevada, so the games {who} plays are run by bookies, card rooms and the Mob. Owing money there is far worse than owing a bank. Gamblers Anonymous only starts in 1957.' },
+    { ids: ['gambling_compulsion'] }),
+    L('mind', 'What doctors call it', 'loner', 'Keeping to themselves', {
+        any: 'A loner is suspicious. Neighbours wonder what {who} does alone all day, and in the years of the Red Scare, keeping to yourself can look like having something to hide.' },
+    { ids: ['schizoid', 'schizotypal', 'avoidant_personality', 'misanthropic'] }),
+    L('mind', 'What doctors call it', 'different', 'Different from other people', {
+        any: 'Tics, clumsiness and odd ways of taking in the world are barely understood. {who} would be called strange, slow or rude, and a child like that might be kept home or sent away to a special school.' },
+    { ids: ['tourettes', 'dyspraxic', 'sensory_avoidant', 'sensory_seeking', 'demand_avoidant', 'stimming'] }),
+    L('name', 'Standing', 'heir', 'Family name', {
+        he: 'As the heir, {who} is expected to go to the right school, join the family firm and marry the right girl. A scandal would stain the whole family.',
+        she: 'Debutante balls, a coming-out season and the right college: {who} is expected to marry well and soon, and her family will steer her to the right man.' },
+    { ids: ['heir', 'debutante', 'old_money'] }),
+    L('name', 'Standing', 'disgrace', 'Disgraced', {
+        any: 'A scandal follows a person for years. The local paper, the church and every mother on the street remember, and a fresh start for {who} usually means moving to another state.' },
+    { ids: ['disgraced', 'black_sheep', 'notorious', 'controversial'] }),
+    L('name', 'Standing', 'new_name', 'Starting over', {
+        any: 'It is easy to vanish and start again. Records aren’t linked up, and a new town, a new name and a borrowed birth certificate are often enough for {who}.' },
+    { ids: ['secret_past', 'secret_lifestyle', 'presumed_dead', 'missing', 'witness_protection'] }),
+    L('name', 'Standing', 'parole', 'On parole', {
+        any: 'Parole comes with rules: no bars, no bad company, a steady job and a curfew. One complaint to the parole officer can send {who} straight back inside.' },
+    { ids: ['on_parole'] }),
+    L('name', 'Standing', 'mob', 'The Mob', {
+        any: 'The Mob is real and powerful. The 1957 Apalachin meeting proved it, though Hoover’s FBI long said it didn’t exist. Police, unions and judges can be bought, so {who}’s world runs on favours and fear.' },
+    { ids: ['mob_boss', 'crime_family', 'mob_enforcer', 'owes_dangerous_people', 'hitman', 'cleaner'] }),
+    L('name', 'Standing', 'killer', 'No trail', {
+        any: 'There is no DNA testing, no national crime computer and little talk between police in different states. A killer who keeps moving is hard to catch, so {who} can leave very little trail.' },
+    { ids: ['serial_killer', 'kidnapper', 'killed_will_again', 'body_count', 'escaped_justice', 'hidden_trophies'] }),
+    L('name', 'Standing', 'experimenter', 'Science without rules', {
+        any: 'The CIA’s MKUltra programme and others test LSD, hypnosis and sleep loss on people who never agreed to it. Ethics boards barely exist, so {who} works with very few rules.' },
+    { ids: ['mad_scientist', 'programme_director', 'brainwasher', 'handler'] }),
+    L('name', 'Standing', 'cult', 'A strange church', {
+        any: 'New churches, flying-saucer groups and self-improvement circles spring up all through these years. Families rarely know how to get someone back, and few outsiders would step in for {who}.' },
+    { ids: ['cult_leader', 'true_believer', 'devotion_cult', 'cult_survivor', 'deluded_messiah'] }),
+    L('name', 'Standing', 'priest', 'The parish priest', {
+        he: 'A priest is the most trusted man in town. Nobody would believe a word against {who}, and the Church deals with its own problems quietly.' },
+    { ids: ['priest', 'dark_cleric'] }),
+    L('name', 'Standing', 'veteran', 'Back from Vietnam', {
+        he: 'Men coming back from Vietnam get no parades, and some are called baby killers in the street. {who} is expected to get a job and stop talking about it.' },
+    { ids: ['vietnam_veteran'] }),
+    L('name', 'Standing', 'foster', 'Raised by strangers', {
+        any: 'Orphanages and foster homes are hidden from view, and some children are sent to work on farms or in other people’s homes. Nobody asks {who} what happened there.' },
+    { ids: ['foster_kid', 'orphaned'] }),
+    L('name', 'Standing', 'war_bride', 'A war bride', {
+        she: 'War brides came over from Europe and Asia with American soldiers, and many met cold welcomes. To some of the neighbours, {who} is still a foreigner.' },
+    { ids: ['war_bride', 'from_abroad'] }),
+    L('body', 'Looks', 'beatnik', 'A beatnik', {
+        any: 'Black turtlenecks, bongos and poetry make {who} a beatnik in most people’s eyes: lazy, dirty, probably a Red and probably on drugs.' },
+    { ids: ['beatnik'] }),
+    L('body', 'Looks', 'greaser', 'A greaser', {
+        he: 'Slicked hair, a leather jacket and a motorbike mark {who} as a hoodlum. Since The Wild One (1953), every small-town policeman expects trouble from boys like him.',
+        she: 'A girl in tight jeans who rides around with greasers is called cheap, and her parents would fear for her name.' },
+    { ids: ['greaser', 'biker', 'rockabilly'] }),
+    L('body', 'Looks', 'hippie', 'A hippie', {
+        any: 'Long hair and beads mark {who} as a hippie by the late sixties. Older people see dirt, drugs and free love, and some diners refuse to serve them.' },
+    { ids: ['hippie'] }),
+    L('vices', 'Drink, smoke and drugs', 'knockout', 'Knockout drops', {
+        any: 'Knockout drops, the ‘Mickey Finn’, are a well-known trick in bars and crime stories. If {who} wakes up confused, people will say they drank too much before they believe they were drugged.' },
+    { ids: ['drugged', 'chloroformed'] }),
+    L('world', 'Life around them', 'drive_in', 'The drive-in', {
+        any: 'The drive-in is where couples go to be alone. Every parent knows it, and a steamed-up car in the back row is half the reason {who} is there.' },
+    { ids: ['drive_in'], world: true }),
+    L('world', 'Life around them', 'jazz_club', 'A jazz club', {
+        any: 'Jazz clubs mix races and classes in a way respectable people distrust, and police raid them for drugs. Being seen there marks {who} as fast or bohemian.' },
+    { ids: ['jazz_club'], world: true }),
+    L('world', 'Life around them', 'shelter', 'The bomb', {
+        any: 'Families build fallout shelters in the back garden and schoolchildren practise duck and cover. The end of the world feels close to {who}.' },
+    { ids: ['fallout_shelter'] }),
+    L('pair', 'Their dynamic', 'dyn_captor', 'Captor and captive', {
+        any: 'Kidnapping across state lines is a federal crime and brings in the FBI. Inside one house, behind closed doors, {who} and {other} could go a long time before anyone asks.' },
+    { dyn: ['captor'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_obsess', 'Obsession', {
+        any: 'Devotion is the ideal in every love song. People see the intensity between {who} and {other} as romantic long after it has turned frightening.' },
+    { dyn: ['obsess'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_power', 'Who is in charge', {
+        any: 'Someone is always in charge: the husband, the boss, the doctor, the father. People read who leads between {who} and {other} at a glance, and they expect it to stay that way.' },
+    { dyn: ['power'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_romance', 'Romance', {
+        any: 'Love is supposed to lead to marriage, quickly. People will ask when {who} and {other} are getting engaged, and somebody’s mother will start planning.' },
+    { dyn: ['romance'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_heat', 'Heat', {
+        any: 'Sex is everywhere in advertising and nowhere in conversation. Whatever passes between {who} and {other} stays unspoken outside the room.' },
+    { dyn: ['heat'], group: 'dyn', w: 45 }),
+    L('pair', 'Their dynamic', 'dyn_toxic', 'On and off', {
+        any: 'Rows, slammed doors and making up are seen as the stuff of passion. People will tell {who} that every couple fights and to keep it inside the house.' },
+    { dyn: ['toxic'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_allies', 'Friends and rivals', {
+        any: 'Feuds and friendships are carried on with good manners in public. People expect {who} and {other} to keep any bad blood behind a polite face.' },
+    { dyn: ['allies'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_roles', 'Duty', {
+        any: 'Family duty comes first. Whatever {who} owes {other} by blood, marriage or service is taken seriously, and walking away from it is shameful.' },
+    { dyn: ['roles'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_distance', 'Apart', {
+        any: 'Being apart means letters, costly long-distance calls booked through the operator and weeks of waiting. A silence between {who} and {other} can last a long time.' },
+    { dyn: ['distance'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_clinic', 'Doctor knows best', {
+        any: 'Doctors and researchers are trusted almost without question. Whatever goes on between {who} and {other} in the name of treatment or science, few people would dare to challenge it.' },
+    { dyn: ['clinic'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_mind', 'Mind games', {
+        any: 'The papers are full of hypnosis, brainwashing and mind control. If anyone saw what {who} and {other} do to each other’s heads, it would sound like something from a magazine.' },
+    { dyn: ['mind'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_secret', 'Secrets', {
+        any: 'Everyone keeps something hidden: the closet, the affair, the drinking, the spell in hospital. Nobody around {who} and {other} is as respectable as they look either.' },
+    { dyn: ['secret'], group: 'dyn', w: 50 }),
+    L('pair', 'Their dynamic', 'dyn_society', 'What people think', {
+        any: 'Everyone watches everyone. What the neighbours, the church and the office think of {who} and {other} shapes almost everything they do.' },
+    { dyn: ['society'], group: 'dyn', w: 50 }),
 ];

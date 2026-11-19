@@ -124,6 +124,19 @@ const CORE_BENDS = [
     [['wallflower', 'cant_say_it'], d => ['romance', 'heat'].includes(d.group),
         (n) => `${n} shows it in what ${n} does, not what ${n} says: the words stay stuck`],
 ];
+// Starred beliefs bend the dynamic too (1.78): they're passed in with the core traits.
+CORE_BENDS.push(
+    [['misogynist', 'chauvinist', 'judgemental_misogyny', 'anti_feminist'], d => ['romance', 'heat', 'power', 'society', 'roles'].includes(d.group),
+        (n, u) => `wanting ${u} doesn't make ${n} see ${u} as an equal: the desire comes with condescension and rules about how ${u} ought to behave`],
+    [['lawful_evil', 'neutral_evil', 'chaotic_evil', 'evil_with_code', 'fallen_good', 'homicidal_fixation'], d => ['romance', 'heat', 'allies', 'roles'].includes(d.group),
+        (n, u) => `whatever ${n} feels for ${u}, ${n} is still capable of real cruelty, and the softness never makes ${n} safe`],
+    [['respectability_obsessed', 'keeps_up_appearances'], d => ['heat', 'secret', 'toxic', 'romance'].includes(d.group),
+        (n, u) => `how it looks from outside matters to ${n} as much as what happens: ${n} manages ${u} in front of others`],
+    [['puritanical', 'devout', 'dark_faith'], d => d.group === 'heat',
+        (n) => `${n} wants it and judges the wanting: desire comes out tangled with shame and blame`],
+    [['ends_justify_means', 'social_darwinist', 'research_absolutism'], d => ['power', 'clinic', 'mind', 'captor', 'obsess'].includes(d.group),
+        (n, u) => `${n} can justify anything done to ${u} if it serves the goal, and believes it`],
+);
 export function coreLink(core = [], dynamic, lead, n, u) {
     if (!dynamic || !core.length) return '';
     const hit = CORE_BENDS.find(([ids, test]) => ids.some(id => core.includes(id)) && test(dynamic, lead));

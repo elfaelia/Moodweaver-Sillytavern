@@ -971,3 +971,18 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-panel .mw-sk-pin[aria-pressed=true]{border-color:#e2b866;color:var(--mw-sk-good)}
 .mw-panel .mw-sk-done{flex:1;min-height:48px;margin:0;border-radius:14px;border:0;background:var(--mw-sk-good);color:#100d1f;font:800 16px var(--mw-round)}
 @media (prefers-reduced-motion:reduce){.mw-sk-sheet.is-new{animation:none}}
+/* Body size on the profile: one row of big chips per gender, one on at a time. */
+.mw-profile-size{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.mw-size-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mw-size-row>span{min-width:3.2em;font-size:12px;color:var(--mw-muted)}
+.mw-panel .mw-size-chip{min-height:44px;padding:0 14px;border-radius:14px;border:1px solid var(--mw-line-2);background:#ffffff08;color:var(--mw-muted);font:600 14px var(--mw-round)}
+.mw-panel .mw-size-chip[aria-pressed=true]{border-color:#e48aa0;background:#e48aa022;color:var(--mw-text)}
+/* 1.79: stress stars on Needs, feelings about others on the profile */
+.mw-stress-stars{display:flex;gap:6px;margin:6px 0 4px}.mw-stress-stars i{flex:1;height:10px;border-radius:999px;background:color-mix(in srgb,var(--mw-text) 12%,transparent)}
+.mw-stress-stars i.is-lit{background:#e3c38f;box-shadow:0 0 6px #e3c38f88}.mw-stress-stars i.is-lit.is-edge{background:#e07a7a;box-shadow:0 0 8px #e07a7aaa}
+.mw-panel .mw-chip-btn{min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid color-mix(in srgb,var(--mw-text) 25%,transparent);background:transparent;color:var(--mw-text)}
+.mw-opinion-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.mw-opinion{padding:6px 10px;border-radius:12px;font-size:13px;border:1px solid color-mix(in srgb,var(--mw-text) 18%,transparent)}
+.mw-opinion.is-warm{border-color:#d7a0b488}.mw-opinion.is-cold{border-color:#8fa9d988}.mw-opinion small{color:var(--mw-muted)}
+.mw-secret{margin-top:8px;padding:8px 10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--mw-text) 14%,transparent)}.mw-secret p{margin:0 0 6px;font-size:13px}.mw-secret p small{opacity:.6}
+.mw-secret-chips{display:flex;flex-wrap:wrap;gap:6px}.mw-panel .mw-secret-chips .mw-chip-btn{flex:1 1 0;min-width:70px;padding:8px 6px;font-size:13px}.mw-panel .mw-secret-chips .mw-chip-btn[aria-pressed="true"]{background:color-mix(in srgb,var(--mw-accent,#c9a96e) 30%,transparent);border-color:var(--mw-accent,#c9a96e)}
+.mw-want-auto .mw-toggle{margin:10px 0 4px}.mw-want-auto .mw-done-row small{color:var(--mw-muted);margin-left:4px}

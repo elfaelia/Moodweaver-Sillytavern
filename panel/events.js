@@ -10,7 +10,7 @@ import { EDIT_FIELDS, NO_BOARD, latestBoard, liveBoard, needWord } from '../engi
 import { cleanDesire, computeBond, dynamicRows, setDesire, setMeter } from '../engine/bond.js';
 import { addCastMember, castName, newCastId } from '../engine/cast.js';
 import { BY_ID, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
-import { CORE_MAX, WANT_KINDS, clearOpposites, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
+import { BELIEF_MAX, CORE_MAX, WANT_KINDS, clearOpposites, cleanBeliefs, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
 import { clamp, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { effectiveChat, untrack } from '../engine/ledger.js';
@@ -26,6 +26,7 @@ import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { dockOf, tabStep, tabsFor } from './header.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
+import { cleanSecrets } from '../engine/secrets.js';
 import { periodFor, periodOff, periodWho } from './period-tab.js';
 import { filterPersonality } from './personality-tab.js';
 import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
@@ -139,6 +140,7 @@ export async function onPanelChange(e) {
     const input = e.target;
     // The profile card on Facts (and your You tab).
     if (input.dataset.fav) { const k = input.dataset.fav, v = input.value; await changeState(s => { s.favs = cleanFavs({ ...s.favs, [k]: v }); }); return; }
+    if (input.hasAttribute('data-secrets')) { const v = input.value; await changeState(s => { s.secrets = cleanSecrets(v); }); return; }
     if (input.dataset.words) { const k = input.dataset.words, v = input.value; await changeState(s => { s[k] = cleanWords(v); }); return; }
     if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
@@ -426,6 +428,11 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
+    if (button.dataset.size) {
+        // One size per group: tapping one clears the others in its group; tapping the one that's on clears it.
+        const id = button.dataset.size, group = MOODS.filter(m => m.size === BY_ID[id]?.size).map(m => m.id);
+        await changeState(s => { const was = s.moods[id] > 0; for (const g of group) { delete s.moods[g]; if (s.pins) delete s.pins[g]; } if (!was) { s.moods[id] = 70; s.pins = { ...s.pins, [id]: true }; } }); return;
+    }
     if (button.dataset.skillTo) {
         // The sheet sets a level exactly (0 takes the skill off them). A level set by hand starts fresh progress toward the next.
         const id = button.dataset.skillTo, v = Math.max(-10, Math.min(10, Number(button.dataset.v) || 0));
@@ -566,12 +573,20 @@ export async function onPanelClick(e) {
         all[key] = { ...(all[key] ?? {}), [k]: [...off] };
         render(); ctx().saveSettingsDebounced(); await syncPrompt(); return;
     }
+    if (button.dataset.secretSet) { const k = button.dataset.secretSet, state = button.dataset.secretState, at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.secretSet = { ...(s.secretSet ?? {}), [k]: { state, pos: at } }; }); return; }
+    if (button.dataset.action === 'stress-reset') { const at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.stressFrom = at; }); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
     if (button.dataset.core) {
         const id = button.dataset.core, s0 = viewState(), core = cleanCore(s0?.core, s0?.moods);
         if (!core.includes(id) && core.length >= CORE_MAX) { run.status = `Up to ${CORE_MAX} core traits and mind settings: unstar one first.`; renderStatus(); return; }
         await changeState(s => { const now = cleanCore(s.core, s.moods); if (now.includes(id)) s.core = now.filter(x => x !== id); else { if (!(s.moods[id] > 0)) s.moods[id] = 60; if (Array.isArray(s.loadout) && !s.loadout.includes(id)) s.loadout.push(id); s.core = [...now, id]; } }); return;
+    }
+    // Starred beliefs (Morals & views, Alignment): up to three, sent every reply as what they act on first.
+    if (button.dataset.belief) {
+        const id = button.dataset.belief, s0 = viewState(), mine = cleanBeliefs(s0?.beliefs, s0?.moods);
+        if (!mine.includes(id) && mine.length >= BELIEF_MAX) { run.status = `Up to ${BELIEF_MAX} starred beliefs: unstar one first.`; renderStatus(); return; }
+        await changeState(s => { const now = cleanBeliefs(s.beliefs, s.moods); if (now.includes(id)) s.beliefs = now.filter(x => x !== id); else { if (!(s.moods[id] > 0)) s.moods[id] = 60; if (Array.isArray(s.loadout) && !s.loadout.includes(id)) s.loadout.push(id); s.beliefs = [...now, id]; } }); return;
     }
     // A two-sided Mind meter: left is the unhealthy side, right the healthy one, the middle is off.
     if (button.dataset.pole) {

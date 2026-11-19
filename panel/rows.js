@@ -4,6 +4,7 @@ import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
 import { BY_ID, MERGED_SEARCH_NAMES, analysed, sectionOf } from '../data/catalogue.js';
 import { escapeHtml as esc } from '../engine/util.js';
+import { isBelief } from '../engine/state.js';
 import { TIERS, level, tierOf } from '../engine/strength.js';
 import { FACTS } from '../engine/moodpace.js';
 import { ON_PAGE } from '../data/catalogue.js';
@@ -30,7 +31,10 @@ function whyLine(m, state) {
     return why ? `<small class="mw-why">↳ ${esc(why)}</small>` : '';
 }
 // Traits and mind settings get a star: up to three core ones, always sent first.
-const coreButton = (m, state) => { if (!['trait', 'psyche'].includes(sectionOf(m))) return ''; const on = state.core?.includes(m.id) && state.moods[m.id] > 0;
+// Morals & views and Alignment rows get a belief star instead (✦): up to three, sent as what they act on first.
+const coreButton = (m, state) => { if (!['trait', 'psyche'].includes(sectionOf(m))) return '';
+    if (isBelief(m)) { const on = state.beliefs?.includes(m.id) && state.moods[m.id] > 0;
+        return `<button type="button" class="mw-core mw-belief ${on ? 'is-core' : ''}" data-belief="${m.id}" aria-pressed="${on}" aria-label="${on ? 'Not a starred belief' : 'Make it a starred belief'}: ${esc(tagLabel(m))}" title="Starred belief: sent every reply as what they act on first (up to three)">${on ? '✦' : '✧'}</button>`; } const on = state.core?.includes(m.id) && state.moods[m.id] > 0;
     return `<button type="button" class="mw-core ${on ? 'is-core' : ''}" data-core="${m.id}" aria-pressed="${on}" aria-label="${on ? 'Not a core trait' : 'Make it a core trait'}: ${esc(tagLabel(m))}" title="Core trait: always sent, whatever the mood (up to three)">${on ? '★' : '☆'}</button>`; };
 // Strength as eight moons, faint to maximum, filling like the phases, with a dark new moon for 0. A tap sets
 // that strength; tapping the one it's already at (or the new moon) clears it. No dragging.

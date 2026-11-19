@@ -15,7 +15,7 @@ const PLACE = { mood: 'Moods', trait: 'Traits', psyche: 'Mind', intimacy: 'Intim
 let index = null;
 function build() {
     const out = [];
-    for (const m of MOODS) out.push({ label: m.label, cue: m.cue ?? '', where: PLACE[sectionOf(m)] ?? 'Moods', go: `m:${m.id}` });
+    for (const m of MOODS.filter(x => !x.size)) out.push({ label: m.label, cue: m.cue ?? '', where: PLACE[sectionOf(m)] ?? 'Moods', go: `m:${m.id}` });
     for (const t of TURN_TAGS) out.push({ label: t.label ?? t.noun ?? t.id, cue: t.cue ?? '', where: 'Turn-ons', go: `turn:${t.id}` });
     for (const s of Object.values(SKILL_BY_ID)) out.push({ label: s.label, cue: s.cue ?? '', where: 'Skills', go: `skill:${s.id}` });
     for (const d of DYNAMICS) out.push({ label: fill(d[0], 'them', 'you'), cue: d[4] ?? '', where: 'Dynamics', go: `dyn:${d[0]}` });

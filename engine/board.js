@@ -168,7 +168,7 @@ function needsFromBoard(board) {
     }
     return out;
 }
-function hornyFromBoard(board) {
+export function hornyFromBoard(board) {
     const text = String(board?.horny ?? '').toLowerCase().replace(/[’‘]/g, "'");
     if (!text) return null;
     let best = null;
@@ -452,7 +452,7 @@ const RELATION_SYNONYMS = { fond: 'likes', wary: 'distrusts', distrustful: 'dist
 const FEELING_WORDS = {
     numb: ['shut_down', 60], hollow: ['shut_down', 60], empty: ['shut_down', 45], unsettled: ['anxious', 45], edgy: ['jumpy', 45], jittery: ['jumpy', 45],
     twitchy: ['jumpy', 45], skittish: ['jumpy', 45], maudlin: ['self_pitying', 60], 'self-loathing': ['ashamed', 85], exasperated: ['frustrated', 45],
-    besotted: ['giddy_in_love', 60], smitten: ['giddy_in_love', 60], infatuated: ['limerent', 60], cocky: ['smug', 60], irritable: ['grumpy', 60], cranky: ['grumpy', 60],
+    smitten: ['smitten', 60], infatuated: ['limerent', 60], cocky: ['smug', 60], irritable: ['grumpy', 60], cranky: ['grumpy', 60],
     pissed: ['angry', 60], sadistic: ['sadistic_glee', 60], calculating: ['planning', 60], scheming: ['planning', 60], delighted: ['happy', 60], doting: ['indulgent', 60],
     panicked: ['afraid', 85], panicking: ['afraid', 85], shaken: ['shocked', 45], stunned: ['shocked', 60], dazed: ['in_shock', 45], sheepish: ['embarrassed', 35],
     flustered: ['embarrassed', 45], bashful: ['shy', 60], distrustful: ['suspicious', 60], paranoid: ['suspicious', 85], aloof: ['distant', 60], territorial: ['possessive', 60],
@@ -669,24 +669,31 @@ function twin(key, around, hot) {
     if (AROUSAL.test(around)) return aroused;
     return hot ? aroused : water;
 }
-export function factId(name, hot = false) {
+// 1.78: facts with words count too (they're precise phrases), and every other fact (places aside) can be named by
+// its exact label or id where a list is about facts (the hidden line's "facts" and "you" lists: all = true), so
+// "fired" or "ad man" there puts it on. Free text (the board, feelings) only ever reads the first, safer index.
+let nameIndex = null;
+export function factId(name, hot = false, all = false) {
     if (!factIndex) {
-        factIndex = new Map();
-        for (const m of MOODS) if (m.kind === 'state' && (m.lasts || m.feels)) for (const key of factNames(m).map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
+        factIndex = new Map(); nameIndex = new Map();
+        const facts = MOODS.filter(m => m.kind === 'state' && m.category !== 'setting');
+        for (const m of facts) if (m.lasts || m.feels || m.words) for (const key of factNames(m).map(factKey)) if (key && !factIndex.has(key)) factIndex.set(key, m.id);
+        for (const m of facts) for (const key of [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')].map(factKey)) if (key && !factIndex.has(key) && !nameIndex.has(key)) nameIndex.set(key, m.id);
     }
     const key = factKey(name);
     if (TWINS[key]) return twin(key, '', hot);
     // "wet hair", "wet for him": a twin word with a few words around it.
     const near = Object.keys(TWINS).find(k => ` ${key} `.includes(` ${k} `));
     if (near && !factIndex.has(key)) return twin(near, key, hot);
-    return factIndex.get(key) ?? null;
+    return factIndex.get(key) ?? (all ? nameIndex.get(key) : null) ?? null;
 }
 // Facts a piece of text mentions by name (the board's Physical State line, the hidden line's "you" list).
 // hot: the person is heated right now, for the words that could mean water or arousal.
-export function factsIn(text, hot = false) {
+export function factsIn(text, hot = false, all = false) {
     const t = ` ${factKey(text)} `, out = new Set();
     if (!t.trim()) return out;
     if (!factIndex) factId('');
+    if (all && nameIndex.has(t.trim())) out.add(nameIndex.get(t.trim()));
     for (const [key, id] of factIndex) if (!TWINS[key] && t.includes(` ${key} `)) out.add(id);
     // Each twin word is read with the four words either side of it.
     const words = t.trim().split(' ');

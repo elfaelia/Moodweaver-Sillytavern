@@ -3,10 +3,10 @@ import { findView } from './find.js';
 import { autoOpened, currentPeer, getKnowledge, getState, identity, keyForTarget, members, migratePairs, openRelationGroups, peers, persist, personKeyOfSubject, playerName, selectedCast, subjectName, swapTarget, target, viewState } from '../app/chat.js';
 import { syncPrompt } from '../app/note.js';
 import { readerProfile } from '../app/reader.js';
-import { boardMemoryCount, boardPeople, boardSend, bondAxes, bondData, bondDrivers, whyMap, bondList, bondOverlaps, liveFor, needOpts, overlapNames, reactionTally, reactions } from '../app/replies.js';
+import { boardMemoryCount, boardPeople, boardSend, bondAxes, bondData, bondDrivers, whyMap, bondList, bondOverlaps, liveFor, needOpts, overlapNames, reactionTally, reactions, stressNow } from '../app/replies.js';
 import { settings } from '../app/settings.js';
 import { SELF, VERSION, ctx, folderOf, generationSnapshots, run, tintLauncher, ui } from '../app/state.js';
-import { boardView } from './needs-tab.js';
+import { boardView, stressCard } from './needs-tab.js';
 import { matchMood } from '../engine/board.js';
 import { bondMini, bondView } from './bonds-tab.js';
 import { activeMoods } from '../engine/state.js';
@@ -131,7 +131,7 @@ function drawPanel() {
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
         : `${findView()}${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
         <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live, boardPeople(ch)) + factsContent(state, ch, active)
-        : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) })
+        : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) }) + (ui.who === 'char' ? stressCard(stressNow(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name)) : '')
         : ui.who !== 'story' && ui.tab === 'music' ? musicView()
         : ui.who !== 'story' && ui.tab === 'wants' ? wantsView(state, ch)
         : ['char', 'user'].includes(ui.who) && ui.tab === 'period' ? periodView(state, ch)

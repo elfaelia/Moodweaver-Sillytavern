@@ -68,6 +68,26 @@ export const FAVS = [
 export const cleanFavs = v => Object.fromEntries(FAVS.map(([k]) => [k, String(v?.[k] ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60)]).filter(([, t]) => t));
 export const favText = (st, scene = '', all = false) => FAVS.filter(([k, , , topic]) => st?.favs?.[k] && (all || topic.test(scene)))
     .map(([k, label]) => `${label.replace('Favourite ', '').toLowerCase()} ${st.favs[k]}`).join('; ');
+// Family (1.78): one person a line, "Mother: Ruth, strict, dead since 1951". Token-light: a line goes only when the
+// scene names that person or their relation (mom, mum, ma and mother all count), every line goes when it talks
+// about family in general, and all of them on the every-few-replies reminder (all).
+export const KIN = [['mother', 'mom', 'mum', 'mama', 'mommy', 'mummy', 'ma'], ['father', 'dad', 'daddy', 'papa', 'pa', 'pop', 'pops'], ['sister', 'sis'], ['brother', 'bro'],
+    ['son'], ['daughter'], ['wife'], ['husband'], ['grandmother', 'grandma', 'granny', 'nan', 'nana', 'gran'], ['grandfather', 'grandpa', 'granddad', 'grandad', 'gramps'],
+    ['aunt', 'auntie', 'aunty'], ['uncle'], ['cousin'], ['niece'], ['nephew'], ['stepmother', 'stepmom', 'stepmum'], ['stepfather', 'stepdad'], ['twin'],
+    ['fiancé', 'fiancée', 'fiance', 'fiancee'], ['in-laws', 'mother-in-law', 'father-in-law'], ['kids', 'children', 'baby', 'child']];
+const ANY_KIN = /\b(family|families|parents?|relatives?|siblings?|folks|in-laws|household|family name|bloodline|inheritance)\b/i;
+export const familyLines = st => cleanWords(st?.family, 400).split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 10);
+export function familyText(st, scene = '', all = false) {
+    const lines = familyLines(st); if (!lines.length) return '';
+    const t = ` ${String(scene ?? '').toLowerCase().replace(/[^a-z\u00e0-\u00ff' -]/g, ' ')} `;
+    if (all || ANY_KIN.test(scene)) return lines.join('; ');
+    return lines.filter(line => {
+        const [rel, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
+        const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(rel || line))).flat();
+        const names = ((rest || line).match(/\b[A-Z][a-z’']{2,}\b/) ?? []).slice(0, 1); // the first capitalised word: their name
+        return [...kin, ...names.map(x => x.toLowerCase())].some(w => t.includes(` ${w} `) || t.includes(` ${w}'s `) || t.includes(` ${w}s `));
+    }).join('; ');
+}
 export const profileText = st => { const parts = [cleanAge(st?.age), cleanHeight(st?.height)].filter(Boolean).join(', '), into = cleanInterests(st?.interests);
     return [parts, into ? `into ${into} (when the scene gives it room)` : ''].filter(Boolean).join('; '); };
 // How two people compare: "14 years older and about a head taller". Only gaps worth saying.

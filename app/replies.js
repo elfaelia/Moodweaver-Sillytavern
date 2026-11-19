@@ -5,7 +5,7 @@ import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry } from '../engine/state.js';
-import { NO_BOARD, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
+import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, OPPOSITE_OF, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
@@ -23,6 +23,10 @@ import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cloneRelationships } from '../engine/
 import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
 import { TURN_BY_ID, cleanInterests, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
+import { computeStress } from '../engine/stress.js';
+import { computeOpinions } from '../engine/opinions.js';
+import { autoWants } from '../engine/auto-wants.js';
+import { matchSecret, secretList, secretNudges, secretStates, secretStrain } from '../engine/secrets.js';
 
 // ---- Needs board: read from the latest info board in the chat, plus the player's edits ----
 export const boardMeta = () => ctx().chatMetadata?.[KEY]?.board;
@@ -59,9 +63,46 @@ function needTimeline(ch, chat = liveChat()) {
     (chat ?? []).forEach((m, i) => {
         if (!mine(m) || m.is_system) return;
         const board = hasBoard(m.mes) ? parseBoard(m.mes) : null, w = feed ? weaveOf(m) : null;
-        if (board || (w && (Object.keys(w.needs ?? {}).length || Object.keys(w.needDeltas ?? {}).length))) out.push({ index: i, board, needs: w?.needs ?? {}, deltas: w?.needDeltas ?? {} });
+        // Enjoying themselves fills Fun even when the line didn't score it: a reply that raised a happy or desire
+        // feeling (playful, amused, heated, horny…) tops it up a little, so foreplay or a good time isn't "bored" (1.78).
+        const deltas = { ...(w?.needDeltas ?? {}) };
+        if (w && w.needs?.fun === undefined && deltas.fun === undefined) { const cats = w.moods.filter(x => x.delta > 0).map(x => BY_ID[feelingId(x.name)]?.category);
+            if (cats.includes('desire')) deltas.fun = 8; else if (cats.includes('happy')) deltas.fun = 5; }
+        if (board || (w && (Object.keys(w.needs ?? {}).length || Object.keys(deltas).length))) out.push({ index: i, board, needs: w?.needs ?? {}, deltas });
     });
     return out.slice(-40);
+}
+// Stress and opinions of other people (1.79), read from the hidden lines still in the chat, so a swipe takes its
+// share with it. Stress counts feelings about anyone but someone named ("at his wife"); those build opinions.
+export function stressNow(ch, chat = liveChat()) {
+    const st = getState(ch); if (!st?.enabled || !ch || !bondData(ch).on || settings().stress === false) return null;
+    const mine = writes(ch), entries = [], secret = secretSteps(ch, chat);
+    (chat ?? []).forEach((m, i) => { if (!mine(m) || m.is_system) return; const w = weaveOf(m); if (!w) return;
+        entries.push({ pos: i, stress: (w.stress ?? 0) + (w.stress > 0 ? 0 : secretStrain(secret.filter(x => x.pos === i))), rose: w.moods.map(aimed).filter(x => x.delta > 0 && !x.about).map(x => [feelingId(x.name), x.delta]).filter(([id]) => id),
+            needs: w.needs ?? {}, release: Boolean(w.desire?.release) }); });
+    return computeStress(entries, st, Number.isFinite(st.stressFrom) ? st.stressFrom : -1);
+}
+// Secrets and leverage (1.79, engine/secrets.js): each secret's state, from the story's steps in the chat and
+// your taps. Steps are read back from the chat, so a swipe takes them with it.
+function secretSteps(ch, chat = liveChat()) {
+    const st = getState(ch), ust = getUserState(); if (!st?.enabled || !ch || settings().secrets === false) return [];
+    const lists = [['n', secretList(st)], ['u', secretList(ust)]]; if (!lists[0][1].length && !lists[1][1].length) return [];
+    const mine = writes(ch), out = [];
+    (chat ?? []).forEach((m, pos) => { if (!mine(m) || m.is_system) return; const w = weaveOf(m);
+        for (const step of w?.secrets ?? []) { const hit = matchSecret(step, lists); if (hit) out.push({ pos, who: hit.who, key: hit.key, state: step.state }); } });
+    return out;
+}
+export function secretsNow(ch, chat = liveChat()) {
+    const st = getState(ch), ust = getUserState(); if (!st?.enabled || !ch || settings().secrets === false) return null;
+    const steps = secretSteps(ch, chat);
+    return { mine: secretStates(secretList(st), steps, st.secretSet, 'n'), yours: secretStates(secretList(ust), steps, ust?.secretSet, 'u'), now: Math.max(0, (chat?.length ?? 1) - 1) };
+}
+export function opinionsNow(ch, chat = liveChat()) {
+    const st = getState(ch); if (!st?.enabled || !ch || !bondData(ch).on || settings().opinions === false) return [];
+    const mine = writes(ch), entries = [];
+    (chat ?? []).forEach(m => { if (!mine(m) || m.is_system) return; const w = weaveOf(m); if (!w) return;
+        entries.push(w.moods.map(aimed).filter(x => x.about && x.delta > 0).map(x => ({ about: x.about, id: feelingId(x.name), delta: x.delta })).filter(x => x.id)); });
+    return computeOpinions(entries, st);
 }
 export const needOpts = ch => ({ bias: ch ? needBias(getState(ch)?.moods) : {}, drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
 // Intimacy entries that are on can light up like turn-ons.
@@ -75,6 +116,15 @@ function wantMatch(text, wants) {
         if (sc > score) { score = sc; best = w; }
     }
     return score >= 0.5 ? best : null;
+}
+// Wants from the meters (1.79, engine/auto-wants.js): character only, at most two, gone once the story marks one
+// done. bd: the bond already worked out for this reply, when the caller has it.
+export function autoWantsNow(ch, chat = liveChat(), bd = null) {
+    const st = getState(ch), bond = ch ? bondData(ch) : null; if (!st?.enabled || !bond?.on || settings().autoWants !== true) return { live: [], done: [] };
+    const b = bd ?? computeBond(bond, chat.length, shortName(ch.name), shortName(playerName()), bondAxes(ch), bondList(ch, chat));
+    const mine = writes(ch), replies = [];
+    (chat ?? []).forEach((m, i) => { if (mine(m) && !m.is_system) { const w = weaveOf(m); if (w?.wants?.length) replies.push([i, w]); } });
+    return autoWants({ values: { r: b.r, t: b.t, ...(b.more ?? {}) }, u: shortName(playerName()), replies, manual: st.wants ?? [], match: wantMatch, now: Math.max(0, chat.length - 1) });
 }
 // What the story set off, read from the hidden lines still in the chat: lit turn-ons and traits, wants
 // moved or blocked, fears touched, hot buttons pressed, wants that came true, wants it suggests, and
@@ -248,6 +298,7 @@ export function bondList(ch, chat = liveChat()) {
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
     const prefs = getState(ch)?.prefs ?? {}, sparkPull = sparkRomance(prefs), yourPrefs = getUserState()?.prefs ?? {};
     let youBefore = [];
+    const secret = nudge ? secretSteps(ch, chat) : [];
     (chat ?? []).forEach((m, pos) => {
         if (!mine(m)) return;
         const w = weaveOf(m); if (!w) return;
@@ -255,11 +306,19 @@ export function bondList(ch, chat = liveChat()) {
         const step = { f: w.f, r: w.r || sparkPull(w.sparked), t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
-        const you = w.you ? w.you.map(x => factId(x, heated(getUserState(), w.seems))).filter(Boolean) : youBefore, hisFacts = w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(getState(ch), w.moods.map(y => y.name)))).filter(Boolean);
+        const you = w.you ? w.you.map(x => factId(x, heated(getUserState(), w.seems), true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(getState(ch), w.moods.map(y => y.name)))), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
         const newYou = you.filter(id => !youBefore.includes(id)); youBefore = you;
         // His own lit turn-ons, and yours he saw land, warm his desire a little when the line gave it no step.
         const lit = (w.sparked ?? []).filter(sp => !sp.off).length + (w.noticed ?? []).filter(x => (yourPrefs[sparkTarget(x, yourPrefs).id] ?? 0) > 0).length;
         if (lit && !step.d?.a && !step.d?.release) step.d = { ...(step.d ?? {}), a: Math.min(6, 2 * lit) };
+        // A release only counts when the reply agrees it was his: not when the same reply's board still has him
+        // hard or aching, and not when the line raised his desire feelings (her climax read as his, 1.78).
+        if (step.d?.release) { const b = parseBoard(m.mes), body = String(b?.physical ?? '').toLowerCase(), horny = /\b(hard|aching|throbbing|erection|straining)\b/.test(body) && !/\b(spent|sated|came|finished)\b/.test(body) ? 72 : hornyFromBoard(b), rising = w.moods.some(x => x.delta > 0 && DESIRE_IDS.has(feelingId(x.name)));
+            if ((horny !== null && horny >= 61) || rising) step.d = { ...step.d, release: false, a: step.d.a || 4 }; }
+        // A secret that moved this reply shifts control and the meters it belongs to, when the line didn't.
+        const sn = secretNudges(secret.filter(x => x.pos === pos));
+        if (sn.p && !step.p) step.p = Math.round(sn.p * scale) || Math.sign(sn.p);
+        if (Object.keys(sn.m).length) step.m = { ...Object.fromEntries(Object.entries(sn.m).map(([k, v]) => [k, Math.max(1, Math.round(v * scale))])), ...(step.m ?? {}) };
         out.push({ pos, key: readOf(m).wkey, s: nudge ? withFacts(withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale), hisFacts, newYou, scale) : step });
     });
     if (out.length) { const traits = bedroomTraits(getState(ch)); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
@@ -440,7 +499,11 @@ const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(m
 const STORY_ON = 50, STORY_FADE = 15;
 // full 'loose' (the character's board) only takes off facts that don't run a course: those wear off by the clock.
 // The story keeps at most FACT_CAP facts on one person at a time; past that the oldest one it put on comes off.
+// Who-they-are facts (a job, a past, a status, an accent: not body, bed, substances or places, and not ones that
+// run a course) only come off when the line says so, an opposite comes on, or they pass their own cap of 8, so the
+// board's Physical State dropping them never does (1.78).
 const FACT_CAP = 8;
+const lasting = id => { const m = BY_ID[id]; return Boolean(m) && m.kind === 'state' && !m.lasts && !['body', 'bedroom', 'substances', 'setting'].includes(m.category); };
 function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } = {}) {
     const moved = {}, set = (id, v, why) => { moved[id] = [st.moods[id] ?? 0, v]; st.moods[id] = v; fx[id] = why; };
     const mine = new Set(st.fromStory ?? []), fact = kind === 'state';
@@ -451,14 +514,14 @@ function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } 
         if (fact && settings().factOpposites !== false) for (const o of OPPOSITE_OF[id] ?? []) if ((st.moods[o] ?? 0) > 0 && !st.pins?.[o] && !named.has(o)) { set(o, 0, 'its opposite came on'); mine.delete(o); }
     }
     if (full) for (const id of mine) {
-        if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id) || (full === 'loose' && BY_ID[id]?.lasts)) continue;
+        if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id) || (full === 'loose' && (BY_ID[id]?.lasts || lasting(id)))) continue;
         const v = st.moods[id] ?? 0; if (!v || st.pins?.[id]) { mine.delete(id); continue; }
         const to = fact ? 0 : Math.max(0, v - STORY_FADE);
         set(id, to, to ? 'fading, not seen lately' : 'the story took it off'); if (!to) mine.delete(id);
     }
     if (fact) {
         const on = [...mine].filter(id => BY_ID[id]?.kind === 'state' && (st.moods[id] ?? 0) > 0 && !st.pins?.[id]);
-        for (const id of on.slice(0, Math.max(0, on.length - FACT_CAP))) { set(id, 0, 'made room for newer facts'); mine.delete(id); }
+        for (const group of [on.filter(id => !lasting(id)), on.filter(lasting)]) for (const id of group.slice(0, Math.max(0, group.length - FACT_CAP))) { set(id, 0, 'made room for newer facts'); mine.delete(id); }
     }
     st.fromStory = [...mine];
     return moved;
@@ -514,7 +577,11 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         // What the board's Physical State and Location name comes on first (the hidden line has had its say by now);
         // ones the story put on and the board has dropped come off, and a place goes when the Location changes.
         const fx = {};
-        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...factsIn(board?.physical, hot), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
+        // The hidden line's own "facts" list (1.78): what it names comes on, and "… off" takes off one the story put on.
+        const told = (w?.facts ?? []).filter(x => !x.off).flatMap(x => [...factsIn(x.name, hot, true)]), ended = (w?.facts ?? []).filter(x => x.off).flatMap(x => [...factsIn(x.name, hot, true)]);
+        for (const id of told) factsNamed.add(id);
+        if (st.moodAuto !== false) for (const id of ended) if ((st.moods[id] ?? 0) > 0 && !st.pins?.[id] && (st.fromStory ?? []).includes(id)) { rec.m[id] = [rec.m[id]?.[0] ?? st.moods[id], 0]; st.moods[id] = 0; fx[id] = 'the story took it off'; st.fromStory = st.fromStory.filter(x => x !== id); }
+        if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...told, ...factsIn(board?.physical, hot), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
         const r = runFacts(st, hours, factsNamed, feel, hold); mergeMoved(rec, r.m); rec.fc = r.fc;
         Object.assign(fx, r.fx); if (Object.keys(fx).length) rec.fx = fx;
     };
@@ -606,7 +673,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     // off), then they run their course on the same clock. The list keeps the ones it names going.
     const me = getUserState();
     if (me?.enabled && b.feed) {
-        const meHot = heated(me, w?.seems), listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x, meHot)])), seems = new Set((w?.seems ?? []).map(feelingId).filter(Boolean));
+        const meHot = heated(me, w?.seems), listed = new Set((w?.you ?? []).flatMap(x => [...factsIn(x, meHot, true)])), seems = new Set((w?.seems ?? []).map(feelingId).filter(Boolean));
         const ufx = {}, sf = structuredClone(me.fromStory ?? []), fc = structuredClone(me.factClock ?? {});
         const um = { ...(w?.you ? fromStory(me, listed, ufx, { full: true }) : {}), ...(w?.seems ? fromStory(me, seems, ufx, { kind: 'mood', full: true }) : {}) };
         const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical, meHot)]));

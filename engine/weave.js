@@ -1,4 +1,5 @@
 import { metersOf } from './meters.js';
+import { secretStep } from './secrets.js';
 // The weave line. One hidden HTML comment at the end of each reply carries what the roleplay
 // model noticed about its own character this turn, so feelings, needs, relationships, meters and
 // memories all update from the reply it was already writing. No tool call, no extra request.
@@ -65,7 +66,7 @@ const DESIRE_WORDS = [[/^(arousal|aroused|desire|horny)$/, 'a', 1], [/^(restrain
     [/^(rough|roughness|cruel)$/, 't', 1], [/^(tender|gentle|soft)$/, 't', -1], [/^(fixation|fixated|fixed)$/, 'x', 1], [/^(shame|ashamed)$/, 'h', 1]];
 function desireOf(v) {
     if (!v || NONE.test(String(v).trim())) return null;
-    const t = String(v).toLowerCase().replace(/[−–]/g, '-'), out = { a: 0, s: 0, b: 0, t: 0, x: 0, h: 0, release: /\b(release|released|climax\w*|came|orgasm\w*)\b/.test(t) };
+    const t = String(v).toLowerCase().replace(/[−–]/g, '-'), out = { a: 0, s: 0, b: 0, t: 0, x: 0, h: 0, release: /(^|[,;]\s*)(release|released)\b/.test(t.trim()) };
     for (const part of t.split(/[,;]/)) {
         const m = part.trim().match(/^([a-z ]+?)?\s*:?\s*([+-]\s*\d{1,3})/); if (!m) continue;
         const word = (m[1] ?? 'arousal').trim() || 'arousal', hit = DESIRE_WORDS.find(([re]) => re.test(word)); if (!hit) continue;
@@ -73,7 +74,7 @@ function desireOf(v) {
     }
     return ['a', 's', 'b', 't', 'x', 'h'].some(k => out[k]) || out.release ? out : null;
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|desire|meters|used|skills|dynamic|noticed)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|facts|stress|secrets|desire|meters|used|skills|dynamic|noticed)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
@@ -96,6 +97,12 @@ function readLine(body) {
         newWant: NONE.test(unquote(f.newwant ?? '')) ? '' : unquote(f.newwant ?? '').slice(0, 100),
         desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
         seems: 'seems' in f ? (NONE.test(String(f.seems).trim()) ? [] : list(f.seems, 3, 30)) : null,
+        // 1.79: stress this reply, "+10" or "-5" (engine/stress.js).
+        stress: (() => { const m = String(f.stress ?? '').replace(/[−–]/g, '-').match(/([+-]?)\s*(\d{1,2})/); return m ? Math.max(-20, Math.min(20, Number((m[1] || '+') + m[2]))) : 0; })(),
+        // 1.79: secrets that moved this reply ("affair suspected, debts known"), engine/secrets.js.
+        secrets: list(f.secrets, 4, 80).map(secretStep).filter(Boolean),
+        // 1.78: facts about the character the story made or ended this reply ("fired, in uniform, engaged off").
+        facts: NONE.test(String(f.facts ?? '').trim()) ? [] : list(f.facts, 6, 60).map(x => ({ name: x.replace(/\s+(off|gone|ended|over)\.?$/i, '').trim(), off: /\s(off|gone|ended|over)\.?$/i.test(x) })).filter(x => x.name),
         you: 'you' in f ? (NONE.test(String(f.you).trim()) || /^(healed|fine|nothing|unhurt)\.?$/i.test(String(f.you).trim()) ? [] : list(f.you, 8, 60)) : null,
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked), noticed: list(f.noticed, 3, 60),
@@ -122,6 +129,9 @@ export function parseWeave(mes) {
         out.used = [...(out.used ?? []), ...(x.used ?? [])].slice(0, 8);
         if (x.meters) { out.meters ??= {}; for (const [k, d] of Object.entries(x.meters)) out.meters[k] = (out.meters[k] ?? 0) + d; }
         if (x.desire) out.desire = out.desire ? { ...Object.fromEntries(['a', 's', 'b', 't', 'x', 'h'].map(k => [k, (out.desire[k] ?? 0) + (x.desire[k] ?? 0)])), release: out.desire.release || x.desire.release } : x.desire;
+        out.facts = [...(out.facts ?? []), ...(x.facts ?? [])].slice(0, 8);
+        out.secrets = [...(out.secrets ?? []), ...(x.secrets ?? [])].slice(0, 6);
+        out.stress = Math.max(-20, Math.min(20, (out.stress ?? 0) + (x.stress ?? 0)));
         if (x.you) out.you = x.you;
         if (x.seems) out.seems = x.seems;
     }
@@ -158,7 +168,7 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, stress = false, secrets = null, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     // The same instructions in about half the words. The line Moodweaver reads is unchanged.
@@ -174,8 +184,11 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
     const lines = [
         `End every reply with a hidden line for Moodweaver: only what changed for ${n} this reply, or <!-- weave: none -->. Shape:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, giddiness and so on; dark, sexual and ugly ones count), whatever this moment gives them, in plain words: ${split ? 'step sizes as given just before the reply' : steps}, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
-            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them; filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex drain them; a beating costs health.`,
+        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, contempt and so on; dark, sexual and ugly ones count), named the way this person would have them: the same delight is giddy in one person and smug, possessive or hungry in another, whatever this moment gives them, in plain words: ${split ? 'step sizes as given just before the reply' : steps}, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
+            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them, and fun fills from whatever this person enjoys (play, teasing, flirting, foreplay and sex they want, a thrill, a win, a hobby); filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex they don't want drain them; a beating costs health.`,
+            `- facts: what became true or stopped being true of ${n} this reply and lasts beyond it, by plain name: clothes and looks (in uniform, hair down), voice (hoarse), status and secrets (engaged, arrested, found out), work (fired, promoted), past (widowed); the same name with off when it ends. Only changes, or leave it out.`,
+            ...(secrets ? [`- secrets: only when one moved this reply, its name and where it stands now: suspected, known (the other one found out), out (everyone knows) or used (played against them). ${secrets}`] : []),
+            ...(stress ? [`- stress: +5 to +20 when ${n} acted against their own beliefs or nature, or was under strain they couldn't control; a minus when they let it out, rested or were comforted; or leave it out.`] : []),
             `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
         ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,
             ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
@@ -185,7 +198,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
             ...(notice ? [`- noticed: any of ${u}'s turn-ons or turn-offs that ${n} picked up on this reply from how ${u} reacted, by name.`] : [])] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
         ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}.`] : []),
-        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; release if they climaxed.`] : []),
+        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; write release only if ${n} ${n === u ? '' : 'personally '}climaxed this reply. ${u} climaxing is not ${n}'s release: it usually makes ${n} want more, so score arousal up.`] : []),
         ...(you ? [`- you: what is true of ${u} right now because of the story, of any kind: body (hurt, ill, pregnant), bed (tied up, undressed), substances (drunk, drugged), looks and clothes (soaked, made up, in a slip), voice (hoarse), status and secrets (engaged, arrested, committed, found out), work (fired, hired). The full current list each reply, or none.`,
             `- seems: how ${u} comes across this reply from what the player wrote, up to three feelings in plain words (scared, defiant, wanting), or none.`] : []),
         ...(skills ? [`- used: skills from the skills list that someone used or was tested on this reply, by name.`] : []),

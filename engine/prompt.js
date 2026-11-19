@@ -9,7 +9,7 @@ import { WILDCARDS } from '../data/catalogue/story.js';
 import { activePersonalities, activePersonality, personalityCue } from './personality.js';
 import { pronounize } from './pronouns.js';
 import { TWO_ROLE_SHARED, activeSharedTags, compareText, relationshipKey, relationshipSets, relationshipText } from './relationships.js';
-import { TURN_BY_ID, compareProfiles, favText, petNames, profileText, sayings } from './turns.js';
+import { TURN_BY_ID, compareProfiles, familyText, favText, petNames, profileText, sayings } from './turns.js';
 
 function directedCue(id, value, state, people) {
     if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
@@ -163,6 +163,9 @@ function listLines(state, list, other, people = {}, lit = null) {
 }
 // Core traits: up to three, picked on the Traits tab, always true whatever the mood.
 const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
+// Starred beliefs: up to three views or alignments, picked with ✦, always sent as what this person acts on first.
+const beliefsOf = st => (st?.beliefs ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
+const famLine = (st, scene, all) => { const t = familyText(st, scene, all); return t ? [`Family (bring in only where it matters to this moment): ${pt(t)}`] : []; };
 const favLine = (st, scene, all) => { const t = favText(st, scene, all); return t ? [`Favourites (for choices, gifts, orders and small talk, never listed): ${pt(t)}`] : []; };
 // Pet names and sayings, sent every reply as part of who someone is. For the character they are what to use instead of
 // made-up endearments and stock lines; for the player's character, what the character should recognise and answer.
@@ -175,9 +178,10 @@ function voiceLines(st, who, other, player = false) {
         : `Things ${who} really says, word for word (work one in now and then where it fits naturally, at most one a reply and not every reply): ${q(says)}`);
     return out;
 }
-function profileLines(st, core, other, people, scene = '', all = true) {
+function profileLines(st, core, other, people, scene = '', all = true, beliefs = []) {
     const text = profileText(st);
-    return [...(text ? [`Profile: ${pt(text)}`] : []), ...favLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other))),
+    return [...(text ? [`Profile: ${pt(text)}`] : []), ...favLine(st, scene, all), ...famLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other))),
+        ...(beliefs.length ? [`What they believe most, and act on (it decides what they say and do when it's in play, even against a passing feeling, and colours how they see ${pt(shortName(other))}): ${beliefs.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : []),
         ...(core.length ? [`Core of who they are, true under any mood or dynamic (it shapes how feelings come out, not which ones): ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
@@ -342,8 +346,8 @@ function composePrompt(state, name, extras = {}) {
     if ([state, player?.state, ...cast.map(p => p.state)].some(hasType)) guide('',
         `Personality types show in what someone notices, wants and chooses, how they talk and argue and how they cope when things go wrong, never by naming the type. Each belongs only to the person it's listed under.${hasType(player?.state) ? ` For ${u}, strength is how plainly it comes across to ${n}.` : ''}`);
     // Profile (age, height, interests) and up to three core traits lead the block; the core traits aren't listed twice.
-    const core = coreOf(state), profile = profileLines(state, core, U, people, scene, !gate.on || gate.refresh);
-    if (mine.length || mineExtra.length || hasType(state) || profile.length) out.push('', `<character_state name="${pa(N)}">`, ...profile, ...personalityLines(state), ...listLines(state, mine.filter(m => !core.includes(m)), U, people, lit), ...mineExtra, `</character_state>`);
+    const core = coreOf(state), beliefs = beliefsOf(state), profile = profileLines(state, core, U, people, scene, !gate.on || gate.refresh, beliefs);
+    if (mine.length || mineExtra.length || hasType(state) || profile.length) out.push('', `<character_state name="${pa(N)}">`, ...profile, ...personalityLines(state), ...listLines(state, mine.filter(m => !core.includes(m) && !beliefs.includes(m)), U, people, lit), ...mineExtra, `</character_state>`);
     if (split ? state?.enabled : feelings.length) guide('',
         `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. A feeling marked (at someone) belongs to that person: it can shorten a temper with others, but it doesn't become a feeling about them. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
     // Standing settings get one plain line each, so they read as who someone is rather than as this reply's mood.
@@ -356,7 +360,7 @@ function composePrompt(state, name, extras = {}) {
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, not just labels, at their strength. Don't soften a dark character into a secretly gentle one or hand them a change of heart nobody asked for.${darkActionPeak >= 61 ? ` If murder, abduction, torture or serious violence serves their goal and fits these settings, let them choose it and follow through on the page.${followOn ? '' : ` Don't swap it for a threat, a sudden conscience, a cutaway or a convenient interruption, and don't let the narration judge it.`}` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply's main action and leave harm or death that can't be undone.` : ''}`);
     const condition = (player?.condition ?? []).filter(Boolean).slice(0, 6);
-    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
+    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh), ...famLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
     const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
     if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length) {
         const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;

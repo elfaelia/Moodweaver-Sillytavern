@@ -1,6 +1,7 @@
 // The Wants tab and the You tab (your persona's condition).
 import { playerName, subjectName } from '../app/chat.js';
-import { boardSend, bondAxes, bondData, bondList, knowledgeNow, liveChat, liveFor, reactions } from '../app/replies.js';
+import { autoWantsNow, boardSend, bondAxes, bondData, bondList, knowledgeNow, liveChat, liveFor, reactions } from '../app/replies.js';
+import { MORE_METERS } from '../engine/meters.js';
 import { icon, skyCard } from './needs-tab.js';
 import { settings } from '../app/settings.js';
 import { ui } from '../app/state.js';
@@ -29,6 +30,16 @@ function wantRow(w, status = '') {
         <button type="button" class="mw-list mw-tick" data-want-done="${esc(w.id)}" title="${['fear', 'button'].includes(w.kind) ? 'Over it: stop sending' : 'Came true: stop sending'}" aria-label="Done">✓</button><button type="button" class="mw-list" data-want-remove="${esc(w.id)}" title="Delete" aria-label="Delete">×</button></div>
         ${badge ? `<small class="mw-want-status">${badge[1]}</small>` : ''}${w.read ? '<small class="mw-from-scene">✧ picked up from the scene</small>' : ''}</div>`;
 }
+// Wants from the meters (1.79): read-only, at most two, with the switch.
+const METER_NAME = { r: 'Romance', t: 'Trust', ...Object.fromEntries(MORE_METERS.map(m => [m[0], m[1]])) };
+function autoCard(ch) {
+    const on = settings().autoWants === true, a = on ? autoWantsNow(ch) : { live: [], done: [] };
+    const from = c => `${METER_NAME[c.key.replace('-', '')] ?? c.key}${c.key.endsWith('-') ? ' (low)' : ''}`;
+    return `<div class="mw-want-card mw-want-auto" style="--mw-accent:#c9a96e"><div class="mw-want-head"><span class="mw-want-icon">✦</span><div><b>From the meters</b><small>When a Bonds meter runs strong, they want what follows from it. Two at most; each goes once the story says it came true.</small></div></div>
+        <label class="mw-toggle"><input type="checkbox" data-setting-bool="autoWants" ${on ? 'checked' : ''}> Wants from the meters</label>
+        ${on ? a.live.map(c => `<div class="mw-done-row"><span>☆ ${esc(c.text)} <small>${esc(from(c))} ${c.value}</small></span></div>`).join('') || '<p class="mw-want-empty">No meter is strong enough yet (61 or more).</p>' : ''}
+        ${a.done.map(c => `<div class="mw-done-row is-done"><span>✓ ${esc(c.text)} <small>came true</small></span></div>`).join('')}</div>`;
+}
 export function wantsView(state, ch) {
     const items = state.wants ?? [], name = subjectName(), done = items.filter(w => w.done);
     const react = ui.who === 'char' ? reactions(ch) : null, storyDone = react ? items.filter(w => !w.done && react.done.has(w.id)) : [];
@@ -37,6 +48,7 @@ export function wantsView(state, ch) {
     return `<section class="mw-wants"><p class="mw-explainer">${intro}</p>
         ${storyDone.length ? `<div class="mw-want-card mw-want-story" style="--mw-accent:#8fd18a"><div class="mw-want-head"><span class="mw-want-icon">✓</span><div><b>The story says these came true</b><small>No longer sent. Swiping that reply brings them back.</small></div></div>
             ${storyDone.map(w => `<div class="mw-done-row"><span>${WANT_META[w.kind][0]} ${esc(w.text)}</span><button type="button" class="mw-list" data-want-done="${esc(w.id)}" title="Keep it done">✓</button><button type="button" class="mw-list" data-want-notyet="${esc(w.id)}" data-at="${react.doneAt.get(w.id) ?? -1}" title="Not yet: keep sending it">↺</button></div>`).join('')}</div>` : ''}
+        ${ui.who === 'char' ? autoCard(ch) : ''}
         ${react?.suggest.length ? `<div class="mw-want-card mw-want-suggest" style="--mw-accent:#e5ca7f"><div class="mw-want-head"><span class="mw-want-icon">✧</span><div><b>The story suggests</b><small>Things ${esc(name)} started wanting lately. Add one with a tap.</small></div></div>
             ${react.suggest.map(x => `<div class="mw-done-row"><span>☆ ${esc(x.text)}</span><button type="button" class="mw-list" data-want-suggest="${esc(x.text)}" title="Add as a want">＋</button><button type="button" class="mw-list" data-want-dismiss="${esc(x.text)}" title="Not this one">×</button></div>`).join('')}</div>` : ''}
         ${WANT_KINDS.map(kind => {

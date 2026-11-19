@@ -122,6 +122,46 @@ const NUDGES = [
     // feelings with a family default that aren't really about the player
     [['unbothered', 'dead_eyed', 'empty', 'numbed_out', 'emotionally_starved_cold', 'caught_out', 'devoted_to_a_ghost', 'status_panic', 'fear_of_owing', 'out_of_place', 'squeamish', 'waiting_for_bad_news', 'disoriented', 'spooked', 'stage_fright', 'second_guessing', 'hangry', 'angry_at_the_dead', 'hiding_it_from_family', 'partying_it_off', 'confessing_to_no_one', 'hiding_evidence', 'righteous', 'vindicated'], {}],
 ];
+// 1.78: added on top of whatever a feeling already moves (its row above or its family's default), so newer meters
+// are fed by about as many feelings as the older ones and none of them means less for being new.
+const MORE_NUDGES = [
+    // evening out the 1.65 to 1.69 meters
+    [['grateful', 'forgiving', 'protection_giving', 'cant_lose_another', 'holding_it_together_for_them'], { ly: 1 }],
+    [['awe_struck', 'intellectual_chemistry', 'grateful', 'deeply_moved'], { re: 1 }],
+    [['betrayed'], { ly: -2 }], [['jilted', 'over_it'], { ly: -1 }],
+    [['stern', 'nitpicking', 'withheld_recognition', 'measured_patience', 'disappointed_in_them', 'expectant', 'reassuring'], { gd: 1 }],
+    [['love_bombing', 'weaponised_kindness', 'dangling_it', 'withheld_recognition', 'testing_limits', 'false_mercy'], { cd: 1 }],
+    [['triumphant', 'showing_off', 'cocky', 'provoked', 'envious'], { ri: 1 }],
+    [['melting', 'soft_spot', 'smitten', 'flattered', 'sweet_on_them', 'lovesick', 'giddy_in_love', 'butterflies'], { sw: 1 }],
+    [['whatever_it_takes', 'ride_or_die_energy', 'calm_after_violence', 'fear_of_being_found_out', 'hiding_it_from_family'], { cm: 1 }],
+    [['fear_of_burdening', 'feeling_small', 'guilt_sick', 'self_pitying', 'unwanted', 'contrite', 'pathetic'], { uw: 1 }],
+    [['closed_off', 'distant', 'emotionally_unavailable', 'ghosting', 'stonewalling', 'arms_length', 'silent_treatment'], { pa: 1 }],
+    [['huffy', 'grumpy', 'impatient', 'snappish', 'sullen'], { ex: 1 }],
+    [['sentimental', 'bittersweet', 'reunited', 'homesick', 'old_grief'], { hi: 1 }],
+    [['protection_giving', 'ride_or_die_energy', 'whatever_it_takes', 'cant_lose_another', 'keeping_vigil', 'making_it_count', 'terrified_of_losing'], { sc: 1 }],
+    // the 1.78 meters
+    [['never_said_it', 'heartsick', 'lovesick', 'regretful_longing', 'rejected', 'unwanted'], { os: 2 }],
+    [['yearning', 'afraid_to_be_replaced', 'insecure', 'left_behind', 'pretending_not_to_care', 'masking_warmth'], { os: 1 }],
+    [['new_relationship_energy', 'feels_safe'], { os: -2 }], [['reunited', 'trusting'], { os: -1 }],
+    [['playfully_pervy', 'leering'], { cr: 2 }],
+    [['hazy_drunk', 'party_brain', 'shameless', 'mean_jokes', 'degrading', 'checking_out', 'primal', 'naughty_fun', 'punch_drunk'], { cr: 1 }],
+    [['reverent_desire', 'worshipful'], { cr: -2 }], [['cherishing', 'soft'], { cr: -1 }],
+    [['paternalistic_control'], { pt: 2 }],
+    [['condescending', 'protective', 'reassuring', 'stern', 'caretaker', 'indulgent', 'protection_giving', 'rescue_entitlement'], { pt: 1 }],
+    [['love_bombing', 'weaponised_kindness', 'predatory_patience'], { gr: 2 }],
+    [['corrupting', 'isolating', 'manipulative', 'strategic_vulnerability', 'charm_as_armour', 'false_mercy', 'dividing_loyalties'], { gr: 1 }],
+    [['playful', 'cheeky', 'mischievous', 'tender_teasing', 'teasing_giving'], { pl: 2 }],
+    [['goofy', 'naughty_fun', 'tickled', 'mirthful', 'teasing_them', 'holding_back_laugh'], { pl: 1 }],
+    [['bored_of_them'], { pl: -2 }], [['icy', 'stern', 'frosty_politeness'], { pl: -1 }],
+    [['proud_of_them'], { pi: 2 }],
+    [['awe_struck', 'basking', 'deeply_moved', 'admiration_to_desire', 'grateful_joy', 'celebratory', 'inspired'], { pi: 1 }],
+    [['disappointed_in_them', 'unimpressed'], { pi: -2 }], [['belittling'], { pi: -1 }],
+    [['at_ease_with_them', 'feels_safe'], { fm: 2 }],
+    [['homey', 'chill', 'cosy_happiness', 'content', 'comforting_presence', 'sleepy_contentment', 'unhurried', 'chatty'], { fm: 1 }],
+    [['awkward', 'eggshells'], { fm: -2 }], [['guarded', 'stiff_upper_lip', 'jumpy', 'out_of_place'], { fm: -1 }],
+    [['testing_attachment', 'testing_limits'], { ts: 2 }],
+    [['suspicious', 'reassurance_loop', 'dividing_loyalties', 'toying', 'second_guessing', 'paranoid', 'dangling_it', 'provocative'], { ts: 1 }],
+];
 const LISTED = new Map();
 for (const [ids, nudge] of NUDGES) for (const id of ids) {
     const sum = LISTED.get(id) ?? {};
@@ -133,6 +173,12 @@ for (const m of MOODS) {
     if (m.kind !== 'mood') continue;
     const own = LISTED.get(m.id) ?? FAMILY[m.category];
     if (own && Object.values(own).some(Boolean)) BY_MOOD.set(m.id, own);
+}
+for (const [ids, nudge] of MORE_NUDGES) for (const id of ids) {
+    if (!MOODS.some(m => m.id === id && m.kind === 'mood')) continue;
+    const sum = { ...(BY_MOOD.get(id) ?? {}) };
+    for (const [k, v] of Object.entries(nudge)) sum[k] = (sum[k] ?? 0) + v;
+    BY_MOOD.set(id, sum);
 }
 // Feelings that count as wanting: rising, they warm the Desire arousal bar when the line gave it no step.
 const WANTING = new Set(MOODS.filter(m => m.kind === 'mood' && m.category === 'desire').map(m => m.id));
@@ -167,7 +213,13 @@ export function factNudges(his = [], yours = [], scale = 1) {
     if (has(yours, HURT)) { out.m.ca = step(2); out.m.pr = step(2); }
     if (has(yours, UNDER)) out.m.pr = Math.max(out.m.pr ?? 0, step(1));
     if (has(his, HURT)) out.m.de = step(1);
-    if (has(his, UNDER)) out.m.op = step(2);
+    if (has(his, UNDER)) { out.m.op = step(2); out.m.cr = step(1); }
+    // 1.78: a few of the new facts feed the meters they belong to.
+    if (has([...his, ...yours], ['childhood_friend'])) out.m.hi = step(2);
+    if (has(yours, ['under_protection', 'target_on_back', 'on_the_run', 'arrested'])) { out.m.pr = Math.max(out.m.pr ?? 0, step(2)); out.m.sc = step(1); }
+    if (has(yours, ['protege', 'teachers_pet'])) { out.m.gd = step(1); out.m.pi = step(1); }
+    if (has(his, ['having_an_affair'])) out.m.se = step(2);
+    if (has(yours, ['found_out', 'rumours'])) out.m.ts = step(1);
     return out;
 }
 // Folds fact nudges into a step the same way: whatever the line (or the feelings) said wins.

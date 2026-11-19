@@ -135,3 +135,16 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <p class="mw-fine">${send ? 'Moodweaver sends the info board prompt, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}’s last reply)` : ''}.</p>
         </details></section>`;
 }
+// Stress (1.79): where it stands, how they cope, and a break when one is happening. Read-only, with a "Let it go"
+// that starts the count again from the latest message (engine/stress.js).
+export function stressCard(s, name) {
+    if (!s) return '';
+    const lit = Math.round(s.value / 10), word = s.breaking ? 'breaking now' : s.after ? 'coming down from a break' : s.word;
+    const stars = Array.from({ length: 10 }, (_, i) => `<i class="${i < lit ? 'is-lit' : ''}${i >= 9 ? ' is-edge' : ''}"></i>`).join('');
+    const note = s.breaking ? `This reply ${esc(name)} ${esc(s.breaking)}.` : s.after ? `${esc(name)} is drained and raw after the break.` : s.level ? `Copes the way they do: ${esc(s.coping)}.` : 'Nothing is sent below “under strain”.';
+    return `<section class="mw-board"><div class="mw-board-block mw-stress" data-anchor="stress"><h4>Stress <small>${esc(name)} · ${esc(word)}</small></h4>
+        <div class="mw-stress-stars" role="img" aria-label="Stress ${s.value} of 100">${stars}</div>
+        <p class="mw-fine">${note}</p>
+        <p class="mw-fine">Builds when they act against what they believe or who they are, or when strain, fear, guilt and empty needs pile up; eases with rest, comfort and release.${s.rate !== 1 ? ` Their nature makes it build ${s.rate > 1 ? 'faster' : 'slower'}.` : ''} Past what they can hold, they break once, in character.</p>
+        ${s.value > 0 ? '<button type="button" class="mw-chip-btn" data-action="stress-reset">Let it go (start from 0)</button>' : ''}</div></section>`;
+}

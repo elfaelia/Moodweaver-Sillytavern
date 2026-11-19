@@ -3,7 +3,8 @@
 import { getCast, getKnowledge, getState, getUserState, playerName, profiles, selectedCast, subjectName, turnKnowledgeRows } from '../app/chat.js';
 import { FEELINGS_COUNT, listedFeelings, movePace, scenePace } from '../app/note.js';
 import { readerProfile, readerRequest, readerSubject, roughTokens, sceneStart } from '../app/reader.js';
-import { boardMeta, boardSend, bondData, bondList, chatSigns, knowledgeNow } from '../app/replies.js';
+import { boardMeta, boardSend, bondData, bondList, chatSigns, knowledgeNow, opinionsNow, pronounsFor, secretsNow } from '../app/replies.js';
+import { effectiveChat } from '../engine/ledger.js';
 import { settings } from '../app/settings.js';
 import { KEY, ctx, run, ui } from '../app/state.js';
 import { cleanBoardMeta, latestBoard } from '../engine/board.js';
@@ -58,7 +59,7 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
     let half = '';
     const halfHead = id => { if (kind !== 'state') return ''; const now = NOW_CATEGORIES.has(id) ? 'now' : 'who'; if (now === half) return ''; half = now; return `<h5 class="mw-fact-head">${now === 'now' ? 'Right now <small>wears off or changes as the story goes</small>' : 'Who they are <small>stays put</small>'}</h5>`; };
     const cats = kind === 'turn' ? '' : CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOf({ category: id, kind: k }) === kind).map(([id, name, icon, color]) => {
-        const list = MOODS.filter(m => m.category === id && show(m.id) && !(hideBody && id === 'body' && !state.moods[m.id])), n = list.filter(m => state.moods[m.id]).length;
+        const list = MOODS.filter(m => m.category === id && show(m.id) && !m.size && !(hideBody && id === 'body' && !state.moods[m.id])), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
         return `${halfHead(id)}<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary>${body(id, list.length, () => list.map(m => row(m, state)).join(''))}</details>`;
     }).join('');
@@ -143,20 +144,54 @@ function profileCard(state, ch) {
     const vs = ui.who === 'user' ? [getState(ch), shortName(ch.name)] : [getUserState(), shortName(playerName())];
     const gap = vs[0]?.enabled ? compareProfiles(state, vs[0]) : '';
     const core = (state.core ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
+    const beliefs = (state.beliefs ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
     return `<section class="mw-profile" data-anchor="profile"><div class="mw-profile-head"><h4>Profile</h4><small>age and height always go; the rest when it fits</small></div>
         <div class="mw-profile-grid">
             <label class="mw-pf"><span>Age</span><input type="number" data-profile="age" min="1" max="999" inputmode="numeric" enterkeyhint="done" placeholder="—" value="${cleanAge(state.age)}"></label>
             <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
             <label class="mw-pf mw-pf-wide"><span>Into</span><input type="text" data-profile="interests" maxlength="120" enterkeyhint="done" placeholder="guitar, old films, chess" value="${esc(state.interests ?? '')}"></label>
         </div>
+        ${sizeRow(state, ch)}
         <div class="mw-profile-favs"><span class="mw-profile-sub">Favourites <small>sent when the scene comes near them</small></span>
             <div class="mw-profile-grid">${FAVS.map(([k, label, hint]) => `<label class="mw-pf"><span>${esc(label.replace('Favourite ', ''))}</span><input type="text" data-fav="${k}" maxlength="60" enterkeyhint="done" placeholder="${esc(hint)}" value="${esc(state.favs?.[k] ?? '')}"></label>`).join('')}</div></div>
         <div class="mw-profile-voice"><span class="mw-profile-sub">Their words <small>sent every reply</small></span>
             <label class="mw-pf mw-pf-wide"><span>Pet names for ${esc(vs[1])}</span><textarea data-words="petNames" rows="2" maxlength="400" placeholder="doll, little lamb, sweetheart">${esc(state.petNames ?? '')}</textarea></label>
             <label class="mw-pf mw-pf-wide"><span>Catchphrases <small>one per line</small></span><textarea data-words="sayings" rows="3" maxlength="400" placeholder="Now, now.&#10;You'll do as you're told, won't you?">${esc(state.sayings ?? '')}</textarea></label></div>
+        <div class="mw-profile-voice"><span class="mw-profile-sub">Family <small>each line sent only when the scene mentions them</small></span>
+            <label class="mw-pf mw-pf-wide"><span>One person a line</span><textarea data-words="family" rows="3" maxlength="400" placeholder="Mother: Ruth, strict, dead since 1951&#10;Brother: Tommy, owes money, the favourite">${esc(state.family ?? '')}</textarea></label></div>
+        ${secretBlock(state, ch, vs[1])}
+        ${ui.who === 'char' ? opinionRow(ch) : ''}
         <div class="mw-profile-core"><span>Core</span>${core.length ? core.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">★ ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">★ Star up to three traits</button>'}</div>
+        <div class="mw-profile-core"><span>Beliefs</span>${beliefs.length ? beliefs.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">✦ ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">✦ Star up to three in Morals &amp; views or Alignment</button>'}</div>
         ${gap ? `<p class="mw-profile-vs">${esc(shortName(subjectName()))} is ${esc(gap)} than ${esc(vs[1])}.</p>` : ''}
     </section>`;
+}
+// Secrets and leverage (1.79, engine/secrets.js): one secret a line, and where each stands. The story moves
+// them; a tap sets one by hand until the story moves it again.
+const SECRET_CHIPS = [['hidden', 'Hidden'], ['suspected', 'Suspected'], ['known', 'Known'], ['out', 'Out']];
+function secretBlock(state, ch, other) {
+    if (!['char', 'user'].includes(ui.who) || settings().secrets === false) return '';
+    const sec = secretsNow(ch, effectiveChat(ctx().chat ?? [])), list = sec ? ui.who === 'char' ? sec.mine : sec.yours : [];
+    const rows = list.map(x => `<div class="mw-secret"><p>${esc(x.text)}${x.by === 'story' ? ' <small>moved by the story</small>' : ''}</p>
+        <div class="mw-secret-chips" role="group" aria-label="Where it stands">${SECRET_CHIPS.map(([k, label]) => `<button type="button" class="mw-chip-btn" data-secret-set="${x.key}" data-secret-state="${k}" aria-pressed="${x.state === k || (k === 'known' && x.state === 'used')}">${label}${k === 'known' && x.state === 'used' ? ' · used' : ''}</button>`).join('')}</div></div>`).join('');
+    return `<div class="mw-profile-voice mw-secrets"><span class="mw-profile-sub">Secrets <small>known means ${esc(other)} found out: a hook over them</small></span>
+        <label class="mw-pf mw-pf-wide"><span>One secret a line</span><textarea data-secrets rows="3" maxlength="600" placeholder="Having an affair with his secretary&#10;Owes money to the wrong people">${esc(state.secrets ?? '')}</textarea></label>
+        ${rows}</div>`;
+}
+// How they've come to feel about the people the story keeps bringing up (1.79, engine/opinions.js): read-only.
+function opinionRow(ch) {
+    const list = opinionsNow(ch, effectiveChat(ctx().chat ?? [])); if (!list.length) return '';
+    return `<div class="mw-profile-voice mw-opinions"><span class="mw-profile-sub">Feelings about others <small>built from the story, sent when the scene names them</small></span>
+        <div class="mw-opinion-list">${list.map(o => `<span class="mw-opinion ${o.score >= 0 ? 'is-warm' : 'is-cold'}"><b>${esc(o.name)}</b> ${esc(o.word)}${o.feel.length ? ` <small>${esc(o.feel.join(', '))}</small>` : ''}</span>`).join('')}</div></div>`;
+}
+// Body size on the profile, by gender: penis size for a man, breast size for a woman, both when the pronouns
+// don't say. Each is a private fact (sent only in intimate or private moments); tap one to set it, tap it again
+// to clear. The story can set them too, by the words on each row.
+const SIZES = { he: ['Size', MOODS.filter(m => m.size === 'he')], she: ['Bust', MOODS.filter(m => m.size === 'she')] };
+function sizeRow(state, ch) {
+    const g = ch ? pronounsFor(ch, bondData(ch))[ui.who === 'user' ? 'u' : 'n'] : '', which = g === 'he' || g === 'she' ? [g] : ['he', 'she'];
+    return `<div class="mw-profile-size"><span class="mw-profile-sub">Body <small>only sent in intimate or private moments</small></span>${which.map(k => { const [label, rows] = SIZES[k];
+        return `<div class="mw-size-row" role="group" aria-label="${label}"><span>${label}</span>${rows.map(m => `<button type="button" class="mw-size-chip" data-size="${m.id}" aria-pressed="${state.moods[m.id] > 0}">${esc(m.label.replace(/ (penis|breasts)$/, ''))}</button>`).join('')}</div>`; }).join('')}</div>`;
 }
 // The Facts tab (and the bottom of your You tab).
 export function factsContent(state, ch, active) {

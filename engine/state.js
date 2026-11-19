@@ -5,6 +5,7 @@ import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
 import { SKILL_SCALE, cleanPins, cleanSkillPace, cleanSkills, cleanXp, widenSkills } from './skills.js';
+import { cleanSecretSet, cleanSecrets } from './secrets.js';
 import { LIKES_TO_TURNS, OLD_KINKS, TURN_BY_ID, TURN_MERGED, cleanAge, cleanFavs, cleanHeight, cleanInterests, cleanWords } from './turns.js';
 
 // Feelings about one particular person, and pair tropes, now live in relationships. '{{other}}' stands for
@@ -124,6 +125,7 @@ function canonical(obj, off) {
 }
 // Up to three core traits: ids from the Traits tab that are on. Always sent, first, whatever the mood.
 export const CORE_MAX = 3;
+export const isBelief = m => ['views', 'alignment'].includes(m?.category);
 // Putting a fact on takes its opposites off (OPPOSITE_OF), except pinned ones. Returns the ids it turned off.
 export function clearOpposites(st, id) {
     const off = (OPPOSITE_OF[id] ?? []).filter(o => (st.moods?.[o] ?? 0) > 0 && !st.pins?.[o]);
@@ -136,7 +138,11 @@ export const cleanLean = x => Object.fromEntries(Object.entries(x && typeof x ==
 // people say aloud). Missing means both, as before.
 export const AUTHOR_ROLES = ['narration', 'dialogue'];
 export const cleanAuthorRole = x => Object.fromEntries(Object.entries(x && typeof x === 'object' ? x : {}).filter(([id, v]) => isAuthor(BY_ID[id]) && AUTHOR_ROLES.includes(v)));
-export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && ['trait', 'psyche'].includes(sectionOf(BY_ID[id])) && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
+export const cleanCore = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => BY_ID[id] && ['trait', 'psyche'].includes(sectionOf(BY_ID[id])) && !isBelief(BY_ID[id]) && (moods[id] ?? 0) > 0).slice(0, CORE_MAX);
+// Up to three starred beliefs: rows from Morals & views and Alignment that are on. Sent every reply as what the
+// person acts on first (engine/prompt.js beliefLine). Before 1.78 these could be starred as core; they move here.
+export const BELIEF_MAX = 3;
+export const cleanBeliefs = (list, moods = {}) => [...new Set(Array.isArray(list) ? list : [])].filter(id => isBelief(BY_ID[id]) && (moods[id] ?? 0) > 0).slice(0, BELIEF_MAX);
 // How long each fact that runs its course has run (engine/moodpace.js factStep). fromStory: facts and
 // feelings the story put on, which it takes off again when its list leaves them out (app/replies.js).
 const cleanClock = c => Object.fromEntries(Object.entries(c && typeof c === 'object' ? c : {}).filter(([id, v]) => BY_ID[id] && v && Number.isFinite(v.h) && Number.isFinite(v.v) && Number.isFinite(v.at)));
@@ -150,9 +156,10 @@ export function extendCatalogue(state) {
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
     state.skills = cleanSkills(widenSkills(state.skills, state.skillScale)); state.skillScale = SKILL_SCALE; state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
-    state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs); state.petNames = cleanWords(state.petNames); state.sayings = cleanWords(state.sayings);
+    state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs); state.petNames = cleanWords(state.petNames); state.sayings = cleanWords(state.sayings); state.family = cleanWords(state.family); state.stressFrom = Number.isFinite(state.stressFrom) ? state.stressFrom : -1; state.secrets = cleanSecrets(state.secrets); state.secretSet = cleanSecretSet(state.secretSet);
     state.psyLean = cleanLean(state.psyLean); state.authorRole = cleanAuthorRole(state.authorRole);
-    state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
+    if (!Array.isArray(state.beliefs)) state.beliefs = (Array.isArray(state.core) ? state.core : []).filter(id => isBelief(BY_ID[id]));
+    state.beliefs = cleanBeliefs(state.beliefs, state.moods); state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
     // fromStory was storyFacts in 1.58 (facts only).
     state.fromStory = [...new Set([state.fromStory, state.storyFacts].flatMap(x => Array.isArray(x) ? x : []))].filter(id => BY_ID[id]); delete state.storyFacts;
     state.wants = cleanWants(state.wants); state.readScope = cleanScope(state.readScope);
@@ -222,7 +229,7 @@ export function freshState(base = {}) {
         personality: cleanPersonality(base.personality),
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
-        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), petNames: cleanWords(base.petNames), sayings: cleanWords(base.sayings), core: cleanCore(base.core, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
+        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), petNames: cleanWords(base.petNames), sayings: cleanWords(base.sayings), family: cleanWords(base.family), stressFrom: Number.isFinite(base.stressFrom) ? base.stressFrom : -1, secrets: cleanSecrets(base.secrets), secretSet: cleanSecretSet(base.secretSet), core: cleanCore(base.core, base.moods ?? {}), beliefs: cleanBeliefs(base.beliefs, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
         skills: cleanSkills(widenSkills(base.skills, base.skillScale)), skillScale: SKILL_SCALE, skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),

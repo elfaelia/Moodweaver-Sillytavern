@@ -68,7 +68,7 @@ export function settings() {
         // Opposite facts (Hot and Cold) switch each other off.
         factOpposites: saved.factOpposites !== false,
         // Feelings carrying on: the player's feeling rubbing off on an empathetic character, and a strong feeling's aftermath.
-        contagion: saved.contagion === 'off' ? 'off' : 'scene', aftermath: saved.aftermath !== false,
+        contagion: saved.contagion === 'off' ? 'off' : 'scene', aftermath: saved.aftermath !== false, stress: saved.stress !== false, opinions: saved.opinions !== false, secrets: saved.secrets !== false, autoWants: saved.autoWants === true,
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
         // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.

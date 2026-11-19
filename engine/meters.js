@@ -82,30 +82,50 @@ export const MORE_METERS = [
         (n, u) => `${n} and ${u} share a long past: old jokes, childhood places, things only the two of them remember, and that history pulls at everything they do now`, null, 'How much shared past weighs on you both: childhood, years, old promises.'],
     ['sc', 'Sacrifice', false, 0, 'sacrifice', [[81, 'would give anything'], [61, 'would give up a lot'], [41, 'would give something up'], [21, 'would go out of their way'], [0, 'keeps what’s theirs']],
         (n, u) => `${n} would give up something huge for ${u}, a life, a love, a future or ${n}'s own safety, and knows it, and resents or fears what that means`, null, 'What they would give up for you, and how close it comes to a real choice.'],
+    // Eight more (1.78): a love they think runs one way, crude and leering moments, 1950s paternalism, grooming,
+    // play, pride, ease and loyalty tests. Fed by feelings like every other meter (engine/mood-meters.js).
+    ['os', 'Thinks it’s one-sided', false, 0, 'unrequited', [[81, 'sure it’s hopeless'], [61, 'thinks it’s one-sided'], [41, 'doubts it’s returned'], [21, 'not sure where they stand'], [0, 'knows it’s mutual']],
+        (n, u) => `${n} is sure ${n} feels more for ${u} than ${u} does back, hides it to save face, and misreads every sign ${u} gives`, null, 'How sure they are that what they feel for you isn’t returned.'],
+    ['cr', 'Crudeness', false, 0, 'crude', [[81, 'filthy and leering'], [61, 'crude with them'], [41, 'off-colour'], [21, 'a dirty joke or two'], [0, 'clean-mouthed']],
+        (n, u) => `${n} is crude with ${u}: leering, handsy, saying the filthy thing out loud, worse with drink, whatever else ${n} feels`, null, 'How crude, leering or handsy they get with you, drunk or sober.'],
+    ['pt', 'Paternalism', false, 0, 'paternal', [[81, 'decides everything for them'], [61, 'treats them like a child'], [41, 'knows best'], [21, 'a little patronising'], [0, 'treats them as an adult']],
+        (n, u) => `${n} decides what's best for ${u} and does it without asking, kindly and firmly: what ${u} knows, wears, takes and does, for ${u}'s own good`, null, 'How much they decide for you “for your own good”.'],
+    ['gr', 'Grooming', false, 0, 'grooming', [[81, 'has them where they want them'], [61, 'grooming them'], [41, 'building them up'], [21, 'singling them out'], [0, 'no agenda']],
+        (n, u) => `${n} is building ${u} up for ${n}'s own ends, step by step: praise, gifts, private time and shared secrets, each one tying ${u} closer and cutting ${u} off a little more`, null, 'How far they’re building trust and dependence to use later.'],
+    ['pl', 'Playfulness', false, 0, 'playful', [[81, 'pure mischief together'], [61, 'playful'], [41, 'teasing'], [21, 'a little banter'], [0, 'serious']],
+        (n, u) => `${n} is playful with ${u}: teasing, dares, daft voices and games, and the fun is half of what holds them together`, null, 'Teasing, games and banter between you.'],
+    ['pi', 'Pride in them', false, 0, 'pride', [[81, 'bursting with pride'], [61, 'proud of them'], [41, 'impressed'], [21, 'notices their wins'], [0, 'not impressed']],
+        (n, u) => `${n} is proud of ${u}, who ${u} is and what ${u} does, and it shows: praise, bragging, keeping ${u}'s small wins`, null, 'How proud they are of you and what you do.'],
+    ['fm', 'Ease', false, 0, 'ease', [[81, 'completely at home with them'], [61, 'at ease'], [41, 'comfortable'], [21, 'loosening up'], [0, 'on guard']],
+        (n, u) => `${n} is at home with ${u}: no performance, comfortable silences, old habits and bare feet`, null, 'How comfortable and unguarded they are around you.'],
+    ['ts', 'Testing', false, 0, 'testing', [[81, 'everything is a test'], [61, 'testing them'], [41, 'sets little traps'], [21, 'watching how they react'], [0, 'takes them at their word']],
+        (n, u) => `${n} keeps testing ${u}: questions with right answers, small traps, orders that make no sense, all to see if ${u} is loyal or means it`, null, 'How much they test your loyalty, love or obedience.'],
 ];
 const MORE_KEYS = MORE_METERS.map(([k]) => k);
 const DEF = Object.fromEntries(MORE_METERS.map(m => [m[0], m]));
 export const moreWord = (k, v) => DEF[k][5].find(([min]) => v >= min)[1];
 // Quick picks for the characters you play most. They only switch meters on; you can change any of them.
 export const MORE_PRESETS = [
-    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn', 'ca', 'di', 'cd', 'cl']],
-    ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op', 'gd', 'lu']],
+    ['Easterman', ['ob', 'po', 'pr', 'fa', 'de', 'gu', 'kn', 'ca', 'di', 'cd', 'cl', 'pt']],
+    ['Jefferson', ['fa', 'co', 're', 'hu', 'po', 'op', 'gd', 'lu', 'gr', 'pi']],
     ['Joe', ['ob', 'pe', 'je', 'pr', 'kn', 'hu', 'gu']],
     ['Bateman', ['re', 'hu', 'op', 'fa', 'je', 'lu']],
     ['Rick', ['re', 'de', 'op', 'pr', 'gu', 'rs', 'ly', 'fa', 'ex', 'sc']],
-    ['Easterman & Lamb', ['po', 'pr', 'ob', 'pe', 'di', 'cd', 'sw', 'dv']],
+    ['Easterman & Lamb', ['po', 'pr', 'ob', 'pe', 'di', 'cd', 'sw', 'dv', 'pt', 'ap']],
     ['Bateman & secretary', ['hu', 're', 'kn', 'cm', 'fa', 'ex', 'op']],
-    ['Joe (mentor)', ['gd', 'kn', 'fa', 'ob', 'co', 'cm', 're']],
-    ['Dealer friend', ['pr', 'uw', 'pa', 'hi', 'lu', 'je', 'vo', 'se', 'de']],
+    ['Joe (mentor)', ['gd', 'kn', 'fa', 'ob', 'co', 'cm', 're', 'gr']],
+    ['Dealer friend', ['pr', 'uw', 'pa', 'hi', 'lu', 'je', 'pe', 'cr', 'os', 'rt', 'sc', 'fm']],
     // By kind of relationship rather than by character.
     ['Captor', ['po', 'pr', 'ob', 'gu', 'ca', 'di', 'hu', 'fe']],
     ['Experiment', ['cl', 'cd', 'fa', 'kn', 'ca', 'di', 'co']],
     ['Secret affair', ['se', 'ap', 'sh', 'lu', 'je', 'gu', 'rt']],
     ['Forbidden love', ['rt', 'gu', 'ap', 'se', 'ly', 'lu']],
     ['Toxic on-off', ['rs', 'vo', 'ly', 'de', 'lu', 'gu', 'je', 'ri']],
-    ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly', 'dv']],
-    ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co']],
-    ['Childhood friends', ['hi', 'ly', 'pr', 'je', 'pa', 'uw']],
+    ['Romance', ['lu', 'ca', 'pr', 'je', 'op', 'ly', 'dv', 'pl', 'pi', 'fm']],
+    ['Mentor', ['gd', 're', 'pr', 'ca', 'di', 'co', 'pi', 'ts']],
+    ['Photographer & protégé', ['fa', 'gd', 'gr', 'pi', 'co', 'lu', 'ts', 're', 'se']],
+    ['1950s marriage', ['pt', 'ap', 'di', 'ca', 'po', 'rt', 'se']],
+    ['Childhood friends', ['hi', 'ly', 'pr', 'je', 'pa', 'uw', 'os', 'pl', 'fm']],
     ['Partners in crime', ['cm', 'se', 'ly', 'kn', 'co']],
 ];
 export function cleanMore(raw) {

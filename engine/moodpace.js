@@ -14,7 +14,7 @@ export const paceDelta = (delta, pace) => delta <= -100 ? delta : Math.max(-pace
 // A captor's cruelty and nerve, a romance's warmth, an on-off couple's anger and clinging. Free: nothing is sent.
 const DYNAMIC_HOLDS = {
     captor: ['cruel', 'bold', 'scared'], obsess: ['attachment', 'desire'], power: ['bold', 'closeness', 'cruel'],
-    romance: ['closeness', 'happy', 'desire'], heat: ['desire'], toxic: ['angry', 'attachment', 'sad', 'masks'],
+    romance: ['closeness', 'desire'], heat: ['desire'], toxic: ['angry', 'attachment', 'sad', 'masks'],
     allies: ['happy', 'bold'], roles: ['closeness', 'calm'], distance: ['cold', 'masks'],
 };
 export const heldBy = group => new Set(DYNAMIC_HOLDS[group] ?? []);

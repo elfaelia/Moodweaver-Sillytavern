@@ -1,6 +1,9 @@
 // Building the hidden note sent with each reply, and holding it steady while a reply is written.
 import { getCast, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
-import { boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, pronounsFor, reactions, userRelation, weaveOf, writes } from './replies.js';
+import { autoWantsNow, boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, opinionsNow, pronounsFor, reactions, secretsNow, stressNow, userRelation, weaveOf, writes } from './replies.js';
+import { stressLines } from '../engine/stress.js';
+import { opinionLines } from '../engine/opinions.js';
+import { secretLines } from '../engine/secrets.js';
 import { settings } from './settings.js';
 import { GUIDE_KEY, KEY, PROMPT_KEY, clearNotes, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
@@ -66,6 +69,8 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         // both-ways or story lines it already says are left out of this note.
         const bondList0 = bond.on ? bondList(ch, history) : [], bd = bond.on && bond.extra ? computeBond(bond, history.length, n, u, bondAxes(ch), bondList0) : null;
         lastDynamic.set(ch.avatar, bd?.dynamic.group ?? '');
+        // Wants from the meters (1.79), sent like hand-written ones while they last.
+        const autoW = autoWantsNow(ch, history, bd); live.push(...autoW.live);
         // Picks are listed in the hidden line only up to 25 (about 3 tokens each). Past that the line names it in a
         // few words and the closest of your picks is used, so a big pick list costs nothing extra.
         const storyNames = bd && bond.mode === 'story' && !bond.fixed ? { now: bd.dynamic.name.toLowerCase(), pool: bond.pool.length <= 25 ? bond.pool.map(name => fillDynamic(name, n, u)) : [] } : null;
@@ -75,10 +80,13 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const pairDrop = new Set([...covered, ...dropped.shared]), storyDrop = new Set([...covered, ...dropped.story]);
         const zero = (moods, ids) => Object.fromEntries(Object.entries(moods ?? {}).map(([id, v]) => [id, ids.has(id) ? 0 : v]));
         const youRel = dropped.rel.size ? userRelation(state) : null;
-        const stateNote = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
+        const stateRel = youRel ? { ...state, relationships: state.relationships.map(r => r === youRel ? { ...r, moods: zero(r.moods, dropped.rel) } : r) } : state;
+        const stateNote = autoW.live.length ? { ...stateRel, wants: [...(stateRel.wants ?? []), ...autoW.live] } : stateRel;
         const knows = knowledgeNow(ch, history), notice = Object.entries(mine?.enabled ? mine.prefs ?? {} : {}).some(([id, v]) => v && knowledgeEntry(knows[`turn:${id}`]).mode !== 'known');
+        // Secrets (1.79): the hidden line names one only when it moves, so it's listed by short title.
+        const sec = secretsNow(ch, history), secTitles = sec && (sec.mine.length || sec.yours.length) ? `Secrets: ${[[n, sec.mine], [u, sec.yours]].filter(([, l]) => l.length).map(([who, l]) => `${who}'s: ${l.map(x => x.title).join('; ')}`).join('. ')}.` : null;
         const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
@@ -98,7 +106,10 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const newestW = [...history].reverse().find(m => m && !m.is_system && writes(ch)(m)), seemsIds = (newestW ? weaveOf(newestW)?.seems ?? [] : []).map(feelingId).filter(Boolean);
         const close = Boolean(bd && (bd.f >= 41 || bd.r >= 41));
         const echoes = [...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
-            contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion })].filter(Boolean);
+            contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion }),
+            // Stress and breaking points, and how they've come to feel about people the scene brings up (1.79).
+            ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
+            ...(sec ? secretLines({ ...sec, n, u, scene: skillScene0.scene }) : [])].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
             standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, traitFocus: settings().traitFocus !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
@@ -235,7 +246,7 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));
         const tie = tieLink({ ...pairMoods, ...relMoods }, { ...pairMoods, ...yourSide }, bd.dynamic, n, u); if (tie) links.push(pronounize(tie, n, u));
-        const core = coreLink((state.core ?? []).filter(id => (state.moods?.[id] ?? 0) > 0), bd.dynamic, top, n, u); if (core) links.push(pronounize(core, n, u));
+        const core = coreLink([...(state.beliefs ?? []), ...(state.core ?? [])].filter(id => (state.moods?.[id] ?? 0) > 0), bd.dynamic, top, n, u); if (core) links.push(pronounize(core, n, u));
         const topMood = MOODS.filter(m => analysed(m) && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
         const mood = topMood ? moodLink({ label: topMood.label, family: topMood.category, value: state.moods[topMood.id] }, bd.dynamic, n) : '';
         if (mood && links.length < 3) links.push(pronounize(mood, n, u));

@@ -125,6 +125,10 @@ All four are pure modules read back from the chat each time, so swipes take thei
 - `engine/secrets.js`: `secretList(st)` reads `st.secrets` (one a line, key = hash of the text). The hidden line's `secrets` field is parsed by `secretStep` ("affair suspected" → words + state) and matched to either person's list by `matchSecret`. `secretStates` takes the newer of the story's step and the hand tap (`st.secretSet`). `secretNudges` moves control, Secrecy, Shame and Knows about you inside `bondList`, only where the line didn't. `secretLines` writes the note lines.
 - `engine/auto-wants.js`: `METER_WANTS` per meter (a `-` key for the low side). `autoWants` picks two from the meters at 61+, drops one the hidden line marked done (`REST` messages) or that a hand-written want already covers. `autoWantsNow` in `app/replies.js`; `app/note.js` adds them to the wants sent.
 
+## How the dynamic changes (1.79.1)
+
+`computeBond` in `engine/bond.js`. The **main** dynamic reads `axesNow`: the settled meters plus a pull from the last `pace.window` replies (`SCENE_GAIN`, capped at `SCENE_PULL`), with the cards' feelings and ties (`dynamicLean`) weighted by `ctxLean.weight`. It switches once a new one has led two replies running (Volatile at once). The **one underneath** reads the settled meters only, with the lean at a quarter of that, and is the one that led most of the last `UNDER_WINDOW` replies; it's hidden while it's the same as the main one. A story or reader call lasts `STORY_HOLD` replies. `tests/dynamics.mjs` plays long chats through it: run it after changing any of these numbers or adding dynamics.
+
 ## Pace
 
 One pace per character and chat, kept as `bond.pace` (`PACE` in `engine/bond.js`: Slow burn, Steady, Quick, Volatile) and set from the Moods card's Speed (`data-pace`). Feelings (`scenePace` in `app/note.js`, which reads `MOOD_PACE`), the meters, mood nudges (scaled by the pace's `lean`) and desire all follow it, and the hidden line asks for steps that size. Traits then adjust it per character (`TEMPERS`). How firmly the relationship sliders hold the meters is `bond.ties` (`TIES` in `engine/bond.js`: light, balanced, strong). Two speeds stay separate on purpose: needs (time passing) and skill growth (Skills tab), which is learning, not mood.
@@ -138,6 +142,8 @@ Age, height and interests (`cleanAge`, `cleanHeight`, `cleanInterests` in `engin
 Don't change an `id`. To retire one, add it to `MERGED_MOODS` in `data/catalogue/merged.js` with the id it folds into, and its saved values move over the next time a chat loads.
 
 ## Checking a change
+
+`node tests/dynamics.mjs` checks the main dynamic still follows scenes and the one underneath stays slower.
 
 The `engine/` and `data/` files load in plain Node, which makes the note easy to test without SillyTavern:
 

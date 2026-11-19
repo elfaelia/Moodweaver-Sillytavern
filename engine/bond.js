@@ -77,6 +77,8 @@ export const PACE = {
     quick: { label: 'Quick scenes', cap: 20, window: 4, lean: 1.5, hint: 'for scenes of around ten replies' },
     volatile: { label: 'Volatile', cap: 25, window: 3, lean: 2, hint: 'big swings every reply' },
 };
+// How far the last few replies can pull the main dynamic, and how many replies the one underneath looks back over.
+const SCENE_PULL = 60, SCENE_GAIN = 3, UNDER_WINDOW = { slow: 16, steady: 12, quick: 8, volatile: 6 }, STORY_HOLD = { slow: 16, steady: 10, quick: 6, volatile: 4 };
 export const paceOf = bond => PACE[bond?.pace] ?? PACE.steady;
 export { DYNAMIC_GROUPS };
 // Every dynamic: [name, test, cue, group, keys, covers].
@@ -164,9 +166,11 @@ function dynamicOf(d, n = 'one', u = 'the other', fixed = '', pool = [], lean = 
     rows.forEach((row, i) => {
         const [name, test, , group, , covers] = row;
         if (!test || (skip && group === skip && name !== 'Strangers') || !test(d)) return;
-        const score = (picked.has(name) ? PICK_WEIGHT : 0) + (1 - i / len) + (lean?.groups?.[group] ?? 0) * LEAN_WEIGHT * (lean?.weight ?? 1)
-            + ((covers ?? []).some(id => lean?.ties?.has(id)) ? TIE_WEIGHT : 0)
-            + (lean?.words?.size ? Math.min(3, [...rowWords(row)].filter(w => lean.words.has(w)).length) * WORD_WEIGHT : 0);
+        // Strangers is the fallback when nothing else fits: the scene never lifts it over a row that does.
+        const ctx = name === 'Strangers' ? null : lean;
+        const score = (picked.has(name) ? PICK_WEIGHT : 0) + (1 - i / len) + (ctx?.groups?.[group] ?? 0) * LEAN_WEIGHT * (ctx?.weight ?? 1)
+            + ((covers ?? []).some(id => ctx?.ties?.has(id)) ? TIE_WEIGHT : 0)
+            + (ctx?.words?.size ? Math.min(3, [...rowWords(row)].filter(w => ctx.words.has(w)).length) * WORD_WEIGHT : 0);
         if (score > bestScore) { best = row; bestScore = score; }
     });
     return asDynamic(best, n, u);
@@ -275,20 +279,28 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // The named dynamic leans on the last few replies, so a turn in the scene shows up fast.
     const recentSteps = all.slice(-pace.window), sum = get => recentSteps.reduce((t, x) => t + clamp(get(x.s) ?? 0, -pace.cap, pace.cap), 0);
     const trend = Object.fromEntries(METERS.map(k => [k, sum(s => s?.[k])]));
-    const lean = (k, val, lo = -100) => clamp(Math.round(val + clamp(trend[k] * pace.lean, -35, 35)), lo, 100);
+    // The scene pulls hard (1.79.1): up to SCENE_PULL either way, so a fight still reads as a fight after a hundred
+    // tender replies have filled the meters. The meters themselves don't move for it.
+    const pull = t => clamp(t * pace.lean * SCENE_GAIN, -SCENE_PULL, SCENE_PULL);
+    const lean = (k, val, lo = -100) => clamp(Math.round(val + pull(trend[k])), lo, 100);
     const base = blend(v, axes, bond.pins, trend, TIES[bond.ties] ?? TIES.balanced), eff = Object.fromEntries(METERS.map(k => [k, bond.pins[k] !== null ? base[k] : lean(k, base[k])]));
     const moreEff = Object.fromEntries(Object.entries(more).map(([k, val]) => {
         const def = MORE_METERS.find(m => m[0] === k), t = sum(s => s?.m?.[k]);
-        return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + clamp(t * pace.lean, -35, 35)), def?.[2] ? -100 : 0, 100)];
+        return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + pull(t)), def?.[2] ? -100 : 0, 100)];
     }));
     const ds = bond.desire?.on ? computeDesire(bond, all).a : undefined;
     const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
-    const ctxLean = axes?.lean ? { ...axes.lean, weight: 0.6 + 0.4 * pace.lean } : null, meters = dynamicOf(axesNow, n, u, '', bond.pool, ctxLean);
-    // The secondary dynamic: read from where the meters have settled (no lean on the last few replies), from
-    // a different kind than the main one, and slower to change. It's what runs under the main one.
+    // The main dynamic is the scene's: what's on the cards right now weighs about as much as how specific a row is.
+    const ctxLean = axes?.lean ? { ...axes.lean, weight: 2 * (0.6 + 0.4 * pace.lean) } : null, meters = dynamicOf(axesNow, n, u, '', bond.pool, ctxLean);
+    // The secondary dynamic: read from where the meters have settled (no pull from the last few replies, and the
+    // feelings of the moment count for little). It's read on its own, not as "whatever the main one isn't", so
+    // it doesn't flip each time the main one does. It's what runs under the scene.
     const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}) };
-    const underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean, meters.group) : null;
-    const call = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, called = call ? resolveCall(call.text, n, u, bond.pool) : null;
+    const underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
+    // The story's call lasts STORY_HOLD replies; after that the meters and the scene take over again until the
+    // story names a new one, so one old call can't hold the dynamic for the rest of the chat.
+    const call0 = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, call = call0 && call0.ago < (STORY_HOLD[bond.pace] ?? STORY_HOLD.steady) ? call0 : null;
+    const called = call ? resolveCall(call.text, n, u, bond.pool) : null;
     // No flicker. A dynamic read from the meters takes over once it has won two replies running; until
     // then the last one holds and the card says what it's moving toward. Volatile switches straight away.
     let shown = meters;
@@ -297,17 +309,21 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         if (before.key !== meters.key) shown = { ...before, toward: meters.name };
     }
     const dynamic = bond.fixed ? dynamicOf(axesNow, n, u, bond.fixed) : called ?? shown;
-    // It changes only when the new one has also held two and four replies back; until then the older one stays.
+    // It's the one that led most of the last UNDER_WINDOW replies (the newer wins a tie), so it changes only when
+    // a new one has taken over for a good while, not for one scene.
     let under = underRaw;
-    if (under && !raw && all.length >= 4) {
-        const back = [2, 4].map(k => computeBond(bond, chatLength, n, u, axes, all.slice(0, -k), true).underRaw);
-        if (back.some(b => b?.key !== underRaw.key)) under = back[1] ?? underRaw;
+    if (under && !raw && all.length >= 3) {
+        const w = Math.min(all.length, UNDER_WINDOW[bond.pace] ?? UNDER_WINDOW.steady), count = new Map();
+        const back = [underRaw, ...Array.from({ length: w - 1 }, (_, i) => computeBond(bond, chatLength, n, u, axes, all.slice(0, -(i + 1)), true).underRaw)];
+        for (const b of back) if (b) count.set(b.key, { b, n: (count.get(b.key)?.n ?? 0) + 1 });
+        under = [...count.values()].reduce((a, c) => c.n > a.n ? c : a, { n: 0, b: underRaw }).b;
     }
-    if (under && (under.group === dynamic.group || under.key === 'Strangers')) under = null;
+    // When the scene is the same as what runs underneath, there's only one to show.
+    if (under && (under.key === dynamic.key || under.key === 'Strangers')) under = null;
     const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic, auto: meters.name, byMeters: meters, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend };
+        dynamic, auto: meters.name, byMeters: meters, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend, scene: axesNow };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.

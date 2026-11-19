@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.79.1: the dynamic follows the scene, the one underneath stays put
+
+A full check of how the dynamic changes, run through long test chats (`tests/dynamics.mjs`). Three things kept it stuck or jumpy:
+
+- **Once the meters filled up, scenes stopped changing the main dynamic.** The main dynamic is the meters plus a pull from the last few replies, but that pull was capped at 35 points. After a long run of tender or heated replies the meters sit near the top, and a fight or a cold spell couldn't pull them far enough to read as a fight. The pull is now stronger (up to 60, and about three times the size for the same steps), and the feelings on the cards weigh about twice as much against how specific a dynamic is. The meters themselves move exactly as before; only the reading of the scene changed. It still waits two replies before switching (Volatile switches at once), so one odd reply doesn't flip it.
+- **The one underneath changed as often as the main one.** It was picked as "the best dynamic of a different kind than the main one", so every time the main one changed kind it was forced to change too, and its two-replies-back check let it flicker. Now it's read on its own from where the meters have settled (the scene doesn't pull it, and passing feelings count for little), and it's the one that led most of the last 12 replies (16 on Slow burn, 8 on Quick, 6 on Volatile). It changes only when something has truly taken over for a while. When the scene is the same as what runs underneath, only one is shown.
+- **With "The story names it" on, an old call held for good.** The hidden line names the dynamic only when it shifts, and the last name it gave stayed until it gave another, even 200 replies later. A call now lasts 10 replies (16 on Slow burn, 6 on Quick, 4 on Volatile); after that the meters and the scene take over until the story names a new one. The scene reader's call works the same way.
+- **Strangers** (the fallback when nothing else fits) is never lifted by the scene over a dynamic that does fit.
+
 ## 1.79.0: stress and breaking points, feelings about others, secrets and leverage, wants from the meters
 
 - **Stress.** The character now carries stress that builds and eases over the chat. It builds when they act against their starred beliefs or their nature (the hidden line has a short **stress** field for that), when fear, guilt, shame or feeling trapped keep rising, and when needs run empty. It eases with rest, comfort, good feelings and release. High-strung people (anxious, perfectionist, volatile, paranoid, traumatised…) take it harder; stoic, unflappable or cold-blooded ones shrug more off. Shown as a star row on Info › Needs, with **Let it go** to start it again from now.

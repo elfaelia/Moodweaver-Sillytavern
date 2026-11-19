@@ -524,8 +524,6 @@
 .mw-dyn-card[data-dynamic=bored-of-you]{border-color:#9a9aa844;background:linear-gradient(160deg,#202027,#141418)}
 
 /* Skills */
-.mw-skill-row.is-lit{box-shadow:inset 3px 0 0 #9fc0e8}
-.mw-skill-row .mw-row-head output{min-width:3.2em;text-align:right}
 .mw-skill-now{margin:8px 0 0;font-size:12px;color:var(--mw-muted)}
 .mw-skill-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;margin-bottom:8px}
 
@@ -901,24 +899,6 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 /* ✪ Skills (panel/skills-tab.js): each skill is a small card. The name and level word on top, then a big − and ＋
    either side of a little constellation (five dim red points for being bad at it, ten stars for being good),
    then the description. The stars only show; the buttons do the work, so there are no small targets. */
-.mw-panel .mw-skill-row{padding:12px 14px 12px;margin:0 0 8px;border:1px solid #ffffff12;border-radius:16px;background:#ffffff05}
-.mw-panel .mw-skill-row.is-lit{box-shadow:inset 3px 0 0 var(--mw-accent,#9fc0e8);background:color-mix(in srgb,var(--mw-accent,#9fc0e8) 7%,transparent)}
-.mw-skill-top{display:flex;align-items:center;gap:8px;min-height:30px}
-.mw-skill-top>b{flex:1;min-width:0;font-weight:600;color:var(--mw-text)}
-.mw-panel .mw-skill-word{border:0;background:none;padding:4px 2px;font:inherit;font-size:12px;color:var(--mw-muted);cursor:pointer;text-decoration:underline dotted #ffffff40;text-underline-offset:3px}
-.mw-skill-row.is-bad .mw-skill-word{color:#e7a0b2}
-.mw-skill-step{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:10px;margin:8px 0 6px}
-.mw-panel .mw-skill-btn{width:44px;height:44px;min-height:0;margin:0;padding:0;border-radius:50%;border:1px solid color-mix(in srgb,var(--mw-accent,#9fc0e8) 45%,transparent);background:color-mix(in srgb,var(--mw-accent,#9fc0e8) 12%,transparent);color:var(--mw-text);font-size:22px;line-height:1;cursor:pointer}
-.mw-panel .mw-skill-btn:disabled{opacity:.3;cursor:default}
-.mw-skill-sky{display:flex;align-items:center;justify-content:space-between;min-width:0;height:28px;padding:0 10px;border-radius:14px;background:#0000002a}
-.mw-skill-sky b{width:8px}
-.mw-skill-sky i{flex:none;width:7px;height:7px;border-radius:50%;background:#ffffff22;transition:background .2s,box-shadow .2s,transform .2s}
-.mw-skill-sky i.is-lit{background:var(--mw-accent,#9fc0e8);box-shadow:0 0 6px color-mix(in srgb,var(--mw-accent,#9fc0e8) 70%,transparent)}
-.mw-skill-sky i.is-now{transform:scale(1.55);background:#fff8e0;box-shadow:0 0 9px var(--mw-accent,#9fc0e8)}
-.mw-skill-sky i.is-bad{width:6px;height:6px;border-radius:1px;transform:rotate(45deg);background:#d9708a2e}
-.mw-skill-sky i.is-bad.is-lit{background:#d9708a;box-shadow:0 0 6px #d9708a99}
-.mw-skill-sky i.is-bad.is-now{transform:rotate(45deg) scale(1.5);background:#ffc2cf;box-shadow:0 0 9px #d9708a}
-.mw-skill-cue{display:block;font-size:12px;line-height:1.45;color:var(--mw-muted)}
 
 /* ▦ Song counts (panel/music-tab.js countsCard): one bar per tag, as wide as its share of the songs. */
 .mw-count-group{margin:10px 0 4px}.mw-count-group h5{margin:0 0 6px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#9fd3c9}
@@ -929,3 +909,58 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 
 /* Profile: pet names and catchphrases */
 .mw-profile-voice{display:grid;gap:8px;margin-top:12px}.mw-panel .mw-pf textarea{width:100%;margin:0;padding:8px 10px;font-size:13px;line-height:1.4;resize:vertical;min-height:44px}.mw-pf>span small{font:400 11px var(--mw-sans,inherit);letter-spacing:0;text-transform:none;color:var(--mw-muted);margin-left:4px}
+
+/* Skills: a star list with a pull-up sheet. Gold is good at it, rose is bad at it, the middle is 0. */
+.mw-panel{--mw-sk-good:#f3d79b;--mw-sk-bad:#e48aa0}
+.mw-sk-group{display:flex;align-items:center;gap:6px;margin:14px 4px 6px;font:700 11px var(--mw-round);letter-spacing:.12em;text-transform:uppercase;color:#e2b866}
+.mw-panel .mw-sk-row{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;margin:0 0 6px;padding:8px 12px;border:1px solid #ffffff12;border-radius:16px;background:#1d1836;color:var(--mw-text);text-align:left;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .2s,background .2s}
+.mw-panel .mw-sk-row.is-lit{border-color:#f3d79b55;background:linear-gradient(90deg,#f3d79b14,#1d1836 60%)}
+.mw-panel .mw-sk-row.is-open{border-color:#f3d79b;box-shadow:0 0 0 1px #f3d79b55}
+.mw-sk-name{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.mw-sk-name b{font:700 15px var(--mw-round);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mw-sk-name b em{font-style:normal;font-size:11px;color:var(--mw-sk-good)}
+.mw-sk-name small{font-size:12px;color:var(--mw-faint)}
+.mw-sk-row.is-lit .mw-sk-name small{color:#e2b866}
+.mw-sk-mini{position:relative;flex:none;width:78px;height:4px;border-radius:3px;background:#2f2852}
+.mw-sk-mini::after{content:'';position:absolute;left:50%;top:-5px;width:1.5px;height:14px;margin-left:-.75px;background:#cfc6e6;border-radius:1px}
+.mw-sk-mini i{position:absolute;top:0;bottom:0;border-radius:3px}
+.mw-sk-mini.is-good i{background:var(--mw-sk-good);box-shadow:0 0 8px #f3d79b99}
+.mw-sk-mini.is-bad i{background:var(--mw-sk-bad);box-shadow:0 0 8px #e48aa099}
+.mw-sk-num{flex:none;width:32px;text-align:right;font:800 16px var(--mw-round);font-variant-numeric:tabular-nums}
+.mw-sk-num.is-good,.mw-sk-word.is-good,.mw-sk-big.is-good{color:var(--mw-sk-good);fill:var(--mw-sk-good)}
+.mw-sk-num.is-bad,.mw-sk-word.is-bad,.mw-sk-big.is-bad{color:var(--mw-sk-bad);fill:var(--mw-sk-bad)}
+.mw-sk-num.is-zero,.mw-sk-word.is-zero,.mw-sk-big.is-zero{color:var(--mw-faint);fill:var(--mw-faint)}
+.mw-sk-list{padding-top:6px}
+.mw-panel .mw-sk-sheet{position:sticky;bottom:0;z-index:12;display:grid;gap:12px;margin:12px 0 0;padding:12px 18px calc(16px + env(safe-area-inset-bottom,0px));border-radius:24px 24px 0 0;border-top:1px solid #4a3f78;
+  background:radial-gradient(1px 1px at 14% 20%,#fff7 50%,transparent),radial-gradient(1px 1px at 82% 12%,#fff6 50%,transparent),radial-gradient(1.5px 1.5px at 66% 70%,#fff4 50%,transparent),radial-gradient(140% 90% at 50% 0%,#2a2150,#211b3d 60%);box-shadow:0 -24px 48px #000a}
+.mw-sk-sheet::before{content:'';justify-self:center;width:44px;height:5px;border-radius:9px;background:#5b4f86}
+.mw-sk-sheet.is-new{animation:mw-sk-up .28s ease-out}
+@keyframes mw-sk-up{from{transform:translateY(60%);opacity:0}to{transform:none;opacity:1}}
+.mw-sk-sheet-head{display:flex;align-items:baseline;gap:10px}
+.mw-sk-sheet-head h4{flex:1;min-width:0;margin:0;font:800 20px var(--mw-round);color:var(--mw-text)}
+.mw-sk-word{font:700 14px var(--mw-round)}
+.mw-panel .mw-sk-cue{margin:-6px 0 0;font-size:13px;line-height:1.45;color:var(--mw-muted)}
+.mw-sk-cue b{color:#e2b866;font-weight:600}
+.mw-sk-dial{display:flex;align-items:center;gap:8px}
+.mw-sk-orbit{flex:1;min-width:0;height:auto;overflow:visible}
+.mw-sk-orbit text{font:600 10px var(--mw-round);fill:#6f6690}
+.mw-sk-orbit .mw-sk-big{font:800 30px var(--mw-round)}
+.mw-sk-track{fill:none;stroke:#2f2852;stroke-width:6;stroke-linecap:round}
+.mw-sk-arc{fill:none;stroke-width:6;stroke-linecap:round}.mw-sk-arc.is-good{stroke:var(--mw-sk-good)}.mw-sk-arc.is-bad{stroke:var(--mw-sk-bad)}
+.mw-sk-orbit circle{fill:#4a4170}.mw-sk-orbit circle.is-good{fill:#fff3d6}.mw-sk-orbit circle.is-bad{fill:#ffd2dc}
+.mw-sk-orbit .mw-sk-planet{fill:#cfc6e6;stroke:#100d1f;stroke-width:3;filter:drop-shadow(0 0 8px #cfc6e6aa)}
+.mw-sk-orbit .mw-sk-planet.is-good{fill:var(--mw-sk-good);filter:drop-shadow(0 0 10px #f3d79bcc)}
+.mw-sk-orbit .mw-sk-planet.is-bad{fill:var(--mw-sk-bad);filter:drop-shadow(0 0 10px #e48aa0cc)}
+.mw-panel .mw-sk-step{flex:none;width:58px;height:58px;min-height:0;margin:0;padding:0;border-radius:50%;border:1px solid #5b4f86;background:radial-gradient(circle at 35% 30%,#3a3164,#221c40);color:var(--mw-text);font:600 28px/1 var(--mw-round);display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mw-panel .mw-sk-step:active{transform:scale(.94)}
+.mw-panel .mw-sk-step:disabled{opacity:.3;cursor:default}
+.mw-sk-jumps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.mw-panel .mw-sk-jumps button{min-height:46px;margin:0;padding:0;border-radius:12px;border:1px solid #2f2852;background:#17132b;font:700 15px var(--mw-round);color:var(--mw-muted);cursor:pointer}
+.mw-panel .mw-sk-jumps button.is-good{color:#e2b866}.mw-panel .mw-sk-jumps button.is-bad{color:#c97b90}
+.mw-panel .mw-sk-jumps button[aria-pressed=true]{border-color:currentColor;background:#2a2150;color:var(--mw-text)}
+.mw-panel .mw-sk-fine{margin:0;font-size:12px;color:var(--mw-faint);line-height:1.45}
+.mw-sk-sheet-foot{display:flex;gap:10px}
+.mw-panel .mw-sk-pin{min-height:48px;padding:0 18px;border-radius:14px;border:1px solid #4a3f78;background:#17132b;color:var(--mw-text);font:700 15px var(--mw-round)}
+.mw-panel .mw-sk-pin[aria-pressed=true]{border-color:#e2b866;color:var(--mw-sk-good)}
+.mw-panel .mw-sk-done{flex:1;min-height:48px;margin:0;border-radius:14px;border:0;background:var(--mw-sk-good);color:#100d1f;font:800 16px var(--mw-round)}
+@media (prefers-reduced-motion:reduce){.mw-sk-sheet.is-new{animation:none}}

@@ -13,7 +13,7 @@ function periodOffFrom(saved) {
 }
 import { CLASH_CHOICES } from '../engine/links.js';
 
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true, musicTab: true, blendsOn: true, dockClose: true, chipRemove: true };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, traitFocus: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true, musicTab: true, blendsOn: true, dockClose: true, chipRemove: true };
 export function settings() {
     const c = ctx();
     c.extensionSettings[KEY] ??= structuredClone(defaults);
@@ -62,6 +62,7 @@ export function settings() {
         moodClash: CLASH_CHOICES.includes(saved.moodClash) ? saved.moodClash : 'sometimes',
         // Who-they-are facts (looks, style, voice, job, past) only when the scene touches them, so the card isn't repeated.
         factsWhenRelevant: saved.factsWhenRelevant !== false,
+        traitFocus: saved.traitFocus !== false,
         // The note in two halves: a guide that stays the same (cacheable) and what's true right now (last).
         splitNote: saved.splitNote !== false,
         // Opposite facts (Hot and Cold) switch each other off.

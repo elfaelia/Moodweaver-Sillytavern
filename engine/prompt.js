@@ -32,6 +32,27 @@ function directedCue(id, value, state, people) {
 }
 // 'all' sends the default "how it shows" plus your own; 'mine' only your own; 'off' neither.
 let SHOWS = 'all';
+// Traits in focus (⚙ Settings › What is sent › Traits): a few traits go in full each reply (the ones the scene
+// names first, then the rest in turn, stronger ones more often) and the others go as one line of names, so traits
+// stay part of who someone is without crowding out this reply's feelings and dynamic. Off sends every trait in full.
+let TRAITS = { focus: true, scene: '', seed: 0 };
+const TRAIT_FOCUS = 3;
+const isTrait = m => sectionOf(m) === 'trait' && !isAuthor(m);
+// How deep a trait runs, in words that don't say how much of the reply it fills (feelings and the dynamic decide that).
+const depthWord = v => v >= 81 ? 'deeply' : v >= 61 ? 'very' : v >= 41 ? 'clearly' : v >= 21 ? 'somewhat' : 'a touch';
+const reEsc = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// The scene touches a trait when it uses one of the trait's words or the first word of its name ("jealous").
+const traitTouched = (m, scene) => { if (!scene) return false; if (sceneHas(m, scene)) return true;
+    const head = lowerLabel(m.label).split(/[\s(/,:]+/)[0]; return head.length >= 5 && new RegExp(`(^|[^a-z])${reEsc(head.slice(0, Math.max(5, head.length - 2)))}[a-z]*`, 'i').test(scene); };
+function traitFocus(state, traits) {
+    if (!TRAITS.focus || traits.length <= TRAIT_FOCUS) return { focus: new Set(traits), back: [] };
+    const touched = traits.filter(m => traitTouched(m, TRAITS.scene)).sort((a, b) => state.moods[b.id] - state.moods[a.id]);
+    // The rest take turns: each reply shuffles them by the reply number, with a head start for deeper ones.
+    const turn = m => state.moods[m.id] + ((TRAITS.seed * 97 + [...m.id].reduce((h, c) => h * 31 + c.charCodeAt(0), 7)) % 61);
+    const rest = traits.filter(m => !touched.includes(m)).sort((a, b) => turn(b) - turn(a));
+    const focus = new Set([...touched, ...rest].slice(0, TRAIT_FOCUS));
+    return { focus, back: traits.filter(m => !focus.has(m)).sort((a, b) => state.moods[b.id] - state.moods[a.id]) };
+}
 const moodName = (m, other, value = 0, state = null, people = {}) => {
     const directed = directedCue(m.id, value, state, people);
     if (directed) return directed;
@@ -125,10 +146,11 @@ function listLines(state, list, other, people = {}, lit = null) {
     // "how it shows" wording, which cost more tokens than it changed. Wording the player wrote still goes with it.
     const quiet = m => !analysed(m) || m.kind !== 'mood' || state.moods[m.id] > 20 || state.shows?.[m.id] || SHOWS === 'off' ? null
         : SCALED_MOOD_CUES[m.id]?.find(([min]) => state.moods[m.id] >= min)?.[1] ?? MERGED_PROMPT_CUES[m.id] ?? (PROMPT_NAME[m.id] ?? lowerLabel(m.label)).split(':')[0].replaceAll('{other}', other);
-    const line = m => `- ${tierWord(state.moods[m.id])}: ${quiet(m) ?? moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}${lit?.traits?.has(m.id) ? ' (lit last reply)' : ''}`;
+    const line = m => `- ${isTrait(m) ? depthWord(state.moods[m.id]) : tierWord(state.moods[m.id])}: ${quiet(m) ?? moodName(m, other, state.moods[m.id], state, people)}${causeOf(state, m.id)}${lit?.traits?.has(m.id) ? ' (lit last reply)' : ''}`;
     // Feelings come first, in one list, strongest first, so priority is plain whatever their category.
     const feelings = list.filter(m => analysed(m) && m.kind === 'mood').sort((a, b) => state.moods[b.id] - state.moods[a.id] || ORDER[a.category] - ORDER[b.category]);
-    const rest = list.filter(m => !feelings.includes(m)), peak = Object.create(null);
+    const traitPick = traitFocus(state, list.filter(m => !feelings.includes(m) && isTrait(m)));
+    const rest = list.filter(m => !feelings.includes(m) && !traitPick.back.includes(m)), peak = Object.create(null);
     for (const m of rest) peak[groupOf(m)] = Math.max(peak[groupOf(m)] ?? 0, state.moods[m.id]);
     const groups = Object.keys(peak).sort((a, b) => peak[b] - peak[a] || ORDER[a] - ORDER[b]);
     // When several feelings lead together, say so first, so Opus writes one fused state instead of taking turns.
@@ -136,7 +158,8 @@ function listLines(state, list, other, people = {}, lit = null) {
     const nameOf = m => (PROMPT_NAME[m.id] ?? lowerLabel(m.label)).split(':')[0].replaceAll('{other}', other);
     return [...(fused.length > 1 ? [`Leading together, as one state: ${fused.map(nameOf).join(' + ')}`] : []),
         ...(feelings.length ? ['Feelings, strongest first:', ...feelings.map(line)] : []),
-        ...groups.flatMap(g => [`${g === 'authors' ? 'Authors' : CATEGORY_NAME[g]}:`, ...rest.filter(m => groupOf(m) === g).sort((a, b) => state.moods[b.id] - state.moods[a.id]).map(line)])];
+        ...groups.flatMap(g => [`${g === 'authors' ? 'Authors' : CATEGORY_NAME[g]}:`, ...rest.filter(m => groupOf(m) === g).sort((a, b) => state.moods[b.id] - state.moods[a.id]).map(line)]),
+        ...(traitPick.back.length ? [`Other traits, true but in the background this reply: ${traitPick.back.map(m => `${pt(lowerLabel(m.label))}${state.moods[m.id] >= 61 ? ` (${depthWord(state.moods[m.id])})` : ''}`).join(', ')}`] : [])];
 }
 // Core traits: up to three, picked on the Traits tab, always true whatever the mood.
 const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
@@ -155,7 +178,7 @@ function voiceLines(st, who, other, player = false) {
 function profileLines(st, core, other, people, scene = '', all = true) {
     const text = profileText(st);
     return [...(text ? [`Profile: ${pt(text)}`] : []), ...favLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other))),
-        ...(core.length ? [`Core of who they are, under any mood or dynamic: ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
+        ...(core.length ? [`Core of who they are, true under any mood or dynamic (it shapes how feelings come out, not which ones): ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
 function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character', people = {}) {
@@ -261,6 +284,7 @@ function composePrompt(state, name, extras = {}) {
     const { player = null, story: storyState = null } = extras;
     SHOWS = ['all', 'mine', 'off'].includes(extras.showsMode) ? extras.showsMode : 'all';
     const scene = String(extras.scene ?? ''), seed = Number(extras.seed) || 0;
+    TRAITS = { focus: extras.traitFocus !== false, scene, seed };
     const aroused = st => live(st).some(m => (AROUSED.has(m.id) && st.moods[m.id] >= 41) || (m.category === 'bedroom' && st.moods[m.id] > 0));
     const gate = { on: extras.factsWhenRelevant !== false, refresh: seed < 3 || seed % 6 === 0,
         intimate: PRIVATE_SCENE.test(scene) || [state, player?.state, ...(extras.cast ?? []).filter(p => p.inScene).map(p => p.state)].some(st => st?.enabled && aroused(st)) };
@@ -324,7 +348,7 @@ function composePrompt(state, name, extras = {}) {
         `These feelings are what make this reply different from the last: they set ${n}'s voice (how much, how fast, how kindly), body language, focus and choices.${SHOWS === 'off' ? '' : ` Words after a colon are how it shows on ${n}; if the card or traits show a feeling another way (rage as a pleasant smile), keep the strength and use ${n}'s way.`} Mix them like a real person: the strongest lead, equal top ones fuse, weaker ones tint, and a hidden one still leaks. A feeling marked (at someone) belongs to that person: it can shorten a temper with others, but it doesn't become a feeling about them. Play this blend rather than the card's usual mood, so a different blend gives a visibly different reply.`);
     // Standing settings get one plain line each, so they read as who someone is rather than as this reply's mood.
     if ((split ? setUp : everyone).some(m => sectionOf(m) === 'trait')) guide('',
-        `Traits are who someone is underneath, whatever their mood: they shape how each feeling comes out and what that person notices and chooses.${(split ? setUp : everyone).some(m => m.category === 'love') ? ' Love languages are how someone shows love and what makes them feel loved; their mood decides how openly.' : ''}`);
+        `Traits are who someone is underneath, whatever their mood: they shape how each feeling comes out and what that person notices and chooses. They don't set the reply's mood or main action, and they don't override the feelings or the dynamic: those lead, and traits colour them. A trait's word (a touch, somewhat, clearly, very, deeply) is how deep it runs, not how much of the reply it fills: even a deep one shows in a detail, a reaction or a choice, and comes forward fully only when the moment touches it. Background traits stay true without needing to show.${(split ? setUp : everyone).some(m => m.category === 'love') ? ' Love languages are how someone shows love and what makes them feel loved; their mood decides how openly.' : ''}`);
     if ((split ? setUp : everyone).some(m => sectionOf(m) === 'psyche')) guide('',
         `Mind settings are how someone's mind works underneath. Play them from the inside: their logic makes sense to them, and it shows in small specific choices, reactions, blind spots and what they misread, more under stress and less on a good day, often without anyone around noticing. Nobody names the condition unless someone in the story would. Where a setting names a healthy or unhealthy side, play that side only. Skip the stock screen versions (the twitchy movie psychopath, the robotic genius, the screaming "crazy" ex, therapy talk); real people with these are mostly ordinary between the moments that show it.`);
     if ((split ? setUp : everyone).some(m => sectionOf(m) === 'intimacy')) guide('',

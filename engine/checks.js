@@ -1,5 +1,5 @@
 // Dice checks, a little like D&D: before each reply Moodweaver rolls a d20 for the skills the scene is calling
-// on and adds the skill's level (-5 to +10) as the modifier. Claude is told the outcome in advance ("if she lies
+// on and adds the skill's level (−10 to +10) as the modifier. Claude is told the outcome in advance ("if she lies
 // this reply, it fails: he sees through it"), so success and failure come from the dice and the levels, not
 // from what the story would like. Contests pit one person's skill against the other's (a lie against reading
 // people, sneaking against watching, a hold against slipping free); everything else is a plain check against 12.

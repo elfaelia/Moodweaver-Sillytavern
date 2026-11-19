@@ -306,7 +306,7 @@ export async function onPanelChange(e) {
 }
 function openTab(tab) {
     if (!tab) return;
-    ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.removingRelation = ''; render();
+    ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.skillSheet = ''; ui.removingRelation = ''; render();
 }
 // Swiping sideways on the panel walks through the tabs (not on sliders, text or lists that scroll sideways).
 // Only a clear, quick, flat swipe counts: across at least a third of the panel (and 90px), within 0.7 s, never
@@ -337,7 +337,7 @@ export async function onPanelClick(e) {
     if (button.dataset.rangeMoon !== undefined) { tapRangeMoon(button); return; }
     if (button.dataset.who) {
         if (button.closest('.mw-board')) ui.tab = 'mood';
-        ui.who = button.dataset.who; ui.browsing = false; ui.settingsOpen = false; ui.boardFocus = ''; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId;
+        ui.who = button.dataset.who; ui.browsing = false; ui.skillSheet = ''; ui.settingsOpen = false; ui.boardFocus = ''; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId;
         ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; render(); return;
     }
     if (button.dataset.boardTile) { ui.boardFocus = ui.boardFocus === button.dataset.boardTile ? '' : button.dataset.boardTile; render(); return; }
@@ -426,14 +426,15 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
-    if (button.dataset.skillSet) {
-        // A level set by hand starts fresh progress toward the next. Tapping the level it's already at takes the skill off them.
-        const id = button.dataset.skillSet, v = Number(button.dataset.v) || 0;
+    if (button.dataset.skillTo) {
+        // The sheet sets a level exactly (0 takes the skill off them). A level set by hand starts fresh progress toward the next.
+        const id = button.dataset.skillTo, v = Math.max(-10, Math.min(10, Number(button.dataset.v) || 0));
         await changeState(s => { s.skills = cleanSkills(s.skills); s.skillXp = { ...s.skillXp }; delete s.skillXp[id];
-            if (v !== 0 && s.skills[id] !== v) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
+            if (v) s.skills[id] = v; else { delete s.skills[id]; s.skillPins = { ...s.skillPins }; delete s.skillPins[id]; } }); return;
     }
     if (button.dataset.skillPin) { const id = button.dataset.skillPin; await changeState(s => { const p = cleanPins(s.skillPins); if (p[id]) delete p[id]; else p[id] = true; s.skillPins = p; }); return; }
-    if (button.dataset.skillJump) { fillLazy(ui.panel); const row = ui.panel.querySelector(`[data-skill-row="${CSS.escape(button.dataset.skillJump)}"]`); if (row) { const fold = row.closest('details'); if (fold) fold.open = true; row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return; }
+    if (button.dataset.skillOpen) { ui.skillSheetFresh = ui.skillSheet !== button.dataset.skillOpen; ui.skillSheet = button.dataset.skillOpen; render(); return; }
+    if (button.hasAttribute('data-skill-close')) { ui.skillSheet = ''; render(); return; }
     if (button.dataset.bondMute) {
         const text = button.dataset.bondMute;
         await editBond(b => { b.own = b.own.filter(t => t.toLowerCase() !== text.toLowerCase()); b.muted.push(text.toLowerCase()); }); return;

@@ -100,7 +100,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const echoes = [...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
             contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion })].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, split, echoes });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, traitFocus: settings().traitFocus !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // Music › "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';

@@ -13,10 +13,15 @@ export { SKILL_GROUPS };
 export const SKILL_BY_ID = Object.fromEntries(SKILL_GROUPS.flatMap(g => g.rows.map(r => [r.id, { ...r, prompt: r.prompt || r.label.toLowerCase(), group: g.name, color: g.color }])));
 
 // 1–10, worded so the number and the word agree; the rule line in the note says what a level does. Below zero
-// (-1 to -5) someone is actively bad at it: a hopeless liar, a cook whose food tastes wrong.
-const SKILL_LEVELS = [[10, 'master'], [9, 'expert'], [7, 'skilled'], [5, 'competent'], [3, 'amateur'], [1, 'novice'], [-1, 'shaky'], [-2, 'poor'], [-3, 'bad'], [-4, 'terrible'], [-5, 'hopeless']];
+// (-1 to -10, the same reach as the good side) someone is actively bad at it: a hopeless liar, a cook whose food
+// tastes wrong.
+const SKILL_LEVELS = [[10, 'master'], [9, 'expert'], [7, 'skilled'], [5, 'competent'], [3, 'amateur'], [1, 'novice'], [-2, 'shaky'], [-4, 'poor'], [-6, 'bad'], [-8, 'terrible'], [-10, 'hopeless']];
 export const skillWord = v => v === 0 ? 'off' : SKILL_LEVELS.find(([min]) => v >= min)?.[1] ?? 'hopeless';
-export const SKILL_MIN = -5;
+export const SKILL_MIN = -10;
+// Before 1.76 the bad side went to −5. Saved levels from then are doubled once, so each keeps its word
+// (−5 hopeless becomes −10 hopeless); state.skillScale = 2 marks a state as already on the even scale.
+export const SKILL_SCALE = 2;
+export const widenSkills = (obj, scale) => scale === SKILL_SCALE ? obj : Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {}).map(([id, v]) => [id, Number(v) < 0 ? Number(v) * 2 : v]));
 const level = v => Math.max(SKILL_MIN, Math.min(10, Math.round(Number(v) || 0)));
 const known = id => SKILL_BY_ID[id] ? id : SKILL_BY_ID[SKILL_MERGED[id]] ? SKILL_MERGED[id] : '';
 // Levels by id. Skills from older versions move to the one that replaced them; the higher level wins.
@@ -40,19 +45,63 @@ export const SKILL_PACE = {
 };
 export const cleanSkillPace = v => SKILL_PACE[v] ? v : 'slow';
 
-// Words → one pattern. "a|b c|stem*": whole words, spaces match any gap, '*' allows any ending.
+// Words → patterns. "a|b c|stem*": whole words, spaces match any gap, '*' allows any ending.
 const patterns = new Map();
 const escapeRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const termsOf = words => [...new Set(norm(words).split(/[|,;]/).map(w => w.trim()).filter(w => w.length > 1))];
+const termRe = w => new RegExp(`(?:^|[^a-z'])(?:${escapeRe(w.replace(/\*$/, '')).replace(/\s+/g, "[\\s-]+") + (w.endsWith('*') ? "[a-z']*" : '')})(?![a-z])`, 'i');
 function patternFor(words) {
     if (patterns.has(words)) return patterns.get(words);
-    const parts = norm(words).split(/[|,;]/).map(w => w.trim()).filter(w => w.length > 1)
-        .map(w => escapeRe(w.replace(/\*$/, '')).replace(/\s+/g, "[\\s-]+") + (w.endsWith('*') ? "[a-z']*" : ''));
-    const re = parts.length ? new RegExp(`(?:^|[^a-z'])(?:${parts.join('|')})(?![a-z])`, 'i') : null;
+    const parts = termsOf(words);
+    const re = parts.length ? new RegExp(parts.map(w => termRe(w).source).join('|'), 'i') : null;
     patterns.set(words, re); return re;
 }
 const calledFor = (words, scene) => Boolean(patternFor(words)?.test(scene));
+// How strongly a passage calls for a skill. Each of its words that turns up counts once: a phrase 3, a word of four
+// letters or more 2, a shorter one 1, divided by how many skills share that word, and a quarter for everyday words
+// (COMMON). A skill is called for at 1 or more, so one telling word ("anatomy", "kiss") is enough while everyday
+// ones ("body", "hand", "please") only count together. The strongest call comes first.
+const COMMON = new Set([
+    // questions and small words
+    'how', 'why', 'what', 'who', 'where', 'please', "don't", 'sorry', 'after', 'again', 'under', 'good', 'help', 'unless', 'let me', 'let him', 'let her', 'tell me', 'trust me', 'are you okay', 'told you', 'get out', 'way out', 'let go', 'take her', 'take him',
+    // the body, looks and feelings that turn up in any scene
+    'body', 'blood', 'hands', 'fingers', 'lips', 'mouth', 'tongue', 'neck', 'breath', 'breath*', 'jaw', 'hair', 'nails', 'her eyes', 'his eyes', 'her face', 'his face', 'her hands', 'his hands', 'heart', 'pulse', 'bone*', 'flesh',
+    'stomach', 'lungs', 'vein*', 'pupils', 'adrenaline', 'muscle*', 'pale', 'faint*', 'tired', 'hungry', 'sick', 'cold', 'hot', 'hurt', 'pain', 'tremb*', 'naked', 'closer', 'desire', 'want you',
+    'nervous', 'tense', 'upset', 'scared', 'afraid', 'angry', 'cry', 'crying', 'tears', 'mood', 'anxious', 'defensive', 'ashamed', 'jealous', 'lonely', 'feel*', 'think*', 'smile*', 'grin*', 'laugh*', 'sweet', 'smooth', 'funny', 'clever', 'dry',
+    'calm', 'blank', 'strong', 'heavy', 'confident', 'presence', 'hope', 'lost', 'quiet*', 'silent*', 'shadow*', 'routine', 'rest',
+    // everyday verbs
+    'look*', 'watch*', 'read*', 'write*', 'act*', 'play*', 'move*', 'run', 'run*', 'lift*', 'pin*', 'pick*', 'call*', 'listen*', 'follow', 'follow*', 'wait*', 'hide*', 'hiding', 'hidden', 'grab*', 'grip*', 'drag*', 'throw*', 'last*', 'longer',
+    'catch', 'catch*', 'touch*', 'show* her', 'show* him', 'explain*', 'learn*', 'pretend*', 'struggl*', 'hit', 'hit*', 'swing*', 'beat*', 'fix*', 'mix*', 'pour*', 'save*', 'grow*', 'feed*', 'tuck*', 'look after', 'take care',
+    'switch*', 'appear*', 'vanish*', 'swap*', 'lock*', 'check*', 'expose*', 'escape*', 'leap*', 'jump*', 'climb*', 'whisper*', 'admit*', 'question*', 'order*', 'command*', 'lead*', 'serve*', 'cut', 'speed*', 'count*', 'figure* out',
+    'plan*', 'realis*', 'realiz*', 'look* up', 'look* into', 'chat*', 'date*', 'call on',
+    // everyday things and people
+    'water', 'old', 'war', 'door', 'window', 'wall', 'wall*', 'key*', 'keys', 'phone', 'line', 'record*', 'records', 'tape*', 'money', 'cash', 'pay', 'deal', 'deal*', 'offer*', 'price', 'price*', 'trade', 'words', 'voice', 'music',
+    'beat', 'rhythm', 'mark', 'role', 'stage', 'show', 'file*', 'files', 'note*', 'notes', 'letter*', 'letters', 'page*', 'book*', 'books', 'drink', 'drink*', 'glass', 'bar', 'bottle', 'ice', 'food', 'dinner', 'breakfast', 'kitchen',
+    'car', 'road', 'wheel', 'board', 'tie', 'tie*', 'tied', 'dress', 'coat', 'hat', 'shirt', 'suit', 'skirt', 'heels', 'clothes', 'wearing', 'mirror', 'mask', 'gas', 'lie', 'lies', 'lying', 'truth', 'honest', 'secret*', 'fire',
+    'woods', 'snow', 'lake', 'river', 'sea', 'pool', 'bath', 'animal*', 'pet*', 'cat*', 'dog*', 'bird*', 'sit', 'stay', 'blanket', 'son', 'baby', 'mother', 'father', 'child*', 'kid*', 'children', 'men', 'man', 'team', 'staff', 'crew',
+    'orders', 'wife', 'husband', 'lady', 'sir', 'proper', 'guest*', 'guests', 'host*', 'partner', 'party', 'weather', 'crowd', 'meeting', 'court', 'audience', 'van', 'trunk', 'basement', 'closet', 'bed', 'in bed', 'bedroom', 'sex',
+    'police', 'evidence', 'papers', 'documents', 'envelope', 'cards', 'chips', 'dose', 'pills', 'drug*', 'lab', 'solution', 'formula', 'force', 'weight', 'pressure', 'current', 'machine*', 'doctor', 'patient*', 'ward', 'brain',
+    'memory', 'shock', 'data', 'result*', 'subject*', 'test*', 'session*', 'treatment', 'therapy', 'dead', 'body', 'blade', 'shot', 'bow', 'tools', 'tool*', 'broken', 'television', 'tv', 'radio', 'film', 'picture*', 'photo*',
+    'story', 'journal', 'keyboard', 'keys', 'organ', 'needle', 'stove', 'oven', 'flower*', 'flowers', 'tea', 'leaf', 'leaves', 'church', 'god', 'lord', 'heaven', 'hell', 'holy', 'number*', 'library', 'newspaper*', 'century',
+    'accent', 'language', 'favour*', 'favor*', 'score', 'supply', 'border', 'costume', 'glasses', 'alibi', 'cigarette*', 'gloves', 'lawn', 'apron', 'sweetheart', 'kiss', 'chef', 'menu', 'dish', 'single', 'amp', 'stencil',
+    'scarf', 'sweater', 'jumper', 'shopping', 'cheap', 'weed', 'bridge', 'rules', 'allowed', 'permission', 'schedule', 'my house', 'experienced', 'dirty', 'desire', 'complex', 'denial', 'drowsy', 'catch', 'trail', 'prey', 'rod',
+    'heel', 'fetch', 'litter', 'birth', 'vet', 'cage*', 'bait', 'shelter', 'electric*', 'cell*', 'organ*', 'market', 'shares', 'director', 'department', 'facility', 'carbon', 'motor', 'single', 'twist', 'beer', 'wine', 'drunk',
+    'joint*', 'tobacco', 'magic', 'coin*', 'safe', 'dial', 'combination*', 'con', 'leverage', 'fake*', 'wallet*', 'purse*', 'pocket*', 'mail', 'address', 'online', 'profile', 'rob', 'steal*', 'swipe*', 'card*', 'trick*']);
+const DF = new Map();
+for (const s of Object.values(SKILL_BY_ID)) for (const t of termsOf(s.words)) DF.set(t, (DF.get(t) ?? 0) + 1);
+const weighed = new Map();
+function termsFor(words) {
+    if (weighed.has(words)) return weighed.get(words);
+    const list = termsOf(words).map(t => ({ re: termRe(t), w: (t.includes(' ') ? 3 : t.replace(/\*$/, '').length >= 4 ? 2 : 1) / (DF.get(t) ?? 1) * (COMMON.has(t) ? 0.25 : 1) }));
+    weighed.set(words, list); return list;
+}
+export function callStrength(words, scene) {
+    if (!scene) return 0;
+    return termsFor(words).reduce((sum, t) => sum + (t.re.test(scene) ? t.w : 0), 0);
+}
+const CALLED = 1;
 // The hidden line names skills by label, so labels count there as well as the skill's words.
-const named = (s, used) => calledFor(`${s.label}|${s.prompt}|${s.words}`, used);
+const named = (s, used) => calledFor(`${s.label}|${s.prompt}`, used) || callStrength(s.words, used) >= CALLED;
 // Everything this person has, strongest first.
 export function skillsOf(state) {
     if (!state) return [];
@@ -67,8 +116,10 @@ export function skillsOf(state) {
 const RANK = { used: 0, scene: 1, context: 2 };
 export function litSkills(state, scene = '', used = '', cap = 5, context = null) {
     const s = norm(scene), u = norm(used), fits = x => Boolean(context?.size) && x.when.split(/\s+/).some(t => t && context.has(t));
-    return skillsOf(state).map(x => ({ ...x, why: u && named(x, u) ? 'used' : s && calledFor(x.words, s) ? 'scene' : fits(x) ? 'context' : '' }))
-        .filter(x => x.why).sort((a, b) => RANK[a.why] - RANK[b.why] || b.level - a.level)
+    return skillsOf(state).map(x => { const pull = callStrength(x.words, s); return { ...x, pull, why: u && named(x, u) ? 'used' : pull >= CALLED ? 'scene' : fits(x) ? 'context' : '' }; })
+        // Within the scene's calls, the strongest call first; then how far from untrained (a hopeless −8 is as
+        // worth sending as an expert 8), so a skill they are bad at isn't always the one left out.
+        .filter(x => x.why).sort((a, b) => RANK[a.why] - RANK[b.why] || (a.why === 'scene' ? b.pull - a.pull : 0) || Math.abs(b.level) - Math.abs(a.level))
         .filter((x, i, all) => x.why !== 'context' || all.slice(0, i).filter(y => y.why === 'context').length < 3).slice(0, cap);
 }
 // One message's worth of practice for one person: picked skills its words (or the hidden line) touch get a
@@ -82,9 +133,9 @@ export function growSkills(state, text = '', used = '') {
     for (const [id, lv] of Object.entries(set)) {
         if (pins[id]) continue;
         const sk = SKILL_BY_ID[id], [uses, idle] = xp[id] ?? [0, 0];
-        if ((s && calledFor(sk.words, s)) || (u && named(sk, u))) {
+        if (callStrength(sk.words, s) >= CALLED || (u && named(sk, u))) {
             // Practice: a bad skill climbs out of the hole three times slower, and from -1 straight to novice.
-            const next = uses + 1, up = lv < 10 && next >= pace.per * (lv < 0 ? 3 * -lv : lv);
+            const next = uses + 1, up = lv < 10 && next >= pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv);
             xp[id] = [up ? 0 : next, 0];
             if (up) levels[id] = [lv, lv === -1 ? 1 : lv + 1];
         } else {
@@ -109,7 +160,7 @@ export function ungrowSkills(state, rec) {
 export function skillProgress(state, id) {
     const pace = SKILL_PACE[cleanSkillPace(state?.skillPace)], lv = cleanSkills(state?.skills)[id];
     if (!pace.per || !lv || lv >= 10 || cleanPins(state?.skillPins)[id]) return null;
-    return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? 3 * -lv : lv)];
+    return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv)];
 }
 const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
 // people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
@@ -124,10 +175,10 @@ function comboOf(p, other, seed) {
 export function skillLines(people = [], u = 'the player’s character', seed = 0, n = '') {
     const all = people.filter(p => p.all?.length);
     if (!all.length) return [];
-    const out = [`Skills (out of 10): ${all.map(roster).join('; ')}.`];
+    const out = [`Skills (10 master, 1 novice, 0 untrained, −1 to −10 bad at it down to hopeless): ${all.map(roster).join('; ')}.`];
     const lit = people.filter(p => p.lit?.length);
     if (!lit.length) return out;
-    out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level}/10 (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
+    out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level > 0 ? `${x.level}/10` : x.level} (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
     if (lit.some(p => p.lit.some(x => x.level < 0))) out.push('Below zero means genuinely bad at it, worse than untrained: attempts go wrong in specific, visible ways (a bad liar gets caught out by tells, a bad cook serves food that tastes off, a bad driver scrapes the car), and they may not see it themselves.');
     const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
     if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));

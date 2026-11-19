@@ -4,7 +4,7 @@ import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, isAuthor, secti
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
-import { cleanPins, cleanSkillPace, cleanSkills, cleanXp } from './skills.js';
+import { SKILL_SCALE, cleanPins, cleanSkillPace, cleanSkills, cleanXp, widenSkills } from './skills.js';
 import { LIKES_TO_TURNS, OLD_KINKS, TURN_BY_ID, TURN_MERGED, cleanAge, cleanFavs, cleanHeight, cleanInterests, cleanWords } from './turns.js';
 
 // Feelings about one particular person, and pair tropes, now live in relationships. '{{other}}' stands for
@@ -149,7 +149,7 @@ export function extendCatalogue(state) {
     // Retired: own options (1.50); "always send" skills and a separate feelings pace (1.53: skills go only when
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
-    state.skills = cleanSkills(state.skills); state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
+    state.skills = cleanSkills(widenSkills(state.skills, state.skillScale)); state.skillScale = SKILL_SCALE; state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
     state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs); state.petNames = cleanWords(state.petNames); state.sayings = cleanWords(state.sayings);
     state.psyLean = cleanLean(state.psyLean); state.authorRole = cleanAuthorRole(state.authorRole);
     state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
@@ -223,7 +223,7 @@ export function freshState(base = {}) {
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
         causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), petNames: cleanWords(base.petNames), sayings: cleanWords(base.sayings), core: cleanCore(base.core, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
-        skills: cleanSkills(base.skills), skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
+        skills: cleanSkills(widenSkills(base.skills, base.skillScale)), skillScale: SKILL_SCALE, skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),
         sensitivity: clamp(base.sensitivity ?? 50, 10, 100), inertia: clamp(base.inertia ?? 60, 0, 95),

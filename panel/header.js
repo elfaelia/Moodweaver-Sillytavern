@@ -79,7 +79,7 @@ export function dockBar(counts) {
     const dock = DOCK.filter(([key]) => key !== 'music' || musicShown());
     // A close button at the end of the dock (Settings › Panel can hide it), so closing is a thumb's reach away.
     const close = settings().dockClose !== false;
-    return `<nav class="mw-dock" aria-label="Sections" style="grid-template-columns:repeat(${dock.length + (close ? 1 : 0)},minmax(0,1fr))">${dock.map(([key, icon, label, tabs]) => {
+    return `<nav class="mw-dock" aria-label="Sections">${dock.map(([key, icon, label, tabs]) => {
         const n = tabs.filter(t => have.has(t)).reduce((sum, t) => sum + (counts[t] ?? 0), 0);
         return `<button type="button" data-dock="${key}" aria-pressed="${here === key}"><span class="mw-dock-icon" aria-hidden="true">${icon}${n && key !== 'story' ? `<i>${n}</i>` : ''}</span><span>${label}</span></button>`; }).join('')}${close ? '<button type="button" class="mw-dock-close" data-action="close" aria-label="Close Moodweaver"><span class="mw-dock-icon" aria-hidden="true">⌄</span><span>Close</span></button>' : ''}</nav>`;
 }

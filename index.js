@@ -8,6 +8,7 @@ import { SELF, VERSION, clearNotes, ctx, generationSnapshots, run, ui } from './
 import { hasBoard, stripBoard } from './engine/board.js';
 import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
 import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
+import { sheetSwipe } from './panel/skills-tab.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
 import { afterReply, initMusic, musicLine, onMusicChange } from './app/music.js';
 import { musicFold } from './panel/music-tab.js';
@@ -78,6 +79,7 @@ function setup() {
     ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target, at: Date.now(), top: ui.panel.scrollTop, left: ui.panel.scrollLeft, maxDy: 0 } : null; }, { passive: true });
     ui.panel.addEventListener('touchmove', e => { const t = e.touches[0]; if (touch && t) touch.maxDy = Math.max(touch.maxDy, Math.abs(t.clientY - touch.y)); if (e.touches.length > 1) touch = null; }, { passive: true });
     ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe({ ...touch, scrolled: ui.panel.scrollTop !== touch.top || ui.panel.scrollLeft !== touch.left, width: ui.panel.clientWidth }, { x: t.clientX, y: t.clientY, at: Date.now() }); touch = null; }, { passive: true });
+    sheetSwipe(ui.panel, () => render());
     ui.panel.addEventListener('toggle', onGroupToggle, true);
     ui.panel.addEventListener('toggle', musicFold, true);
     // Music: songs from your Spotify playlists, picked for the scene after each reply (app/music.js).

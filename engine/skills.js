@@ -106,7 +106,7 @@ const named = (s, used) => calledFor(`${s.label}|${s.prompt}`, used) || callStre
 export function skillsOf(state) {
     if (!state) return [];
     const set = cleanSkills(state.skills), pins = cleanPins(state.skillPins);
-    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, cue: s.cue, words: s.words, when: s.when ?? '', level: v, pinned: Boolean(pins[id]) }; })
+    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, cue: s.cue, words: s.words, when: s.when ?? '', bad: s.bad ?? '', level: v, pinned: Boolean(pins[id]) }; })
         .sort((a, b) => b.level - a.level);
 }
 // Which of them the scene calls for. scene: the player's latest message and the last reply(s).
@@ -179,10 +179,19 @@ export function skillLines(people = [], u = 'the player’s character', seed = 0
     const lit = people.filter(p => p.lit?.length);
     if (!lit.length) return out;
     out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level > 0 ? `${x.level}/10` : x.level} (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
-    if (lit.some(p => p.lit.some(x => x.level < 0))) out.push('Below zero means genuinely bad at it, worse than untrained: attempts go wrong in specific, visible ways (a bad liar gets caught out by tells, a bad cook serves food that tastes off, a bad driver scrapes the car), and they may not see it themselves.');
+    // Below zero: how it goes wrong is left to Claude, shaped by who they are. A skill's `bad` ideas (two, picked by
+    // the reply number) are offered as examples only, so the same fumble doesn't come back every time.
+    const bad = lit.flatMap(p => p.lit.filter(x => x.level < 0).map(x => [p, x]));
+    if (bad.length) {
+        out.push('Below zero means genuinely bad at it, worse than untrained. How it goes wrong is yours to invent, and it should differ from last time: clumsy, too much or too little, bad timing, nerves, misreading the moment, overconfidence. Their personality and mood shape it (pride covers it, shyness apologises, cruelty blames the other person, a temper flares), and the other person reacts in character (laughs, softens, gets impatient, takes over). A fumble can shift the scene or the dynamic without ending it, and they may not notice it themselves.');
+        const ideas = bad.map(([p, x], i) => { const opts = (x.bad || '').split('|').filter(Boolean); if (!opts.length) return '';
+            const a = opts[(seed + i) % opts.length], b = opts[(seed + i + 1 + Math.floor(opts.length / 2)) % opts.length];
+            return `${pt(p.name)}'s ${pt(x.prompt)} might show as ${pt(a)}${b !== a ? ` or ${pt(b)}` : ''}, or some other way that fits`; }).filter(Boolean);
+        if (ideas.length) out.push(`For instance (ideas, not a script): ${ideas.join('; ')}.`);
+    }
     const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
     if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));
-    out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps.`);
+    out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps. The level sets how well; the how is yours, specific to this moment and this person, never the stock version.`);
     return out;
 }
 

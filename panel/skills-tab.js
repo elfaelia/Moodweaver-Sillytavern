@@ -40,12 +40,12 @@ export function skillsView(state, ch) {
     const row = s => { const value = set[s.id] ?? 0;
         return `<button type="button" data-skill-row="${s.id}" data-skill-open="${s.id}" class="mw-sk-row ${lit.has(s.id) ? 'is-lit' : ''} ${ui.skillSheet === s.id ? 'is-open' : ''}" data-search="${esc(`${s.label} ${s.cue}`)}" aria-label="${esc(s.label)}: ${word(value)}${value ? ` ${signed(value)}` : ''}. Tap to change">
         <span class="mw-sk-name"><b>${lit.has(s.id) ? '✧ ' : ''}${esc(s.label)}${pins[s.id] ? ' <em>◆</em>' : ''}</b><small>${lit.has(s.id) ? why[lit.get(s.id)] : word(value)}</small></span>
-        ${mini(value)}<span class="mw-sk-num ${tone(value)}">${value ? signed(value) : '–'}</span></button>`; };
+        ${mini(value)}<span class="mw-sk-num ${tone(value)}">${value ? signed(value) : '0'}</span></button>`; };
     // The sheet for the skill you tapped.
     const open = ui.skillSheet && SKILL_BY_ID[ui.skillSheet] ? SKILL_BY_ID[ui.skillSheet] : null;
     const sheet = () => { const s = open, value = set[s.id] ?? 0, pinned = Boolean(pins[s.id]), prog = skillProgress(state, s.id), to = v => Math.max(-10, Math.min(10, v));
         const fresh = ui.skillSheetFresh; ui.skillSheetFresh = false;
-        return `<section class="mw-sk-sheet ${fresh ? 'is-new' : ''}" role="dialog" aria-label="${esc(s.label)} level" style="--mw-accent:${s.color ?? 'var(--mw-moon)'}">
+        return `<section class="mw-sk-sheet ${fresh ? 'is-new' : ''}" data-noswipe role="dialog" aria-label="${esc(s.label)} level" style="--mw-accent:${s.color ?? 'var(--mw-moon)'}">
         <div class="mw-sk-sheet-head"><h4>${lit.has(s.id) ? '✧ ' : ''}${esc(s.label)}</h4><span class="mw-sk-word ${tone(value)}">${word(value)}</span></div>
         <p class="mw-sk-cue">${esc(s.cue)}${lit.has(s.id) ? ` · <b>${why[lit.get(s.id)]}</b>` : ''}</p>
         <div class="mw-sk-dial"><button type="button" class="mw-sk-step" data-skill-to="${s.id}" data-v="${to(value - 1)}" ${value <= -10 ? 'disabled' : ''} aria-label="Lower ${esc(s.label)} to ${to(value - 1)}">−</button>
@@ -85,4 +85,20 @@ export function filterSkills() {
         group.hidden = Boolean(term) && !visible; if (term && group.tagName === 'DETAILS') group.open = visible > 0; shown += visible;
     });
     const none = ui.panel.querySelector('[data-skill-empty]'); if (none) none.hidden = !term || shown > 0;
+}
+// The sheet follows your finger down and closes when let go far enough or fast enough, like any iPhone sheet;
+// a short pull springs back. Started anywhere on the sheet, so the handle, the title or the dial all work.
+export function sheetSwipe(panel, redraw) {
+    let drag = null;
+    panel.addEventListener('touchstart', e => { const sheet = e.target.closest?.('.mw-sk-sheet');
+        drag = sheet && e.touches.length === 1 ? { sheet, y: e.touches[0].clientY, x: e.touches[0].clientX, at: Date.now(), dy: 0, on: false } : null; }, { passive: true });
+    panel.addEventListener('touchmove', e => { if (!drag) return; const t = e.touches[0], dy = t.clientY - drag.y, dx = t.clientX - drag.x;
+        if (!drag.on) { if (dy < 8 || Math.abs(dx) > dy) { if (Math.abs(dx) > 12 || dy < -8) drag = null; return; } drag.on = true; drag.sheet.style.transition = 'none'; }
+        e.preventDefault(); drag.dy = Math.max(0, dy); drag.sheet.style.transform = `translateY(${drag.dy}px)`; }, { passive: false });
+    const end = () => { if (!drag?.on) { drag = null; return; } const { sheet, dy, at } = drag; drag = null;
+        const fast = dy / Math.max(1, Date.now() - at) > 0.6, far = dy > Math.min(140, sheet.offsetHeight * 0.3);
+        sheet.style.transition = 'transform .22s ease-out';
+        if (fast || far) { sheet.style.transform = `translateY(${sheet.offsetHeight + 40}px)`; setTimeout(() => { ui.skillSheet = ''; redraw(); }, 200); }
+        else sheet.style.transform = ''; };
+    panel.addEventListener('touchend', end, { passive: true }); panel.addEventListener('touchcancel', end, { passive: true });
 }

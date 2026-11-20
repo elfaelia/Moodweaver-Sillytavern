@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.83.0: real bed sounds that keep pace, ambience on its own, twelve explicit authors
+
+- **Real recorded sounds in sex scenes.** The bed sounds are now built from your five ElevenLabs clips, cut into 133 short pieces (creaks, frame knocks, thumps, wet strokes). Every stroke picks a fresh piece, never the same one twice running, and varies its pitch, loudness and length a little, so it never settles into two beats on repeat. The pace also drifts slowly (a build, an ease) and pauses now and then, like people rather than a metronome.
+- **Every surface rebuilt from those clips.** Bed (thump, creak, and the frame knocking on harder strokes), office chair (higher, squeakier creaks), desk (a hard knock with things rattling on top), wall (deep thuds), car (springy rocking), sofa (soft, muffled thumps with a cushion creak) and floorboards (low creaks).
+- **Speed follows them.** The sounds go faster the faster they're moving. The scene's energy sets the pace, and words in the newest message push it further: faster, harder, frantic, pounding, desperate and similar speed it up; slow, gentle, languid, savouring, grinding and similar ease it down. A change glides in over about six strokes instead of jumping. At its slowest it's about one stroke every two seconds, at its wildest about two and a half a second.
+- **Layers that play together.** Wet, slick sounds are now their own layer, under the furniture in any sex scene (and in other heat when the story says wet, slick or similar). Skin slapping is a separate layer that joins when it's rough or fast, and hits louder and sharper as the pace climbs. With breathing, up to five layers play at once.
+- **Ambience runs on its own.** It has its own line on the Music tab (☁ with what's playing, ❚❚ to pause just the ambience, ⌄ for its settings). It plays without Spotify signed in, keeps playing while the music is paused, and the music's pause no longer stops it.
+- **Twelve more authors who write sex on the page, no fade-outs.** 1920s to 1960s: Jean de Berg, Frank Harris, Philip José Farmer (his late-60s horror novels), Clarence Major, Phil Andros. 1970s to now: Gordon Merrick, John Preston, Larry Townsend, Pat Califia, Lauren Blakely, Ana Huang, Navessa Allen. All male, dual or women-loving-women point of view, with books and full style descriptions like the others (348 authors).
+
 ## 1.82.0: the new look, step one (stars, − and +, pills, folded explanations, a slimmer top)
 
 The first half of the UI overhaul, on every page at once. Each page's own piece of the sky, the Sky overview and the regrouped Settings come in step two.

@@ -1038,3 +1038,15 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-panel .mw-pills>button{flex:1 1 auto;min-width:auto}
 .mw-panel .mw-explainer.mw-foldable{padding:0 var(--mw-pad) 0 calc(var(--mw-pad) + 22px);margin:2px 0 10px;line-height:1.5}
 .mw-panel .mw-explainer.mw-foldable::before{left:var(--mw-pad)}
+/* ☁ Ambience on its own line under what's playing (1.83), with its own pause. */
+.mw-amb-line{display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:8px 8px 8px 10px;border-radius:999px;background:#ffffff08;box-shadow:inset 0 0 0 1px #9fd3c926}
+.mw-amb-line.is-live{box-shadow:inset 0 0 0 1px #9fd3c966,0 0 18px #9fd3c91f}
+.mw-amb-orb{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;color:#d9f3ec;background:radial-gradient(circle at 35% 30%,#3d6a66,#16302e)}
+.mw-amb-line.is-live .mw-amb-orb{animation:mw-amb-breathe 4s ease-in-out infinite}
+@keyframes mw-amb-breathe{50%{box-shadow:0 0 14px #9fd3c977}}
+.mw-amb-text{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.mw-amb-text b{font-size:13px;font-weight:600}.mw-amb-text small{font-size:11px;color:var(--mw-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-panel .mw-amb-btn{flex:none;width:38px;height:38px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;font-size:13px;color:#1a2a28;background:radial-gradient(circle at 35% 30%,#e6fbf5,#9fd3c9)}
+.mw-panel .mw-amb-more{background:#ffffff10;color:var(--mw-text);font-size:15px}
+.mw-amb-body{padding:4px 4px 8px}
+@media (prefers-reduced-motion:reduce){.mw-amb-line.is-live .mw-amb-orb{animation:none}}

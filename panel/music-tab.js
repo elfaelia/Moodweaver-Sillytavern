@@ -1,6 +1,6 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { EXTRAS, ambienceBeds, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
@@ -77,7 +77,7 @@ function extrasLines(m) {
         out.push(`📻 ${esc(mus.radio.kind[0].toUpperCase() + mus.radio.kind.slice(1))} is playing in the story${end ? ` · songs from ${end} or earlier` : ''}${mus.radio.empty ? ' · no song with a Year fits, so any song plays' : !dated ? ' · no songs have a Year yet, so any song plays' : ''}`);
     }
     if (mus.sting && Date.now() - mus.sting.at < 5 * 60 * 1000) out.push(`⚡ Sting: ${esc(mus.sting.beat.toLowerCase())} → ${esc(mus.sting.name)}`);
-    if (extraOn('amb', m) && m.on) {
+    if (extraOn('amb', m) && !mus.ambPaused) {
         const beds = ambienceBeds(mus.latest, m);
         if (beds.length) out.push(`☁ Ambience: ${esc(beds.map(b => BED_LABELS[b] ?? b).join(', '))}${needsTap() ? ' · <button type="button" class="mw-music-quiet mw-music-inline" data-music="sound">Tap to start the ambience</button>' : ''}`);
     }
@@ -243,26 +243,37 @@ function settingsCard(m) {
 }
 // ✧ Extras: each one Off, on for Everyone, or on for Only some characters (ticked one by one, saved with them).
 const MODE_LABELS = [['off', 'Off'], ['all', 'Everyone'], ['some', 'Only some']];
-function extrasCard(m) {
+function extraRow(m, x) {
     const me = thisCharName();
-    const row = x => {
         const mode = m.extras[x.id] ?? 'off', ticked = extraChars(x.id), others = ticked.filter(n => norm(n) !== norm(me));
         const some = mode === 'some' ? `<div class="mw-mchips">${me ? chip(`data-music="extrachar" data-k="${x.id}"`, ticked.some(n => norm(n) === norm(me)), `${ticked.some(n => norm(n) === norm(me)) ? '✓' : '+'} ${me}`) : ''}${others.map(n => chip(`data-music="extrachar" data-k="${x.id}" data-v="${esc(n)}"`, true, `✓ ${n}`)).join('')}</div>
             <p class="mw-fine">${me ? `Tap ${esc(me)} to switch it on or off for them. ` : ''}It follows each ticked character into every chat. Tap a ticked name to untick it.</p>` : '';
         const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>` : '';
         return `<div class="mw-music-extra${x.under ? ' is-under' : ''}"><p class="mw-music-label">${esc(x.label)}${extraOn(x.id, m) ? ' <span class="mw-music-lit">· on here</span>' : ''}</p><p class="mw-fine">${esc(x.note)}</p>
             <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}</div>`;
-    };
-    const lit = EXTRAS.filter(x => extraOn(x.id, m)).map(x => x.label.toLowerCase());
-    return drawer('extras', '✧', 'Extras', lit.length ? `On here: ${esc(lit.join(', '))}` : 'Crossfade, stings, peaks, ambience, radio', EXTRAS.filter(x => !x.under || (m.extras[x.under] ?? 'off') !== 'off').map(row).join(''), ui.musicOpen?.extras);
+    }
+function extrasCard(m) {
+    const row = x => extraRow(m, x);
+    const lit = EXTRAS.filter(x => x.id !== 'amb' && extraOn(x.id, m)).map(x => x.label.toLowerCase());
+    return drawer('extras', '✧', 'Extras', lit.length ? `On here: ${esc(lit.join(', '))}` : 'Crossfade, stings, peaks, radio', EXTRAS.filter(x => x.id !== 'amb' && (!x.under || (m.extras[x.under] ?? 'off') !== 'off')).map(row).join(''), ui.musicOpen?.extras);
 }
 // After picking a song, bring its editor into view.
 function toEditor() { requestAnimationFrame(() => ui.panel?.querySelector('.mw-music-editor')?.scrollIntoView({ block: 'start', behavior: 'smooth' })); }
+// ☁ Ambience on its own line (1.83): what's playing, its own ❚❚ / ▶ (the music's pause doesn't touch it), and its
+// settings one tap away. Shown whether or not Spotify is connected.
+function ambienceLine(m) {
+    const on = extraOn('amb', m), beds = on ? ambienceBeds(mus.latest, m) : [], paused = Boolean(mus.ambPaused), open = ui.musicOpen?.amb;
+    const sub = !on ? ((m.extras.amb ?? 'off') === 'off' ? 'Off' : 'Off for this character') : paused ? 'Paused' : needsTap() && beds.length ? 'Tap anywhere to start it' : beds.length ? esc(beds.map(b => BED_LABELS[b] ?? b).join(' · ')) : 'Quiet: nothing in the scene to hear yet';
+    return `<div class="mw-amb-line${on && !paused && beds.length ? ' is-live' : ''}"><span class="mw-amb-orb" aria-hidden="true">☁</span><span class="mw-amb-text"><b>Ambience</b><small>${sub}</small></span>
+        ${on ? `<button type="button" class="mw-amb-btn" data-music="amb-pause" aria-pressed="${!paused}" aria-label="${paused ? 'Play the ambience' : 'Pause the ambience'}">${paused ? '▶' : '❚❚'}</button>` : ''}
+        <button type="button" class="mw-amb-btn mw-amb-more" data-music="amb-more" aria-expanded="${Boolean(open)}" aria-label="Ambience settings">${open ? '⌃' : '⌄'}</button></div>
+        ${open ? `<div class="mw-amb-body">${extraRow(m, EXTRAS.find(x => x.id === 'amb'))}</div>` : ''}`;
+}
 export function musicView() {
     const m = music();
-    if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
+    if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}${ambienceLine(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
     const t = tones(), lead = m.follow === 'user' ? t.user : t.char;
-    return `<div class="mw-music">${nowCard(m, lead)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${countsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
+    return `<div class="mw-music">${nowCard(m, lead)}${ambienceLine(m)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${countsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
 }
 
 // ---- Taps ----
@@ -298,6 +309,8 @@ export async function musicClick(e, redraw) {
     else if (a === 'device') { m.device = el.dataset.id; m.deviceName = mus.devices.find(d => d.id === el.dataset.id)?.name ?? ''; save(); if (m.on) await start(); redraw(); }
     else if (a === 'signout') signOut();
     else if (a === 'extra') setExtra(el.dataset.k, el.dataset.v);
+    else if (a === 'amb-pause') toggleAmbience();
+    else if (a === 'amb-more') { ui.musicOpen = { ...(ui.musicOpen ?? {}), amb: !ui.musicOpen?.amb }; redraw(); }
     else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
     else if (a === 'amblevel') setAmbLevel(el.dataset.v);
     else if (a === 'sound') redraw();

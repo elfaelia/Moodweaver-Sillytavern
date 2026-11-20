@@ -44,7 +44,7 @@ export const GUIDE_KEY = 'moodweaver-guide';
 // Takes both halves of the note out, for a paused panel, a quiet generation or an error.
 export const clearNotes = c => { c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); c.setExtensionPrompt(GUIDE_KEY, '', 0, 0, false, 0); };
 export const ctx = () => SillyTavern.getContext();
-export const VERSION = '1.82.0';
+export const VERSION = '1.83.0';
 // Which folder this copy runs from, so a second installed copy can be spotted and named.
 export const SELF = new URL('../index.js', import.meta.url).href;
 export const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };

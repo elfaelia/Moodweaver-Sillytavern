@@ -39,7 +39,7 @@ export const EXTRAS = [
     { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
     { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
     { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
-    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus skin on skin when it’s rough, all in time with them. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
+    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, and skin slapping when it’s rough, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
     { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it.' },
 ];
 const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', radio: 'all' };
@@ -229,14 +229,17 @@ const recentStory = (n = 6) => (ctx().chat ?? []).filter(x => x && !x.is_system 
 // Which of these word lists the newest text matches: [id, how many messages back] for the most recent match.
 const newestHit = (list, texts) => { let best = null; for (const [id, re] of list) { const i = texts.findIndex(t => re.test(t)); if (i >= 0 && (!best || i < best[1])) best = [id, i]; } return best; };
 export function ambienceBeds(snap = mus.latest, m = music()) {
-    if (!extraOn('amb', m) || !m.on || mus.userPaused) return [];
+    if (!extraOn('amb', m) || mus.ambPaused) return [];
     const places = snap?.places ?? new Set(), texts = recentStory(6), beds = [];
     // During sex, what they're on goes first: the newest of the last 3 messages to name it, else the place.
     if (snap?.heat === 'sex') { const on = newestHit(amb.LOVE_WORDS, texts.slice(0, 3))?.[0] ?? [...places].map(p => amb.LOVE_PLACES[p]).find(Boolean); if (on) beds.push(on); }
     // The bodies: skin on skin when it's rough or fast (the words, or the scene running hot), breath in any heat,
     // a heartbeat when it's frightening and fast or the story names one. All keep time with the scene's energy.
     const near2 = texts.slice(0, 2), said = re => near2.some(t => re.test(t));
-    if (snap?.heat === 'sex' && ((snap?.energy ?? 3) >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
+    // Wet and skin are separate layers (1.83): wet in any sex scene, under the furniture; slaps join when it's rough or fast.
+    const pace = (snap?.energy ?? 3) + amb.paceNudge(near2);
+    if (snap?.heat === 'sex' || (snap?.heat && said(amb.MORE_WORDS.wet))) beds.push('wet');
+    if (snap?.heat === 'sex' && (pace >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
     if (snap?.heat) beds.push('breath');
     if ((snap?.mode === 'danger' && (snap?.energy ?? 3) >= 4) || said(amb.MORE_WORDS.heart)) beds.push('heart');
     // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).
@@ -261,7 +264,19 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     if (snap?.night && outside && !beds.includes('rain') && !beds.includes('storm')) beds.push('crickets');
     return [...new Set(beds)].slice(0, amb.MAX_BEDS);
 }
-export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel, snap?.energy ?? 3); } catch { /* no sound here */ } }
+// Ambience runs on its own line (1.83): with or without Spotify, whether the music is playing or paused. It has its
+// own pause (mus.ambPaused, this session only). After each reply it re-reads the scene, and plays one-off sounds
+// for what just happened in the newest reply (a slap, a door, a zap): once, never on a swipe or an edit.
+function ambienceAfterReply(m) {
+    if (!extraOn('amb', m)) { amb.setBeds([]); return; }
+    const snap = sceneNow(); if (!snap) return;
+    mus.latest = snap; updateAmbience(snap);
+    const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}|${last?.send_date ?? ''}|${last?.swipe_id ?? 0}`, same = `${ctx().chatId}|${chat.length}`;
+    const fresh = Boolean(mus.ambMark) && !mus.ambMark.startsWith(same + '|'); mus.ambMark = mark;
+    if (fresh && !last?.is_user && !mus.ambPaused) { const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([, re]) => re.test(said)).map(([id]) => id)); }
+}
+export function toggleAmbience() { mus.ambPaused = !mus.ambPaused; if (!mus.ambPaused) { amb.unlock(); mus.latest ??= sceneNow(); } updateAmbience(); changed(); }
+export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel, snap?.energy ?? 3, amb.paceNudge(recentStory(2))); } catch { /* no sound here */ } }
 export const unlockSound = () => { amb.unlock(); updateAmbience(); };
 
 // ---- Playing ----
@@ -306,7 +321,9 @@ export async function start(exclude = [], deep = false, sure = false) {
 }
 // After each reply: decide whether this is a real shift worth cutting the song for.
 export async function afterReply() {
-    const m = music(); if (!m.on || !sp.signedIn(m) || run.suspended) return;
+    const m = music(); if (run.suspended) return;
+    ambienceAfterReply(m);
+    if (!m.on || !sp.signedIn(m)) return;
     const snap = sceneNow(); if (!snap) return;
     const famHeld = snap.fams[0] && snap.fams[0] === mus.lastFam ? snap.fams[0] : mus.anchor?.fams[0];
     mus.lastFam = snap.fams[0] ?? ''; mus.latest = snap;
@@ -322,10 +339,6 @@ export async function afterReply() {
     // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
     if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
     updateAmbience(snap);
-    // One-off sounds for what just happened in the newest reply (a slap, a door, a zap): once, never on a swipe or edit.
-    if (!swiped && !last?.is_user && extraOn('amb', m) && !mus.userPaused) {
-        const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([, re]) => re.test(said)).map(([id]) => id));
-    }
     // A song you picked yourself plays to its end: no reply, cue or sting cuts it.
     if (mus.locked || swiped || (mus.chosen && mus.chosen === mus.now?.uri)) { changed(); return; }
     // The words of this turn: the newest reply, and your message if it came just before it.
@@ -681,7 +694,7 @@ export function poller() {
 }
 export function initMusic() {
     music(); poller(); void applyBundle();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && music().on && sp.signedIn(music())) { void sync(); updateAmbience(); } });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') return; if (music().on && sp.signedIn(music())) void sync(); updateAmbience(); });
     // iPhone Safari only lets sound start inside a tap. Any tap on the page (not only the Music tab) wakes the
     // ambience when it's waiting, including after the screen was locked.
     const wake = () => { if (amb.needsTap()) unlockSound(); };

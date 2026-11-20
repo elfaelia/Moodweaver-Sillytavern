@@ -39,11 +39,10 @@ export const EXTRAS = [
     { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
     { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
     { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
-    { id: 'amb', label: 'Ambience', note: 'A quiet sound bed under the music, picked by itself from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night. It plays on the phone or computer you have SillyTavern open on.' },
-    { id: 'camera', label: 'Camera clicks', under: 'amb', note: 'Part of the ambience: a camera’s shutter clicking softly, with long pauses and now and then the film winding on, in a darkroom or when the last few messages mention a camera, a shutter, a polaroid or the dark room.' },
+    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus skin on skin when it’s rough, all in time with them. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
     { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it.' },
 ];
-const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', camera: 'some', radio: 'all' };
+const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', radio: 'all' };
 const charKey = () => norm(shortName(target()?.name ?? ''));
 export function extraOn(id, m = music()) {
     const mode = m.extras?.[id] ?? 'off';
@@ -177,8 +176,10 @@ function cuePlayed(m, uri) {
     { for (const [u, t] of Object.entries(m.cueAt)) if (Date.now() - t > CUE_REST) delete m.cueAt[u]; } }
 
 function ranked(snap, m = music(), exclude = []) {
-    const songs = usableSongs(m).filter(s => !exclude.includes(s.uri)), recent = new Set(m.recent.slice(-20));
-    let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m) });
+    // Songs you skipped in the last half hour sit out, unless that would leave nothing to play.
+    const skipped = skippedNow(), all = usableSongs(m).filter(s => !exclude.includes(s.uri)), rest = all.filter(s => !skipped.has(s.uri));
+    const songs = rest.length >= 3 ? rest : all, recent = new Set(m.recent.slice(-20));
+    let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m), radio: radioOn(m) });
     // In-story radio: only songs from the story's era or earlier (by the sheet's Year), still in order of fit.
     if (radioOn(m)) {
         const end = eraEnd(), year = new Map(songs.map(s => [s.uri, s.tags.yr]));
@@ -230,6 +231,14 @@ const newestHit = (list, texts) => { let best = null; for (const [id, re] of lis
 export function ambienceBeds(snap = mus.latest, m = music()) {
     if (!extraOn('amb', m) || !m.on || mus.userPaused) return [];
     const places = snap?.places ?? new Set(), texts = recentStory(6), beds = [];
+    // During sex, what they're on goes first: the newest of the last 3 messages to name it, else the place.
+    if (snap?.heat === 'sex') { const on = newestHit(amb.LOVE_WORDS, texts.slice(0, 3))?.[0] ?? [...places].map(p => amb.LOVE_PLACES[p]).find(Boolean); if (on) beds.push(on); }
+    // The bodies: skin on skin when it's rough or fast (the words, or the scene running hot), breath in any heat,
+    // a heartbeat when it's frightening and fast or the story names one. All keep time with the scene's energy.
+    const near2 = texts.slice(0, 2), said = re => near2.some(t => re.test(t));
+    if (snap?.heat === 'sex' && ((snap?.energy ?? 3) >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
+    if (snap?.heat) beds.push('breath');
+    if ((snap?.mode === 'danger' && (snap?.energy ?? 3) >= 4) || said(amb.MORE_WORDS.heart)) beds.push('heart');
     // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).
     const stop = texts.findIndex(t => amb.WEATHER_STOP.test(t)), sky = newestHit(amb.WEATHER_WORDS, texts);
     if (places.has('stormy')) beds.push('storm'); else if (places.has('raining')) beds.push('rain');
@@ -237,18 +246,22 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     // The place: a place fact first, else the place the last 4 messages most recently put them in.
     const place = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
     if (place) beds.push(place);
+    // A facility under it all (a facility place, or the last 4 messages put them in one), live wires, an alarm.
+    if ([...places].some(p => amb.VENT_PLACES.has(p)) || texts.slice(0, 4).some(t => amb.MORE_WORDS.vent.test(t))) beds.push('vent');
+    if (texts.slice(0, 3).some(t => amb.MORE_WORDS.buzz.test(t))) beds.push('buzz');
+    if (said(amb.MORE_WORDS.alarm)) beds.push('alarm');
     if (radioOn(m)) beds.push('crackle');
-    // Layers on top: the camera (its own setting, for a darkroom or a camera in the last 3 messages), a clock,
+    // Layers on top: a camera (a darkroom, a studio or a camera in the last 3 messages), a clock,
     // birds by day, crickets at night outdoors.
     const near = texts.slice(0, 3), has = id => amb.LAYER_WORDS.find(([k]) => k === id)[1];
-    if (extraOn('camera', m) && (places.has('darkroom') || near.some(t => has('camera').test(t)))) beds.push('camera');
+    if (places.has('darkroom') || places.has('photo_studio') || near.some(t => has('camera').test(t))) beds.push('camera');
     if (near.slice(0, 2).some(t => has('clock').test(t))) beds.push('clock');
     const outside = [...places].some(p => OUTSIDE.has(p)) || ['wind', 'waves', 'fire'].includes(place);
     if (!snap?.night && near.some(t => has('birds').test(t)) && !beds.includes('storm')) beds.push('birds');
     if (snap?.night && outside && !beds.includes('rain') && !beds.includes('storm')) beds.push('crickets');
-    return [...new Set(beds)].slice(0, 3);
+    return [...new Set(beds)].slice(0, amb.MAX_BEDS);
 }
-export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel); } catch { /* no sound here */ } }
+export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel, snap?.energy ?? 3); } catch { /* no sound here */ } }
 export const unlockSound = () => { amb.unlock(); updateAmbience(); };
 
 // ---- Playing ----
@@ -309,6 +322,10 @@ export async function afterReply() {
     // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
     if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
     updateAmbience(snap);
+    // One-off sounds for what just happened in the newest reply (a slap, a door, a zap): once, never on a swipe or edit.
+    if (!swiped && !last?.is_user && extraOn('amb', m) && !mus.userPaused) {
+        const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([, re]) => re.test(said)).map(([id]) => id));
+    }
     // A song you picked yourself plays to its end: no reply, cue or sting cuts it.
     if (mus.locked || swiped || (mus.chosen && mus.chosen === mus.now?.uri)) { changed(); return; }
     // The words of this turn: the newest reply, and your message if it came just before it.
@@ -354,6 +371,22 @@ export async function afterReply() {
         try { await playList(m, lineup(list, first), at ? [...first.why, 'started at its peak'] : first.why, snap, true, at); } catch (err) { say(err.message, true); }
     } else changed();
 }
+// ---- Skips (1.80) ----
+// A song that changed before it was nearly over, in the line-up's order (skipped in Spotify or with ⏭ here), is a
+// skip. Skipped songs sit out for SKIP_REST. Two skips in one line-up, or reaching its last song, build a fresh
+// line-up from the scene as it is now: straight away if the song that's on only just started, else when it ends.
+const SKIP_REST = 30 * 60 * 1000;
+function skippedNow() { const now = Date.now(); mus.skips = (mus.skips ?? []).filter(x => now - x.at < SKIP_REST); return new Set(mus.skips.map(x => x.uri)); }
+function noteSkip(uri) { if (uri) mus.skips = [...(mus.skips ?? []).filter(x => x.uri !== uri), { uri, at: Date.now(), lineup: mus.cutAt }]; }
+function watchSkips(p) {
+    const uri = p.item.uri, was = mus.seen, at = mus.lineup.indexOf(uri);
+    mus.seen = { uri, at, started: Date.now() - (p.progress_ms ?? 0), ms: p.item.duration_ms ?? 0, lineup: mus.cutAt };
+    if (!was || was.uri === uri || was.lineup !== mus.cutAt || at < 0) return;
+    // Moved on before the last 8 seconds: skipped. Songs jumped over in between were skipped too.
+    if (was.at >= 0 && at > was.at && Date.now() - was.started < was.ms - 8000) { noteSkip(was.uri); for (const u of mus.lineup.slice(was.at + 1, at)) noteSkip(u); }
+    const skips = (mus.skips ?? []).filter(x => x.lineup === mus.cutAt).length, last = at >= mus.lineup.length - 1;
+    if (skips >= 2 || last) { if ((p.progress_ms ?? 0) < 25000 && skips >= 2) { mus.refresh = false; void start([uri]); } else mus.refresh = true; }
+}
 // What Spotify is playing now; keeps the end-of-song timer right.
 export async function sync() {
     const m = music(); if (!sp.signedIn(m)) return;
@@ -362,6 +395,7 @@ export async function sync() {
     if (!p?.item) { if (mus.now) mus.now.playing = false; changed(); if (ranDry(m, null)) void start(); return; }
     const uri = p.item.uri, art = p.item.album?.images?.at(-1)?.url ?? p.item.album?.images?.[0]?.url ?? '';
     if (uri !== mus.now?.uri) { remember(m, uri); if (mus.now && !mus.lineup.includes(uri)) mus.why = []; }
+    if (p.is_playing) watchSkips(p);
     mus.now = { uri, name: p.item.name ?? '', artist: (p.item.artists ?? []).map(a => a.name).join(', '), art, ms: p.item.duration_ms ?? 0, progress: p.progress_ms ?? 0, started: Date.now() - (p.progress_ms ?? 0), playing: Boolean(p.is_playing), device: p.device?.name ?? '' };
     if (p.device?.id) { m.device = p.device.id; m.deviceName = p.device.name ?? ''; }
     const left = (p.item.duration_ms ?? 0) - (p.progress_ms ?? 0);
@@ -388,7 +422,8 @@ async function songEnding() {
     const snap = mus.latest ?? sceneNow(); if (!snap) return sync();
     const list = ranked(snap, m, [p.item.uri]); if (!list.length) return sync();
     const at = mus.lineup.indexOf(p.item.uri), planned = at >= 0 ? mus.lineup[at + 1] : null, plannedScore = list.find(x => x.uri === planned)?.score ?? -Infinity;
-    if (planned && plannedScore >= list[0].score - 2) { setTimeout(() => void sync(), left + 1500); return; }
+    if (planned && !mus.refresh && plannedScore >= list[0].score - 2) { setTimeout(() => void sync(), left + 1500); return; }
+    mus.refresh = false;
     const first = pick(list);
     setTimeout(async () => { try { await playList(m, lineup(list, first), first.why, snap, false); } catch (err) { say(err.message, true); } }, Math.max(0, left - 1200));
 }
@@ -413,7 +448,7 @@ export function markPeak() {
     const sec = Math.max(1, Math.round(nowAt() / 1000)); setTag(uri, 'pk', String(sec));
     say(`Peak set at ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} for ${mus.now.name}. Change or clear it in ✎ Tags › Sting, peak and year.`);
 }
-export const nextBest = () => start(mus.now ? [mus.now.uri] : []);
+export const nextBest = () => { if (mus.now?.uri && nowAt() < (mus.now.ms || Infinity) - 8000) noteSkip(mus.now.uri); return start(mus.now ? [mus.now.uri] : []); };
 // ↻ Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
 // lit playlists while SillyTavern was closed, read the last 6 messages again (scene kind,
 // moods, heat, lyric cues) and start a fresh line-up with a different song from the one that was on.
@@ -463,7 +498,7 @@ export function toggleLock() { mus.locked = !mus.locked; changed(); }
 export async function setOn(on) { const m = music(); m.on = on; save(); updateAmbience(); if (on) { await sync(); if (!mus.now?.playing) await start(); poller(); } else { clearTimeout(mus.timer); try { const d = await deviceFor(m); await sp.pause(m, d.id); } catch { /* nothing playing */ } changed(); } }
 // ✓ Fits and ✗ Not here: remember it for this kind of scene. Five ✗ in the same moment or heat add it to Never during.
 export async function feedback(good) {
-    const m = music(), uri = mus.now?.uri, snap = sceneNow() ?? mus.latest; if (!uri || !snap) return;
+    const m = music(), uri = mus.now?.uri, snap = sceneNow() ?? mus.latest; if (!uri || !snap) return say('Nothing is playing to mark yet: tap ▶ first.', true);
     mus.latest = snap;
     // ✗ Not here is final for this kind of scene: the song (and every other version of it, like a cover with the
     // same title) is never played in this kind of scene again. Undo it in the song's tags (Never during).
@@ -483,6 +518,8 @@ export async function feedback(good) {
     // The song's sound (its Spotify genres) counts for this kind of scene too, so songs that sound like it rise.
     const g = m.songs[uri]?.g ?? [], kind = snap.mode || 'any', sound = m.sound[kind] ??= {};
     for (const x of g) { const k = norm(x); sound[k] = Math.max(-3, Math.min(4, (sound[k] ?? 0) + (good ? 1 : -0.5))); }
+    // The ✦ Fits button shows it took, for as long as this song plays (panel/music-tab.js).
+    if (good) mus.fitsMark = { uri, at: Date.now(), scene: snap.mode ? modeLabel(snap.mode) : '' };
     save(); say(good ? 'Noted: it fits scenes like this, and songs that sound like it will come up more.' : 'Noted. Finding something better…');
     if (!good) await start([uri]);
 }
@@ -644,7 +681,11 @@ export function poller() {
 }
 export function initMusic() {
     music(); poller(); void applyBundle();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && music().on && sp.signedIn(music())) void sync(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && music().on && sp.signedIn(music())) { void sync(); updateAmbience(); } });
+    // iPhone Safari only lets sound start inside a tap. Any tap on the page (not only the Music tab) wakes the
+    // ambience when it's waiting, including after the screen was locked.
+    const wake = () => { if (amb.needsTap()) unlockSound(); };
+    document.addEventListener('touchend', wake, { passive: true }); document.addEventListener('click', wake, { passive: true });
     void checkReturn().then(() => { if (music().on && sp.signedIn(music())) void sync(); });
 }
 // Settings › Music: what the story is told about the music, at the end of the note. Two switches:

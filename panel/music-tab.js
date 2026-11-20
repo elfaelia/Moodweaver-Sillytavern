@@ -21,6 +21,11 @@ function tones() {
     const char = moodTone(getState()?.moods), user = moodTone(getUserState()?.moods);
     return { char, user, both: char };
 }
+// ✦ Fits, and once tapped for the song that's on, a lit ✓ that says it took (with a short pop the first time).
+function fitsButton() {
+    const f = mus.fitsMark, on = Boolean(f && f.uri === mus.now?.uri), fresh = on && Date.now() - f.at < 1500;
+    return `<button type="button" data-music="fits" class="${on ? 'is-noted' : ''}${fresh ? ' is-pop' : ''}" aria-pressed="${on}">${on ? '✓ Noted' : '✦ Fits'}</button>`;
+}
 // A drawer: a glowing orb, the title, one quiet line under it, and a chevron.
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const drawer = (fold, icon, title, sub, body, open) => `<details class="mw-music-drawer" ${open ? 'open' : ''} data-music-fold="${fold}">
@@ -114,7 +119,7 @@ function nowCard(m, tone) {
         </div>
         <button type="button" class="mw-music-reroll" data-music="reroll"${mus.busy ? ' disabled' : ''}>↻ Re-roll for the story now</button>
         ${mus.error ? `<p class="mw-music-note is-warn">${esc(mus.error)}</p>` : ''}
-        ${n ? `<div class="mw-music-verdict"><button type="button" data-music="fits">✦ Fits</button><button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button><button type="button" data-music="notes" aria-pressed="${Boolean(ui.musicNotes)}" aria-label="Why this song">ⓘ</button></div>` : ''}
+        ${n ? `<div class="mw-music-verdict">${fitsButton()}<button type="button" data-music="nothere">✕ Not here</button><button type="button" data-music="edit-now">✎ Tags</button><button type="button" data-music="notes" aria-pressed="${Boolean(ui.musicNotes)}" aria-label="Why this song">ⓘ</button></div>${mus.fitsMark?.uri === mus.now?.uri ? `<p class="mw-music-noted">✓ Saved: this song fits ${mus.fitsMark.scene ? `${esc(mus.fitsMark.scene.toLowerCase())} scenes` : 'scenes'} like this one.</p>` : ''}` : ''}
         ${whyBlock(m, heardLine, why, snap)}
         ${kindRow(snap)}
         ${mus.loading ? `<p class="mw-music-note">${esc(mus.loading)}</p>` : ''}

@@ -54,9 +54,9 @@ export function settingsView(state) {
             <p class="mw-fine">Secrets written on a profile card move from hidden to suspected, known (a hook the other one holds) and out, by the story or by your tap. A hidden one is sent only when the scene comes close to it; suspected and known go every reply. Adds one field to the hidden line while any secret exists.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendPlan" ${settings().blendPlan ? 'checked' : ''}> Ask it to plan the blend while thinking</label>
             <p class="mw-fine">Usually best off: Opus 5.5 plans on its own.</p>
-            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><pre data-audit></pre>
+            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><details class="mw-sent-full"><summary>What’s sent, in full</summary><pre data-audit></pre>
             <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
-            <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
+            <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details></details>
         <details class="mw-advanced" data-settings="board"><summary>Info board</summary>
             
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardSend" ${settings().boardSend ? 'checked' : ''}> Send the board prompt</label>

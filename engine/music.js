@@ -265,7 +265,16 @@ const blocked = (nv, snap) => nv.some(x => {
     const [k, id] = [x.slice(0, x.indexOf(':')), x.slice(x.indexOf(':') + 1)];
     return k === 'f' ? snap.fams.slice(0, 2).includes(id) : k === 'mo' ? snap.moments.has(id) : k === 'h' ? snap.heat === id : k === 'k' ? snap.mode === id : false;
 });
-// opts: { recent: Set of uris, learn: { key: n } for this song, themeOn: 'big' | 'always' | 'off' }
+// Sounds that don't belong under sex: the old-time pop of the 1940s to early 60s (Spotify's genres, or a year
+// before 1964 when the song has none), except a slow, sultry one led by desire (Fever); and in a sex scene, any
+// bright, fast pop led by happiness.
+const OLD_POP = /\b(adult standards|doo-?wop|swing|big band|rockabilly|rock (?:and|n|'n') roll|bubblegum|girl group|easy listening|brill building|merseybeat|traditional pop|vocal jazz|crooner|lounge|exotica|british invasion|beat music|sunshine pop|novelty)\b/i;
+export function wrongForHeat(tags, g = [], heat = '') {
+    const old = (g ?? []).length ? g.some(x => OLD_POP.test(x)) : Boolean(tags.yr && tags.yr < 1964);
+    if (old && !(tags.f[0] === 'desire' && tags.e && tags.e <= 2)) return true;
+    return heat === 'sex' && tags.f[0] === 'happy' && tags.e >= 4;
+}
+// opts: { recent: Set of uris, learn: { key: n } for this song, themeOn: 'big' | 'always' | 'off', radio: the in-story radio is on }
 export function scoreSong(tags, snap, opts = {}) {
     if (tags.off || blocked(tags.nv, snap)) return { score: -Infinity, why: [] };
     // Hard lines: a sex song never plays outside an intimate scene, and a bright, happy song with nothing
@@ -273,6 +282,9 @@ export function scoreSong(tags, snap, opts = {}) {
     if (tags.h === 'sex' && !snap.heat) return { score: -Infinity, why: [] };
     const bright = ['happy', 'energy'].includes(tags.f[0]) && !tags.f.includes('desire') && !tags.h && !tags.mo.includes('seduction');
     if (snap.heat && bright) return { score: -Infinity, why: [] };
+    // 1.80: old-time pop (crooners, doo-wop, swing, rockabilly) and bright upbeat pop sound wrong under foreplay and
+    // sex, whatever their tags say, unless it's the in-story radio or you said ✦ Fits for it in this heat.
+    if (snap.heat && !opts.radio && !((opts.learn?.[`h:${snap.heat}`] ?? 0) > 0) && wrongForHeat(tags, opts.g, snap.heat)) return { score: -Infinity, why: [] };
     let score = 0; const why = [], add = (n, w) => { score += n; if (w && n > 0) why.push(w); };
     if (snap.mode) { if (fitsMode(tags, snap.mode, snap)) add(POINTS.modeFit, MODE_BY_ID[snap.mode].label); else add(snap.mode === 'intimate' ? POINTS.modeMissIntimate : POINTS.modeMiss); }
     // Character: whose side the song is on. The person the music follows counts most; the other one of you in the

@@ -148,14 +148,14 @@ function drawPanel() {
     ${state ? body : ''}
     ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
-    restorePanelFields(ui.panel, snapshot); moonify(ui.panel);
+    restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
 }
 // Draw the rows of folded groups that were left empty (all of them in scope, or the one just opened).
 export function fillLazy(scope) {
     const bodies = scope?.matches?.('[data-lazy]') ? [scope] : [...(scope?.querySelectorAll('[data-lazy]') ?? [])];
-    for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) { el.innerHTML = rows(); moonify(el); } }
+    for (const el of bodies) { const rows = ui.lazyBodies?.get(el.dataset.lazy); el.removeAttribute('data-lazy'); if (rows) { el.innerHTML = rows(); moonify(el); pillify(el); foldNotes(el); } }
 }
 // Every slider in the panel is shown as moons to tap, no dragging. The slider stays in the page, hidden, and a tap
 // sets it and sends the same input and change events a drag would, so each tab's own handling is unchanged.
@@ -174,8 +174,69 @@ export function moonify(root) {
         const bond = input.closest('.mw-bond-meter');
         if (bond) box.classList.add('mw-stars', bond.classList.contains('mw-more-meter') ? 'mw-stars-line' : 'mw-stars-arc');
         else if (/^mw-(rel|pair|compare)-slider/.test(input.id)) box.classList.add('mw-stars', 'mw-stars-line');
-        input.after(box); drawMoons(input, box);
+        // − and + either side (1.82): a step to the next moon down or up, so nothing small has to be aimed at.
+        const row = document.createElement('div'), step = (d, t) => `<button type="button" class="mw-step" data-range-step="${d}" aria-label="${t}" title="${t}"${input.disabled ? ' disabled' : ''}>${d < 0 ? '−' : '+'}</button>`;
+        row.className = 'mw-stepped'; input.after(row); row.insertAdjacentHTML('afterbegin', step(-1, 'Less')); row.append(box); row.insertAdjacentHTML('beforeend', step(1, 'More'));
+        drawMoons(input, box);
     }
+}
+// Short choices (1.82): a dropdown with up to five short options shows as a row of pills instead, so a choice is one
+// tap and not the phone's wheel picker. The select stays, hidden, and a tap sets it and fires its change event.
+export function pillify(root) {
+    for (const sel of root?.querySelectorAll?.('select:not([data-pills]):not([multiple])') ?? []) {
+        const opts = [...sel.options].filter(o => !o.hidden && !(o.disabled && !o.value));
+        const short = opts.length >= 2 && opts.length <= 5 && opts.every(o => o.text.trim().length <= 16) && opts.reduce((n, o) => n + o.text.trim().length, 0) <= 46 && !opts.some(o => o.value === '' && /…|\.\.\./.test(o.text));
+        if (!short) continue;
+        sel.dataset.pills = '1'; sel.hidden = true; sel.tabIndex = -1;
+        const row = document.createElement('div');
+        row.className = 'mw-pills'; row.setAttribute('role', 'radiogroup'); if (sel.getAttribute('aria-label')) row.setAttribute('aria-label', sel.getAttribute('aria-label'));
+        row.innerHTML = opts.map(o => `<button type="button" role="radio" data-pill="${esc(o.value)}" aria-checked="${o.selected}" class="${o.selected ? 'is-on' : ''}"${sel.disabled || o.disabled ? ' disabled' : ''}>${esc(o.text.trim())}</button>`).join('');
+        sel.after(row);
+    }
+}
+// Long explanations (1.82) fold to one faint line with an ⓘ; a tap opens them. Short notes, warnings and empty-list
+// lines stay as they are. Which ones are open is remembered by their first words, so a re-render keeps them open.
+const NOTE_SEL = 'p.mw-fine, p.mw-explainer, p.mw-music-note';
+const noteKey = el => el.textContent.trim().slice(0, 60);
+export function foldNotes(root) {
+    ui.openNotes ??= new Set();
+    for (const p of root?.querySelectorAll?.(NOTE_SEL) ?? []) {
+        if (p.dataset.fold || p.matches('.mw-period-warn, .mw-empty-list, .mw-scope-none, [data-filter-empty]') || p.closest('[role="status"], .mw-want-empty')) continue;
+        if (p.textContent.trim().length < 70 || p.querySelector('input, select, button, textarea')) continue;
+        p.dataset.fold = '1'; p.classList.add('mw-foldable'); p.classList.toggle('is-open', ui.openNotes.has(noteKey(p)));
+        p.setAttribute('role', 'button'); p.tabIndex = 0; p.setAttribute('aria-expanded', String(p.classList.contains('is-open')));
+    }
+}
+export function toggleNote(p) {
+    const open = p.classList.toggle('is-open'); p.setAttribute('aria-expanded', String(open));
+    ui.openNotes ??= new Set(); if (open) ui.openNotes.add(noteKey(p)); else ui.openNotes.delete(noteKey(p));
+}
+export function tapPill(button) {
+    const sel = button.closest('.mw-pills')?.previousElementSibling;
+    if (!sel || sel.tagName !== 'SELECT' || sel.disabled) return;
+    sel.value = button.dataset.pill;
+    for (const b of button.parentElement.children) { const on = b === button; b.classList.toggle('is-on', on); b.setAttribute('aria-checked', String(on)); }
+    sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+// The stops the moons stand for, lowest first, and which one the slider is at now.
+function moonStops(input) {
+    const min = Number(input.min) || 0, v = Number(input.value) || 0;
+    if (min < 0) { const at = POLE_FROM.reduce((k, f, i) => Math.abs(v) >= f ? i : k, -1); return { stops: [...POLE_AT.map(t => -t).reverse(), 0, ...POLE_AT], i: at < 0 ? 4 : 4 + (v < 0 ? -1 : 1) * (at + 1) }; }
+    const at = MOON_FROM.reduce((k, f, i) => v >= f ? i : k, -1);
+    return { stops: [min, ...MOON_AT.map(t => Math.max(min, t))], i: at < 0 || v <= min ? 0 : at + 1 };
+}
+const inputOf = el => el.closest('.mw-stepped')?.previousElementSibling;
+function setRange(input, to) {
+    input.value = String(to);
+    input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
+    const box = input.nextElementSibling?.querySelector('.mw-range-moons');
+    if (input.isConnected && box) drawMoons(input, box);
+}
+export function stepRangeMoon(button) {
+    const input = inputOf(button);
+    if (!input || input.type !== 'range' || input.disabled) return;
+    const { stops, i } = moonStops(input), j = Math.max(0, Math.min(stops.length - 1, i + Number(button.dataset.rangeStep)));
+    if (j !== i) setRange(input, stops[j]);
 }
 function drawMoons(input, box) {
     const min = Number(input.min) || 0, v = Number(input.value) || 0, off = input.disabled, two = min < 0;
@@ -203,13 +264,10 @@ function starLines(box) {
 }
 // A tap on one of those moons: set the slider, fire its events, redraw the moons (a re-render may replace them anyway).
 export function tapRangeMoon(button) {
-    const input = button.closest('.mw-range-moons')?.previousElementSibling;
+    const input = inputOf(button);
     if (!input || input.type !== 'range' || input.disabled) return;
     const min = Number(input.min) || 0, rest = min < 0 ? 0 : min;
-    const to = button.classList.contains('is-now') ? rest : Number(button.dataset.rangeMoon);
-    input.value = String(to);
-    input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
-    if (input.isConnected) drawMoons(input, button.closest('.mw-range-moons'));
+    setRange(input, button.classList.contains('is-now') ? rest : Number(button.dataset.rangeMoon));
 }
 export function onGroupToggle(e) { if (e.target.matches?.('details') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
 export function toggleTop() { const b = ui.panel?.querySelector('.mw-to-top'); if (b) b.hidden = ui.panel.scrollTop < 500; }

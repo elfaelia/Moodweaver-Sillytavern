@@ -217,10 +217,11 @@ const STANDING_FACTS = {
 };
 const STEAM_RULES = new Set(['prose_steam_in_character', 'prose_bed_talk']);
 const PRIVATE_SCENE = /\b(shower\w*|bath(e|es|ed|ing|tub)?|naked|nude|undress\w*|strip\w*|bed|bedroom|sex\w*|cock|dick|penis|crotch|groin|trousers|pants|zipper|erection|hard-on|kiss\w*|moan\w*|thighs?)\b/i;
+const SIZE_SCENE = /\b(size|sized|inch(es)?|girth|measur\w*|endowed|hung|cup size|flat-chested|compar\w* (him|her|them|it|his|hers)|(small|smaller|little|tiny|big|bigger|huge|large|larger) (cock|dick|penis|prick|breasts|tits|chest))\b/i;
 const labelIn = (m, scene) => { const key = m.label.replace(/\s*\(.*\)\s*$/, '').toLowerCase(); return key.length > 3 && scene.toLowerCase().includes(key); };
 const factOn = (st, scene, gate) => m => {
     if (m.kind !== 'state' || sectionOf(m) !== 'state') return true;
-    if (m.private) return gate.intimate;
+    if (m.private) return gate.intimate && (!m.size || gate.size);
     if (!gate.on || !STANDING_FACTS[m.category]) return true;
     return st.moods[m.id] >= 81 || gate.refresh || sceneHas(m, scene) || labelIn(m, scene) || STANDING_FACTS[m.category].test(scene);
 };
@@ -291,6 +292,9 @@ function composePrompt(state, name, extras = {}) {
     TRAITS = { focus: extras.traitFocus !== false, scene, seed };
     const aroused = st => live(st).some(m => (AROUSED.has(m.id) && st.moods[m.id] >= 41) || (m.category === 'bedroom' && st.moods[m.id] > 0));
     const gate = { on: extras.factsWhenRelevant !== false, refresh: seed < 3 || seed % 6 === 0,
+        // Size facts (1.80.1): in an intimate scene they'd go every reply, and Claude then brought them up every
+        // reply. Now only when the scene draws attention to size, or one reply in five as a reminder.
+        size: SIZE_SCENE.test(scene) || seed < 2 || seed % 5 === 0,
         intimate: PRIVATE_SCENE.test(scene) || [state, player?.state, ...(extras.cast ?? []).filter(p => p.inScene).map(p => p.state)].some(st => st?.enabled && aroused(st)) };
     const shown = st => m => mindOn(st, scene)(m) && factOn(st, scene, gate)(m);
     const mine = live(state).filter(m => m.kind !== 'story').filter(shown(state));

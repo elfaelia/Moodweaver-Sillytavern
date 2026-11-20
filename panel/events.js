@@ -20,7 +20,7 @@ import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
 import { musicChange, musicClick, musicInput } from './music-tab.js';
 import { findList } from './find.js';
-import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, tapRangeMoon } from './render.js';
+import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, stepRangeMoon, tapPill, tapRangeMoon, toggleNote } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { dockOf, tabStep, tabsFor } from './header.js';
@@ -335,8 +335,11 @@ export async function onPanelClick(e) {
         range.value = String(Math.max(Number(range.min), Math.min(Number(range.max), 0)));
         range.dispatchEvent(new Event('input', { bubbles: true })); range.dispatchEvent(new Event('change', { bubbles: true })); return;
     }
+    const note = e.target.closest('[data-fold]'); if (note && !e.target.closest('a')) { toggleNote(note); return; }
     const button = e.target.closest('button'); if (!button) return;
     if (button.dataset.rangeMoon !== undefined) { tapRangeMoon(button); return; }
+    if (button.dataset.rangeStep !== undefined) { stepRangeMoon(button); return; }
+    if (button.dataset.pill !== undefined) { tapPill(button); return; }
     if (button.dataset.who) {
         if (button.closest('.mw-board')) ui.tab = 'mood';
         ui.who = button.dataset.who; ui.browsing = false; ui.skillSheet = ''; ui.settingsOpen = false; ui.boardFocus = ''; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId;

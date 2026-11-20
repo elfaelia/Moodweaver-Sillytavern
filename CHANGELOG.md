@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.82.0: the new look, step one (stars, − and +, pills, folded explanations, a slimmer top)
+
+The first half of the UI overhaul, on every page at once. Each page's own piece of the sky, the Sky overview and the regrouped Settings come in step two.
+
+- **− and + on every scale.** Every moon scale in the panel (moods, needs, relationship sliders, meters, desire, wants and the rest) now has a round − on the left and + on the right. Each tap steps to the next moon down or up, so nothing small has to be aimed at. Tapping a moon directly still works, and tapping the lit one still clears it.
+- **Star switches.** Every tickbox is now a four-point star: a dim outline when off, lit gold and turned a little when on. Same switches, same places.
+- **Pills instead of short dropdowns.** A dropdown with up to five short choices (Speed, Your sliders, When their moods clash and others) is now a row of pills: one tap picks, and the picked one glows. Long lists (authors, which feelings, starter blends) keep their dropdown.
+- **Explanations fold away.** A long explanation under a setting or at the top of a tab now shows as one faint line with a gold ⓘ. Tap it to read the whole thing, tap again to fold it. Short notes, warnings and empty-list lines stay open. The full prompt preview in Settings › What is sent sits under "What's sent, in full".
+- **A slimmer top.** You and the main character are now two slim pills with your leading feeling, and the cast sits beside them in the same row, which gives back about a fifth of the screen on every page.
+
+## 1.81.0: more sounds, one Ambience switch, size facts in the background
+
+- **Many more sounds, all reacting to the scene.** New layers that come and go with the story, at most four at once (during sex the bodies come first, then the weather and the place):
+  - **Skin on skin** during sex when it gets rough or fast (the words "pounding", "harder and faster", "the slap of skin", or the scene's energy running high), in time with the furniture.
+  - **Breathing** in any heat, foreplay or sex, quicker as it gets more intense.
+  - **A heartbeat** when a dangerous scene runs high, or when the story says a heart is pounding or racing.
+  - **A facility**: vents, a low hum, distant doors and an odd beep, for a facility, observation room, cell, lab, boiler room, interrogation room or shelter (the place fact, or the last four messages naming one).
+  - **Live wires**: an electrical buzz with sparks, when wires, electrodes or a shock machine are in the last three messages.
+  - **A distant alarm** when an alarm, siren or lockdown is in the last two messages.
+  - The hospital monitor now beeps faster when the scene is tense.
+- **One-off sounds for big moments.** When a new reply has a slap or a spanking, a door slamming, a zap or a jolt of current, a gunshot, breaking glass, a metal door or chains clanging, a crack of thunder, a flatline, a defibrillator charging and firing, or a drill, it plays once over everything, a moment after the reply arrives (up to three, one after the other). Never on a swipe, an edit or your own message, and only while Ambience is on and the music isn't paused by you.
+
+- **Ambience is one thing now.** Camera clicks and Bed and furniture sounds were their own rows under Ambience, while every other sound came with it. They're folded in: with Ambience on, every sound plays when the scene calls for it (a camera when one is in use or in a darkroom or studio, the furniture during sex). Ambience keeps Off, Everyone and Only some.
+- **Size facts stay in the background.** In an intimate scene a size fact went to Claude every reply, and with a touchy character (Easterman's small size) that made him bring it up in almost every message. Now it goes only when the scene draws attention to size (the words size, inches, a comparison, "small cock" and the like) or one reply in five as a reminder. Its wording also says it isn't mentioned in most replies and comes up once when something draws attention to it, not over and over. Still there, just not in every message.
+
+## 1.80.0: bed and furniture sounds, a clear ✦ Fits, no old-time pop under sex, skips refresh the line-up
+
+- **Bed and furniture sounds.** A new part of Ambience (Music › Extras, on for everyone, under Ambience). During a sex scene, what they're on keeps time with them: a creaking bed, and the headboard knocking when it gets rough; a squeaking office chair; a desk or table thudding with things rattling on it; thuds against a wall or door; a car rocking on its springs; a couch; the floorboards. It's picked from the last three messages ("bent over the desk", "the office chair creaked", "the back seat"), else from the place (a bedroom, hotel or motel is a bed, an office a chair, a car a car, a living room the couch). It only plays while the scene reads as sex, gets quicker as it gets more intense, is a little uneven like people are, and pauses now and then. Like the rest of the ambience it's made live in the browser, so nothing is downloaded.
+- **On iPhone Safari.** The ambience now tells Safari it's background sound, so it mixes with Spotify playing in its own app instead of pausing it. Any tap on the page starts it (before, only taps on the Music tab did), and it wakes again after a call or a locked screen with the next tap. iPhones mute this kind of browser sound when the ringer switch is on silent, and Safari pauses it while the screen is locked.
+- **✦ Fits shows it took.** The button turns green and reads ✓ Noted, with a short pop, and a line under it says what was saved ("this song fits intimate scenes like this one"). It stays that way while the song plays. If nothing is playing, it says so instead of doing nothing.
+- **No old-time pop under foreplay or sex.** Songs that sound like the 1940s to early 60s (crooners, doo-wop, swing, rockabilly, by their Spotify genres) no longer play in intimate scenes, whatever their tags, unless they're slow, sultry and led by desire (Peggy Lee's Fever stays). During sex, bright, fast pop led by happiness is out too. Out now: Funnel of Love, Put Your Head On My Shoulder, Only You, La vie en rose, I Don't Want to Set the World on Fire, and during sex You Spin Me Round, Silly Girl and Are You Gonna Be My Girl. The in-story radio still plays them, and a song you've marked ✦ Fits for that heat still plays.
+- **Skipping refreshes the line-up.** Moodweaver sends Spotify a line-up of 12 songs. Before, skipping through it in Spotify changed nothing until the end; now a song changed before its last few seconds counts as a skip and sits out for half an hour. Two skips in one line-up start a fresh one from the scene as it is now (straight away if the song you landed on only just began, else when it ends), and reaching the last song of a line-up always builds a fresh one. ⏭ in Moodweaver counts as a skip too.
+
 ## 1.79.1: the dynamic follows the scene, the one underneath stays put
 
 A full check of how the dynamic changes, run through long test chats (`tests/dynamics.mjs`). Three things kept it stuck or jumpy:

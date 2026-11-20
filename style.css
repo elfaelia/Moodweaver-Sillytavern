@@ -986,3 +986,55 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-secret{margin-top:8px;padding:8px 10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--mw-text) 14%,transparent)}.mw-secret p{margin:0 0 6px;font-size:13px}.mw-secret p small{opacity:.6}
 .mw-secret-chips{display:flex;flex-wrap:wrap;gap:6px}.mw-panel .mw-secret-chips .mw-chip-btn{flex:1 1 0;min-width:70px;padding:8px 6px;font-size:13px}.mw-panel .mw-secret-chips .mw-chip-btn[aria-pressed="true"]{background:color-mix(in srgb,var(--mw-accent,#c9a96e) 30%,transparent);border-color:var(--mw-accent,#c9a96e)}
 .mw-want-auto .mw-toggle{margin:10px 0 4px}.mw-want-auto .mw-done-row small{color:var(--mw-muted);margin-left:4px}
+.mw-panel .mw-music-verdict button.is-noted{background:rgba(143,209,138,.22);border-color:rgba(143,209,138,.75);color:#d8f5d4}
+.mw-music-verdict button.is-pop{animation:mw-noted-pop .6s ease-out}
+@keyframes mw-noted-pop{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(143,209,138,.7)}40%{transform:scale(1.12);box-shadow:0 0 0 10px rgba(143,209,138,0)}100%{transform:scale(1)}}
+.mw-music-noted{text-align:center;font-size:12px;color:#bfe8ba;margin:6px 0 0}
+
+/* ---- 1.82: − and + beside every moon scale, star switches ---- */
+.mw-stepped{display:flex;align-items:center;gap:6px;margin:8px 0 6px;min-width:0}
+.mw-stepped>.mw-range-moons{flex:1;min-width:0;margin:0}
+.mw-want-controls .mw-stepped{flex:1;margin:4px 0}
+.mw-panel .mw-step{flex:none;width:34px;height:34px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;font:500 19px/1 var(--mw-round);color:var(--mw-text);
+  background:radial-gradient(circle at 35% 30%,#3b3170,#1d1842);box-shadow:inset 0 0 0 1px #c9b8f040;transition:transform .15s,box-shadow .2s}
+.mw-panel .mw-step:active{transform:scale(.88);box-shadow:inset 0 0 0 1px #e9cf8f,0 0 12px #e9cf8f88}
+.mw-panel .mw-step[disabled]{opacity:.35}
+.mw-stepped:has(.mw-stars-line) .mw-step{width:30px;height:30px;font-size:17px}
+/* A switch is a four-point star: a dim outline when off, lit gold (and turned a little) when on. */
+.mw-panel input[type=checkbox]{-webkit-appearance:none;appearance:none;width:24px;height:24px;margin:0;flex:none;border:0;border-radius:50%;cursor:pointer;
+  background:center/20px 20px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5 14.2 9.8 22.5 12 14.2 14.2 12 22.5 9.8 14.2 1.5 12 9.8 9.8Z' fill='none' stroke='%237a72a0' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E");
+  transition:transform .35s cubic-bezier(.3,1.6,.5,1),filter .3s,background-color .3s}
+.mw-panel input[type=checkbox]:checked{transform:rotate(45deg) scale(1.06);filter:drop-shadow(0 0 5px #e9cf8fcc);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5 14.2 9.8 22.5 12 14.2 14.2 12 22.5 9.8 14.2 1.5 12 9.8 9.8Z' fill='%23f3dc9b' stroke='%23f3dc9b' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.mw-panel input[type=checkbox]:focus-visible{outline:2px solid #e9cf8f88;outline-offset:2px}
+.mw-panel input[type=checkbox]:disabled{opacity:.4;cursor:default}
+@media (prefers-reduced-motion:reduce){.mw-panel input[type=checkbox],.mw-panel .mw-step{transition:none}}
+/* Pills for short choices: one tap picks, the picked one glows. */
+.mw-pills{display:flex;gap:3px;padding:3px;border-radius:999px;background:#00000038;box-shadow:inset 0 0 0 1px #ffffff14;min-width:0;flex:1}
+.mw-panel .mw-pills>button{flex:1 1 0;min-width:0;min-height:34px;padding:4px 6px;border:0;border-radius:999px;background:none;color:var(--mw-muted,#a59cc6);font:500 12.5px/1.15 var(--mw-round);transition:background .25s,color .25s,box-shadow .25s;overflow-wrap:anywhere}
+.mw-panel .mw-pills>button.is-on{background:linear-gradient(180deg,#e0d4ff,#a993e6);color:#1a1238;font-weight:600;box-shadow:0 0 12px #c9b8f077}
+.mw-panel .mw-pills>button:active{transform:scale(.95)}
+.mw-panel .mw-pills>button[disabled]{opacity:.4}
+/* Long explanations fold to one faint line with an ⓘ; a tap opens them. */
+.mw-panel .mw-foldable{position:relative;cursor:pointer;padding-left:22px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden;color:var(--mw-faint);transition:color .2s}
+.mw-panel .mw-foldable::before{content:"i";position:absolute;left:0;top:.1em;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;font:italic 600 10px/1 Georgia,serif;color:#e9cf8f;box-shadow:inset 0 0 0 1px #e9cf8f66}
+.mw-panel .mw-foldable.is-open{display:block;-webkit-line-clamp:unset;line-clamp:none;color:var(--mw-muted)}
+.mw-panel .mw-foldable.is-open::before{background:#e9cf8f22}
+.mw-panel .mw-foldable:focus-visible{outline:1px solid #e9cf8f66;outline-offset:2px;border-radius:6px}
+/* One slim row on top (1.82): you and the main character as pills with their leading feeling, the cast beside them. */
+.mw-people{display:flex;gap:6px;align-items:center;padding:8px var(--mw-pad) 6px}
+.mw-people>.mw-pcard{flex:1 1 0;min-width:0}
+.mw-panel .mw-pcard{min-height:44px;padding:5px 10px 5px 5px;gap:7px;border-radius:999px}
+.mw-pcard-orb{width:30px;height:30px;font-size:13px}
+.mw-pcard-text small{display:none}
+.mw-pcard-text b{font-size:13px}.mw-pcard-text i{font-size:10.5px}
+.mw-people>.mw-cast-row{flex:0 1 auto;padding:0;max-width:34%}
+.mw-people>.mw-cast-row .mw-person-add>span:last-child{display:none}
+.mw-people>.mw-cast-row .mw-person-add{padding:4px}
+.mw-panel label:has(>.mw-pills){flex-wrap:wrap;white-space:normal;flex-basis:100%;row-gap:6px}
+.mw-panel label:has(>.mw-pills)>.mw-pills{flex:1 1 200px}
+.mw-panel .mw-pills>button{white-space:nowrap}
+.mw-sent-full{margin-top:10px}.mw-sent-full>summary{font-size:12px;color:var(--mw-muted);cursor:pointer;padding:6px 0}
+.mw-panel .mw-pills>button{flex:1 1 auto;min-width:auto}
+.mw-panel .mw-explainer.mw-foldable{padding:0 var(--mw-pad) 0 calc(var(--mw-pad) + 22px);margin:2px 0 10px;line-height:1.5}
+.mw-panel .mw-explainer.mw-foldable::before{left:var(--mw-pad)}

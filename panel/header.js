@@ -11,7 +11,7 @@ import { sectionOf } from '../data/catalogue.js';
 import { tagLabel } from './rows.js';
 
 // You and the main character as two matching cards (name, who they are to the chat, the feeling in front),
-// with the cast as small chips under them. The Story lives on the dock at the bottom.
+// with the cast as small chips beside them (1.82: one slim row). The Story lives on the dock at the bottom.
 function personTile(who, name, role, st) {
     const top = st ? activeMoods(st).find(m => sectionOf(m) === 'mood') : null, tone = moodTone(st?.moods);
     const feeling = top ? `${tagLabel(top).toLowerCase()} · ${level(st.moods[top.id]).toLowerCase()}` : 'nothing set yet';
@@ -24,11 +24,10 @@ export function peopleBar(ch, charState) {
     const chip = (attrs, pressed, icon, name, extra = '') => `<button class="mw-person ${extra}" ${attrs} aria-pressed="${pressed}"><span class="mw-avatar">${icon}</span><span>${esc(name)}</span></button>`;
     return `<div class="mw-people" role="group" aria-label="Whose settings">
         ${personTile('char', ch.name, 'Main character', charState)}${personTile('user', playerName(), 'You', getUserState())}
-    </div>
-    <div class="mw-cast-row" role="group" aria-label="Side characters">
+        <div class="mw-cast-row" role="group" aria-label="Side characters">
         ${cast.map(p => chip(`data-who="cast" data-cast-id="${esc(p.id)}"`, ui.who === 'cast' && selectedCast()?.id === p.id, esc(p.name.trim()[0]?.toUpperCase() ?? '♧'), p.name, p.inScene ? '' : 'is-away')).join('')}
         <button class="mw-person mw-person-add" data-action="cast-new" aria-pressed="${ui.castAction === 'adding'}" title="Add a supporting character"><span class="mw-avatar">＋</span><span>Cast</span></button>
-    </div>
+    </div></div>
     ${ui.castAction === 'adding' ? `<div class="mw-cast-add mw-new-cast"><input type="text" data-cast-new maxlength="80" aria-label="New supporting character name" placeholder="Name, e.g. Chloe"><button data-action="cast-add">Add to cast</button></div>` : ''}`;
 }
 // Sims plumbob: the top facets in the leading feeling's tone, the lower ones in the next feeling's.

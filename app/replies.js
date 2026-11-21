@@ -6,12 +6,12 @@ import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry } from '../engine/state.js';
 import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
-import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
+import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, setMeter, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, OPPOSITE_OF, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
-import { MORE_METERS, computeMore, saidMeters } from '../engine/meters.js';
+import { MORE_METERS, cleanMore, computeMore, saidMeters, setMore } from '../engine/meters.js';
 import { withFacts, withNudges } from '../engine/mood-meters.js';
 import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
@@ -19,7 +19,7 @@ import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
-import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cloneRelationships } from '../engine/relationships.js';
+import { RELATIONSHIP_BY_ID, SHARED_BY_ID, TO_METER, cloneRelationships, meterTies } from '../engine/relationships.js';
 import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
 import { TURN_BY_ID, cleanInterests, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
@@ -36,6 +36,9 @@ export const boardSend = () => Boolean(ctx().chatId) && (boardMeta()?.send ?? se
 // chat until the new one starts streaming, and nothing that old swipe did should reach the new one.
 export const liveChat = (type = '') => effectiveChat(ctx().chat, type);
 // Each message is read once per version of its text.
+const MAIN_METERS = new Set(METERS);
+// 1.86: with the bond meters on, these feelings toward you are meters (TO_METER), not ties.
+const asMeter = (ch, id) => Boolean(TO_METER[id] && bondData(ch)?.on);
 const readCache = new WeakMap();
 function readOf(m) {
     if (!m || typeof m.mes !== 'string') return { weave: null, boardKey: '' };
@@ -244,7 +247,28 @@ export function bondData(ch) {
         const where = moveRoles(ch, roles);
         if (where.length) run.status = `Roles live in Relationships now: ${where.join(', ')}.`;
     }
+    const moved = moveFeelingsToMeters(ch, bond);
+    if (moved.length) run.status = `Now meters on Bonds: ${moved.join(', ')}.`;
     return bond;
+}
+// 1.86: feelings toward you that are really a meter (TO_METER) move into that meter once: the meter takes the
+// feeling's strength when that's further along than where it stands, a side meter that was off comes on, and
+// the feeling leaves the list. Several feelings for one meter count as their strongest.
+function moveFeelingsToMeters(ch, bond) {
+    const st = getState(ch), rel = st ? userRelation(st) : null; if (!bond?.on || !rel?.moods) return [];
+    const ids = Object.keys(rel.moods).filter(id => TO_METER[id] && rel.moods[id] > 0); if (!ids.length) return [];
+    const list = bondList(ch), cap = paceOf(bond).cap, want = {};
+    for (const id of ids) { const [k, sign] = TO_METER[id], v = Math.round(rel.moods[id] * sign); if (Math.abs(v) > Math.abs(want[k] ?? 0)) want[k] = v; }
+    const main = computeBond(bond, Infinity, 'n', 'u', null, list, true), more = cleanMore(bond.more);
+    const side = computeMore({ ...more, on: MORE_METERS.map(([k]) => k) }, list, cap).values, out = [];
+    for (const [k, v] of Object.entries(want)) {
+        const cur = MAIN_METERS.has(k) ? main[k] ?? 0 : side[k] ?? 0, further = v > 0 ? v > cur : v < cur;
+        if (MAIN_METERS.has(k)) { if (further) setMeter(bond, k, v, list); }
+        else { bond.more = cleanMore(bond.more); if (!bond.more.on.includes(k)) bond.more.on.push(k); if (further) setMore(bond, k, v, list, cap); }
+        out.push(MAIN_METERS.has(k) ? ({ f: 'Friendship', r: 'Romance', t: 'Trust', p: 'Control', l: 'Pull' })[k] : MORE_METERS.find(m => m[0] === k)[1]);
+    }
+    for (const id of ids) delete rel.moods[id];
+    return [...new Set(out)];
 }
 // Sets each role's Relationships tag (his side toward you, both ways, a trait or a feeling) to at least 70.
 function moveRoles(ch, names) {
@@ -304,6 +328,13 @@ export function bondList(ch, chat = liveChat()) {
         const w = weaveOf(m); if (!w) return;
         // A lit turn-on warms the romance a step and a lit turn-off cools it, when the line didn't move it itself.
         const step = { f: w.f, r: w.r || sparkPull(w.sparked), t: w.t, p: w.pRaw ? powerChange(w.pRaw, ch.name, playerName()) : w.p, l: w.lRaw ? powerChange(w.lRaw, ch.name, playerName()) : 0, thinks: w.thinks, sparks: w.sparked, d: w.desire ?? null, m: w.meters ?? null, dy: w.dynamic || '' };
+        // 1.86: a "toward" feeling that is really a meter (obsessed, trusts, resents) moves that meter instead, unless
+        // the line moved it itself. "off" drops a one-way feeling a good step.
+        for (const x of w.toward ?? []) {
+            const id = relationId(x.name, playerName()), to = id && TO_METER[id]; if (!to || (x.delta <= -100 && to[1] < 0)) continue;
+            const [k, sign] = to, d = x.delta <= -100 ? -15 : Math.max(-25, Math.min(25, Math.round(x.delta * 0.6 * sign))) || sign * Math.sign(x.delta);
+            if (MAIN_METERS.has(k)) { if (!step[k]) step[k] = d; } else if (!step.m?.[k]) step.m = { ...(step.m ?? {}), [k]: d };
+        }
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
         const you = w.you ? w.you.map(x => factId(x, heated(getUserState(), w.seems), true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(getState(ch), w.moods.map(y => y.name)))), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
@@ -374,7 +405,9 @@ export function bondAxes(ch, bond = null) {
     // What's on the cards leans the dynamic toward the kinds that fit it (moods, ties, a clash between their moods).
     const clash = clashOf({ n: st?.moods ?? {}, u: myMoods }, { n: 'n', u: 'u' }, id => id);
     const recent = (ctx().chat ?? []).slice(-4).filter(m => m && !m.is_system).slice(-2).map(m => m.mes ?? '').join(' ');
-    const lean = dynamicLean([st?.moods, myMoods], { ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
+    // 1.86: feelings that became meters still lift the dynamics that fit them, read from the side meters.
+    const b = bond ?? bondData(ch), fromMeters = b?.on ? meterTies({ more: computeMore(b.more, bondList(ch), paceOf(b).cap).values }) : {};
+    const lean = dynamicLean([st?.moods, myMoods], { ...fromMeters, ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
     return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean };
 }
 // Why each mood or fact is where it is, from the replies still in the chat: raised by the story, brought by a
@@ -411,7 +444,7 @@ function offerTie(ch, rel) {
     const now = computeBond(bond, Infinity, n, u, axes, list), key = now.dynamic.key;
     const held = [OFFER_AFTER, OFFER_AFTER / 2].every(k => computeBond(bond, Infinity, n, u, axes, list.slice(0, -k), true).byMeters.key === key);
     const offer = held ? tieOffer(now, rel && rel.enabled !== false ? rel.moods : {}, bond.offered) : null;
-    return offer && { ...offer, label: RELATIONSHIP_BY_ID[offer.id].label, dynamic: now.dynamic.name };
+    return offer && !TO_METER[offer.id] ? { ...offer, label: RELATIONSHIP_BY_ID[offer.id].label, dynamic: now.dynamic.name } : null;
 }
 // The same idea switched on in more than one place (a meter, the dynamic, his slider toward you, a
 // both-ways tag, a story trope). Worked out from what the note would actually send; syncPrompt sends each
@@ -617,9 +650,9 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             const relation = userRelation(st, Boolean(w.toward.length || w.feels.length));
             if (relation) {
                 const before = { ...relation.moods };
-                track(relTarget(relation), w.toward, name => { const id = relationId(name, playerName()); return id && hold?.r?.has(id) ? null : id; });
+                track(relTarget(relation), w.toward, name => { const id = relationId(name, playerName()); return !id || asMeter(writer, id) || hold?.r?.has(id) ? null : id; });
                 // Older lines named feelings without numbers ("feels: wary, drawn").
-                if (w.feels.length) { const fed = fedOf(meta, writer); rec.fed = structuredClone(fed); feedValues(relation.moods, {}, fed.rel, relationsFromBoard({ toward: w.feels.join(', ') }, playerName())); }
+                if (w.feels.length) { const fed = fedOf(meta, writer); rec.fed = structuredClone(fed); feedValues(relation.moods, {}, fed.rel, relationsFromBoard({ toward: w.feels.join(', ') }, playerName()).filter(x => !asMeter(writer, x.id))); }
                 rec.r = diff(before, relation.moods);
             }
             // The board's State words fill in feelings the hidden line didn't name. The line wins for
@@ -659,7 +692,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             feedValues(st.moods, st.pins, fed.moods, feelingsFromBoard(board).filter(x => st.cut?.[x.id] === undefined));
             rec.m = diff(before, st.moods);
             if (board.toward !== undefined) {
-                const readings = relationsFromBoard(board, playerName()), relation = userRelation(st, readings.length > 0);
+                const readings = relationsFromBoard(board, playerName()).filter(x => !asMeter(writer, x.id)), relation = userRelation(st, readings.length > 0);
                 if (relation) { const was = { ...relation.moods }; feedValues(relation.moods, {}, fed.rel, readings); rec.r = diff(was, relation.moods); }
             }
             notes.push(...Object.keys(rec.m).filter(id => st.moods[id] > 0).slice(0, 4).map(id => labelOf(st, id)));
@@ -683,6 +716,40 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         if (rec.um || JSON.stringify(fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = fc;
         if (JSON.stringify(sf) !== JSON.stringify(me.fromStory ?? [])) rec.usf = sf;
     }
+    // The cast in the scene (1.87): the hidden line's "cast" list moves one feeling and one fact each, feelings the
+    // story gave them fade when it stops naming them, and their facts run their course on the same clock. Anyone
+    // out of the scene is left exactly as they are. Recorded per person, so a swipe or Undo puts it all back.
+    if (w && b.feed && settings().castAuto !== false) {
+        const pace = movePace(writer), said = w.cast ?? [];
+        for (const p of getCast(target()).filter(p => p.inScene && p.state?.enabled !== false)) {
+            const ps = p.state, line = said.find(c => namedIn(c.name, p.name) || namedIn(p.name, c.name)), r = { m: {}, q: structuredClone(ps.moodQuiet ?? {}), fc: structuredClone(ps.factClock ?? {}), sf: structuredClone(ps.fromStory ?? []) };
+            const psHot = heated(ps), named = new Set(), fx = {};
+            let feel = null, fact = null;
+            for (const x of line?.items ?? []) {
+                const fid = factId(x.name, psHot, true);
+                if (fid && !fact) fact = { id: fid, off: x.delta !== null && x.delta < 0 };
+                else if (!fid && x.delta !== null && !feel) { const id = feelingId(x.name); if (id) feel = { id, delta: x.delta }; }
+            }
+            if (feel && !ps.pins?.[feel.id]) {
+                Object.assign(r.m, track(moodTarget(ps), [{ name: feel.id, delta: feel.delta <= -100 ? -100 : paceDelta(feel.delta, pace) }], id => id));
+                named.add(feel.id);
+                if ((ps.moods[feel.id] ?? 0) > 0) ps.fromStory = [...new Set([...(ps.fromStory ?? []), feel.id])]; else ps.fromStory = (ps.fromStory ?? []).filter(id => id !== feel.id);
+            }
+            if (fact?.off) { if ((ps.moods[fact.id] ?? 0) > 0 && !ps.pins?.[fact.id] && (ps.fromStory ?? []).includes(fact.id)) { r.m[fact.id] = [ps.moods[fact.id], 0]; ps.moods[fact.id] = 0; ps.fromStory = ps.fromStory.filter(id => id !== fact.id); } }
+            else if (fact) { named.add(fact.id); for (const [id, [a, z]] of Object.entries(fromStory(ps, new Set([fact.id]), fx))) r.m[id] = [r.m[id]?.[0] ?? a, z]; }
+            // Facts with a course (drunk, bleeding) wear off for them too, and feelings the story gave them fade.
+            for (const [id, [a, z]] of Object.entries(runFacts(ps, hours, named).m)) r.m[id] = [r.m[id]?.[0] ?? a, z];
+            const values = Object.fromEntries((ps.fromStory ?? []).filter(id => BY_ID[id]?.kind !== 'state' && (ps.moods[id] ?? 0) > 0 && !ps.pins?.[id]).map(id => [id, ps.moods[id]]));
+            const { faded, quiet } = fadeStep(values, named, ps.moodQuiet ?? {}, pace);
+            ps.moodQuiet = quiet;
+            for (const [id, v] of Object.entries(faded)) { r.m[id] = [r.m[id]?.[0] ?? values[id], v]; ps.moods[id] = v; if (!v) ps.fromStory = ps.fromStory.filter(x => x !== id); }
+            const moved = Object.keys(r.m).filter(id => r.m[id][0] !== r.m[id][1]);
+            if (!moved.length && JSON.stringify(r.q) === JSON.stringify(ps.moodQuiet) && JSON.stringify(r.fc) === JSON.stringify(ps.factClock ?? {})) continue;
+            (rec.cs ??= {})[p.id] = r; ps.revision = (ps.revision || 0) + 1;
+            if (feel && r.m[feel.id]) notes.push(`${shortName(p.name)}: ${labelOf(ps, feel.id).toLowerCase()}${ps.moods[feel.id] ? '' : ' off'}`);
+            if (fact && r.m[fact.id]) notes.push(`${shortName(p.name)}: ${labelOf(ps, fact.id).toLowerCase()}${ps.moods[fact.id] ? '' : ' off'}`);
+        }
+    }
     // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
     // from the message it answers.
     rec.sk = growSkills(st, stripWeave(m.mes), (w?.used ?? []).join(', '));
@@ -698,6 +765,10 @@ function undoReply(meta, writer, st, rec) {
     if (rec.fc) st.factClock = structuredClone(rec.fc);
     if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.fromStory = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
     if (rec.sf) st.fromStory = structuredClone(rec.sf);
+    if (rec.cs) for (const p of getCast(target())) {
+        const r = rec.cs[p.id], ps = p.state; if (!r || !ps) continue;
+        untrack(moodTarget(ps), r.m); ps.moodQuiet = structuredClone(r.q); ps.factClock = structuredClone(r.fc); ps.fromStory = structuredClone(r.sf); ps.revision = (ps.revision || 0) + 1;
+    }
     for (const [id, was] of Object.entries(rec.ab ?? {})) { st.about ??= {}; if (was) st.about[id] = was; else delete st.about[id]; }
     for (const [id, at] of Object.entries(rec.cu ?? {})) (st.cut ??= {})[id] = at;
     const relation = userRelation(st), backR = relation ? untrack(relTarget(relation), rec.r) : [];

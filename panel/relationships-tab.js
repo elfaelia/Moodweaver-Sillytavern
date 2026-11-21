@@ -1,7 +1,7 @@
 import { escapeHtml as esc } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { KNOWLEDGE_MODES, knowledgeEntry } from '../engine/state.js';
-import { RELATIONSHIP_CATEGORIES, SHARED_CATEGORIES, RELATIONSHIP_BY_ID, SHARED_BY_ID, activeRelationshipTags, activeSharedTags, relationshipKey, relationshipCue } from '../engine/relationships.js';
+import { TO_METER, RELATIONSHIP_CATEGORIES, SHARED_CATEGORIES, RELATIONSHIP_BY_ID, SHARED_BY_ID, activeRelationshipTags, activeSharedTags, relationshipKey, relationshipCue } from '../engine/relationships.js';
 
 const initial = name => esc((String(name).trim()[0] ?? '?').toUpperCase());
 const KNOW_LABELS = ['Scene only', 'Private', 'Suspected', 'Known'];
@@ -14,7 +14,9 @@ const groupsHtml = (cats, values, openGroups, row) => cats.map(([category, icon,
 }).join('');
 
 // Sims-style list of everyone else, then the selected pairing underneath: their side, or both of them.
-export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing, peerExtra = {} }) {
+export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing, peerExtra = {}, meterRows = false }) {
+    // 1.86: toward you, with the bond meters on, feelings that are really a meter live on Bonds above instead.
+    const cats = meterRows ? RELATIONSHIP_CATEGORIES.map(([c, i, col, rows]) => [c, i, col, rows.filter(([id]) => !TO_METER[id])]).filter(([, , , rows]) => rows.length) : RELATIONSHIP_CATEGORIES;
     const selected = peers.find(p => p.key === selectedKey) ?? peers[0];
     const list = peers.map(p => {
         const shared = p.pair ? activeSharedTags(p.pair) : [], mine = p.relation ? activeRelationshipTags(p.relation) : [];
@@ -52,7 +54,8 @@ export function relationshipView({ subject, peers, selectedKey, relation, pair, 
             ${sliderRow('compare-slider', 'compare', 'How much they compare', 'from the odd passing thought to constantly measuring them against each other', compare.value ?? 0)}` : ''}</div>
         <label class="mw-note">In ${esc(subject)}’s own words <small>optional</small><input type="text" data-relation-note maxlength="160" value="${esc(relation?.note ?? '')}" placeholder="How they’d describe ${esc(selected.name)}"></label>
         <input type="search" data-relation-search placeholder="Find a feeling or opinion…" aria-label="Search relationship feelings">
-        <div class="mw-categories mw-relation-groups">${groupsHtml(RELATIONSHIP_CATEGORIES, values, openGroups, ([id, label]) => {
+        ${meterRows ? '<p class="mw-fine">Liking, love, trust, desire, obsession, jealousy, respect, fear and the other feelings that rise and fall are the meters on Bonds above. These are the specific ones: roles, what they think of them, what happened between them, and how it shows.</p>' : ''}
+        <div class="mw-categories mw-relation-groups">${groupsHtml(cats, values, openGroups, ([id, label]) => {
             const value = values[id] ?? 0, entry = relation ? knowledgeEntry(knowledge[relationshipKey(relation, id)]) : knowledgeEntry();
             return sliderRow('rel-slider', id, label, relationshipCue(RELATIONSHIP_BY_ID[id], value || 50), value,
                 isPlayer && value ? `<label class="mw-rel-knowledge">What ${esc(focus)} knows<select data-rel-knowledge="${id}" aria-label="What ${esc(focus)} knows: ${esc(label)}">${KNOWLEDGE_MODES.map((mode, i) => `<option value="${mode}" ${entry.mode === mode ? 'selected' : ''}>${KNOW_LABELS[i]}</option>`).join('')}</select></label>` : '');

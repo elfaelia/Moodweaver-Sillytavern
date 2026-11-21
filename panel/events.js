@@ -516,7 +516,7 @@ export async function onPanelClick(e) {
     // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
     if (button.dataset.moon) {
         const id = button.dataset.moon, now = viewState()?.moods?.[id] ?? 0, v = Number(button.dataset.v) || 0, next = v && level(now) === level(v) ? 0 : v;
-        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); if (next > 0 && !was && settings().factOpposites !== false) clearOpposites(s, id); }); return;
+        await changeState(s => { const was = s.moods[id] ?? 0; s.moods[id] = next; if (!s.loadout.includes(id)) s.loadout.push(id); if (ui.who === 'char' && s.mode === 'dynamic') s.pins[id] = next > 0; markCut(s, id, was, next); if (next > 0 && !was && (settings().factOpposites !== false || BY_ID[id]?.category === 'viewpoint')) clearOpposites(s, id); }); return;
     }
     // An author's part: both (empty), narration only or dialogue only.
     if (button.dataset.authorRole) {

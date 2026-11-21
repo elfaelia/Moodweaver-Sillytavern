@@ -2,16 +2,16 @@
 // Rows: [id, label, cue sent to the AI, note shown to you (searchable), placed after this generic era].
 const REGIONAL_ERAS = [
     ['era_1960s_america', '1960s America', 'Kennedy, then Vietnam, civil rights and the moon landing; rotary phones, typewriters and carbon paper, TV going color, no home computers; cigarettes everywhere, the Pill, LSD late in the decade; Cold War secrecy, state hospitals, ECT and new tranquilizers',
-        'Kennedy to Woodstock, Cold War labs. Locks American English. Easterman, the Outlast Trials.', 'era_1960s'],
+        'Kennedy to Woodstock, Cold War labs. Locks American English.', 'era_1960s'],
     ['era_1960s_britain', '1960s Britain', 'austerity giving way to Swinging London; red phone boxes, typewriters, black-and-white telly with two or three channels; the Beatles and the Stones, mods and rockers, the Profumo scandal, the Pill (married women first); grammar schools and pubs shut at eleven',
         'Swinging London, mods and rockers. Locks British English.', 'era_1960s'],
-    ['era_1990s_america', '1990s America', 'dial-up AOL, chat rooms and early email, pagers, landlines and answering machines, cell phones only late; Blockbuster, VHS, CDs and malls; grunge, hip-hop and boy bands, Friends and Seinfeld; Clinton, the O.J. trial, Y2K jitters; flannel, baggy jeans and ‘whatever’, ‘as if’',
+    ['era_1990s_america', '1990s America', 'dial-up AOL, chat rooms and early email, pagers, landlines and answering machines, cell phones only late; Blockbuster, VHS, CDs and malls; grunge, hip-hop and boy bands, Friends and Seinfeld; Clinton, the O.J. trial, Y2K jitters; flannel and baggy jeans',
         'Dial-up, Blockbuster, malls, grunge. Locks American English.', 'era_1990s'],
     ['era_2000s_america', '2000s America', 'flip phones and T9 texting, AIM and MySpace, then Facebook; iPods, burned CDs and Netflix by mail; post-9/11 airport security and Iraq; reality TV, emo and scene kids, low-rise jeans; the iPhone in 2007 but not everywhere yet, then the 2008 crash',
         'Flip phones, AIM, MySpace, emo. Locks American English.', 'era_2000s'],
-    ['era_2010s_america', '2010s America', 'smartphones everywhere, Instagram, Snapchat, Tumblr, Tinder and group chats; Netflix streaming, Uber, Juuls late on; Obama to Trump, Vine to TikTok; selfies and memes; slang from ‘YOLO’ and ‘on fleek’ to ‘lit’, ‘basic’ and ‘extra’',
-        'Smartphones, Tumblr, Tinder, Juuls. Locks American English. Chloe Price, Joe Goldberg.', 'era_2010s'],
-    ['era_2020s_america', '2020s America', 'TikTok, group chats, DoorDash, Venmo and tap-to-pay; COVID lockdowns and masks in recent memory; remote work, dating apps, streaming and vapes; AI chatbots turning up everywhere; slang like ‘no cap’, ‘it’s giving’, ‘delulu’ and ‘rizz’',
+    ['era_2010s_america', '2010s America', 'smartphones everywhere, Instagram, Snapchat, Tumblr, Tinder and group chats; Netflix streaming, Uber, Juuls late on; Obama to Trump, Vine to TikTok; selfies and memes',
+        'Smartphones, Tumblr, Tinder, Juuls. Locks American English.', 'era_2010s'],
+    ['era_2020s_america', '2020s America', 'TikTok, group chats, DoorDash, Venmo and tap-to-pay; COVID lockdowns and masks in recent memory; remote work, dating apps, streaming and vapes; AI chatbots turning up everywhere',
         'TikTok, DoorDash, post-COVID. Today. Locks American English.', 'era_2020s'],
 ];
 export const ERA_LOCALE = Object.fromEntries(REGIONAL_ERAS.map(([id, , , , after]) => [id, { locale: id.endsWith('america') ? 'us' : id.endsWith('scotland') ? 'scot' : 'uk', replaces: after }]));

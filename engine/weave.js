@@ -74,7 +74,20 @@ function desireOf(v) {
     }
     return ['a', 's', 'b', 't', 'x', 'h'].some(k => out[k]) || out.release ? out : null;
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|facts|stress|secrets|desire|meters|used|skills|dynamic|noticed)\b\s*:?\s*([\s\S]*)$/i;
+// 1.87: the cast in the scene, "Mae: amused +10, in uniform; Joe: afraid off". Each person keeps one feeling
+// (a name with a step or off) and one fact (a plain name, or a name with off); app/replies.js tells them apart.
+function castOf(v) {
+    if (!v || NONE.test(String(v).trim())) return [];
+    return String(v).split(';').map(part => {
+        const m = part.trim().match(/^([^:]{1,60}):\s*(.+)$/); if (!m) return null;
+        const items = m[2].split(',').map(x => x.trim().replace(/[−–]/g, '-')).filter(x => x && !NONE.test(x)).slice(0, 3).map(x => {
+            const c = x.match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone|\bended)\.?$/i);
+            return c ? { name: unquote(c[1]).toLowerCase(), delta: /off|gone|ended/i.test(c[2]) ? -100 : clamp(num(c[2]), -40, 40) } : { name: unquote(x).toLowerCase(), delta: null };
+        }).filter(x => x.name && x.name.length <= 50 && x.delta !== 0);
+        return items.length ? { name: unquote(m[1]).slice(0, 60), items } : null;
+    }).filter(Boolean).slice(0, 6);
+}
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|facts|stress|secrets|desire|meters|used|skills|dynamic|noticed|cast)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
@@ -104,6 +117,7 @@ function readLine(body) {
         // 1.78: facts about the character the story made or ended this reply ("fired, in uniform, engaged off").
         facts: NONE.test(String(f.facts ?? '').trim()) ? [] : list(f.facts, 6, 60).map(x => ({ name: x.replace(/\s+(off|gone|ended|over)\.?$/i, '').trim(), off: /\s(off|gone|ended|over)\.?$/i.test(x) })).filter(x => x.name),
         you: 'you' in f ? (NONE.test(String(f.you).trim()) || /^(healed|fine|nothing|unhurt)\.?$/i.test(String(f.you).trim()) ? [] : list(f.you, 8, 60)) : null,
+        cast: castOf(f.cast),
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked), noticed: list(f.noticed, 3, 60),
         remember: !remember || NONE.test(remember) ? '' : remember.slice(0, 160),
@@ -132,6 +146,7 @@ export function parseWeave(mes) {
         out.facts = [...(out.facts ?? []), ...(x.facts ?? [])].slice(0, 8);
         out.secrets = [...(out.secrets ?? []), ...(x.secrets ?? [])].slice(0, 6);
         out.stress = Math.max(-20, Math.min(20, (out.stress ?? 0) + (x.stress ?? 0)));
+        out.cast = [...(out.cast ?? []), ...(x.cast ?? [])].slice(0, 8);
         if (x.you) out.you = x.you;
         if (x.seems) out.seems = x.seems;
     }
@@ -168,7 +183,7 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, stress = false, secrets = null, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, stress = false, secrets = null, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false, cast = [] }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
     // The same instructions in about half the words. The line Moodweaver reads is unchanged.
@@ -189,7 +204,8 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
             `- facts: what became true or stopped being true of ${n} this reply and lasts beyond it, by plain name: clothes and looks (in uniform, hair down), voice (hoarse), status and secrets (engaged, arrested, found out), work (fired, promoted), past (widowed); the same name with off when it ends. Only changes, or leave it out.`,
             ...(secrets ? [`- secrets: only when one moved this reply, its name and where it stands now: suspected, known (the other one found out), out (everyone knows) or used (played against them). ${secrets}`] : []),
             ...(stress ? [`- stress: +5 to +20 when ${n} acted against their own beliefs or nature, or was under strain they couldn't control; a minus when they let it out, rested or were comforted; or leave it out.`] : []),
-            `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
+            bond ? `- toward: a specific stance of ${n}'s toward ${u} that moved, -30 to +30: a role, an opinion of them, a hurt or debt between them, or how it shows (betrayed by, owes their life to, thinks they're naive). Liking, love, trust, desire and the rest go in their own fields; what ${n} feels in the moment goes under moods.`
+                : `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
         ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,
             ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
             ...(dynamic ? [split ? '- dynamic: only if it has changed, what it is now (see just before the reply).' : `- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
@@ -201,6 +217,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; write release only if ${n} ${n === u ? '' : 'personally '}climaxed this reply. ${u} climaxing is not ${n}'s release: it usually makes ${n} want more, so score arousal up.`] : []),
         ...(you ? [`- you: what is true of ${u} right now because of the story, of any kind: body (hurt, ill, pregnant), bed (tied up, undressed), substances (drunk, drugged), looks and clothes (soaked, made up, in a slip), voice (hoarse), status and secrets (engaged, arrested, committed, found out), work (fired, hired). The full current list each reply, or none.`,
             `- seems: how ${u} comes across this reply from what the player wrote, up to three feelings in plain words (scared, defiant, wanting), or none.`] : []),
+        ...(cast.length ? [`- cast: only for ${cast.join(', ')}, and only while they're physically in this scene and something changed for them this reply: name, then one feeling with a step or off, and/or one lasting fact (in uniform, arrested) or that fact off. People split by ; (${cast[0]}: wary +10, soaked). Leave out anyone only talked about, remembered or thought of.`] : []),
         ...(skills ? [`- used: skills from the skills list that someone used or was tested on this reply, by name.`] : []),
         ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
     ];

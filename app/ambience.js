@@ -16,6 +16,7 @@ export const PLACE_BEDS = {
 export const BED_LABELS = { rain: 'rain', storm: 'a storm', monitor: 'a ward’s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'waves', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
     wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'breathing', heart: 'a heartbeat', vent: 'a facility’s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
+    fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt', voice: 'her moans and whimpers',
     bed: 'a creaking bed', chair: 'a squeaking office chair', desk: 'a rattling desk', wall: 'thuds against the wall', springs: 'a rocking car', couch: 'a creaking couch', floor: 'creaking floorboards' };
 // During sex (1.80): what they're on, from the last 3 messages, else the place. Newest message wins. These beds
 // keep a rhythm (setBeds' pace), with small human unevenness and now and then a pause.
@@ -43,6 +44,11 @@ export function paceNudge(texts = []) {
     return 0;
 }
 export const MORE_WORDS = {
+    // 1.85: acts with their own layer, from her recordings.
+    fingers: /\b(?:finger(?:s|ing|ed)? (?:her|him|them|inside|into|deep|slick|wet)|(?:two|three) fingers|fingers? (?:curl|curling|crook|crooking|pump|pumping|thrust|thrusting|slide|sliding|work|working)\w*|knuckle[- ]deep|fingered)\b/i,
+    rub: /\b(?:grind(?:s|ing)?|ground (?:against|into|down)|rub(?:s|bing|bed)? (?:against|over|along|herself|himself)|rock(?:s|ing)? (?:against|into) (?:him|her|them)|dry[- ]hump\w*|straddl\w+|writh\w+)\b/i,
+    spank: /\b(?:spank(?:s|ed|ing)?|(?:slap|smack)(?:s|ed|ping)? (?:her|his|their) (?:ass|arse|backside|rear|bottom|thighs?|cheek)|over (?:his|her|their) knee|paddl(?:e|es|ed|ing))\b/i,
+    whip: /\b(?:whip(?:s|ped|ping)?|lash(?:es|ed|ing)?|flog(?:s|ged|ging|ger)?|riding crop|(?:the|his|her|a) crop|cane(?:s|d)?|caning|(?:the|his|her|a) belt (?:cracks|bites|comes down|lands|strikes)|belt(?:s|ed|ing)? (?:her|him|them)|strap(?:s|ped)? (?:her|him|them) (?:across|with))\b/i,
     wet: /\b(?:wet(?:ness)?|slick|soaked|dripping|slippery|squelch(?:es|ing)?|messy|lube|spit|saliva)\b/i,
     skin: /\b(?:slap(?:s|ping|ped)? of (?:skin|flesh|hips|thighs)|skin (?:slapping|slaps) (?:against|on)|pound(?:s|ing|ed)|rough(?:er|ly)?|hard(?:er)? and fast(?:er)?|thrust(?:s|ing|ed)? (?:hard|harder|faster|deep))\b/i,
     heart: /\b(?:heart (?:pounding|hammering|racing|thudding|thundering|slamming)|pulse (?:racing|pounding|hammering)|(?:pounding|hammering|racing) heart|heartbeat (?:loud|in (?:his|her|their) ears))\b/i,
@@ -54,6 +60,7 @@ export const VENT_PLACES = new Set(['facility', 'observation_room', 'records_roo
 // One-off sounds for what just happened in the newest reply: played once, a moment apart.
 export const SHOT_WORDS = [
     ['zap', /\b(?:zap(?:s|ped|ping)?|electrocut\w*|(?:shock|jolt)(?:s|ed)? (?:him|her|them|through)|taser\w*|cattle prod|volts?|electroshock|current (?:surges|rips|jolts))\b/i],
+    ['whip', /\b(?:whip(?:s|ped)? (?:cracks?|lands?|across|down)|crack of (?:a|the) (?:whip|belt)|lash(?:es|ed)? (?:her|him|them|across)|belt (?:cracks|lands|comes down))\b/i],
     ['slap', /\b(?:slap(?:s|ped)? (?:him|her|them|his|her|their|across)|backhand(?:s|ed)?|spank(?:s|ed|ing)?|smack(?:s|ed)? (?:him|her|them|his|her|their))\b/i],
     ['door', /\b(?:door (?:slams?|slammed|bangs?|banged|crashes)|slam(?:s|med)? the door|kick(?:s|ed) the door|door (?:bursts|flies) open)\b/i],
     ['clang', /\b(?:clang(?:s|ed|ing)?|metal (?:door|gate|bars?) (?:slams?|clangs?|shuts?)|cell door|bars rattle|chains? (?:rattle|clink|jangle)\w*)\b/i],
@@ -100,8 +107,11 @@ export function unlock() {
     try {
         // iPhone Safari: "ambient" mixes with Spotify playing in its own app instead of pausing it.
         try { if (globalThis.navigator?.audioSession) globalThis.navigator.audioSession.type = 'ambient'; } catch { /* older Safari */ }
-        if (!ac) { const AC = globalThis.AudioContext ?? globalThis.webkitAudioContext; if (!AC) return false; ac = new AC(); master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination); }
+        if (!ac) { const AC = globalThis.AudioContext ?? globalThis.webkitAudioContext; if (!AC) return false; ac = new AC(); master = ac.createGain(); master.gain.value = 0;
+            // 1.85: a gentle limiter, so seven layers stacked at Loud never crackle.
+            const lim = ac.createDynamicsCompressor(); lim.threshold.value = -10; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.2; const trim = ac.createGain(); trim.gain.value = 0.6; master.connect(lim).connect(trim).connect(ac.destination); }
         // Safari parks the sound as "interrupted" after a call or a locked screen; a tap brings it back.
+        ['spank', 'whip-1', 'whip-2'].forEach(sample);
         if (ac.state === 'suspended' || ac.state === 'interrupted') void ac.resume().then(apply).catch(() => {});
         else apply();
         return true;
@@ -110,7 +120,7 @@ export function unlock() {
 // True when sound is wanted but the browser is still waiting for a tap.
 export const needsTap = () => wanted.beds.length > 0 && (!ac || ac.state !== 'running');
 export const playing = () => [...layers.keys()];
-export const MAX_BEDS = 5;
+export const MAX_BEDS = 7;
 export const isLoveBed = name => LOVE_BEDS.has(name);
 
 // beds: names from BED_LABELS (at most MAX_BEDS), level 1-3. [] fades everything out. energy (1-5) plus nudge
@@ -142,7 +152,8 @@ const SHOTS = {
         g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.18, at + 0.02); g.gain.setValueAtTime(0.18, at + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.75);
         o.connect(filter('highpass', 300)).connect(g).connect(out); o.start(at); lfo.start(at); o.stop(at + 0.8); lfo.stop(at + 0.8);
         for (let i = 0; i < 14; i++) burst(out, at + Math.random() * 0.7, 0.008, 0.25, 2500); },
-    slap(out, at) { burst(out, at, 0.06, 0.85, 700); burst(out, at + 0.003, 0.03, 0.4, 3000); },
+    slap(out, at) { if (buffers.has('spank')) grain(out, 'spank', at, { vol: 1.1, len: 1.2 }); else { burst(out, at, 0.06, 0.85, 700); burst(out, at + 0.003, 0.03, 0.4, 3000); } },
+    whip(out, at) { const n = buffers.has('whip-1') ? 'whip-1' : 'whip-2'; if (buffers.has(n)) grain(out, n, at, { vol: 1.1, len: 1.2 }); else burst(out, at, 0.03, 0.7, 2500); },
     door(out, at) { thud(out, at, 0.7, 60); burst(out, at + 0.01, 0.25, 0.12, 300); },
     clang(out, at) { for (const [f, v] of [[340, 0.12], [512, 0.08], [873, 0.05], [1310, 0.03]]) ping(out, f, at, 1.6, v, f * 0.995, 'triangle'); burst(out, at, 0.05, 0.3, 1500); },
     glass(out, at) { for (let i = 0; i < 26; i++) { const t = at + Math.random() * 0.5; ping(out, 2500 + Math.random() * 4500, t, 0.08 + Math.random() * 0.15, 0.04 + Math.random() * 0.04); } burst(out, at, 0.12, 0.35, 2000); },
@@ -222,6 +233,28 @@ export const GRAINS = {
     'bed-thump': [[0.519,1.013,2.5],[1.013,1.571,2.32],[1.571,2.13,0.79],[2.13,2.694,1.27],[2.694,3.287,1.17],[3.287,3.866,1.11],[3.866,4.45,1.09],[4.45,5.023,0.95],[5.023,5.577,0.94],[5.577,6.166,1.04],[6.166,6.755,0.96],[6.755,7.323,0.81],[7.323,7.892,0.99],[7.892,8.471,0.9],[8.471,9.034,1.03],[9.034,9.603,0.94],[9.603,10.167,1.06],[10.167,10.736,0.89],[10.736,11.304,1.21],[11.304,11.878,0.88],[11.878,12.462,0.94],[12.462,13.03,1.29],[13.03,13.624,0.7],[13.624,14.824,1.01]],
     'wet-1': [[0.239,0.579,1.78],[0.579,0.883,2.0],[0.883,1.377,1.6],[1.377,1.911,0.64],[1.911,2.484,0.94],[2.484,2.828,0.8],[2.828,3.218,1.0],[3.218,3.667,0.94],[3.667,4.041,0.67],[4.041,4.285,2.0],[4.285,4.634,0.73],[4.634,4.869,2.29],[4.869,5.238,0.73],[5.238,5.458,2.29],[5.458,5.707,0.94],[5.707,6.056,1.33],[6.056,6.46,0.4],[6.46,6.73,1.45],[6.73,7.164,1.0],[7.164,7.468,2.29],[7.468,8.0,1.0]],
     'wet-2': [[0.544,0.733,0.7],[0.733,1.147,0.47],[1.147,1.352,0.76],[1.352,1.631,0.73],[1.631,2.24,1.33],[2.24,2.559,1.0],[2.559,2.858,2.0],[2.858,3.522,1.07],[3.522,4.006,1.0],[4.006,4.285,1.0],[4.285,4.834,1.14],[4.834,5.193,0.55],[5.193,5.492,1.6],[5.492,6.176,0.76],[6.176,6.859,0.67],[6.859,7.298,0.73],[7.298,7.483,1.33],[7.483,7.852,0.62],[7.852,8.141,1.78],[8.141,8.506,0.64],[8.506,8.85,1.14],[8.85,9.568,0.7],[9.568,10.027,0.59],[10.027,10.267,1.23],[10.267,10.676,0.4],[10.676,10.88,1.14],[10.88,11.314,0.73],[11.314,11.549,1.23],[11.549,12.222,1.07],[12.222,12.581,0.73],[12.581,12.906,2.0],[12.906,13.384,0.94],[13.384,13.589,1.78],[13.589,14.789,1.23]],
+    // 1.85: her second batch (headboard, bouncing, sofa, desk, truck, body on a wall, slaps, fingers, spanking, whips,
+    // skin rubbing, moans and whimpers).
+    'bed-headboard': [[0.863,1.492,0.95],[1.492,2.095,0.83],[2.095,2.594,0.87],[2.594,3.223,1.06],[3.223,3.407,0.71],[3.407,3.731,1.85],[3.731,3.866,1.22],[3.866,4.34,2.5],[4.34,4.51,0.8],[4.51,4.824,1.26],[4.824,5.537,0.84],[5.537,5.672,0.8],[5.672,5.961,1.55],[5.961,6.101,0.7],[6.101,6.745,1.96],[6.745,7.745,1.42]],
+    'bed-bounce': [[0.015,0.175,1.86],[0.175,0.319,0.4],[0.319,0.459,0.78],[0.459,0.718,1.23],[0.718,0.928,0.4],[0.928,1.107,0.96],[1.107,1.247,2.43],[1.247,1.382,1.73],[1.382,2.04,0.57],[2.04,2.654,0.75],[2.654,3.277,0.98],[3.277,3.532,1.0],[3.532,4.046,1.48],[4.046,4.18,0.97],[4.18,4.355,1.41],[4.355,4.709,1.87],[4.709,4.939,1.07],[4.939,5.233,1.88],[5.233,5.522,2.33],[5.522,5.717,1.0],[5.717,6.39,1.64],[6.39,6.54,0.83],[6.54,6.804,1.5],[7.134,7.323,0.57],[7.323,7.687,1.65],[7.687,7.847,1.92],[7.847,8.161,0.74],[8.161,8.57,2.46],[8.57,9.334,0.94],[9.334,10.182,1.66],[10.182,10.741,1.27],[11.005,11.818,1.09],[11.818,12.053,0.48],[12.053,12.601,1.53],[12.601,12.756,0.4],[12.756,13.045,0.8],[13.045,13.33,2.18],[13.33,13.479,0.4],[13.479,13.799,0.4],[13.799,13.953,1.47],[13.953,14.088,0.4],[14.088,14.277,0.42],[14.277,14.497,1.08],[14.497,14.642,0.4],[14.642,14.776,0.4],[14.776,14.916,0.85],[14.916,15.056,1.31],[15.056,15.255,0.4],[15.255,15.395,0.76]],
+    'couch-1': [[0.08,0.399,1.92],[0.399,0.629,1.59],[0.629,0.808,1.29],[0.808,0.963,1.18],[0.963,1.147,1.41],[1.147,1.412,0.77],[1.412,2.16,1.02],[2.16,2.614,1.0],[2.614,3.098,1.51],[3.098,4.096,1.02],[4.096,4.23,0.89],[4.23,4.505,0.85],[4.505,5.133,1.52],[5.133,5.278,1.08],[5.278,5.567,0.79],[5.567,6.341,0.9],[6.341,6.475,0.89],[6.475,6.67,0.94],[6.67,6.974,0.79],[6.974,7.129,1.87],[7.129,7.273,1.0],[7.273,7.692,0.97],[7.692,7.832,1.26],[7.832,7.972,0.77],[7.972,8.146,0.64],[8.146,8.356,1.8],[8.356,8.506,0.9],[8.506,8.665,0.74],[8.665,9.084,0.65],[9.084,9.219,1.11],[9.219,9.384,0.64],[9.384,9.528,1.33],[9.528,9.703,1.13],[9.703,9.843,0.92],[9.843,10.042,1.01],[10.042,10.481,0.75],[10.481,10.875,1.04],[10.875,11.185,0.83],[11.185,11.319,0.52],[11.319,11.584,1.16],[11.584,11.863,2.07],[11.863,12.087,0.89],[12.087,12.247,0.72],[12.247,12.427,0.85],[12.427,12.691,1.43],[12.691,12.861,0.65],[12.861,13.03,1.24],[13.03,13.235,1.15],[13.235,13.48,1.09]],
+    'couch-2': [[0,0.479,1.42],[0.479,0.688,0.95],[0.688,1.267,1.18],[1.267,1.432,1.32],[1.432,1.646,1.36],[1.646,2.01,2.03],[2.01,2.205,0.91],[2.205,3.083,0.65],[3.083,3.258,0.56],[3.258,4.255,0.74],[4.255,4.425,0.89],[4.425,5.108,1.55],[5.108,5.278,0.81],[5.278,5.448,0.85],[5.448,5.682,1.48],[5.682,5.872,1.92],[5.872,6.006,1.35],[6.006,6.156,0.75],[6.156,6.291,0.55],[6.291,6.475,1.2],[6.475,6.67,1.61],[6.67,6.844,0.87],[6.844,7.039,0.64],[7.039,7.398,1.04],[7.398,7.568,1.49],[7.568,7.747,0.9],[7.747,8.421,0.89],[8.421,8.605,1.09],[8.605,9.204,1.07],[9.204,9.424,0.96],[9.424,9.882,1.0],[9.882,10.032,0.94],[10.032,10.192,0.76],[10.192,10.521,0.83],[10.521,10.661,0.83],[10.661,10.885,0.88],[10.885,11.234,1.21],[11.234,11.454,0.98],[11.454,11.938,1.1],[11.938,12.072,1.1],[12.072,12.561,1.0],[12.561,13.22,1.2],[13.22,13.429,1.25]],
+    'desk-rock': [[0.08,0.359,1.63],[0.359,0.693,0.54],[0.693,1.157,0.84],[1.157,1.566,0.83],[1.566,1.901,1.06],[1.901,2.075,2.5],[2.075,2.305,1.36],[2.305,2.829,0.8],[2.829,3.502,1.4],[3.502,3.846,1.57],[3.846,4.21,1.06],[4.21,4.575,1.56],[4.575,4.919,1.17],[4.919,5.293,0.62],[5.293,5.637,0.9],[5.637,6.001,0.98],[6.001,6.256,0.77],[6.256,6.435,0.78],[6.435,6.59,1.1],[6.59,6.755,0.89],[6.755,6.909,0.51],[6.909,7.104,1.16],[7.104,7.273,1.06],[7.273,7.453,1.71],[7.453,7.792,0.98],[7.792,8.201,1.14],[8.201,8.521,1.0],[8.521,8.97,1.1],[8.97,9.359,0.84],[9.359,9.848,0.53],[9.848,10.0,0.49]],
+    'car-1': [[0.394,1.162,1.96],[1.162,1.636,2.5],[1.636,2.724,2.5],[2.724,2.893,0.84],[2.893,3.053,2.42],[3.053,3.203,0.77],[3.203,3.342,0.95],[3.342,3.542,2.25],[3.542,3.721,0.56],[3.721,3.946,1.05],[3.946,4.146,2.06],[4.146,4.485,0.66],[4.485,4.989,0.73],[4.989,5.592,0.42],[5.592,5.88,1.0]],
+    'car-2': [[0.01,0.16,0.78],[0.16,0.464,0.95],[0.464,0.609,0.96],[0.609,0.943,0.83],[0.943,1.097,0.89],[1.097,1.417,0.94],[1.417,1.581,1.0],[1.581,1.916,1.14],[1.916,2.08,1.1],[2.08,2.444,1.17],[2.444,2.609,1.07],[2.609,2.973,0.91],[2.973,3.128,0.71],[3.128,3.567,1.0],[3.567,3.707,1.49],[3.707,4.111,1.22],[4.111,4.53,1.55],[4.53,4.944,1.3],[4.944,5.093,1.19],[5.093,5.403,1.29],[5.403,5.577,0.99],[5.577,5.88,0.92]],
+    'wall-1': [[0.025,0.369,0.64],[0.369,0.663,1.49],[0.663,1.292,1.43],[1.292,2.519,1.56],[2.519,3.083,1.62],[3.083,3.711,0.89],[3.711,4.046,0.99],[4.046,4.325,1.0],[4.325,4.664,0.57],[4.664,4.954,0.77],[4.954,5.293,0.96],[5.293,5.567,0.91],[5.567,5.902,0.65],[5.902,6.201,1.04],[6.201,6.819,1.1],[6.819,7.154,1.31],[7.154,7.478,2.5],[7.478,7.827,0.82],[7.827,8.261,2.5],[8.261,8.89,0.53],[8.89,9.259,1.08],[9.259,10.172,0.45],[10.172,10.48,2.23]],
+    'wall-2': [[0.18,0.793,1.21],[1.077,1.217,1.32],[2.04,2.26,0.53],[2.988,3.622,0.68],[3.981,4.624,0.4],[4.929,5.343,1.0],[5.892,6.75,0.67],[6.75,6.969,1.44],[7.408,7.687,2.5],[7.687,7.837,0.4],[7.837,8.36,2.5]],
+    'wall-3': [[0.609,1.516,1.66],[1.516,2.095,1.08],[2.24,2.404,0.74],[3.033,3.228,0.54],[3.841,4.5,0.55],[4.634,5.428,1.36],[5.428,5.622,1.29],[6.231,7.079,0.98],[7.079,8.012,0.5],[8.012,8.36,1.02]],
+    'slap-1': [[0.209,0.524,1.91],[0.524,0.848,1.69],[0.848,1.187,1.7],[1.187,1.507,2.12],[4.949,5.273,1.79],[5.273,5.612,1.42],[5.612,5.956,1.4],[5.956,6.306,0.7],[6.306,6.65,0.58],[6.65,6.989,0.58],[6.989,7.338,0.4],[7.338,7.692,0.49],[7.692,8.037,0.59],[8.037,8.381,0.4],[8.381,8.73,0.4],[8.73,9.064,0.4],[9.064,9.399,0.72],[9.399,9.743,0.4],[9.743,10.087,0.63],[10.087,10.436,0.46],[10.436,10.78,0.4],[10.78,11.13,0.41],[11.13,11.479,0.41],[11.479,11.768,0.74],[11.768,12.063,1.38],[12.063,12.352,2.5],[12.352,12.601,1.0],[12.601,12.965,1.05],[12.965,13.28,0.98],[13.28,13.579,1.0],[13.579,13.878,2.26],[13.878,14.173,1.63],[14.173,14.462,2.04],[14.462,14.766,1.38],[14.766,15.066,2.5],[15.066,15.37,1.14],[15.37,15.48,1.29]],
+    'slap-2': [[0.294,0.549,1.83],[0.983,1.307,2.5],[1.511,1.901,1.35],[1.901,2.11,1.18],[2.26,2.429,0.95],[2.789,3.332,0.44],[3.332,3.472,0.64],[3.801,4.285,2.5],[4.285,4.754,2.07],[4.754,4.914,0.4],[5.283,5.512,0.4],[6.725,6.869,0.61],[7.413,7.822,0.8],[8.022,8.536,0.53],[8.93,9.094,0.4],[9.987,10.341,1.05],[11.384,11.833,2.5],[12.033,12.302,1.1],[12.731,13.03,2.5],[13.19,13.48,0.62]],
+    'fingers-1': [[0.07,0.309,2.5],[0.309,1.432,1.0],[1.432,1.931,0.4],[1.931,2.968,2.5],[2.968,3.622,0.74],[3.622,4.679,0.71],[4.679,4.834,1.21],[4.834,5.448,0.5],[5.448,5.657,1.72],[5.657,5.802,0.74],[5.802,6.316,0.69],[6.316,6.45,2.31],[6.45,6.665,2.05],[6.665,7.084,0.75],[7.084,7.278,2.5],[7.278,7.578,1.52],[7.578,8.476,0.7],[8.476,9.114,0.84],[9.114,9.299,1.7],[9.299,9.493,1.2],[9.493,10.092,2.18],[10.092,10.242,0.69],[10.242,11.055,0.52],[11.055,11.439,0.44],[11.439,11.833,2.34],[11.833,12.013,0.49],[12.013,12.147,0.77],[12.147,12.302,0.61],[12.302,13.12,1.48],[13.12,13.474,1.32],[13.474,14.474,1.55]],
+    'fingers-2': [[0.249,0.993,2.07],[0.993,1.402,2.25],[1.402,1.741,1.0],[1.741,2.175,1.17],[2.175,2.589,1.58],[2.589,2.978,1.55],[2.978,3.372,0.85],[3.372,3.726,1.8],[3.726,4.126,1.34],[4.126,4.425,1.15],[4.425,4.804,0.6],[4.804,5.173,0.46],[5.173,5.557,1.19],[5.557,5.897,0.59],[5.897,6.106,1.35],[6.261,6.645,0.42],[6.645,7.029,0.4],[7.029,7.423,0.9],[7.423,7.802,0.4],[7.802,8.022,0.46],[8.196,8.55,0.92],[8.55,8.935,0.58],[8.935,9.309,0.48],[9.309,9.503,1.0],[9.503,9.703,2.5],[9.703,10.027,0.4],[10.027,10.401,1.07],[10.401,10.75,0.64],[10.75,11.434,0.4],[11.434,11.663,0.4],[11.663,11.878,1.94],[11.878,12.267,0.4],[12.267,12.666,0.97],[12.666,13.1,0.4],[13.1,13.404,2.18],[13.404,13.804,1.13],[13.804,14.203,2.0],[14.203,14.577,1.0],[14.577,14.956,2.23],[14.956,15.34,1.97],[15.34,15.48,2.0]],
+    'spank': [[1.836,3.236,2.08],[4.32,5.72,0.55],[6.36,7.76,0.8],[8.161,8.925,1.34]],
+    'whip-1': [[0.773,1.008,1.04],[1.696,1.851,1.86],[1.851,2.749,0.89],[3.168,4.345,0.82],[4.345,4.674,0.96],[5.463,5.707,1.52]],
+    'whip-2': [[1.237,2.105,2.15],[2.105,2.769,0.87],[3.532,4.051,0.74],[4.535,5.702,1.85],[5.702,5.88,1.0]],
+    'rub': [[0.2,2.4,1.13],[1.1,3.3,1.04],[2.0,4.2,0.96],[2.9,5.1,0.9],[3.8,6.0,0.86],[4.7,6.9,0.92],[5.6,7.8,1.1],[6.5,8.36,1.16]],
+    'moan': [[0,0.34,0.4],[0.254,0.619,2.41],[0.693,1.462,0.4],[1.382,1.946,1.06],[1.886,2.44,0.41],[2.444,3.033,1.52],[3.058,3.692,0.4],[3.672,3.991,2.5],[4.041,4.58,0.41],[4.584,5.049,1.68],[5.068,5.578,0.48],[5.527,5.887,2.14],[5.872,6.421,0.48],[6.4,7.084,1.44],[7.149,7.773,0.4],[7.722,8.137,1.67],[8.226,8.87,0.4],[8.88,9.374,1.11],[9.658,10.267,0.4],[10.217,10.521,2.33],[10.631,11.085,0.4],[11.12,11.439,1.72],[11.309,11.684,2.5],[12.003,12.477,1.0],[12.985,13.395,0.71]],
+    'whimper': [[0.085,0.873,0.65],[0.983,1.427,2.5],[1.826,2.554,1.16],[3.098,3.822,2.01],[4.525,5.298,0.51],[5.482,6.052,1.89],[6.48,7.219,0.61],[7.373,7.942,1.03],[8.381,9.309,0.4],[9.453,10.097,1.39],[10.541,11.374,0.44],[11.329,11.868,0.97],[12.062,12.821,0.42],[12.866,13.355,1.35]],
 };
 
 const buffers = new Map(), loading = new Map(), lastGrain = {};
@@ -243,6 +276,14 @@ function grain(out, name, at, { rate = 1, vol = 1, len = 0.9, lp = 0, hp = 0, ji
     if (lp) node = node.connect(filter('lowpass', lp)); if (hp) node = node.connect(filter('highpass', hp));
     g.gain.setValueAtTime(0.0001, at); g.gain.linearRampToValueAtTime(v, at + 0.006); g.gain.setValueAtTime(v, at + Math.max(0.01, dur - 0.05)); g.gain.linearRampToValueAtTime(0.0001, at + dur);
     node.connect(g).connect(out); src.start(at, from, dur * r + 0.02); src.stop(at + dur + 0.05);
+}
+const one = (...names) => names[Math.floor(Math.random() * names.length)];
+// Now and then, not every stroke: fn(at) after a wait of min-max seconds, shortened as the pace rises.
+function hits(min, max, fn) {
+    let alive = true, t = 0;
+    const tick = () => { if (!alive || !ac) return; try { fn(ac.currentTime + 0.03); } catch { /* closed */ } t = setTimeout(tick, (min + Math.random() * (max - min)) / Math.max(0.6, strokeRate / 1.3) * 1000); };
+    t = setTimeout(tick, 600 + Math.random() * 1500);
+    return () => { alive = false; clearTimeout(t); };
 }
 const wetOne = (out, at, o = {}) => grain(out, Math.random() < 0.5 ? 'wet-1' : 'wet-2', at, o);
 
@@ -284,47 +325,57 @@ function build(name) {
         train() { chain(keep(src()), filter('lowpass', 220), gainOf(0.45), out); chain(keep(osc('sine', 52)), gainOf(0.05), out);
             stops.push(every(1.15, 1.15, at => { burst(out, at, 0.04, 0.1, 500); burst(out, at + 0.17, 0.04, 0.08, 500); })); },
         shower() { const g = gainOf(0.2); chain(keep(src()), filter('highpass', 1200), filter('lowpass', 9000), g, out); keep(wobble(g.gain, 0.2, 0.02, 0.3)); },
-        // Sex (1.80). Each keeps time with strokes(); a quicker pace adds the harder sounds (the headboard, the desk).
         // Sex (1.83, recorded): each stroke picks fresh cuts from the bed recordings, shaped for what they're on. A
         // quicker scene plays them faster and adds the harder hits (the frame, the headboard, the desk).
-        bed() { ['bed-thump', 'bed-creak', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
+        bed() { ['bed-thump', 'bed-creak', 'bed-frame', 'bed-bounce', 'bed-headboard'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            grain(out, 'bed-thump', at, { vol: fast() ? 0.85 : 0.6, len: gap * 1.05 });
-            if (Math.random() < 0.85) grain(out, 'bed-creak', at + 0.02 + Math.random() * 0.05, { vol: 0.75, len: gap * 1.2 });
-            if (fast() ? i % 2 === 0 || Math.random() < 0.4 : i % 3 === 0) grain(out, 'bed-frame', at + 0.03, { vol: 0.7, len: gap }); })); },
+            grain(out, 'bed-thump', at, { vol: fast() ? 0.7 : 0.5, len: gap * 1.05 });
+            if (Math.random() < 0.7) grain(out, 'bed-bounce', at + 0.01, { vol: 0.5, len: gap });
+            if (Math.random() < 0.75) grain(out, 'bed-creak', at + 0.02 + Math.random() * 0.05, { vol: 0.7, len: gap * 1.2 });
+            if (fast() ? Math.random() < 0.6 : i % 4 === 0) grain(out, 'bed-headboard', at + 0.04, { vol: fast() ? 0.6 : 0.4, len: gap });
+            else if (i % 3 === 0) grain(out, 'bed-frame', at + 0.03, { vol: 0.55, len: gap }); })); },
         chair() { ['bed-creak', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
             grain(out, 'bed-creak', at, { rate: 1.55, vol: 1.05, len: gap * 0.9, hp: 500, jitter: 0.08 });
             if (i % 2 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 1.7, vol: 0.3, len: 0.25, hp: 300 }); })); },
-        desk() { ['bed-frame', 'bed-thump'].forEach(sample); stops.push(strokes((at, i) => {
+        // 1.85: the desk, sofa, car and wall now play her own recordings of each.
+        desk() { ['desk-rock', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            grain(out, 'bed-frame', at, { rate: 1.3, vol: fast() ? 0.95 : 0.7, len: gap, hp: 120 });
-            if (fast() || i % 2 === 0) grain(out, 'bed-thump', at + 0.01, { rate: 1.45, vol: 0.3, len: 0.3, hp: 200 });
-            if (i % 2 === 0 || fast()) for (let k = 0; k < 2 + Math.floor(Math.random() * 3); k++) burst(out, at + 0.02 + k * 0.03 + Math.random() * 0.02, 0.01, 0.05, 3200); })); },
-        wall() { ['bed-thump', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
+            grain(out, 'desk-rock', at, { vol: fast() ? 0.9 : 0.7, len: gap * 1.1 });
+            if (fast() && i % 2 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 1.3, vol: 0.3, len: 0.3, hp: 200 });
+            if (fast() && i % 3 === 0) for (let k = 0; k < 2 + Math.floor(Math.random() * 3); k++) burst(out, at + 0.02 + k * 0.03 + Math.random() * 0.02, 0.01, 0.04, 3200); })); },
+        wall() { ['wall-1', 'wall-2', 'wall-3'].forEach(sample); stops.push(strokes(at => {
+            grain(out, one('wall-1', 'wall-2', 'wall-3'), at, { vol: fast() ? 0.85 : 0.65, len: 1 / strokeRate }); })); },
+        springs() { ['car-1', 'car-2'].forEach(sample); stops.push(strokes(at => {
+            grain(out, one('car-1', 'car-2'), at, { vol: 0.75, len: 1.1 / strokeRate }); })); },
+        couch() { ['couch-1', 'couch-2', 'bed-thump'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            grain(out, 'bed-thump', at, { rate: 0.8, vol: fast() ? 0.9 : 0.65, len: gap, lp: 700 });
-            if (fast() && i % 2 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 0.75, vol: 0.45, len: gap, lp: 1200 }); })); },
-        springs() { ['bed-creak', 'bed-thump'].forEach(sample); stops.push(strokes((at, i) => {
-            const gap = 1 / strokeRate;
-            grain(out, 'bed-creak', at, { rate: 1.2, vol: 0.7, len: gap * 1.1, hp: 250 });
-            if (fast() || i % 2 === 0) grain(out, 'bed-thump', at + 0.03, { rate: 0.9, vol: 0.4, len: gap, lp: 450 }); })); },
-        couch() { ['bed-thump', 'bed-creak'].forEach(sample); stops.push(strokes((at, i) => {
-            const gap = 1 / strokeRate;
-            grain(out, 'bed-thump', at, { rate: 0.75, vol: 0.7, len: gap, lp: 500 });
-            if (i % 2 === 0 || Math.random() < 0.3) grain(out, 'bed-creak', at + 0.04, { rate: 0.8, vol: 0.4, len: gap, lp: 1500 }); })); },
+            grain(out, one('couch-1', 'couch-2'), at, { vol: 0.75, len: gap });
+            if (i % 2 === 0) grain(out, 'bed-thump', at + 0.02, { rate: 0.75, vol: 0.3, len: gap, lp: 500 }); })); },
         floor() { ['bed-creak', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
             grain(out, 'bed-creak', at, { rate: 0.72, vol: 0.75, len: gap * 1.2, lp: 1800 });
             if (i % 2 === 0) grain(out, 'bed-frame', at + 0.03, { rate: 0.65, vol: 0.5, len: gap, lp: 900 }); })); },
-        // 1.83. Wet: slick strokes from the recordings, its own layer under the furniture, quicker and shorter as the pace rises.
-        wet() { ['wet-1', 'wet-2'].forEach(sample); stops.push(strokes(at => {
-            const gap = 1 / strokeRate;
-            wetOne(out, at + 0.01 + Math.random() * 0.03, { vol: 0.8 + Math.min(0.25, (strokeRate - 1) * 0.15), len: gap * 1.1 }); })); },
-        // Skin slapping: a slap on most strokes when it's rough or quick, louder and sharper the faster they go.
-        skin() { stops.push(strokes((at, i) => {
+        // Wet: slick strokes, its own layer under the furniture, quicker and shorter as the pace rises.
+        wet() { ['wet-1', 'wet-2', 'fingers-1', 'fingers-2'].forEach(sample); stops.push(strokes(at => {
+            const gap = 1 / strokeRate, o = { vol: 1.15 + Math.min(0.25, (strokeRate - 1) * 0.15), len: gap * 1.1 };
+            // Mostly the wet recordings, with a slicker cut from the finger recordings one stroke in four, for variety.
+            if (Math.random() < 0.25) grain(out, one('fingers-1', 'fingers-2'), at + 0.01, { ...o, vol: o.vol * 0.7, rate: 0.9 });
+            else wetOne(out, at + 0.01 + Math.random() * 0.03, o); })); },
+        // Skin slapping (1.85: her recordings): on most strokes when it's rough or quick, louder the faster they go.
+        skin() { ['slap-1', 'slap-2'].forEach(sample); stops.push(strokes((at, i) => {
             const hard = Math.max(0, Math.min(1, (strokeRate - 0.9) / 1.5));
-            if (fast() || i % 2 === 0 || Math.random() < 0.5) { burst(out, at + 0.03, 0.05, 0.3 + 0.45 * hard, 700 + 400 * hard); burst(out, at + 0.033, 0.02, 0.12 + 0.2 * hard, 2800); } })); },
+            if (fast() || i % 2 === 0 || Math.random() < 0.5) grain(out, one('slap-1', 'slap-2'), at + 0.03, { vol: 0.75 + 0.6 * hard, len: 0.6 / Math.max(1, strokeRate) + 0.15 }); })); },
+        // 1.85: Acts with their own layer: fingers keep time, rubbing is a slow continuous slide, spanking and the whip
+        // land now and then (sooner the faster the scene runs), her voice comes and goes.
+        fingers() { ['fingers-1', 'fingers-2'].forEach(sample); stops.push(strokes(at => {
+            grain(out, one('fingers-1', 'fingers-2'), at + 0.01, { vol: 1.1, len: 1.05 / strokeRate }); })); },
+        rub() { sample('rub'); stops.push(every(1.5, 2.0, at => grain(out, 'rub', at, { vol: 0.6, len: 2.2, jitter: 0.03 }))); },
+        spank() { sample('spank'); stops.push(hits(2.2, 5.5, at => { grain(out, 'spank', at, { vol: 0.95, len: 1.0 }); if (Math.random() < 0.25) grain(out, 'spank', at + 0.45 + Math.random() * 0.3, { vol: 0.8, len: 1.0 }); })); },
+        whip() { ['whip-1', 'whip-2'].forEach(sample); stops.push(hits(2.5, 6, at => grain(out, one('whip-1', 'whip-2'), at, { vol: 0.9, len: 1.0 }))); },
+        voice() { ['moan', 'whimper'].forEach(sample); stops.push(hits(1.8, 5, at => {
+            if (Math.random() < 0.2) return; // a breath's silence now and then
+            grain(out, fast() || Math.random() < 0.4 ? 'moan' : 'whimper', at, { vol: 0.8 + (fast() ? 0.2 : 0), len: 2.6, jitter: 0.02 }); })); },
         breath() { let t = 0, alive = true, inhale = true;
             const go = () => { if (!alive || !ac) return; const at = ac.currentTime + 0.05, len = Math.max(0.35, (inhale ? 0.55 : 0.75) / Math.max(0.6, strokeRate * 0.75));
                 const s = ac.createBufferSource(), f = filter('bandpass', inhale ? 1500 : 900, 0.9), g = ac.createGain(); s.buffer = noiseBuffer();

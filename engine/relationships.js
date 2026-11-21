@@ -4,7 +4,8 @@ import { pronounOf } from './pronouns.js';
 // Shared ("between them"): true for both people and sent once, like dating or enemies to lovers.
 // Directed: one person's side only, like a crush, an opinion or "they're mine".
 // Each row: id, label, description for the panel, wording sent to the model ({other} becomes their name).
-import { RELATIONSHIP_GROUPS, SHARED_GROUPS } from '../data/catalogue/relationships.js';
+import { RELATIONSHIP_GROUPS, SHARED_GROUPS, TO_METER } from '../data/catalogue/relationships.js';
+export { TO_METER };
 // [name, icon, colour, rows]; rows are [id, label, cue, prompt].
 const asRows = groups => groups.map(g => [g.name, g.icon, g.color, g.rows.map(r => 'prompt' in r ? [r.id, r.label, r.cue, r.prompt] : [r.id, r.label, r.cue])]);
 export const SHARED_CATEGORIES = asRows(SHARED_GROUPS);
@@ -110,4 +111,16 @@ export function relationshipSets(state, name, extras = {}) {
         if (!relation.enabled || !target || target.toLowerCase() === owner.name.toLowerCase() || (!tags.length && !usable && !relation.note)) return [];
         return [{ ...owner, relation, target, tags, compare: usable, note: relation.note }];
     }));
+}
+
+// 1.86: the feelings that became meters, read back from the meters as tie strengths (0-100), so dynamics, period
+// lines and scene links that look for "possessive" or "trusts" still find them. values: { f, r, t, p, l, more: {} }
+// (any of them may be missing); a two-sided meter only counts in the row's direction.
+export function meterTies(values = {}) {
+    const out = {};
+    for (const [id, [k, sign]] of Object.entries(TO_METER)) {
+        const v = values?.[k] ?? values?.more?.[k]; if (!Number.isFinite(v)) continue;
+        const s = Math.round(v * sign); if (s > 0) out[id] = Math.min(100, s);
+    }
+    return out;
 }

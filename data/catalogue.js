@@ -5,7 +5,7 @@ import traitSection from './catalogue/trait.js';
 import intimacySection from './catalogue/intimacy.js';
 import psycheSection from './catalogue/psyche.js';
 import stateSection, { OPPOSITE_FACTS } from './catalogue/state.js';
-import storySection from './catalogue/story.js';
+import storySection, { ONE_OF } from './catalogue/story.js';
 export { SCALED_MOOD_CUES, MERGED_PROMPT_CUES } from './catalogue/scaled.js';
 export { MERGED_MOODS, MERGED_SEARCH_NAMES, REMOVED_MOODS } from './catalogue/merged.js';
 export { RECIPES, STORY_RECIPES } from './catalogue/recipes.js';
@@ -22,9 +22,10 @@ export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.ro
 const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
 export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.private ? { private: true } : {}), ...(r.size ? { size: r.size } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
-// For each fact, the facts it can't be on with (OPPOSITE_FACTS in catalogue/state.js).
+// For each fact, the facts it can't be on with (OPPOSITE_FACTS in catalogue/state.js), and the same for the
+// one-at-a-time story sets (ONE_OF in catalogue/story.js: one narrator, one tense).
 export const OPPOSITE_OF = {};
-for (const group of OPPOSITE_FACTS) for (const id of group) if (BY_ID[id]) OPPOSITE_OF[id] = [...new Set([...(OPPOSITE_OF[id] ?? []), ...group.filter(x => x !== id && BY_ID[x])])];
+for (const group of [...OPPOSITE_FACTS, ...ONE_OF]) for (const id of group) if (BY_ID[id]) OPPOSITE_OF[id] = [...new Set([...(OPPOSITE_OF[id] ?? []), ...group.filter(x => x !== id && BY_ID[x])])];
 
 // The wording sent for each option, where it has one, and how each feeling shows on the page.
 export const PROMPT_NAME = {};

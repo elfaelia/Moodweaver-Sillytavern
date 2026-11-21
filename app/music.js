@@ -10,6 +10,7 @@ import { GOOD_ENOUGH, MODES, MOOD_LIST, cleanTags, cueHits, describe, emptyTags,
 import { readSheet, sheetFile } from '../engine/sheet.js';
 import { readCsv, readXlsx } from '../engine/xlsx.js';
 import { shortName } from '../engine/util.js';
+import { pronounOf } from '../engine/pronouns.js';
 import { BEATS, beatsIn, plainStory, radioIn, radioKind } from '../engine/scene-words.js';
 import * as amb from './ambience.js';
 import * as sp from './spotify.js';
@@ -39,7 +40,7 @@ export const EXTRAS = [
     { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
     { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
     { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
-    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, and skin slapping when it’s rough, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
+    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, skin slapping when it’s rough, fingers, grinding, spanking or a whip when the story names them, and her moans when one of you is a she, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
     { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it.' },
 ];
 const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', radio: 'all' };
@@ -240,6 +241,10 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     const pace = (snap?.energy ?? 3) + amb.paceNudge(near2);
     if (snap?.heat === 'sex' || (snap?.heat && said(amb.MORE_WORDS.wet))) beds.push('wet');
     if (snap?.heat === 'sex' && (pace >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
+    // 1.85: acts with their own layer when the last 2 messages name them (fingers, grinding, spanking, a whip or belt),
+    // and her voice in sex when you or the character is a she.
+    if (snap?.heat) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
+    if (snap?.heat === 'sex' && [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she')) beds.push('voice');
     if (snap?.heat) beds.push('breath');
     if ((snap?.mode === 'danger' && (snap?.energy ?? 3) >= 4) || said(amb.MORE_WORDS.heart)) beds.push('heart');
     // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).

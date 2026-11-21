@@ -1,5 +1,91 @@
 # Changelog
 
+## 1.87.0: the story moves the cast too
+
+- **Cast members in the scene now get automatic feelings and facts, like the character does.** When someone from your cast is in the scene, the hidden line can say how they changed this reply: one feeling (wary +10, scared off) and one lasting fact (in uniform, arrested, or that fact off). It's asked for only when something actually changed for them, so most replies add nothing, and a person costs roughly 10 to 20 tokens when they do.
+- **Only people who are really there.** Anyone out of the scene is left exactly as they are, so talking about someone, remembering them or thinking about them never changes them. The board's Present line (people currently visible) already moves the cast in and out of the scene on its own, and the hidden line is told to leave out anyone only mentioned.
+- **They settle down on their own.** Feelings the story gave a cast member fade when the story stops naming them (on the chat's pace), and facts that run a course (drunk, bleeding) wear off for them too. Anything you set by hand or pinned on them is left alone, and a fact you set yourself is never taken off by the story.
+- **No feedback loop:** the cast gets no feelings-toward or meters from this, just their own feelings and facts.
+- Swipes, edits and Undo put all of it back, same as for the character.
+- ⚙ Settings › under "Present line moves the cast in and out": "The story moves the cast's feelings and facts" (on).
+
+## 1.86.2: a crush stays its own feeling
+
+- **"Has a crush on" is a feeling tag again, not part of the Romance meter.** A crush is its own thing: giddy, nervous, overthinking every exchange, half hoping nothing comes of it. Romance only says how much love there is. So on the character's side toward you it's back in Feelings toward › Attraction & romance as its own row, even with the meters on, and the character can set it or let it go through the hidden line like any other feeling there.
+- It still counts as romance for dynamics (the crush dynamics like "has a crush and isn't handling it well" read it), so you lose nothing by keeping it as a tag.
+- If you'd set it before 1.86.0, that update moved it into Romance; set it again if you want the tag back.
+
+## 1.86.1: known turn-ons stay known, and are sent only when they fit
+
+- **Nothing the character learns about you fades any more.** 1.86.0 capped learned turn-ons at 8 and let them drop back to suspected, which made no sense in the story: once he knows, he knows. That's undone. Known stays known, suspected stays suspected until he sees it again, and there's no cap.
+- **Your turn-ons are sent only when they fit the moment, to save tokens.** Each one (known, suspected or unknown to him) goes in the note when the scene is intimate, when the last messages touch it (its name or its words), when the other person shows it, and your two strongest one reply in six as a reminder. The rest wait without being forgotten. ⚙ Settings › What is sent › "Send your turn-ons only when they fit the moment" (on). Off sends them all every reply, as before.
+
+## 1.86.0: feelings that double the meters move into them, many more turn-ons, Saturn's ring and tap glow
+
+- **No more double-ups between feelings and meters.** I checked every one of the character's feelings toward you against the meters and dynamics. 69 of them only said how much the character likes, loves, trusts, wants, fears or is hooked on you, which is exactly what a meter tracks. On the character's side toward you (with the meters on), each of these now *is* its meter, including the negative ones:
+  - Likes, enjoys their company and loves are Friendship; can't stand, hates and despises push Friendship down. Trusts and feels safe are Trust; distrusts and suspicious push it down.
+  - Finds attractive, has a crush, smitten and in love are Romance; not attracted, finds plain or ugly, turned off and grossed out push it down. Finds hot, turned on by and lusts after are Lust.
+  - Respects, admires and impressed are Respect; looks down on pushes it below zero. Idolises and idealises are Pedestal. Fascinated and curious are Fascination.
+  - Obsessed is Obsession; possessive, they're mine and wants to own are Possessiveness; jealous is Jealousy; depends and can't live without are Dependence; dominates and controls push Control his way, and submits to pushes it yours.
+  - Protects and watches over are Protectiveness; would die for is Sacrifice; worries about, cherishes and dotes are Care; loyal is Loyalty; devoted is Devotion; proud is Pride in them; teases is Playfulness; comfortable with is Ease; confides in is Openness.
+  - Resents is Resentment; irritated and sick of are Exasperation; afraid, intimidated and walking on eggshells are Fear; feels guilty is Guilt; feels inferior is Unworthiness; hides their life from them is Secrecy; competes is Rivalry; wants to corrupt is Corruption; wants to break or hurt is Urge to hurt; covers for is Complicity; studies is Clinical eye; keeps testing is Testing; attracted but won't act is Restraint.
+- **Nothing you set is lost.** Any of these you'd set moves into its meter once (the meter takes it if that's further along), a side meter that was off comes on, and a short note says which. Dynamics, period lines and scene links that looked for "possessive" or "trusts" now read it from the meter, so they still fire.
+- **The feelings-toward section is now for specific feelings:** roles, what they think of you, what happened between you (betrayed by, owes their life to, can't forgive), and how it shows. A line at the top says the rest are the meters on Bonds. Your own side, and anyone's side toward someone other than you, keep every row, since meters only exist between the character and you.
+- **A smaller hidden line.** The character no longer writes the same feeling twice (once as a feeling toward you, once as a meter). "toward" now only asks for the specific kind; if it still names one that's a meter, the meter moves instead.
+- **Learned turn-ons cap and fade.** The character keeps at most 8 of your turn-ons learned from how you react, the most recently seen first. One not seen for 60 messages drops from known to suspected, and after 120 it's forgotten. Anything you set by hand never fades.
+- **218 more turn-ons (787 in all), normal and niche.** New ones in every group: lashes, a crooked nose, broad shoulders, the small of the back, hip bones, curly and red and silver hair, split lips, leather jackets, turtlenecks, a towel only, stammering, moaning, whisky on the breath, clean laundry, good with animals, street smarts, a poker face, thrill-seekers, chivalry, night owls, a sibling's best friend, nurses, pilots, mechanics, bartenders, photographers, hitmen, crooked cops, goths, ad men, werewolves, witches, back rubs, slow dancing, being introduced as theirs, having rules, being dared, neck kisses, hickeys, lap dances, rimming, sixty-nine, toys, strap-ons, riding, legs over shoulders, hotel rooms, reunion and goodbye sex, having to be quiet, bossy bottoms, gentle dominance, a cigarette after, face slapping, wax, pinning down, public humiliation, role-play, garters, fishnets, spreader bars, leashes, candlelight, jazz clubs and many more.
+- **Saturn's ring on Music.** The cover art now has a tilted ring that passes behind it and in front of it, with bands and glints that turn while a song plays (and rest when it's paused).
+- **Taps glow.** Whatever you tap (Fits, Not here, a moon, − and +, a pill, a star switch, any button) glows softly and fades, so you can see it registered, even when the panel redraws. Not here glows rose; everything else glows gold.
+
+## 1.85.0: your second batch of sounds, and new layers for particular acts
+
+- **More of your recordings in.** Your twenty new clips (a few arrived twice, so I used one copy of each) are cut into 460 short pieces, levelled against each other, and played the same way as before: a fresh piece each stroke, never the same twice in a row, all keeping pace with how fast they're moving.
+- **Bed.** It now also has the bouncing springs from "Two people bouncing" on most strokes and the headboard from "Bed creaking headboard", which knocks on most strokes when it's fast and now and then when it's slow.
+- **Sofa, desk, car and wall now use their own recordings**, not reshaped bed sounds: your leather sofa cushion clips, "Desk rocking against", both truck creak clips, and the three "body thumping against" clips. The office chair and floor still use the reshaped bed sounds until you send recordings of those.
+- **Real skin slaps.** The slapping layer now plays "Skin on skin getting faster" and "Skin slapping rhythm" in place of the made-up slap, getting louder as the pace climbs. The wet layer also mixes in a slicker cut from the finger clips one stroke in four.
+- **New layers that come in when the story names them (last two messages):** slick fingers (fingering words), skin rubbing (grinding, straddling, rubbing against), spanking (spank, over his knee, a slap on her backside), and a whip or belt (whip, lash, flog, crop, cane, a belt landing). Fingers keep time with the strokes. Rubbing is a slow continuous slide. Spanking and the whip land now and then, sooner the faster the scene is going.
+- **Her voice.** Your moaning and whimpering clips play in sex scenes when you or the character is a she: moans come more often when it's fast, whimpers more when it's slow, with silences in between.
+- **One-off sounds.** A slap or spank in a new reply now plays your recorded spank once; a whip or belt landing plays your whip once.
+- Up to seven layers can now play at once, with a gentle limiter on top so they never crackle when they stack up at Loud.
+
+## 1.84.3: no example words, no "Suits" hints
+
+- **Every "Suits …" hint is gone.** All 348 author notes lost their "Suits …" line, and the era notes no longer name characters ("Easterman's era", "Patrick Bateman's decade", "Chloe Price, Joe Goldberg"). The notes keep what the author or era is like.
+- **Rows no longer hand Claude words to say.** Quoted lines and word lists that Opus 5.5 would echo are now described instead:
+  - Uses pet names: "calls people by pet names in their own way", with no list. The pet names box on a profile still sends your own names.
+  - How feelings show: 23 feelings had a line in quotes ("for god's sake", "who, me?", "I'm fine", "mine", "fine", "just kidding" and so on). Each now says what happens, not the words.
+  - Fatherly, Experimental, Smothering mother figure, Gaslit reality, the turn-ons for pet names and mock pity, three relationship ties ("touch them and die" and the like) and six skills (love bombing, guilt tripping, playing the victim, obedience, reading limits, protecting someone) lost their quoted lines too.
+  - Eras: the 1990s, 2010s and 2020s rows dropped their slang lists ("whatever", "on fleek", "no cap", "it's giving" and so on). They keep the phones, apps, music and news of the time.
+  - Authors: famous lines and catchphrases are out of the author briefs ("So it goes", "what ho", Hemingway's last line, Marty's "what do you feel like doing tonight" and a few more), so they can't turn up in your story. The technique is still described.
+- **Kept on purpose:** examples that define a rule. The ban lists in No AI tells, No similes and No stock senses, the "saw her" versus "seen her" line in Close third, with attitude, the "are you alright" check-ins that No check-ins leaves out, the American and British word lists, and the 1960s period lines (historical facts, such as what doctors called things then).
+- **One new line in the guide:** these notes say what to show, never words to use, and whatever anyone says or calls someone comes in that person's own words, from their own era, place and card.
+
+## 1.84.2: no fake-cool words
+
+- **"Clocked" is gone from Close third, with attitude.** Its example of fine narration is now the plain "saw her" (against "seen her", which isn't), with the chat's own character name filled in. The slang it allows is the character's own, from their time, place and kind of life, and it now names the fake-cool words to leave out: clocked, the audacity, lowkey, zero chill, a whole thing.
+- **No AI tells now covers fake-cool words everywhere:** clocked (for noticed or recognised), the audacity, lowkey, not gonna lie, zero chill, a whole thing, it's giving, rent-free, chef's kiss and main character energy. They never go in the narration. In dialogue, they only appear when the era or the card shows that person really talks that way.
+- **Everything sent to Claude fits any character.** I checked every writing, story, point of view, author and dynamic line for names or one-story wording. The point of view lines use whoever the chat's character is. Two things were tied to one story, and both are now generic:
+  - "Uses pet names" said "darling, pet, little lamb". It now says "darling, pet, doll, sweetheart", so no chat gets nudged toward "little lamb".
+  - The clinic dynamic "Reagent and keeper" is now "Subject and keeper", because "reagent" is one game's word. If you'd picked it, the pick follows the new name.
+  - Character names that show only in the panel (such as "Easterman's era" under 1960s) are hints for you and are never sent to Claude.
+
+## 1.84.1: close third, with attitude
+
+- **A new narrator in Point of view & tense: Close third, with attitude.** It sits in between plain close third and deep third. The narration keeps normal, correct grammar and never does the character's accent ("clocked her" yes, "seen her" or "ain't" no). Their way of seeing the world leaks in a touch or two a paragraph: the odd swear word or bit of their slang, a blunt or crude description, and their gaze in what gets noticed and lingered on, including how they look at someone they want. Their full slang and accent stay in what they say aloud.
+- Plain **Close third person** is unchanged. The new row is one of the narrators that switch each other off, and it gets its own one-line reminder at the end of the note like the others.
+
+## 1.84.0: point of view and tense
+
+- **A new Story section, Point of view & tense.** Find it under Story › ＋ Add. It sits first among the writing sections. Any moon turns a row on, because point of view isn't something to do a little of. It holds for every reply.
+  - **Close third person.** The narration says he or she and stays with the main character. It shows only what they see, hear and know, and describes people and places the way they size them up. The narrator's own sentences stay plain narrative prose, so their slang, accent and swearing live in what they say aloud and the odd short thought in italics, never in the narration. This is the one you use most.
+  - **First person.** The main character narrates as "I", in their own voice and grammar, and doesn't explain their feelings in tidy modern language.
+  - **Omniscient third.** A narrator outside everyone who can move between people, but never writes your character's thoughts.
+  - **Outside view.** Like a camera: only what could be seen and heard, with nobody's thoughts.
+  - **Second person** (moved here from Writing style). Your character is "you". It goes with any of the narrators above.
+  - **Present tense** (moved here from Writing style) and **Past tense.**
+- **One at a time.** Turning on a narrator turns the other narrators off, and the same goes for the two tenses.
+- **Sent firmly, for Opus 5.5.** Point of view and tense now go as a full instruction rather than a weighted setting. They're spelled out with the guide, and a one-line reminder is sent last, next to your prose rules, because earlier replies in another point of view pull hard. When one is set, the author notes say to keep it. Authors who wrote in first person no longer pull a third-person chat their way.
+
 ## 1.83.0: real bed sounds that keep pace, ambience on its own, twelve explicit authors
 
 - **Real recorded sounds in sex scenes.** The bed sounds are now built from your five ElevenLabs clips, cut into 133 short pieces (creaks, frame knocks, thumps, wet strokes). Every stroke picks a fresh piece, never the same one twice running, and varies its pitch, loudness and length a little, so it never settles into two beats on repeat. The pace also drifts slowly (a build, an ease) and pauses now and then, like people rather than a metronome.

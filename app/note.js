@@ -1,4 +1,5 @@
 // Building the hidden note sent with each reply, and holding it steady while a reply is written.
+import { meterTies } from '../engine/relationships.js';
 import { getCast, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
 import { autoWantsNow, boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, opinionsNow, pronounsFor, reactions, secretsNow, stressNow, userRelation, weaveOf, writes } from './replies.js';
 import { stressLines } from '../engine/stress.js';
@@ -86,7 +87,8 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         // Secrets (1.79): the hidden line names one only when it moves, so it's listed by short title.
         const sec = secretsNow(ch, history), secTitles = sec && (sec.mine.length || sec.yours.length) ? `Secrets: ${[[n, sec.mine], [u, sec.yours]].filter(([, l]) => l.length).map(([who, l]) => `${who}'s: ${l.map(x => x.title).join('; ')}`).join('. ')}.` : null;
         const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split }) : [];
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split,
+            cast: settings().castAuto !== false && bm.feed ? getCast(ch).filter(p => p.inScene && p.state?.enabled !== false).map(p => shortName(p.name)).filter(Boolean) : [] }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
@@ -111,7 +113,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
             ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
             ...(sec ? secretLines({ ...sec, n, u, scene: skillScene0.scene }) : [])].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, traitFocus: settings().traitFocus !== false, split, echoes });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, traitFocus: settings().traitFocus !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // Music › "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
@@ -181,7 +183,8 @@ const YIELDING_MOODS = ['submissive_longing', 'fawning', 'performing_obedience',
 // Feelings of the desire family, for telling whether a scene is sexual right now.
 const DESIRE = MOODS.filter(m => m.category === 'desire').map(m => m.id);
 function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
-    const g = pronounsFor(ch, bond), rel = userRelation(state), relMoods = rel && rel.enabled !== false ? rel.moods ?? {} : {};
+    const g = pronounsFor(ch, bond), rel = userRelation(state), relMoods = { ...(bd ? meterTies(bd) : {}), ...(rel && rel.enabled !== false ? rel.moods ?? {} : {}) };
+    // 1.86: feelings that became meters (possessive, trusts) are read back from the meters above, so the links still fire.
     const pair = ctx().chatMetadata?.[KEY]?.pairs?.[pairId(`char:${ch.avatar}`, 'user')], pairMoods = pair && pair.enabled !== false ? pair.moods ?? {} : {};
     const cname = String(ch?.name ?? '').toLowerCase(), side = (mine?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === cname);
     const yourSide = side && side.enabled !== false ? side.moods ?? {} : {};

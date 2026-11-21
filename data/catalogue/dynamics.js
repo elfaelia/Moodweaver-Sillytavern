@@ -999,7 +999,7 @@ export const DYNAMICS = [
     ["Duty first", d => d.rt >= 50 && d.ly >= 40 && d.r >= 25,
         (n, u) => `${n} puts duty to someone else (a spouse, a family, a job, a vow) ahead of what ${n} feels for ${u}, and keeps paying for it`,
         "society", "duty vow obligation family honour sacrifice loyal promised", []],
-    ["Reagent and keeper", d => d.cl >= 40 && d.ob >= 45 && d.p >= 35,
+    ["Subject and keeper", d => d.cl >= 40 && d.ob >= 45 && d.p >= 35,
         (n, u) => `${u} is ${n}'s subject and ${n}'s fixation at once: dosed, measured and watched, and the notes have stopped being only about the work`,
         "clinic", "reagent subject keeper dosed measured fixation experiment", ["scientist_and_subject"]],
     ["Watched and safe", d => d.kn >= 40 && d.pr >= 50 && d.t >= 20,

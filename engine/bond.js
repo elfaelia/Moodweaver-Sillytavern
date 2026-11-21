@@ -83,6 +83,8 @@ export const paceOf = bond => PACE[bond?.pace] ?? PACE.steady;
 export { DYNAMIC_GROUPS };
 // Every dynamic: [name, test, cue, group, keys, covers].
 export const dynamicRows = () => DYNAMICS;
+// Dynamics renamed so they fit any story (1.84.2: "Reagent" is one game's word). Saved picks follow the new name.
+const DYN_RENAMED = { 'Reagent and keeper': 'Subject and keeper' };
 const groupTone = Object.fromEntries(DYNAMIC_GROUPS.map(([id, , , tone]) => [id, tone]));
 const asDynamic = (row, n, u) => ({ name: fill(row[0], n, u), key: row[0], cue: pronounize(row[2](n, u), n, u), group: row[3] ?? 'own', tone: groupTone[row[3]] ?? 'rose', covers: row[5] ?? [] });
 // A name the story or the reader wrote that isn't in the catalogue still works, in its own words.
@@ -214,7 +216,7 @@ export function cleanBond(raw = {}, on = true) {
         if (a && typeof a === 'object' && Number.isFinite(Number(a.v))) anchors[k] = { v: n(a.v), key: text(a.key, 120), pos: Math.max(-1, Math.round(Number(a.pos) || 0)) };
     }
     return {
-        on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: text(b.fixed, 60),
+        on: typeof b.on === 'boolean' ? b.on : on, extra: b.extra !== false, fixed: DYN_RENAMED[text(b.fixed, 60)] ?? text(b.fixed, 60),
         // Who names the dynamic (story: the reply's hidden line; meters: the numbers), your picks for
         // this pair, how fast things move, and the scene reader's last call.
         // Meters is the default now that feelings feed the meters; Story costs a line of instructions a reply.
@@ -222,7 +224,7 @@ export function cleanBond(raw = {}, on = true) {
         under: b.under !== false, mode: b.mode === 'story' ? 'story' : 'meters', pace: PACE[b.pace] ? b.pace : 'steady', nudge: b.nudge !== false, ties: TIES[b.ties] ? b.ties : 'balanced', offered: Array.isArray(b.offered) ? b.offered.filter(x => typeof x === 'string').slice(-40) : [],
         // Pronouns for the lines Claude reads (auto guesses from the card and persona).
         pn: ['he', 'she', 'they'].includes(b.pn) ? b.pn : 'auto', pu: ['he', 'she', 'they'].includes(b.pu) ? b.pu : 'auto',
-        pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
+        pool: [...new Set((Array.isArray(b.pool) ? b.pool : []).map(x => text(x, 60)).map(x => DYN_RENAMED[x] ?? x).filter(Boolean))].slice(0, 240),  // Was 60, which silently dropped picks; now room for every dynamic plus 40 of your own
         read: b.read && typeof b.read === 'object' && text(b.read.name, 60) ? { name: text(b.read.name, 60), why: text(b.read.why, 160), key: text(b.read.key, 120), pos: Math.round(Number(b.read.pos) || -1) } : null,
         v: b.v === 2 ? 2 : 1, anchors,
         base: Object.fromEntries(METERS.map(k => [k, n(b.base?.[k])])),

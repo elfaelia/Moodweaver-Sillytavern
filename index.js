@@ -7,7 +7,7 @@ import { settings } from './app/settings.js';
 import { SELF, VERSION, clearNotes, ctx, generationSnapshots, run, ui } from './app/state.js';
 import { hasBoard, stripBoard } from './engine/board.js';
 import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
-import { onGroupToggle, openPanel, render, renderPreview, toggleTop, typingInPanel } from './panel/render.js';
+import { onGroupToggle, openPanel, render, renderPreview, tapGlow, toggleTop, typingInPanel } from './panel/render.js';
 import { sheetSwipe } from './panel/skills-tab.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
 import { afterReply, initMusic, musicLine, onMusicChange } from './app/music.js';
@@ -73,6 +73,7 @@ function setup() {
     ui.panel.addEventListener('input', onPanelInput);
     ui.panel.addEventListener('keydown', onPanelKeydown);
     ui.panel.addEventListener('change', onPanelChange);
+    ui.panel.addEventListener('click', tapGlow, true);
     ui.panel.addEventListener('click', onPanelClick);
     let touch = null;
     // A swipe is remembered from its start: where, when, and how far the panel was scrolled (a scroll is not a swipe).

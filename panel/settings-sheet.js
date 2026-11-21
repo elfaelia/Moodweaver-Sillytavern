@@ -40,6 +40,8 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceOn" ${settings().diceOn !== false ? 'checked' : ''}> Dice checks for skills in play (a d20 plus the skill level decides how attempts go)</label>
             <p class="mw-fine">Putting on Hot takes off Cold, Hard takes off Soft, Drunk takes off Tipsy, and so on, whether you set it or the story does. Pinned facts stay.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="factsWhenRelevant" ${settings().factsWhenRelevant !== false ? 'checked' : ''}> Send who-they-are facts only when the scene touches them</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="turnsWhenRelevant" ${settings().turnsWhenRelevant !== false ? 'checked' : ''}> Send your turn-ons only when they fit the moment</label>
+            <p class="mw-fine">What the character knows about you stays known. Each turn-on goes in an intimate scene, when the story touches it, when the other person shows it, and your two strongest one reply in six. Off sends them all every reply.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="traitFocus" ${settings().traitFocus !== false ? 'checked' : ''}> Traits in focus: three in full each reply (the ones the scene touches first, the rest taking turns), the others as names in the background</label>
             <p class="mw-fine">Looks, style, voice, job and past go when the scene brings them up, when they’re set to overwhelming or maximum, and every few replies as a reminder. Age, height and what’s happening right now always go. Saves tokens when your card already says the same.</p>
             <label class="mw-field">Your feelings rubbing off<select data-setting-choice="contagion" aria-label="Your feelings rubbing off">${[['scene', 'When it fits who they are'], ['off', 'Off']].map(([v, l]) => `<option value="${v}" ${settings().contagion === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
@@ -61,6 +63,8 @@ export function settingsView(state) {
             
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardSend" ${settings().boardSend ? 'checked' : ''}> Send the board prompt</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPresent" ${settings().boardPresent ? 'checked' : ''}> Present line moves the cast in and out</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="castAuto" ${settings().castAuto !== false ? 'checked' : ''}> The story moves the cast's feelings and facts</label>
+            <p class="mw-fine">Only for cast members in the scene: one feeling and one fact each a reply at most, and only when something changed. Anyone just talked about or thought of is left alone.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardStrip" ${settings().boardStrip ? 'checked' : ''}> Keep old boards out of the prompt</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardWithWeave" ${settings().boardWithWeave ? 'checked' : ''}> Board words move feelings too, alongside the hidden line</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPins" ${settings().boardPins ? 'checked' : ''}> Let me pin and correct things on the board</label>

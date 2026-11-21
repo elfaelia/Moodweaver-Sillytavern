@@ -231,6 +231,9 @@ const causeOf = (state, id) => state?.causes?.[id] ? `, because ${pt(state.cause
 const liveWants = (state, done = null) => (state?.wants ?? []).filter(w => !w.done && w.value > 0 && w.text && !done?.has(w.id)).sort((a, b) => b.value - a.value);
 const WANT_WORD = { want: 'want', goal: 'goal', fear: 'fear', button: 'hot button' };
 const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply', touched: 'touched last reply', pressed: 'pressed hard last reply' };
+// Whether the scene's words touch a turn-on: its name or one of its extra words (whole words, endings allowed).
+const touchesTurn = (id, scene) => { const t = TURN_BY_ID[id], text = String(scene ?? '').toLowerCase(); if (!t || !text) return false;
+    return `${t.noun} ${t.keys ?? ''}`.toLowerCase().split(/[^a-z']+/).filter(w => w.length >= 4).some(w => new RegExp(`\\b${w.slice(0, Math.max(4, w.length - 2))}`).test(text)); };
 const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
 // Turn-ons, wants, their own rows and inventory, for one person. Kinds pick which of their own rows belong here.
 // lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id → status), done: Set }.
@@ -246,7 +249,12 @@ function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit =
     if (prefs.length && know) {
         const row = ([id, v]) => { const e = knowledgeEntry(know.knowledge?.[`turn:${id}`]);
             return [e.mode, `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${signNote(id, signs)}${e.source ? ` (how: ${pt(e.source)})` : ''}`]; };
-        const rows = prefs.map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
+        // 1.86: what the character knows stays known, but each one is only sent when it fits the moment: in an
+        // intimate scene, when the scene's words touch it, when the other person shows it, or (the two strongest)
+        // one reply in six as a reminder. Saves tokens on long lists without anyone forgetting anything.
+        const g = know.gate, strongest = new Set(prefs.slice(0, 2).map(([id]) => id));
+        const fits = ([id]) => !g?.on || g.intimate || touchesTurn(id, g.scene) || signs?.map?.get(id)?.is?.length || (g.refresh && strongest.has(id));
+        const rows = prefs.filter(fits).map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
         const known = pick(['known']), suspected = pick(['suspected']), unknown = pick(['scene', 'private']);
         if (known.length) out.push(`Turn-ons and turn-offs ${know.observer} knows about:`, ...known);
         if (suspected.length) out.push(`Turn-ons and turn-offs ${know.observer} suspects:`, ...suspected);
@@ -299,7 +307,9 @@ function composePrompt(state, name, extras = {}) {
     const shown = st => m => mindOn(st, scene)(m) && factOn(st, scene, gate)(m);
     const mine = live(state).filter(m => m.kind !== 'story').filter(shown(state));
     const theirs = live(player?.state).filter(m => m.kind !== 'story').filter(shown(player?.state));
-    const story = live(storyState).filter(m => m.kind === 'story');
+    // Point of view and tense (Story › Point of view & tense) are their own instruction, not a weighted setting.
+    const storyAll = live(storyState).filter(m => m.kind === 'story');
+    const views = storyAll.filter(m => m.category === 'viewpoint'), story = storyAll.filter(m => m.category !== 'viewpoint');
     const cast = liveCast(extras);
     const N = String(name ?? '').trim() || 'the character', n = pt(shortName(N));
     const U = String(player?.name ?? '').trim() || 'the player’s character', u = pt(shortName(U));
@@ -310,13 +320,13 @@ function composePrompt(state, name, extras = {}) {
     const lit = extras.lit ?? null;
     const signs = extras.signs ?? null, signed = Boolean(signs?.char?.size || signs?.user?.size);
     const mineExtra = extraLines(state, undefined, '', lit, null, { map: signs?.char, who: u }), storyExtra = extraLines(storyState, ['story']);
-    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n }, { map: signs?.user, who: n });
+    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n, gate: { on: extras.turnsWhenRelevant !== false, scene, refresh: gate.refresh, intimate: gate.intimate } }, { map: signs?.user, who: n });
     const prefKnown = mode => livePrefs(player?.state).some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story').filter(shown(person.state)), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
     // The meters sit with the rest of what the character feels about the player; the weave line request goes last.
     const standing = (Array.isArray(extras.standing) ? extras.standing : [extras.standing]).filter(Boolean), weaveLines = Array.isArray(extras.weave) ? extras.weave : [];
-    if (!mine.length && !theirs.length && !story.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
+    if (!mine.length && !theirs.length && !story.length && !views.length && !cast.length && !relationships.length && !pairs.length && !mineExtra.length && !theirsExtra.length && !storyExtra.length
         && ![state, player?.state].some(hasType) && !boardLines.length && !standing.length && !weaveLines.length && !(player?.condition ?? []).length && !(extras.skills ?? []).length && !(storyState?.enabled && storyState.moods?.world_leads)) return { prompt: '', fixed: '' };
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(analysed), everyone = [...mine, ...theirs, ...castSets.flatMap(([, list]) => list)];
@@ -343,6 +353,8 @@ function composePrompt(state, name, extras = {}) {
     if (extras.pronounLine) out.push(pt(extras.pronounLine));
     if (split) fx.push('', 'How strong each setting is:', ...TIERS.filter(t => TIER_NOTE[t.name.toLowerCase()]).map(t => `- ${t.name.toLowerCase()}: ${TIER_NOTE[t.name.toLowerCase()]}.`));
     else if (used.length) out.push('', 'How strong each setting is:', ...used.map(t => `- ${t.name.toLowerCase()}: ${TIER_NOTE[t.name.toLowerCase()]}.`));
+    // Rows describe what to show, never lines to say, so no period or genre voice lands on the wrong character.
+    guide('', `These notes say what to show, never words to use: whatever anyone says, or calls someone, comes in that person's own words, from their own era, place and card.`);
     if (story.length) guide('',
         `For period, story, stakes and writing settings, strength is how much of the reply they shape: faint or subtle is an occasional touch, mild colours it, clear shapes at least one beat, strong shapes most of it, intense runs the whole reply, and overwhelming or maximum means the reply is built around it, several at once if several are that high.`);
     if (split || [...mine, ...theirs, ...castSets.flatMap(([, list]) => list)].some(m => m.kind === 'state')) guide('',
@@ -487,9 +499,11 @@ function composePrompt(state, name, extras = {}) {
     if (stakes.length && stakes.every(m => DRIVE.has(m.id))) out.push('', ...stakeRows);
     else if (stakes.length) out.push('', ...stakeRows, '',
         `Stakes are real here. Let harm, illness, loss and failure land at their strength for anyone in the story${playerAtRisk ? `, ${u} included. You decide what happens to ${u}'s body, health and circumstances; the player still writes ${u}'s words, choices and thoughts` : ''}. When things are going badly, they keep going badly until something in the story changes it.${followOn ? '' : ' No rescue by coincidence, sudden recovery, convenient interruption or time skip, and don\'t steer back to safety because the moment is hard to write.'} A body or situation in a stage of decline holds that stage or moves further; it only improves when something in the scene causes it.${stakesPeak >= 81 ? ' Death and permanent loss are real outcomes in this reply, not threats to walk back.' : ''}${stakesPeak === 100 ? ' At maximum, follow the worst outcome that fits and leave it standing.' : ''}`);
+    const view = viewpointLines(views, n, u, storyState?.moods);
+    if (view.guide.length) guide('', ...view.guide);
     if (styles.length) guide('', `How it's written:`, ...listLines(storyState, styles, U), '',
         `These set the voice of the whole reply, first line to last, with no drifting back to a default style. Use contractions (doesn't, can't, he's) the way people talk, in narration and dialogue.${stylePeak >= 91 ? ' An overwhelming one shapes every sentence.' : ''}`,
-        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate. Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []),
+        ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. ${views.length ? 'Keep the point of view and tense set in these notes exactly.' : `Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate.`} Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. Mix them at their strengths${authorPeak >= 61 ? '; the strongest should be recognisable in every paragraph, as if they wrote this reply' : ''}, and keep your own judgement about what the scene needs.`] : []),
         ...(roleSplit ? [AUTHOR_SPLIT] : []));
     // With the guide split off, a short line here keeps the voice in force right before the reply.
     if (split && styles.length) out.push('', `Write this reply in the voice set in the guide (${styles.filter(m => storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 4).map(m => `${m.label}${storyState.authorRole?.[m.id] ? ` for ${storyState.authorRole[m.id]}` : ''}`).join(', ') || styles[0].label}), from the first line to the last.`);
@@ -533,6 +547,7 @@ function composePrompt(state, name, extras = {}) {
     if (extras.blendPlan !== false && (top.length || strongCount >= 3)) out.push('',
         `Before you write, use your thinking to settle how the strongest settings combine in this exact moment: what each one looks like here, where they pull against each other, and which actions, lines and details carry several at once. Keep that planning in your thinking; the reply is only the scene.`);
     out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long; when two strong ones pull different ways, write both. ${boardLines.length ? 'Outside the board, show' : 'Show'} it through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End on ${rules.some(m => m.id === 'prose_no_fragments') ? 'an action or a line inside a full paragraph' : 'an action, a line or an image'}, with no closing paragraph that sums up or names a feeling the scene already showed. Never mention these notes.`);
+    if (view.last) out.push('', view.last);
     // Last, closest to the reply: the prose rules as full sentences, firm ones apart from lighter ones.
     const firm = rules.filter(m => storyState.moods[m.id] >= 61), light = rules.filter(m => storyState.moods[m.id] < 61);
     if (firm.length) out.push('', `These are the player's rules for the prose. They hold in every paragraph of every reply, inside any author's voice or style above, and they matter more to the player than any single beat. Earlier replies in this chat may not follow them; write this one by the rules rather than copying their layout. ${firm.map(m => m.cue).join(' ')}`);
@@ -543,6 +558,37 @@ function composePrompt(state, name, extras = {}) {
     const fixed = split && fx.length ? `<moodweaver_guide focus_character="${pa(N)}">\nHow to read the Moodweaver notes that come just before each reply, and the formats they ask for. The notes say what is true right now and outrank this guide wherever the two differ.\n\n${finish(fx).replace(/^\n+/, '')}\n</moodweaver_guide>` : '';
     return { prompt: `<moodweaver focus_character="${pa(N)}">\n${finish(out)}\n</moodweaver>`, fixed };
 }
+// Point of view and tense, as full instructions (Story › Point of view & tense). One narrator and one tense at a
+// time (ONE_OF in catalogue/story.js); if an old chat has two on, the strongest wins. Second person goes with any
+// narrator. The full wording goes with the guide; a one-line reminder goes last, next to the prose rules, because
+// earlier replies in another point of view pull hard and the end of the note carries the most weight.
+const NARRATORS = ['pov_close_third', 'pov_close_third_coloured', 'pov_first', 'pov_omniscient', 'pov_outside'], TENSES = ['present_tense', 'pov_past_tense'];
+export function viewpointLines(views, n, u, moods = {}) {
+    const on = id => views.some(m => m.id === id), pick = ids => ids.filter(on).sort((a, b) => (moods[b] ?? 0) - (moods[a] ?? 0))[0] ?? '';
+    const narrator = pick(NARRATORS), tense = pick(TENSES), you = on('second_person');
+    if (!narrator && !tense && !you) return { guide: [], last: '' };
+    const them = you ? `${u} (written as "you")` : u;
+    const youLine = you ? `The narration calls ${u} "you": you feel the cold, ${n} looks at you. ${narrator === 'pov_first' ? `${n} stays "I", and everyone else is` : `${n} and everyone else are`} called by name or pronoun.`
+        : ['pov_first', 'pov_close_third', 'pov_close_third_coloured'].includes(narrator) ? `${u} is called by name or pronoun, never "you".` : '';
+    const NARRATE = {
+        pov_close_third: `Narrate in close third person from ${n}'s point of view. The narrator calls ${n} by name or pronoun, never "I", and stays with ${n} for the whole reply. Only what ${n} sees, hears, feels and knows reaches the page, in the order ${n} notices it, and people and places are described the way ${n} sizes them up, so the reader sees the world through ${n}'s eyes and attitudes. The narrator's own sentences stay clear, standard narrative prose, not ${n}'s speaking voice: ${n}'s slang, grammar, accent and swearing belong in what ${n} says aloud and, now and then, a short direct thought in italics. A narrator that slips into a character's accent reads like an impression of them, which the player dislikes. ${n}'s feelings come through in what ${n} notices, does and avoids thinking about, not in the narrator naming or explaining them. Everyone else's mind stays closed: ${them} and the others are known only by what ${n} sees, hears and guesses, and ${n} can guess wrong.`,
+        pov_close_third_coloured: `Narrate in close third person from ${n}'s point of view, with ${n}'s attitude colouring the narration. The narrator calls ${n} by name or pronoun, never "I", and stays with ${n} for the whole reply. Only what ${n} sees, hears, feels and knows reaches the page, in the order ${n} notices it. The narration keeps normal, correct grammar and never writes ${n}'s accent or dialect: "${n} saw her" is fine, "${n} seen her" or "ain't" in the narration is not. Within that, ${n}'s way of seeing leaks in now and then: an occasional swear word or bit of ${n}'s own slang, from ${n}'s time, place and kind of life, a blunt, crude or judging description of a person or thing, and ${n}'s gaze in what gets noticed and lingered on, including how ${n} looks at someone ${n} wants. Keep these touches sparing, about one or two a paragraph set into otherwise plain narration, so they read as ${n}'s attitude showing through, never as the narrator putting on a voice, which the player finds cringe. Plain words beat trendy ones: leave out the fake-cool words a writer reaches for to sound edgy (clocked, the audacity, lowkey, zero chill, a whole thing), which read as the writer trying to be cool rather than as ${n}. ${n}'s full slang, grammar and accent stay in what ${n} says aloud. ${n}'s feelings come through in what ${n} notices and does, not in the narrator naming or explaining them. Everyone else's mind stays closed: ${them} and the others are known only by what ${n} sees, hears and guesses, and ${n} can guess wrong.`,
+        pov_first: `Narrate in first person as ${n}. The narrator is ${n}, saying "I", and the whole reply, description included, is told in ${n}'s own voice: ${n}'s vocabulary, grammar, slang and rhythm, because the point of first person is hearing how ${n}'s mind works. Only what ${n} perceives, knows and believes reaches the page. ${n} can be biased, wrong or self-deceived, and the reader may see more than ${n} admits. ${n} doesn't explain or analyse feelings in tidy, modern language; they show in what ${n} notices, dwells on, skips over and does. ${them} and everyone else are seen from outside: ${n} knows only what they say and do, and what ${n} guesses.`,
+        pov_omniscient: `Narrate in omniscient third person: a narrator outside everyone, who can move between the people in the scene, show what one of them can't see, and know more than any of them. Change whose thoughts are shown only at a paragraph break, so it's always clear whose head the reader is in. ${u}'s thoughts and feelings are the player's to write, so the narrator shows ${u} from outside and goes inside everyone else freely.`,
+        pov_outside: `Narrate in third person from outside, like a camera in the room: only what could be seen and heard reaches the page, and nobody's thoughts or feelings are named, ${n}'s included. Inner life shows only through action, faces, voices, silences and what people do with their hands, so the reader reads people the way the characters have to.`,
+    };
+    const TENSE = {
+        present_tense: `Write the narration in present tense: she turns, he says, the door opens. Keep to it through the whole reply, action and sex included. Drop into past tense only for what happened before this scene (a memory, backstory), then come straight back to present. Dialogue uses whatever tense people would naturally speak in.`,
+        pov_past_tense: `Write the narration in simple past tense: she turned, he said, the door opened. Keep to it through the whole reply. Use "had" only briefly to step back to something earlier, then return to simple past. Dialogue uses whatever tense people would naturally speak in.`,
+    };
+    const guide = [`Point of view and tense, set by the player for this chat. They hold in every sentence of every reply, inside any author's voice or style.`,
+        ...[NARRATE[narrator], youLine, TENSE[tense]].filter(Boolean)];
+    const NAME = { pov_close_third: `close third person, staying with ${n}`, pov_close_third_coloured: `close third person, staying with ${n}, in plain grammar with ${n}'s attitude showing through a touch or two a paragraph`, pov_first: `first person as ${n}`, pov_omniscient: 'omniscient third person', pov_outside: 'third person from outside, nobody\'s thoughts' };
+    const parts = [NAME[narrator], you ? `${u} as "you"` : '', tense === 'present_tense' ? 'present tense' : tense ? 'past tense' : ''].filter(Boolean);
+    const last = `Point of view: ${parts.join(', ')}. Earlier replies may use a different one; write this reply in the one set here, from the first sentence to the last.`;
+    return { guide, last };
+}
+
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
     const all = [...live(state), ...live(extras.player?.state), ...live(extras.story), ...liveCast(extras).flatMap(person => live(person.state).filter(m => m.kind !== 'story'))];
     const { prompt, fixed } = composePrompt(state, name, extras);

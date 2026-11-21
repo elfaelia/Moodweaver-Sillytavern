@@ -137,7 +137,7 @@ function drawPanel() {
         : ['char', 'user'].includes(ui.who) && ui.tab === 'period' ? periodView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
-            peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation })
+            peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation, meterRows: ui.who === 'char' && peer?.key === '{{user}}' && bondData(ch).on })
         : sectionContent(state, kind, ch, active)}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
     ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
@@ -148,7 +148,7 @@ function drawPanel() {
     ${state ? body : ''}
     ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
-    restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel);
+    restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel); reglow(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
 }
@@ -384,4 +384,28 @@ export function openPanel() {
             if (ui.lastDrawError || showError || !/on top there: the panel/.test(text)) note(text, true); else if (d) d.hidden = true;
         } catch (err) { note(`Report failed: ${err?.message ?? err}`, true); }
     }, 120);
+}
+
+// 1.86: a soft glow on whatever was just tapped (a button, a moon, a step, a pill, a star), so a tap shows it
+// registered. The panel often redraws on a tap, so the glow is found again after each draw by the element's
+// data attributes and carries on from where it was.
+const GLOW_MS = 900, GLOWABLE = 'button, input[type=checkbox], .mw-moon, [data-pill], [data-range-step], label.mw-toggle';
+const glowKey = el => {
+    const attrs = [...el.attributes].filter(a => a.name.startsWith('data-') || a.name === 'id').map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+    return attrs ? `${el.tagName.toLowerCase()}${attrs}` : '';
+};
+export function tapGlow(e) {
+    const el = e.target?.closest?.(GLOWABLE); if (!el || !ui.panel?.contains(el)) return;
+    const target = el.matches('input[type=checkbox]') ? el.closest('label') ?? el : el;
+    const key = glowKey(target), nth = key ? [...ui.panel.querySelectorAll(key)].indexOf(target) : -1;
+    ui.glow = { key, nth, at: Date.now() }; light(target, 0);
+}
+function light(el, skip) {
+    el.classList.remove('mw-tapglow'); void el.offsetWidth;
+    el.style.setProperty('--mw-glow-skip', `${-skip}ms`); el.classList.add('mw-tapglow');
+    setTimeout(() => el.classList.remove('mw-tapglow'), GLOW_MS - skip + 50);
+}
+export function reglow(root) {
+    const g = ui.glow; if (!g?.key) return; const ago = Date.now() - g.at; if (ago >= GLOW_MS - 80) return;
+    try { const all = root.querySelectorAll(g.key), el = all[g.nth] ?? (all.length === 1 ? all[0] : null); if (el) light(el, ago); } catch { /* odd attribute value */ }
 }

@@ -376,11 +376,11 @@ export const SHARED_GROUPS = [
         { id: "beauty_and_beast", label: "Beauty and the beast", cue: "gentleness finding something lovable in a monster", prompt: "beauty and the beast: gentleness finding something lovable in a monster" },
         { id: "hurt_comfort", label: "Hurt/comfort", cue: "the AO3 kind: one gets hurt badly and on the page, the other puts them back together, and pain is the only time they let each other close", prompt: "hurt/comfort, the fanfic kind: one gets hurt (wounded, sick, broken) and the hurt is dwelt on in the body; the other tends them, and only then do they touch, say things and let each other close. The care is intimate and charged, can turn possessive, and the hurt is slow to heal or comes back" },
         { id: "hurt_no_comfort", label: "Hurt/no comfort", cue: "whump with no payoff: the hurt keeps coming and nobody makes it better", prompt: "hurt/no comfort: the hurt keeps coming, dwelt on in the body, and nobody tends it or makes it better" },
-        { id: "who_did_this", label: "Who did this to you", cue: "furious protectiveness when one of them gets hurt", prompt: "\"who did this to you\" protectiveness" },
-        { id: "touch_and_die", label: "Touch them and die", cue: "one would destroy anyone who lays a hand on the other", prompt: "\"touch them and die\"" },
+        { id: "who_did_this", label: "Who did this to you", cue: "furious protectiveness when one of them gets hurt", prompt: "furious protectiveness when one of them gets hurt" },
+        { id: "touch_and_die", label: "Touch them and die", cue: "one would destroy anyone who lays a hand on the other", prompt: "would destroy anyone who lays a hand on the other" },
         { id: "villain_romance", label: "Villain romance", cue: "one of them is the villain, and the other falls anyway", prompt: "villain romance: one of them is the villain, and the other falls anyway" },
         { id: "obsessive_love", label: "Obsessive love", cue: "love that becomes fixation and consumes", prompt: "obsessive love: every thought, look and choice circles back to the other, and it won’t let go" },
-        { id: "if_i_cant_have_you", label: "If I can’t have you", cue: "if I can’t have you, no one can", prompt: "\"if I can’t have you, no one can\"" },
+        { id: "if_i_cant_have_you", label: "If I can’t have you", cue: "would rather destroy the other than lose them to anyone else", prompt: "would rather destroy the other than lose them to anyone else" },
         { id: "captor_captive", label: "Captor and captive", cue: "one holds the other, and something grows between them", prompt: "captor and captive: one holds the other, and something grows between them" },
         { id: "stockholm", label: "Stockholm syndrome", cue: "the captive falling for their captor", prompt: "Stockholm syndrome: the captive falling for their captor" },
         { id: "trauma_bond", label: "Trauma bond", cue: "bonded through shared trauma or harm", prompt: "a trauma bond: bonded through shared trauma or harm" },
@@ -436,3 +436,31 @@ export const SHARED_GROUPS = [
         { id: "knows_what_they_are", label: "Knows what they are", cue: "one knows the other is a killer or worse, and stays anyway", prompt: "knows what they are: one knows the other’s crimes and stays, loves or covers for them anyway" },
     ] },
 ];
+
+// 1.86: feelings toward the player that are really a meter. On the character's side toward you, these rows
+// live on as the meter (Relations › Bonds): they're hidden from the feelings list, never sent as a tie (the
+// meter says it), a hidden-line "toward" naming one moves the meter instead, and any value set before moves
+// into the meter once. Everywhere else (your side, side characters) they stay ordinary feelings, since only the
+// character-toward-you pairing has meters. [meter, direction]: -1 rows push a two-sided meter down.
+// Dynamics, period lines and scene links that look for one of these ids still find it, read from the meter.
+export const TO_METER = {
+    // Friendship, liking, ease, trust
+    likes: ['f', 1], enjoys_company: ['f', 1], loves: ['f', 1], cant_stand: ['f', -1], hates: ['f', -1], despises: ['f', -1],
+    comfortable_with: ['fm', 1], trusts: ['t', 1], safe_with: ['t', 1], distrusts: ['t', -1], suspicious_of: ['t', -1],
+    confides_in: ['op', 1], loyal_to: ['ly', 1], devoted: ['dv', 1], proud: ['pi', 1], teases: ['pl', 1],
+    cherishes: ['ca', 1], dotes: ['ca', 1], worries_about: ['ca', 1], protects: ['pr', 1], watches_over: ['pr', 1], would_die_for: ['sc', 1],
+    // Respect and the pedestal (both two-sided)
+    respects: ['re', 1], admires: ['re', 1], impressed_by: ['re', 1], looks_down: ['re', -1], idolises: ['pe', 1], idealises: ['pe', 1],
+    fascinated: ['fa', 1], intrigued_by: ['fa', 1],
+    // Romance and lust
+    finds_attractive: ['r', 1], smitten: ['r', 1], in_love: ['r', 1],
+    not_attracted: ['r', -1], finds_plain: ['r', -1], finds_ugly: ['r', -1], turned_off_by: ['r', -1], grossed_out: ['r', -1],
+    finds_hot: ['lu', 1], turned_on_by: ['lu', 1], lusts_after: ['lu', 1], attracted_wont_act: ['rt', 1],
+    // Hold, obsession and power
+    obsessed: ['ob', 1], possessive: ['po', 1], theyre_mine: ['po', 1], wants_to_own: ['po', 1], jealous: ['je', 1],
+    depends: ['de', 1], cant_live_without: ['de', 1], rival: ['ri', 1], wants_to_corrupt: ['co', 1], wants_to_break: ['hu', 1], wants_to_hurt: ['hu', 1],
+    dominates: ['p', 1], controls: ['p', 1], submits_to: ['p', -1], covers_for: ['cm', 1], studies: ['cl', 1], tests_them: ['ts', 1],
+    walks_on_eggshells: ['fe', 1], fears: ['fe', 1], intimidated_by: ['fe', 1],
+    // Hurt, guilt, dislike
+    guilty_toward: ['gu', 1], feels_inferior: ['uw', 1], hides_life_from: ['se', 1], resents: ['rs', 1], irritated_by: ['ex', 1], sick_of: ['ex', 1],
+};

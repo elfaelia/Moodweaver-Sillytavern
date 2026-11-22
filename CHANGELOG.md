@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.91.5: Erotic needs a real act, Hanging out, In-story music only
+- Erotic, audited. The bar scene still read as Erotic from the words "wet", "sweat", "neck", "mouth" and "flushed": everyday body words counted half each and added up past the line. Now the words that only describe a body (a flushed neck, a wet coat, sweat in a hot room, a mouth that talks) can only ever add to a plain act, never make one. Erotic needs at least one clear act in the story: making out, undressing someone, a hand under clothes, kissing down a neck, grinding against someone, thrusting and so on.
+- Words that read sexual but often aren't were narrowed: "fuck you" in a row, "inside her coat", "cocks the gun", "arouse suspicion", a heart or rain pounding, "rolling his eyes", "lean against", "the spoon" in a kitchen, whimpering in grief, a breath catching in panic, someone pinned in a fight. Grief or fear leading the moods, a fight, or a public row or grief scene are never Erotic unless sex is plainly happening.
+- Tested on 21 everyday scenes full of body words (bar, spilt drink, dead relative, funeral, hospital, fistfight, row, gym, rain, bath, panic attack, deal, kitchen, nightmare, dance floor, tattoo) with heavy desire and the horny meter at 70: none read as Erotic. All 10 real foreplay and sex scenes still do.
+- Grief reads better: passed away, lost my grandma, my late dad, "the booth goes quiet", awkward silences, sorry for your loss.
+- New scene kind: Hanging out. Friends at ease together: a booth at the bar, jokes and banter, a game of pool, another round, catching up. Auto picks it when nothing heavier is going on; a row, grief, danger, a fight, real drunkenness, a wild party or flirting still win. 43 songs are tagged for it (41 of Kenny's, 2 of Easterman's), and untagged easy-going songs fit too. The sheets have the new Moment "Hanging out".
+- New: In-story music only (Music settings, under In-story radio). Spotify plays only what the characters can hear: a radio, jukebox, record player, or a bar, club or gig's own music. The rest of the time it is paused instead of scoring the scene. Ambience carries on as usual. Turning it on switches In-story radio on if it was off.
+
 ## 1.91.4: a glance isn't heat
 - The other half of the spilt-drink mix-up: "wet" is read as arousal when the person is heated, and a single desire feeling named in the latest reply counted as heated at any level. Kenny's "Checking them out 15" was enough.
 - Now light wants (checking them out, flirty, coy, teasing and the like) never count as heated, and a stronger desire feeling named in the reply only counts once it is at 21 or more. A desire feeling at 41 or more still counts as before.
@@ -218,19 +226,4 @@
 - **Every surface rebuilt from those clips.** Bed (thump, creak, and the frame knocking on harder strokes), office chair (higher, squeakier creaks), desk (a hard knock with things rattling on top), wall (deep thuds), car (springy rocking), sofa (soft, muffled thumps with a cushion creak) and floorboards (low creaks).
 - **Speed follows them.** The sounds go faster the faster they're moving. The scene's energy sets the pace, and words in the newest message push it further: faster, harder, frantic, pounding, desperate and similar speed it up; slow, gentle, languid, savouring, grinding and similar ease it down. A change glides in over about six strokes instead of jumping. At its slowest it's about one stroke every two seconds, at its wildest about two and a half a second.
 - **Layers that play together.** Wet, slick sounds are now their own layer, under the furniture in any sex scene (and in other heat when the story says wet, slick or similar). Skin slapping is a separate layer that joins when it's rough or fast, and hits louder and sharper as the pace climbs. With breathing, up to five layers play at once.
-- **Ambience runs on its own.** It has its own line on the Music tab (☁ with what's playing, ❚❚ to pause just the ambience, ⌄ for its settings). It plays without Spotify signed in, keeps playing while the music is paused, and the music's pause no longer stops it.
-- **Twelve more authors who write sex on the page, no fade-outs.** 1920s to 1960s: Jean de Berg, Frank Harris, Philip José Farmer (his late-60s horror novels), Clarence Major, Phil Andros. 1970s to now: Gordon Merrick, John Preston, Larry Townsend, Pat Califia, Lauren Blakely, Ana Huang, Navessa Allen. All male, dual or women-loving-women point of view, with books and full style descriptions like the others (348 authors).
-
-## 1.82.0: the new look, step one (stars, − and +, pills, folded explanations, a slimmer top)
-
-The first half of the UI overhaul, on every page at once. Each page's own piece of the sky, the Sky overview and the regrouped Settings come in step two.
-
-- **− and + on every scale.** Every moon scale in the panel (moods, needs, relationship sliders, meters, desire, wants and the rest) now has a round − on the left and + on the right. Each tap steps to the next moon down or up, so nothing small has to be aimed at. Tapping a moon directly still works, and tapping the lit one still clears it.
-- **Star switches.** Every tickbox is now a four-point star: a dim outline when off, lit gold and turned a little when on. Same switches, same places.
-- **Pills instead of short dropdowns.** A dropdown with up to five short choices (Speed, Your sliders, When their moods clash and others) is now a row of pills: one tap picks, and the picked one glows. Long lists (authors, which feelings, starter blends) keep their dropdown.
-- **Explanations fold away.** A long explanation under a setting or at the top of a tab now shows as one faint line with a gold ⓘ. Tap it to read the whole thing, tap again to fold it. Short notes, warnings and empty-list lines stay open. The full prompt preview in Settings › What is sent sits under "What's sent, in full".
-- **A slimmer top.** You and the main character are now two slim pills with your leading feeling, and the cast sits beside them in the same row, which gives back about a fifth of the screen on every page.
-
-## 1.81.0: more sounds, one Ambience switch, size facts in the background
-
-- **Many more sounds, all reacting to the scene.** New layers that come and go with the story, at most four at on
+- **Ambience runs on its own.** It has its own line on the Music tab (☁ with what's playing, ❚❚ to pause just the ambience, ⌄ for its settings). It plays without Spotify signed in, keeps playing while the music is paused, and the music's pause n

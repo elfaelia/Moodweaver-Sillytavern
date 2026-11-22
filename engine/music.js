@@ -186,15 +186,22 @@ export function snapshot(input = {}) {
     // touch, kissing or undressing in it. Out in public (a bar, a booth, a crowd) it takes plain foreplay or sex words,
     // and an argument there is never Erotic unless sex is plainly happening.
     if (heat) {
-        const told = words.on.has('sex') || words.on.has('intimate'), fromFacts = SEX_FACTS.some(id => facts.has(id));
+        // 1.91.5: told means a plain act in the story (at least one full-weight intimate or sex word), never a pile
+        // of everyday body words (wet, sweat, neck, mouth, flushed), which add up in any bar, row or grief scene.
+        const strong = (words.strong.intimate ?? 0) + (words.strong.sex ?? 0);
+        const told = strong >= 1 && (words.on.has('sex') || words.on.has('intimate')), fromFacts = SEX_FACTS.some(id => facts.has(id));
         const inPublic = [...places].some(id => PUB.has(id)) || words.score.public >= 2;
         const row = words.score.row >= 1 || fams[0] === 'angry';
         // 1.91.3: a public row is never Erotic, whatever the facts say (a spilt drink once put Wet (aroused) on).
         // A sex fact alone only counts away from a row and out of public view.
-        const storyHeat = words.score.intimate + words.score.sex >= 1;
-        if (inPublic && row && !words.on.has('sex')) heat = '';
-        else if (!told && !storyHeat && !(fromFacts && !row)) heat = '';
-        else if (inPublic && !told) heat = '';
+        const sexTold = (words.strong.sex ?? 0) >= 1 && words.on.has('sex');
+        const sad = ['sad', 'scared'].includes(fams[0]) || (words.score.grief ?? 0) >= 2;
+        const fight = (words.score.violence ?? 0) >= 2 || (words.score.fight ?? 0) >= 2;
+        if (inPublic && (row || sad) && !sexTold) heat = '';
+        else if (fight && !sexTold) heat = '';
+        else if (sad && !told) heat = '';
+        else if (!told && strong < 1 && !(fromFacts && !row && !inPublic)) heat = '';
+        else if (inPublic && !(sexTold || strong >= 2)) heat = '';
     }
     // Why it reads as heat, for the Music tab (1.91.3): the story's words, any sex fact, then the feelings.
     const heatWhy = heat ? {
@@ -242,6 +249,8 @@ export function snapshot(input = {}) {
     // A love confession is Sweet, not the sad kind of Confession, unless sadness leads.
     if (moments.has('love_confession') && snap.fams[0] !== 'sad') moments.delete('confession');
     if (heat === 'sex') moments.delete('seduction');
+    // Hanging out only alongside nothing heavier (1.91.5).
+    if (heat || ['argument', 'betrayal', 'confrontation', 'grief', 'breakdown', 'hunted', 'violence', 'escape', 'chase', 'fight', 'heist', 'standoff', 'captivity', 'experiment', 'love_confession', 'flirting'].some(mo => moments.has(mo)) || (words.score.drunk ?? 0) >= 3 || (words.score.party ?? 0) >= 2) moments.delete('hanging_out');
     for (const id of moments) energy += ENERGY_PUSH[id] ?? 0;
     if (heat) energy = Math.min(energy, heat === 'sex' ? 4 : 3.4);
     snap.moments = moments; snap.energy = Math.max(1, Math.min(5, Math.round(energy)));
@@ -258,8 +267,16 @@ export function modeOf(snap) {
     const has = list => list.some(mo => snap.moments.has(mo)), lead = snap.fams[0];
     // Action beats Danger when it's a fight, chase or job and fear isn't what leads.
     if (has(['chase', 'fight', 'heist']) && lead !== 'scared' && !snap.moments.has('hunted')) return 'action';
+    // 1.91.5: Hanging out: friends at ease. It loses to anything heavy (a row, grief, danger, a fight) but beats a mild
+    // drink (High), Street with no deal or drive in it, a quiet Party, and Sweet when nobody is flirting or confessing.
+    const hang = snap.moments.has('hanging_out') && !has(['argument', 'betrayal', 'confrontation', 'grief', 'breakdown', 'hunted', 'violence', 'escape', 'chase', 'fight', 'heist', 'standoff', 'waiting', 'captivity', 'experiment']);
+    const w = snap.words ?? {};
     for (const mode of MODES) {
         if (mode.id === 'intimate') continue;
+        if (hang && mode.id === 'sweet' && snap.sweet && (w.flirt ?? 0) < 1 && (w.confess ?? 0) < 1) return 'hangout';
+        if (hang && mode.id === 'high' && MODE_BY_ID.high.moments.filter(mo => snap.moments.has(mo)).every(mo => mo === 'drunk') && (w.drunk ?? 0) < 3) continue;
+        if (hang && mode.id === 'street' && !has(['deal', 'driving'])) return 'hangout';
+        if (hang && mode.id === 'party' && (w.party ?? 0) < 2) return 'hangout';
         if (mode.id === 'sweet') { if (snap.sweet && !['cruel', 'scared', 'angry'].includes(lead) && (!snap.romantic || snap.pull.sweet >= snap.pull.rom)) return 'sweet'; continue; }
         if (mode.id === 'romantic') { if (snap.romantic && !['cruel', 'scared', 'angry'].includes(lead)) return 'romantic'; continue; }
         // A deal is Tense when there's unease in it (fear in the moods, a hand near a gun), else it's Street.
@@ -279,6 +296,13 @@ export function fitsMode(tags, mode, snap = null) {
         // A song whose only tie to intimacy is Afterglow (a hushed piano piece for lying together after) fits the
         // afterglow, not foreplay or sex while the heat is still building.
         return tags.mo.includes('afterglow') && (!snap || snap.moments?.has('afterglow') || !snap.heat);
+    }
+    // 1.91.5 Hanging out: songs tagged Hanging out, or easy-going ones with no heat and nothing grim (a good-mood
+    // song for a drive, a hustle or a party that isn't flat out), so an untagged sheet still has some.
+    if (mode === 'hangout') {
+        if (tags.mo.includes('hanging_out')) return true;
+        if (tags.h || tags.mo.some(x => GRIM.has(x)) || tags.f.slice(0, 2).some(f => ['scared', 'cruel', 'angry', 'desire', 'sad'].includes(f))) return false;
+        return tags.e >= 2 && tags.e <= 4 && ['happy', 'calm', 'energy', 'bold'].includes(tags.f[0]) && tags.mo.some(x => ['party', 'driving', 'hustle', 'drunk', 'stoned'].includes(x));
     }
     // Romantic: its moments (Romance, Longing, Slow dance), or an older sheet's love song with no heat.
     if (mode === 'romantic') {
@@ -352,34 +376,4 @@ export function scoreSong(tags, snap, opts = {}) {
     for (const id of moods) add(POINTS.mood, labelOf('m', id));
     if (snap.fams[0] && tags.f.includes(snap.fams[0])) add(POINTS.family1, moods.length ? '' : labelOf('f', snap.fams[0]));
     if (snap.fams[1] && tags.f.includes(snap.fams[1])) add(POINTS.family2);
-    const place = tags.p.find(id => snap.places.has(id)); if (place) add(POINTS.place, labelOf('p', place));
-    // Meaning: both halves felt at once, by the person the song is about when it names one.
-    const meaning = tags.cm.find(id => here.length ? here.some(c => meaningsOf(snap.moodBy[c]).has(id)) || (mine && snap.meanings.has(id)) : snap.meanings.has(id));
-    if (meaning) add(POINTS.meaning, labelOf('cm', meaning));
-    const moment = tags.mo.find(id => snap.moments.has(id)); if (moment) add(POINTS.moment, labelOf('mo', moment));
-    const dynW = snap.story ? POINTS.dynamic * 2 : POINTS.dynamic;
-    if (snap.dyn && tags.d.includes(snap.dyn)) add(dynW, labelOf('d', snap.dyn)); else if (snap.under && tags.d.includes(snap.under)) add(dynW / 2);
-    // Story: a song about the two of them (tagged for both) carries a scene between them, like a love theme.
-    if (snap.story && here.length + (mine ? 1 : 0) >= 2) add(POINTS.both, 'the two of them');
-    if (tags.h && tags.h === snap.heat) add(POINTS.heat, labelOf('h', tags.h)); else if (tags.h && snap.heat) add(POINTS.heatNear); else if (tags.h === 'slow') add(POINTS.slowOutside);
-    if (tags.e) { const d = Math.abs(tags.e - snap.energy); add(d === 0 ? POINTS.energySame : d === 1 ? POINTS.energyNear : POINTS.energyFar * (d - 1)); }
-    if (tags.fav) add(POINTS.favourite);
-    if (opts.recent?.has(opts.uri)) add(POINTS.recent);
-    // Lyric cue: the story just said one of this song's phrases. A nudge, never a takeover, and only when the song
-    // also fits this kind of scene (app/music.js keeps the cooldown).
-    const cued = opts.cued?.get?.(opts.uri);
-    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode, snap))); if (cueOn) add(POINTS.cue, `\u201c${cued}\u201d`);
-    if (tags.th && mine === true && opts.themeOn !== 'off') {
-        const appears = snap.appear.some(a => chars.includes(a)), big = (snap.moodVal[snap.top[0]] ?? 0) >= 81;
-        if (appears || (opts.themeOn === 'always' ? true : big)) add(POINTS.theme, 'theme');
-    }
-    // Sounds like the songs you said fit this kind of scene (Spotify's genres: trip hop, dream pop\u2026).
-    if (opts.sound && opts.g?.length) {
-        const best = Math.max(...opts.g.map(g => opts.sound[norm(g)] ?? 0)), worst = Math.min(...opts.g.map(g => opts.sound[norm(g)] ?? 0));
-        const s = best > 0 ? Math.min(POINTS.soundMax, best * POINTS.sound) : Math.max(-POINTS.soundMax, worst * POINTS.sound);
-        if (s) add(s, s > 0 ? `sounds like ${opts.g.find(g => (opts.sound[norm(g)] ?? 0) === best)}` : '');
-    }
-    if (opts.learn) {
-        const keys = learnKeys(snap); let l = 0;
-        for (const k of keys) l += opts.learn[k] ?? 0;
-        if (l) add(Math.max(POINTS.notHereMin, 
+    const place = tags.p.find(id => snap.places.has(id)); if (place) add(POINTS.place, labelOf('p', plac

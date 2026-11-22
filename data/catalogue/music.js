@@ -28,6 +28,7 @@ export const MOMENTS = [
     { id: 'grief', label: 'Grief', moods: ['grieving', 'numb_grief', 'anticipatory_grief'], places: ['funeral', 'graveside', 'morgue', 'emptied_home'], dyn: [] },
     { id: 'first_meeting', label: 'First meeting', moods: [], places: [], dyn: [], test: s => s.replies <= 6 },
     { id: 'party', label: 'Party', moods: ['party_mode', 'party_brain'], places: ['party', 'bar_club', 'jazz_club'], dyn: [] },
+    { id: 'hanging_out', label: 'Hanging out', moods: ['chatty', 'content', 'carefree', 'welcoming'], places: [], dyn: [], test: s => s.energy <= 4 && !['angry', 'sad', 'scared', 'cruel', 'desire'].includes(s.fams[0]) && ((s.words.hangout ?? 0) >= 1 || ['chatty', 'carefree'].some(id => (s.moodVal[id] ?? 0) >= 41)) },
     // 1.68: more specific scenes for the dark stories.
     { id: 'stalking', label: 'Watching / stalking', moods: ['watching_over', 'keeping_tabs', 'voyeuristic', 'obsessive_collecting'], places: [], dyn: [] },
     { id: 'worship', label: 'Worship', moods: ['worshipful', 'devotion_cult', 'terrified_awe', 'hypnotised'], places: [], dyn: [] },
@@ -78,8 +79,9 @@ export const MODES = [
     { id: 'dark', label: 'Dark', hint: 'captivity, experiments, conditioning, being watched', moments: ['captivity', 'experiment', 'conditioning', 'sedated', 'stalking', 'worship'], families: ['cruel', 'cold', 'scared'] },
     { id: 'high', label: 'High', hint: 'on something: the kind of high picks the songs', moments: ['high', 'stoned', 'rolling', 'tripping', 'wired', 'nodding', 'drunk', 'comedown'], families: [] },
     { id: 'tense', label: 'Tense', hint: 'uneasy but nothing has happened yet: a deal, a standoff, waiting', moments: ['deal', 'standoff', 'waiting'], families: [] },
-    { id: 'street', label: 'Street', hint: 'the everyday grit: hustling, cruising, hanging about, swagger', moments: ['hustle', 'driving', 'deal'], families: [] },
+    { id: 'street', label: 'Street', hint: 'the everyday grit: hustling, cruising, swagger', moments: ['hustle', 'driving', 'deal'], families: [] },
     { id: 'party', label: 'Party', hint: 'a party, a club, letting loose', moments: ['party', 'first_meeting'], families: ['happy', 'energy', 'bold'] },
+    { id: 'hangout', label: 'Hanging out', hint: 'friends at ease: a booth at the bar, jokes, catching up, nothing heavy', moments: ['hanging_out'], families: [] },
 ];
 // Romance apart from sex (1.89): these moods make a scene Romantic when they outweigh the pull to bed.
 export const ROMANCE_MOODS = ['romantic', 'lovesick', 'devoted', 'devotion_quiet', 'cherishing', 'yearning', 'heartsick', 'limerent', 'butterflies_kiss', 'sweet_on_them', 'missing_them', 'regretful_longing'];
@@ -92,7 +94,7 @@ export const HEARD_IN = [
 // What the story's own words can switch on (engine/scene-words.js): word list \u2192 Moment.
 export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving', sweet: 'sweet_moment', confess: 'love_confession', flirt: 'flirting',
     slowdance: 'slow_dance', chase: 'chase', fight: 'fight', heist: 'heist', betrayal: 'betrayal', row: 'confrontation', deal: 'deal', standoff: 'standoff', hustle: 'hustle',
-    stoned: 'stoned', rolling: 'rolling', tripping: 'tripping', wired: 'wired', nodding: 'nodding', drunk: 'drunk', comedown: 'comedown' };
+    hangout: 'hanging_out', stoned: 'stoned', rolling: 'rolling', tripping: 'tripping', wired: 'wired', nodding: 'nodding', drunk: 'drunk', comedown: 'comedown' };
 // Sweet or intimate? Light desire (a flirt, a shy want) counts half towards heat. Sweet moods and the story's sweet words
 // (a confession, giggling, holding hands, a kiss on the cheek) weigh against heat: when they outweigh it, the scene is
 // Sweet, not Intimate, unless it's plainly a sex scene or you set it yourself.

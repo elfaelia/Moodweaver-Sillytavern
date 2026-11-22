@@ -61,6 +61,23 @@ export function toggleExtraFor(id, name = '') {
 export const extraChars = id => Object.values(music().chars).filter(c => c.x?.[id]).map(c => c.name);
 export const thisCharName = () => shortName(target()?.name ?? '');
 export function setExtra(id, mode) { const m = music(); m.extras[id] = mode; save(); updateAmbience(); changed(); }
+// 1.91.6 In-story music only: Spotify plays only what the characters can hear (a radio, jukebox, record player or
+// a venue's own music). The rest of the time it is paused, not scoring the scene. Ambience carries on as usual.
+export const storyOnly = (m = music()) => Boolean(m.storyOnly) && extraOn('radio', m);
+const QUIET_NOTE = 'In-story music only: nothing is playing in the story right now, so the music is paused. It comes back when a radio, jukebox, record player or a venue\u2019s music does.';
+async function hush(m) {
+    mus.hushed = true;
+    if (mus.now?.playing) { try { const d = await deviceFor(m); mus.wasPlaying = false; await sp.pause(m, d.id); mus.now.playing = false; } catch (err) { say(err.message, true); return; } }
+    say(QUIET_NOTE); changed();
+}
+export function toggleStoryOnly() {
+    const m = music(); m.storyOnly = !m.storyOnly;
+    if (m.storyOnly && (m.extras.radio ?? 'off') === 'off') m.extras.radio = 'all';
+    save(); changed();
+    if (m.storyOnly && m.on && !radioOn(m)) { const v = venueHere(mus.latest ?? sceneNow(), m); if (v) void start(); else void hush(m); }
+    else if (!m.storyOnly && mus.hushed) { mus.hushed = false; if (m.on) void start(); }
+}
+function enterVenue(venue) { mus.radio = { chat: ctx().chatId, kind: venue.artist ? `${venue.artist}, live on stage,` : VENUE_BY_ID[venue.id].label, left: Infinity, venue: venue.id, artist: venue.artist, key: `${venue.id}|${venue.artist}` }; }
 export function toggleVenues() { const m = music(); m.venues = !m.venues; if (!m.venues && mus.radio?.venue) mus.radio = null; save(); changed(); }
 export function toggleAmbKind(kind) { const m = music(), k = kind === 'sex' ? 'ambSex' : 'ambPlaces'; m[k] = m[k] === false; save(); updateAmbience(); changed(); }
 export function setAmbLevel(level) { const m = music(); m.ambLevel = Number(level); save(); updateAmbience(); changed(); }
@@ -375,7 +392,7 @@ async function playList(m, uris, why, snap, cut = false, startMs = 0) {
     await sp.shuffleOff(m, device.id); await sp.repeatOff(m, device.id);
     await sp.play(m, uris, device.id, startMs);
     if (xfade) setTimeout(() => void ramp(m, device, low, vol, 3200), 300);
-    mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why; mus.userPaused = false; mus.wasPlaying = true;
+    mus.hushed = false; mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why; mus.userPaused = false; mus.wasPlaying = true;
     const s = m.songs[uris[0]] ?? mus.extra?.get(uris[0]);
     mus.now = { uri: uris[0], name: s?.n ?? '', artist: s?.a ?? '', art: '', ms: s?.ms ?? 0, started: Date.now() - startMs, progress: startMs, playing: true };
     updateAmbience(snap);
@@ -387,6 +404,8 @@ export async function start(exclude = [], deep = false, sure = false) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
     const snap = sceneNow(deep) ?? snapshot({}); mus.latest = snap;
     readCues(m, deep); // Play and Next hear the story too, not only a new reply.
+    if (storyOnly(m) && !radioOn(m)) { const v = venueHere(snap, m); if (v) enterVenue(v); else { m.on = true; save(); return hush(m); } }
+    mus.hushed = false;
     if (mus.radio?.venue && radioOn(m) && await venuePlay(m, snap, exclude)) return;
     const list = ranked(snap, m, exclude);
     if (!list.length) return say('No songs yet: tick a playlist and tap Load songs, or import a song sheet.', true);
@@ -407,20 +426,4 @@ export async function afterReply() {
     // An edit of a message already there (same chat length, same newest message) isn't the story moving on either: the
     // board and ambience update, but the song isn't changed for it.
     const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}`, stamp = `${last?.send_date ?? ''}|${last?.swipe_id ?? 0}`;
-    const edited = mark === mus.chatMark && stamp === mus.lastStamp, swiped = edited || (mark === mus.chatMark && (last?.swipe_id ?? 0) > 0);
-    mus.chatMark = mark; mus.lastStamp = stamp;
-    if (mus.forced && !swiped && --mus.forced.left <= 0) mus.forced = null;
-    const freshCues = readCues(m);
-    if (!mus.now) { await sync(); if (!mus.now) return start(); }
-    // Never silent: if the music ran out (not paused by you), sync sees it and starts it again (ranDry).
-    if (!mus.now.playing && !mus.userPaused && !mus.locked) { await sync(); if (!mus.now?.playing) { changed(); return; } }
-    updateAmbience(snap);
-    // A song you picked yourself plays to its end: no reply, cue or sting cuts it.
-    if (mus.locked || swiped || (mus.chosen && mus.chosen === mus.now?.uri)) { changed(); return; }
-    // The words of this turn: the newest reply, and your message if it came just before it.
-    const turn = [last?.is_user ? '' : last?.mes, chat.at(-2)?.is_user ? chat.at(-2).mes : ''].filter(Boolean).join('\n');
-    // Venue music: arriving at a venue (or the band named at a gig changing) switches to what's playing there; leaving
-    // it, or the scene turning to sex, brings the film score back. While in the venue its line-up plays on.
-    const venue = venueHere(snap, m), vKey = venue ? `${venue.id}|${venue.artist}` : '', wasVenue = mus.radio?.venue && radioOn(m) ? mus.radio.key : '';
-    if (vKey !== wasVenue) {
-        if (venue) { mus.radio = { chat: ctx().chatId, kind: venue.artist ? `${venue.artist}, live on stage,` : VENUE_BY_ID[venue.id].label, left: Infinity, venue: venue.id, artist: venue.artist, key: vKey }; if (await venuePlay(m, snap)) retu
+    const edited = mark === mus.chatMark && stamp

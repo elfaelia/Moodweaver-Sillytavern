@@ -1,6 +1,6 @@
 // The \u266b Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, toggleAmbKind, toggleVenues, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { toggleStoryOnly, EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, toggleAmbKind, toggleVenues, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
@@ -261,7 +261,7 @@ function extraRow(m, x) {
         const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>
             <p class="mw-music-label">What plays</p><div class="mw-mchips">${chip('data-music="ambkind" data-v="places"', m.ambPlaces !== false, `${m.ambPlaces !== false ? '\u2713' : '+'} Everyday sounds`)}${chip('data-music="ambkind" data-v="sex"', m.ambSex !== false, `${m.ambSex !== false ? '\u2713' : '+'} Erotic sounds`)}</div>
             <p class="mw-fine">Everyday: places, weather, a heartbeat in danger, doors, gunshots. Erotic: the bed and furniture, bodies, breath, fingers, spanking, the whip and her voice. Tap one to switch it off.</p>` : '';
-        const venues = x.id === 'radio' && mode !== 'off' ? `<div class="mw-mchips">${chip('data-music="venues"', m.venues !== false, `${m.venues !== false ? '\u2713' : '+'} Venues play their own music`)}</div>` : '';
+        const venues = x.id === 'radio' && mode !== 'off' ? `<div class="mw-mchips">${chip('data-music="venues"', m.venues !== false, `${m.venues !== false ? '\u2713' : '+'} Venues play their own music`)}${chip('data-music="storyonly"', Boolean(m.storyOnly), `${m.storyOnly ? '\u2713' : '+'} In-story music only`)}</div><p class="mw-fine">In-story music only: songs play only when the characters can hear them (a radio, jukebox, record player, or a bar, club or gig\u2019s own music). The rest of the time Spotify is paused instead of scoring the scene. Ambience carries on.</p>` : '';
         return `<div class="mw-music-extra${x.under ? ' is-under' : ''}"><p class="mw-music-label">${esc(x.label)}${extraOn(x.id, m) ? ' <span class="mw-music-lit">\u00b7 on here</span>' : ''}</p><p class="mw-fine">${esc(x.note)}</p>
             <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}${venues}</div>`;
     }
@@ -279,10 +279,4 @@ function ambienceLine(m) {
     const sub = !on ? ((m.extras.amb ?? 'off') === 'off' ? 'Off' : 'Off for this character') : paused ? 'Paused' : needsTap() && beds.length ? 'Tap anywhere to start it' : beds.length ? esc(beds.map(b => BED_LABELS[b] ?? b).join(' \u00b7 ')) : 'Quiet: nothing in the scene to hear yet';
     return `<div class="mw-amb-line${on && !paused && beds.length ? ' is-live' : ''}"><span class="mw-amb-orb" aria-hidden="true">\u2601</span><span class="mw-amb-text"><b>Ambience</b><small>${sub}</small></span>
         ${on ? `<button type="button" class="mw-amb-btn" data-music="amb-pause" aria-pressed="${!paused}" aria-label="${paused ? 'Play the ambience' : 'Pause the ambience'}">${paused ? '\u25b6' : '\u275a\u275a'}</button>` : ''}
-        <button type="button" class="mw-amb-btn mw-amb-more" data-music="amb-more" aria-expanded="${Boolean(open)}" aria-label="Ambience settings">${open ? '\u2303' : '\u2304'}</button></div>
-        ${open ? `<div class="mw-amb-body">${extraRow(m, EXTRAS.find(x => x.id === 'amb'))}</div>` : ''}`;
-}
-export function musicView() {
-    const m = music();
-    if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}${ambienceLine(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
-    const 
+        <button type="button" class="mw-amb-btn mw-amb-more" data-music="amb-more" aria-expanded="${Boolean(open)}" aria-lab

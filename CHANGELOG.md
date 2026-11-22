@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.90.3
+- The iPhone hang: with the Moodweaver folder taken out, the phone loads, so something in Moodweaver's files stops Safari while they load (before ?mwoff can act). Moodweaver now loads through a small front door (index.js) that brings in its files one at a time, in the background, so SillyTavern never waits for it. A strip at the top of the screen shows each file as it loads; if one is slow or fails it says which, and if the counting stops the page itself froze. It disappears once everything has loaded. The start-up itself moved to main.js.
+- The 1.90.2 startup log is gone (it couldn't write its file); ?mwoff stays.
+
 ## 1.90.2
 - To find why the iPhone sticks on "Initializing…": for the first minute after the page opens, Moodweaver writes a startup log to the PC (data/default-user/user/files/moodweaver-startup-iphone.txt, or -computer), with each step's time, the size of its saved settings, any page errors from any extension, and whether the loading screen is still up at 2, 5, 10, 20 and 40 seconds. Open it on the PC at http://127.0.0.1:8000/user/files/moodweaver-startup-iphone.txt.
 - Add ?mwoff to the end of the address (192.168.1.11:8000/?mwoff) to open SillyTavern with Moodweaver switched off on that device only, for that visit.

@@ -1,141 +1,37 @@
-import { getState, identity, persist, target } from './app/chat.js';
-import { addSlashCommand, addWandItem, launch, placeLauncher, setLaunch, warnDuplicate, wireLauncher } from './app/launcher.js';
-import { startGenerating, stopGenerating, syncPrompt, syncPromptNow } from './app/note.js';
-import { analyse, cancelAnalysis } from './app/reader.js';
-import { queueBoard, reconcile } from './app/replies.js';
-import { settings } from './app/settings.js';
-import { SELF, VERSION, clearNotes, ctx, generationSnapshots, run, ui } from './app/state.js';
-import { hasBoard, stripBoard } from './engine/board.js';
-import { onPanelChange, onPanelClick, onPanelInput, onPanelKeydown, onPanelSwipe } from './panel/events.js';
-import { onGroupToggle, openPanel, render, renderPreview, tapGlow, toggleTop, typingInPanel } from './panel/render.js';
-import { sheetSwipe } from './panel/skills-tab.js';
-import { hasWeave, stripWeave } from './engine/weave.js';
-import { afterReply, initMusic, musicLine, onMusicChange } from './app/music.js';
-import { musicFold } from './panel/music-tab.js';
-import { bootNote, startBootLog } from './app/bootlog.js';
-
-startBootLog();
-// Open SillyTavern with ?mwoff on the end of the address to start it with Moodweaver switched off on that device.
-const SAFE_OFF = /[?&]mwoff\b/i.test(location.search);
-
-globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type) => {
-    // Weave lines never reach the model, and neither do old boards (the newest is summarised in the note).
-    // Every message is cleaned the same way every time, so history stays identical between turns and the cache keeps matching.
-    const stripBoards = !run.suspended && settings().boardStrip && Boolean(getState(target(true)));
-    if (Array.isArray(chat)) for (let i = 0; i < chat.length; i++) {
-        const m = chat[i], mes = m?.mes; if (typeof mes !== 'string') continue;
-        let next = hasWeave(mes) ? stripWeave(mes) : mes;
-        // On Continue, the reply being continued keeps its board, so a reply cut off inside its
-        // board is finished from where it stopped.
-        const continuing = type === 'continue' && i === chat.length - 1;
-        if (stripBoards && !continuing && !m.is_user && hasBoard(next)) { const cut = stripBoard(next); if (cut.trim()) next = cut; }
-        if (next !== mes) chat[i] = { ...structuredClone(m), mes: next };
+// Moodweaver's front door (1.90.3). It loads the rest of Moodweaver one file at a time, showing each step in a small
+// strip at the top of the screen, so a device that gets stuck shows exactly which file it stopped on. SillyTavern
+// doesn't wait for any of this, so a slow file can never hold up its "Initializing…" screen. When everything has
+// loaded the strip says so and disappears. The real start-up is main.js.
+const FILES = ["engine/rel-pronouns.js", "engine/pronouns.js", "data/catalogue/relationships.js", "engine/relationships.js", "data/catalogue/mood.js", "data/catalogue/trait.js", "data/catalogue/intimacy.js", "data/catalogue/psyche.js", "data/catalogue/state.js", "data/catalogue/story.js", "data/catalogue.js", "engine/stress.js", "data/catalogue/turns.js", "data/catalogue/skills.js", "engine/util.js", "engine/skills.js", "engine/turns.js", "engine/opinions.js", "engine/secrets.js", "app/state.js", "data/catalogue/period.js", "engine/period.js", "engine/links.js", "app/settings.js", "engine/tone.js", "data/catalogue/merged.js", "engine/board.js", "engine/meters.js", "engine/weave.js", "data/catalogue/dynamics.js", "engine/dynamics.js", "engine/bond.js", "engine/personality.js", "engine/state.js", "engine/strength.js", "engine/locale.js", "engine/patterns.js", "engine/prompt.js", "engine/ledger.js", "engine/moodpace.js", "engine/overlap.js", "panel/find.js", "engine/bondread.js", "engine/reader.js", "panel/rows.js", "panel/needs-tab.js", "engine/reactive.js", "panel/wants-tab.js", "panel/personality-tab.js", "panel/sections.js", "app/reader.js", "panel/bonds-tab.js", "panel/scroll-memory.js", "panel/header.js", "app/launcher.js", "panel/settings-sheet.js", "panel/skills-tab.js", "panel/period-tab.js", "panel/relationships-tab.js", "data/catalogue/music.js", "engine/scene-words.js", "engine/music.js", "engine/xlsx.js", "engine/sheet.js", "engine/venues.js", "app/ambience.js", "app/spotify.js", "app/music.js", "panel/music-tab.js", "panel/render.js", "engine/checks.js", "engine/echoes.js", "app/note.js", "engine/mood-meters.js", "engine/auto-wants.js", "app/replies.js", "engine/cast.js", "app/chat.js", "panel/events.js"];
+const t0 = performance.now(), secs = () => ((performance.now() - t0) / 1000).toFixed(1);
+let box = null, now = '', lines = [], done = false;
+function show() {
+    if (!box) {
+        box = document.createElement('div'); box.id = 'moodweaver-loading';
+        box.style.cssText = 'position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:2147483647;max-height:45vh;overflow:auto;padding:8px 10px;border-radius:10px;background:#120f1ee8;color:#e9cf8f;font:12px/1.35 ui-monospace,Menlo,monospace;white-space:pre-wrap;pointer-events:none';
+        (document.body ?? document.documentElement).append(box);
     }
-    if (run.suspended || ['quiet', 'impersonate'].includes(type)) {
-        ++run.promptVersion; clearNotes(ctx()); return;
-    }
-    // Settle the chat first. A regenerate deletes the old reply a moment before this runs and a
-    // swipe still holds the old swipe's text, so without this the new reply would be written with the
-    // old one's feelings, needs, memory and board still in place.
-    const settled = reconcile(type);
-    if (settled.changed) { if (settled.notes.length) run.status = settled.notes.join(' '); void persist(); }
-    startGenerating();
-    const ch = target(true), state = getState(ch);
-    if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
-    await syncPrompt(true, chat, type);
-    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: run.promptInfo.prompt, fixed: run.promptInfo.fixed ?? '' });
-    if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
-    renderPreview();
-};
-function setup() {
-    if (SAFE_OFF) { bootNote('?mwoff in the address: Moodweaver stays off on this device'); return; }
-    const existing = document.getElementById('moodweaver-panel');
-    if (existing) { if (existing.dataset.source !== SELF) warnDuplicate(existing); return; }
-    bootNote('setup started');
-    try { const s = ctx().extensionSettings?.moodweaver; bootNote(`settings: ${Math.round(JSON.stringify(s ?? {}).length / 1024)} KB, music ${Math.round(JSON.stringify(s?.music ?? {}).length / 1024)} KB, ${Object.keys(s?.music?.songs ?? {}).length} songs; chat ${ctx().chat?.length ?? 0} messages`); } catch (err) { bootNote(`settings size: ${err}`); }
-    settings();
-    ui.panel = document.createElement('dialog'); ui.panel.id = 'moodweaver-panel'; ui.panel.className = 'mw-panel'; ui.panel.tabIndex = -1;
-    ui.panel.setAttribute('aria-label', 'Moodweaver character moods'); ui.panel.dataset.version = VERSION; ui.panel.dataset.source = SELF; document.body.append(ui.panel);
-    const probe = document.createElement('div'); probe.id = 'moodweaver-safe'; probe.setAttribute('aria-hidden', 'true'); document.body.append(probe);
-    const launcher = document.createElement('button'); launcher.id = 'moodweaver-launcher'; launcher.type = 'button';
-    launcher.title = 'Open Moodweaver (drag to move)'; launcher.setAttribute('aria-label', 'Open Moodweaver'); launcher.setAttribute('aria-controls', ui.panel.id);
-    document.body.append(launcher); wireLauncher(launcher); placeLauncher();
-    const settingsHost = document.querySelector('#extensions_settings2') ?? document.querySelector('#extensions_settings');
-    if (settingsHost) {
-        const entry = document.createElement('div'); entry.className = 'mw-settings-entry';
-        entry.innerHTML = `<b>◆ Moodweaver</b> <small class="mw-ver">v${VERSION}</small><p>Character moods, blended your way.</p><button class="menu_button" data-mw-open>Open mood panel</button>
-            <label class="checkbox_label mw-entry-toggle"><input type="checkbox" data-launch="show" ${launch.show ? 'checked' : ''}><span>Show the ◆ Moods button on this device</span></label><p class="mw-diag" data-mw-diag hidden></p>`;
-        entry.querySelector('[data-mw-open]').onclick = openPanel;
-        entry.querySelector('[data-launch="show"]').addEventListener('change', e => setLaunch({ show: e.target.checked }));
-        settingsHost.append(entry);
-    }
-    if (!addWandItem()) { let tries = 0; const again = setInterval(() => { if (addWandItem() || ++tries > 20) clearInterval(again); }, 500); }
-    addSlashCommand();
-    // A chat redraw that waited for you runs a moment after you leave the field or lift your finger: long
-    // enough for the tap that moved focus (on "＋ Remember", say) to land on the button it was aimed at.
-    const later = () => setTimeout(() => { if (ui.renderLater && !typingInPanel()) render(); }, 350);
-    ui.panel.addEventListener('focusout', later);
-    ui.panel.addEventListener('pointerdown', () => { ui.pointerInPanel = true; }, { passive: true });
-    for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, () => { if (ui.pointerInPanel) { ui.pointerInPanel = false; later(); } }, { passive: true });
-    ui.panel.addEventListener('scroll', toggleTop, { passive: true });
-    ui.panel.addEventListener('input', onPanelInput);
-    ui.panel.addEventListener('keydown', onPanelKeydown);
-    ui.panel.addEventListener('change', onPanelChange);
-    ui.panel.addEventListener('click', tapGlow, true);
-    ui.panel.addEventListener('click', onPanelClick);
-    let touch = null;
-    // A swipe is remembered from its start: where, when, and how far the panel was scrolled (a scroll is not a swipe).
-    ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target, at: Date.now(), top: ui.panel.scrollTop, left: ui.panel.scrollLeft, maxDy: 0 } : null; }, { passive: true });
-    ui.panel.addEventListener('touchmove', e => { const t = e.touches[0]; if (touch && t) touch.maxDy = Math.max(touch.maxDy, Math.abs(t.clientY - touch.y)); if (e.touches.length > 1) touch = null; }, { passive: true });
-    ui.panel.addEventListener('touchend', e => { const t = e.changedTouches[0]; if (touch && t) onPanelSwipe({ ...touch, scrolled: ui.panel.scrollTop !== touch.top || ui.panel.scrollLeft !== touch.left, width: ui.panel.clientWidth }, { x: t.clientX, y: t.clientY, at: Date.now() }); touch = null; }, { passive: true });
-    sheetSwipe(ui.panel, () => render());
-    ui.panel.addEventListener('toggle', onGroupToggle, true);
-    ui.panel.addEventListener('toggle', musicFold, true);
-    // Music: songs from your Spotify playlists, picked for the scene after each reply (app/music.js).
-    run.afterBoard = () => void afterReply().catch(err => console.warn('[Moodweaver] music', err));
-    run.musicLine = musicLine;
-    onMusicChange(() => { if (ui.panel?.open && ui.tab === 'music' && !ui.settingsOpen) render(true); });
-    bootNote('panel built; starting music');
-    try { initMusic(); } catch (err) { console.warn('[Moodweaver] music could not start', err); bootNote(`music could not start: ${err}`); }
-    bootNote('music started; hooking SillyTavern events');
-    const c = ctx();
-    c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
-        cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';
-        run.generating = false; run.resyncAfter = false; clearTimeout(run.genTimer);
-        ++run.promptVersion; clearNotes(c);
-        render(); void syncPromptNow();
-        // Bring the newly opened chat up to date (and move it from older versions) straight away.
-        queueBoard();
-    });
-    c.eventSource.on(c.eventTypes.GENERATION_STOPPED, () => { cancelAnalysis(); stopGenerating(); queueBoard(); });
-    c.eventSource.on(c.eventTypes.GENERATION_ENDED, () => { stopGenerating(); queueBoard(); });
-    for (const event of ['MESSAGE_RECEIVED', 'CHARACTER_MESSAGE_RENDERED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_DELETED', 'CHARACTER_FIRST_MESSAGE_SELECTED']) {
-        if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], queueBoard);
-    }
-    c.eventSource.on(c.eventTypes.GENERATION_AFTER_COMMANDS, (type, _args, dryRun) => {
-        if (['quiet', 'impersonate'].includes(type)) { ++run.promptVersion; clearNotes(c); }
-        else if (dryRun) return syncPrompt(true);
-    });
-    for (const event of ['CONNECTION_PROFILE_CREATED', 'CONNECTION_PROFILE_DELETED', 'CONNECTION_PROFILE_UPDATED']) {
-        if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], () => { if (ui.panel.open) render(true); });
-    }
-    bootNote('first draw');
-    render(); bootNote('drawn; building the note');
-    void syncPromptNow().then(() => bootNote('note built: setup finished'), err => bootNote(`note failed: ${err}`));
-    if (c.eventTypes.APP_READY) c.eventSource.on(c.eventTypes.APP_READY, () => bootNote('SillyTavern says it is ready'));
+    box.textContent = ['◆ Moodweaver loading', ...lines.slice(-14), now].filter(Boolean).join('\n');
 }
-// jQuery ready also works when installed after APP_READY has fired.
-if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();
-export function onDisable() {
-    run.suspended = true; ++run.promptVersion; cancelAnalysis();
-    clearNotes(ctx());
-    ui.panel?.close();
-    for (const node of document.querySelectorAll('#moodweaver-panel, #moodweaver-launcher, #moodweaver-wand, .mw-settings-entry')) node.hidden = true;
+const note = text => { lines.push(`${secs()}s ${text}`); show(); };
+window.addEventListener('error', e => note(`ERROR ${e.message} (${String(e.filename ?? '').split('/').slice(-2).join('/')}:${e.lineno})`));
+window.addEventListener('unhandledrejection', e => note(`ERROR ${String(e.reason?.message ?? e.reason).slice(0, 200)}`));
+// A heartbeat: if this line stops counting up, the page itself has frozen.
+const beat = setInterval(() => { if (!done) { show(); } }, 1000);
+let main = null;
+async function load() {
+    for (const f of FILES) {
+        const start = performance.now(); now = `… ${f}`; show();
+        const tick = setInterval(() => { now = `… ${f} (${((performance.now() - start) / 1000).toFixed(0)}s)`; show(); }, 1000);
+        try { await import(`./${f}`); } catch (err) { clearInterval(tick); now = ''; note(`✕ ${f}: ${err?.message ?? err}`); return; }
+        clearInterval(tick);
+        const ms = performance.now() - start; if (ms > 400) note(`slow: ${f} took ${(ms / 1000).toFixed(1)}s`);
+    }
+    now = '… starting'; show();
+    try { main = await import('./main.js'); } catch (err) { now = ''; note(`✕ start: ${err?.message ?? err}`); return; }
+    done = true; clearInterval(beat); now = ''; note(`✓ loaded (${FILES.length + 1} files)`);
+    setTimeout(() => box?.remove(), 2500);
 }
-export function onEnable() {
-    run.suspended = false;
-    if (!ui.panel) setup();
-    for (const node of document.querySelectorAll('#moodweaver-panel, #moodweaver-wand, .mw-settings-entry')) node.hidden = false;
-    placeLauncher(); queueBoard();
-    void syncPromptNow();
-}
+const ready = load();
+export async function onDisable() { await ready; main?.onDisable?.(); }
+export async function onEnable() { await ready; main?.onEnable?.(); }

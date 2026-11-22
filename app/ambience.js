@@ -6,14 +6,23 @@
 
 // Which bed each place gets. Weather (rain, storm) is a second layer on top of the place.
 export const PLACE_BEDS = {
-    hospital_ward: 'monitor', asylum_ward: 'hum', operating_theatre: 'monitor', observation_room: 'hum', sleep_room: 'monitor', facility: 'hum', morgue: 'hum',
+    hospital_ward: 'hospital', operating_theatre: 'monitor', observation_room: 'hum', sleep_room: 'monitor', facility: 'hum', morgue: 'hum',
     records_room: 'hum', padded_cell: 'hum', corporate_office: 'hum', lecture_hall: 'hum', darkroom: 'hum', interrogation_room: 'hum', glass_cage: 'hum', hydrotherapy_room: 'drip',
     boiler_room: 'machine', basement: 'machine', garage_lab: 'machine', fallout_shelter: 'machine',
-    late_night_diner: 'crowd', bar_club: 'crowd', jazz_club: 'crowd', party: 'crowd', fancy_restaurant: 'crowd', shopping_mall: 'crowd', internet_cafe: 'crowd', public: 'crowd', club_bathroom: 'crowd',
-    outdoors: 'wind', rooftop_night: 'wind', graveside: 'wind', isolated: 'wind', abandoned: 'wind', snowed_in: 'wind', beach: 'waves', campfire: 'fire',
-    in_a_car: 'car', drive_in: 'car', crypt: 'drip', temple: 'drip', hospital_chapel: 'drip', funeral: 'drip',
+    // 1.88: real recordings for these (LOOPS below), used as widely as they fit.
+    bar_club: 'bar', jazz_club: 'bar', country_club: 'bar', party: 'barbusy', dance_hall: 'barbusy', club_bathroom: 'nextdoor',
+    late_night_diner: 'diner', fancy_restaurant: 'restaurant', internet_cafe: 'cafe', bookshop: 'cafe', shopping_mall: 'cafeteria', public: 'cafeteria', police_station: 'lobby', movie_theatre: 'lobby', prison: 'messhall', asylum_ward: 'ward',
+    high_school: 'campus', dorm_room: 'dorm', suburban_home: 'house', domestic: 'house', cosy: 'house', friends_place: 'house', kitchen: 'house', living_room: 'house', dealers_flat: 'house', trap_house: 'house',
+    bedroom_place: 'bedroom', hotel_room: 'bedroom', upscale_apartment: 'bedroom', emptied_home: 'bedroom', bathroom: 'bedroom',
+    cheap_motel: 'motelroom', parking_lot: 'roadside', phone_booth: 'roadside', laundromat: 'roadside', junkyard: 'junkyard', train: 'junkyard', lighthouse: 'cliff',
+    gothic_palace: 'chantry', temple: 'chantry', art_gallery: 'chantry', hospital_chapel: 'chantry', funeral: 'chantry',
+    outdoors: 'meadow', rooftop_night: 'wind', graveside: 'wind', isolated: 'wind', abandoned: 'wind', snowed_in: 'windin', beach: 'waves', swimming_pool: 'meadow', campfire: 'fire', crime_scene: 'city', dangerous: 'city',
+    in_a_car: 'car', drive_in: 'car', crypt: 'drip',
 };
-export const BED_LABELS = { rain: 'rain', storm: 'a storm', monitor: 'a ward’s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'waves', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
+// By night some places sound different: an empty campus, the woods around a camp, the city after dark.
+export const NIGHT_BEDS = { suburb: 'suburbnight', meadow: 'suburbnight', campus: 'campusnight', forest: 'campnight', fire: 'campnight', city: 'darkcity', roadside: 'motel' };
+export const BED_LABELS = { bar: 'a bar', barbusy: 'a busy bar', cafe: 'a café', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
+    rain: 'rain', storm: 'a storm', monitor: 'a ward’s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'the sea', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
     wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'breathing', heart: 'a heartbeat', vent: 'a facility’s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
     fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt', voice: 'her moans and whimpers',
@@ -79,18 +88,50 @@ export const WEATHER_WORDS = [
 ];
 export const WEATHER_STOP = /\b(?:(?:rain|storm|thunder)\w* (?:has |had )?(?:stopped|stops|eased|eases|passed|passes|let up|lets up|died down|dies down)|stopped raining)\b/i;
 export const PLACE_WORDS = [
-    ['monitor', /\b(?:heart monitor|monitor(?:s)? beep\w*|iv drip|hospital bed|hospital ward|the ward|infirmary|intensive care)\b/i],
+    ['hospital', /\b(?:heart monitor|monitor(?:s)? beep\w*|iv drip|hospital (?:bed|room|ward)|the ward|infirmary|intensive care)\b/i],
     ['shower', /\b(?:shower(?:s|ing|head)?|bath ?tub|running water|the tap runs|bathwater)\b/i],
     ['train', /\b(?:train(?:s)? (?:car|carriage|station|platform|track)|on the train|subway|railway|rail car|boxcar)\b/i],
     ['car', /\b(?:driv(?:ing|es) (?:down|through|along|home|fast)|passenger seat|driver'?s seat|steering wheel|highway|back ?seat of (?:the|his|her) (?:car|truck)|in the (?:car|truck|pickup))\b/i],
-    ['crowd', /\b(?:diner|bar ?stool|the bar\b|pub|nightclub|club|restaurant|caf[eé]|cafeteria|party|crowded room|dance floor|booth)\b/i],
-    ['waves', /\b(?:beach|waves?|shore(?:line)?|ocean|seaside|the tide|surf)\b/i],
+    // 1.88: rooms with their own recordings. A busy room before a quiet one, so "a packed bar" is busy.
+    ['nextdoor', /\b(?:through the (?:wall|walls|floor|ceiling)|next door|(?:music|party|bass) (?:from|through) (?:downstairs|upstairs|below|the club|the bar)|club bathroom|bathroom (?:of|at|in) the (?:club|bar))\b/i],
+    ['clubout', /\b(?:outside the (?:club|bar|pub|venue)|(?:alley|line|queue|smoking area) (?:behind|outside) the (?:club|bar|pub)|bouncer|the queue to get in)\b/i],
+    ['backroom', /\b(?:back ?room|stock ?room|store ?room|staff room|back office|kitchen of the (?:diner|restaurant|bar)|behind the counter)\b/i],
+    ['motelroom', /\b(?:motel room|room (?:at|in) the motel|thin motel walls)\b/i],
+    ['seahouse', /\b(?:beach ?house|inside the lighthouse|boat cabin|below deck|cabin by the (?:sea|water|shore)|houseboat)\b/i],
+    ['windin', /\b(?:wind (?:howls|rattles|batters|against) (?:the )?(?:windows?|shutters|house|cabin)|snowed in|storm (?:outside|batters)|rattling windows?)\b/i],
+    ['tent', /\b(?:in(?:side)? the tent|tent flap|sleeping bags?|inside the cabin|cabin in the woods)\b/i],
+    ['fairfar', /\b(?:(?:fair|carnival|fairground) in the distance|distant (?:fair|carnival|fairground)|across (?:the )?(?:town|field) from the fair)\b/i],
+    ['messhall', /\b(?:prison|cell ?block|mess hall|gymnasium|the gym\b|locker room|warehouse|train station|airport|terminal|bus station|station concourse|auditorium)\b/i],
+    ['schoolhall', /\b(?:school (?:hallway|corridor)s?|(?:hallway|corridor)s? (?:of|at) (?:the )?(?:school|college|academy)|between classes|homeroom)\b/i],
+    ['lobby', /\b(?:hotel lobby|lobby|reception desk|waiting room|bank\b|foyer|atrium|police station|precinct|bullpen|cinema|movie theat(?:er|re))\b/i],
+    ['yardfar', /\b(?:(?:clang(?:ing)?|metal|machinery|trains?) in the distance|distant (?:clanging|machinery|trains?|rail ?yard)|industrial (?:estate|park)|the docks at night)\b/i],
+    ['ward', /\b(?:asylum|psych ward|sanitarium|sanatorium|hospital corridor|nurses'? station)\b/i],
+    ['carnival', /\b(?:carnival|fun ?fair|fairground|amusement park|ferris wheel|boardwalk|carousel|the fair\b|circus|festival|county fair)\b/i],
+    ['barbusy', /\b(?:night ?club|the club\b|party|dance ?floor|packed bar|crowded (?:bar|room|pub|restaurant)|dance ?hall|casino|frat house|ballroom|reception|gala|banquet)\b/i],
+    ['diner', /\b(?:diner|greasy spoon|lunch counter|counter stools?|truck ?stop|waitress (?:refills|pours|brings)|milkshake|burger joint|drive-?thru|fast food)\b/i],
+    ['cafeteria', /\b(?:cafeteria|canteen|lunch ?room|mess hall|food court|dining hall|the mall\b|shopping (?:mall|centre|center))\b/i],
+    ['restaurant', /\b(?:restaurants?|bistro|eatery|steakhouse|pizzeria|trattoria|brasserie|deli\b|brunch|dinner date|their table|the waiter|maître d|reservation)\b/i],
+    ['cafe', /\b(?:caf[eé]s?|coffee ?shop|coffee ?house|espresso bar|tea ?room|bakery|bookshop|bookstore|book store)\b/i],
+    ['bar', /\b(?:(?:a|the|this|that|his|her|their|local|dive|hotel|gay|piano) bar\b|bar ?stools?|(?:a|the|this|that) pub\b|tavern|saloon|lounge|bartender|barkeep|barman|barmaid|speakeasy|jukebox|on the rocks|last call|clubhouse)\b/i],
+    ['junkyard', /\b(?:junk ?yard|scrap ?yard|salvage yard|wrecked cars|scrap metal|rail ?yard|train ?yard|train tracks|trailer park|abandoned lot|the tracks)\b/i],
+    ['motel', /\b(?:motel|motor ?inn|inn\b|hotel balcony|walkway outside)\b/i],
+    ['roadside', /\b(?:parking (?:lot|garage)|car park|gas station|petrol station|roadside|bus stop|phone booth|laundromat|outside the (?:diner|bar|store|shop|motel)|the curb|kerb)\b/i],
+    ['dorm', /\b(?:dorm(?:itory)?|residence hall|hall ?mates?|roommates?|boarding school|barracks|bunk ?room)\b/i],
+    ['campus', /\b(?:campus|the quad|school grounds|school ?yard|academy grounds|high school|college|university|blackwell|the school\b|hallways? (?:of|at) (?:the )?school|lockers?)\b/i],
+    ['waves', /\b(?:beach|waves?|shore(?:line)?|ocean|seaside|the tide|surf|the sea\b|harbou?r|pier|docks?|marina|coastline|boat)\b/i],
+    ['cliff', /\b(?:cliff(?:side|top|s)?|lighthouse|overlook|bluffs?|lookout|viewpoint|hill ?top|ridge|mountain ?side)\b/i],
     ['fire', /\b(?:camp ?fire|fire ?place|bonfire|hearth|crackling fire|the fire crackles)\b/i],
+    ['chantry', /\b(?:chantry|cathedral|chapel|church|temple|great hall|manor|mansion|castle|museum|gallery|library|stately home|old hall|crypt)\b/i],
     ['drip', /\b(?:cave|crypt|cellar|sewer|tunnel|catacomb\w*|dripping|drip(?:s)? from the)\b/i],
     ['machine', /\b(?:boiler|generator|machinery|factory floor|engine room|furnace room)\b/i],
     ['hum', /\b(?:fluorescent|cubicle|laboratory|the lab\b|interrogation room|office|dark ?room|bunker|white room)\b/i],
+    ['forest', /\b(?:forest|woods|woodland|creek|waterfall|the clearing|hiking trail|camping|tent|cabin in the woods)\b/i],
+    ['meadow', /\b(?:park\b|garden|meadow|field|orchard|picnic|lawn|countryside|farm|ranch|riverbank|outside in the sun|sunny afternoon)\b/i],
+    ['suburb', /\b(?:front (?:yard|lawn|porch|steps)|back ?yard|cul-de-sac|neighbou?rhood|suburbs?|picket fence|driveway|down the street|walk(?:ed|s|ing)? (?:her|him|them) home|the block)\b/i],
     ['city', /\b(?:street ?lights?|traffic|sidewalk|alley(?:way)?|downtown|crosswalk|city street|the street)\b/i],
-    ['wind', /\b(?:wind(?:s|y|swept)?|gusts?|cliff(?:side|top)?|lighthouse|rooftop|blizzard)\b/i],
+    ['wind', /\b(?:wind(?:s|y|swept)?|gusts?|rooftop|the roof\b|blizzard)\b/i],
+    ['bedroom', /\b(?:bedroom|(?:her|his|their|my|[A-Z][a-z]+'s) room|hotel room|guest room|spare room|apartment|flat\b|studio flat|loft|penthouse|under the covers|in bed)\b/i],
+    ['house', /\b(?:kitchen|living room|front room|lounge room|sitting room|dining room|the house\b|(?:her|his|their|my|[A-Z][a-z]+'s) (?:house|home|place|parents'? house)\b|upstairs|downstairs|hallway|family home)\b/i],
 ];
 export const LAYER_WORDS = [
     ['camera', /\b(?:dark ?room|camera|shutter|polaroid|flash ?bulb|snaps? (?:a|another|the) (?:photo|picture|shot)|developing (?:the )?(?:photos|prints|film))\b/i],
@@ -98,6 +139,26 @@ export const LAYER_WORDS = [
     ['birds', /\b(?:birds?|birdsong|songbirds?|forest|woods|meadow|orchard)\b/i],
 ];
 const LEVELS = { 1: 0.22, 2: 0.45, 3: 0.8 };
+// Places from her recordings (1.88): seamless 40-second loops in sounds/, one picked each time, started at a random
+// point, with a slow swell so the loop never sounds like one. [files, gain].
+export const LOOPS = {
+    bar: [['amb-bar', 'amb-bar-2'], 0.75], barbusy: [['amb-bar-busy', 'amb-bar-busy-2'], 0.6], cafe: [['amb-cafe'], 0.7], cafeteria: [['amb-cafeteria', 'amb-cafeteria-2'], 0.65], diner: [['amb-diner', 'amb-diner-2'], 0.75],
+    restaurant: [['amb-diner', 'amb-diner-2', 'amb-cafe', 'amb-bar-busy-2'], 0.65], crowd: [['amb-cafe', 'amb-bar', 'amb-diner'], 0.65],
+    roadside: [['amb-roadside'], 0.7], motel: [['amb-motel'], 0.65], dorm: [['amb-dorm', 'amb-dorm-2'], 0.7], house: [['amb-house'], 0.55], bedroom: [['amb-bedroom', 'amb-dorm'], 0.8],
+    campus: [['amb-campus', 'amb-campus-2', 'amb-meadow'], 0.65], campusnight: [['amb-campus-night'], 0.65], hospital: [['amb-hospital'], 0.6], waves: [['amb-coast', 'amb-coast-2'], 0.75],
+    cliff: [['amb-cliff', 'amb-overlook'], 0.7], wind: [['amb-rooftop', 'amb-overlook'], 0.7], junkyard: [['amb-junkyard', 'amb-junkyard-2'], 0.6],
+    meadow: [['amb-meadow', 'amb-forest', 'amb-forest-2'], 0.65], forest: [['amb-forest', 'amb-forest-2', 'amb-meadow'], 0.7], suburb: [['amb-meadow', 'amb-campus'], 0.55], suburbnight: [['amb-suburb-night', 'amb-campus-night'], 0.7],
+    campnight: [['amb-camp-night', 'amb-camp-night-2'], 0.7], carnival: [['amb-carnival', 'amb-carnival-2'], 0.6], darkcity: [['amb-dark-city'], 0.6], chantry: [['amb-chantry'], 0.6],
+    // Versions made from the same recordings (1.88.1), shaped live: 'wall' is heard through a wall or window, 'far' from
+    // a distance, 'hall' in a big echoing room.
+    nextdoor: [['amb-bar-busy', 'amb-bar-busy-2'], 0.65, 'wall'], clubout: [['amb-bar-busy', 'amb-bar-busy-2', 'amb-bar'], 0.6, 'far'],
+    messhall: [['amb-cafeteria', 'amb-cafeteria-2'], 0.6, 'hall'], lobby: [['amb-cafe', 'amb-bar-2'], 0.55, 'hall'], ward: [['amb-hospital'], 0.55, 'hall'],
+    backroom: [['amb-diner', 'amb-diner-2', 'amb-bar'], 0.65, 'wall'], motelroom: [['amb-motel', 'amb-roadside'], 0.7, 'wall'], seahouse: [['amb-coast', 'amb-coast-2'], 0.65, 'wall'],
+    windin: [['amb-rooftop', 'amb-cliff', 'amb-overlook'], 0.65, 'wall'], tent: [['amb-camp-night', 'amb-camp-night-2', 'amb-forest-2'], 0.6, 'wall'], fairfar: [['amb-carnival', 'amb-carnival-2'], 0.55, 'far'],
+    yardfar: [['amb-junkyard', 'amb-junkyard-2'], 0.5, 'far'], schoolhall: [['amb-cafeteria-2', 'amb-campus-2'], 0.55, 'hall'],
+};
+// What counts as erotic (1.88), for the switch that keeps it quiet: the furniture, bodies, acts and voices of sex.
+export const EROTIC_BEDS = new Set(['bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'breath', 'fingers', 'rub', 'spank', 'whip', 'voice']);
 
 let ac = null, master = null, noise = null;
 const layers = new Map(); // name -> { gain, stop() }
@@ -287,11 +348,35 @@ function hits(min, max, fn) {
 }
 const wetOne = (out, at, o = {}) => grain(out, Math.random() < 0.5 ? 'wet-1' : 'wet-2', at, o);
 
+// A big room's echo: about two seconds of fading noise, made once.
+let hallEcho = null;
+function room() {
+    if (hallEcho) return hallEcho;
+    const len = Math.round(ac.sampleRate * 2.2); hallEcho = ac.createBuffer(2, len, ac.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = hallEcho.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2) * (i < ac.sampleRate * 0.012 ? 0 : 0.5); }
+    return hallEcho;
+}
+// One looping recording, faded in once it has loaded (the first time takes a moment), with a slow swell.
+function loop(out, name, stops) {
+    const [files, gain, fx] = LOOPS[name], file = one(...files); let alive = true, src = null, lfo = null;
+    const go = buf => { if (!alive || !buf || !ac) return;
+        const g = gainOf(0); src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(g);
+        if (fx === 'wall') chain(g, filter('lowpass', 520), filter('highpass', 60), out);
+        else if (fx === 'far') chain(g, filter('highpass', 220), filter('lowpass', 1600), gainOf(0.8), out);
+        else if (fx === 'hall') { const dry = gainOf(0.55), wet = ac.createConvolver(); wet.buffer = room(); chain(g, dry, out); chain(g, filter('lowpass', 4500), wet, gainOf(0.9), out); }
+        else g.connect(out);
+        src.start(0, Math.random() * buf.duration); g.gain.setTargetAtTime(gain, ac.currentTime, 1.5);
+        const swell = gainOf(gain * 0.12); lfo = ac.createOscillator(); lfo.frequency.value = 0.02 + Math.random() * 0.03; lfo.connect(swell).connect(g.gain); lfo.start(); };
+    const ready = sample(file); if (ready) go(ready); else void loading.get(file)?.then(go);
+    stops.push(() => { alive = false; for (const n of [src, lfo]) { try { n?.stop(); } catch { /* fine */ } try { n?.disconnect(); } catch { /* fine */ } } });
+}
+
 // ---- The beds ----
 function build(name) {
     const out = gainOf(0); out.connect(master);
     const stops = [], nodes = [];
     const keep = (...n) => { nodes.push(...n); return n[0]; };
+    if (LOOPS[name]) { loop(out, name, stops); return { gain: out, stop() { stops.forEach(f => f()); try { out.disconnect(); } catch { /* fine */ } } }; }
     const B = {
         rain() { chain(keep(src()), filter('highpass', 500), filter('lowpass', 7000), gainOf(0.22), out); stops.push(every(0.05, 0.4, at => burst(out, at, 0.03, 0.05, 3500))); },
         storm() { chain(keep(src()), filter('highpass', 300), filter('lowpass', 5000), gainOf(0.3), out);

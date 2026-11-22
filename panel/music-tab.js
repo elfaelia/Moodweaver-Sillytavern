@@ -1,6 +1,6 @@
 // The ♫ Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, toggleAmbKind, toggleVenues, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
@@ -249,9 +249,12 @@ function extraRow(m, x) {
         const mode = m.extras[x.id] ?? 'off', ticked = extraChars(x.id), others = ticked.filter(n => norm(n) !== norm(me));
         const some = mode === 'some' ? `<div class="mw-mchips">${me ? chip(`data-music="extrachar" data-k="${x.id}"`, ticked.some(n => norm(n) === norm(me)), `${ticked.some(n => norm(n) === norm(me)) ? '✓' : '+'} ${me}`) : ''}${others.map(n => chip(`data-music="extrachar" data-k="${x.id}" data-v="${esc(n)}"`, true, `✓ ${n}`)).join('')}</div>
             <p class="mw-fine">${me ? `Tap ${esc(me)} to switch it on or off for them. ` : ''}It follows each ticked character into every chat. Tap a ticked name to untick it.</p>` : '';
-        const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>` : '';
+        const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>
+            <p class="mw-music-label">What plays</p><div class="mw-mchips">${chip('data-music="ambkind" data-v="places"', m.ambPlaces !== false, `${m.ambPlaces !== false ? '✓' : '+'} Everyday sounds`)}${chip('data-music="ambkind" data-v="sex"', m.ambSex !== false, `${m.ambSex !== false ? '✓' : '+'} Erotic sounds`)}</div>
+            <p class="mw-fine">Everyday: places, weather, a heartbeat in danger, doors, gunshots. Erotic: the bed and furniture, bodies, breath, fingers, spanking, the whip and her voice. Tap one to switch it off.</p>` : '';
+        const venues = x.id === 'radio' && mode !== 'off' ? `<div class="mw-mchips">${chip('data-music="venues"', m.venues !== false, `${m.venues !== false ? '✓' : '+'} Venues play their own music`)}</div>` : '';
         return `<div class="mw-music-extra${x.under ? ' is-under' : ''}"><p class="mw-music-label">${esc(x.label)}${extraOn(x.id, m) ? ' <span class="mw-music-lit">· on here</span>' : ''}</p><p class="mw-fine">${esc(x.note)}</p>
-            <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}</div>`;
+            <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}${venues}</div>`;
     }
 function extrasCard(m) {
     const row = x => extraRow(m, x);
@@ -314,6 +317,8 @@ export async function musicClick(e, redraw) {
     else if (a === 'amb-more') { ui.musicOpen = { ...(ui.musicOpen ?? {}), amb: !ui.musicOpen?.amb }; redraw(); }
     else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
     else if (a === 'amblevel') setAmbLevel(el.dataset.v);
+    else if (a === 'ambkind') toggleAmbKind(el.dataset.v);
+    else if (a === 'venues') toggleVenues();
     else if (a === 'sound') redraw();
     else if (a === 'playit') { await playChosen(el.dataset.uri); redraw(); }
     else if (a === 'seekbar') { const r = el.querySelector('.mw-music-track').getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); await seekTo(f * (mus.now?.ms ?? 0)); redraw(); }

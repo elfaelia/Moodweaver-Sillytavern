@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.88.1: venues play their own music from Spotify, and the place recordings used far more widely
+
+- **Venue music (in-story, from your Spotify).** A club, a jazz bar, a cocktail bar, a dance (prom, sock hop, ballroom), a party or a gig now switches the music by itself from film score to what the characters can hear there, and Claude is told what's playing so they can react to it. It all plays through your Spotify like the rest of the music:
+  - **Your playlists first:** songs whose Spotify genres fit the venue (jazz, swing and blues for a jazz bar; dance, house and disco for a club; upbeat pop and R&B for a cocktail bar; rock and roll, doo-wop and soul for a dance; rock and punk at a gig).
+  - **Then Spotify search** fills the rest with real tracks of those genres, within the story's era when one is set, a few pages from a random start so it's fresh each time. You don't need to make any venue playlists.
+  - **A named band at a gig** ("a Descendents show", "the Misfits take the stage") plays that band: your songs by them, then their tracks from Spotify.
+  - While they stay in the venue its line-up keeps playing. Leaving (or "the band stops"), or the scene turning to sex, brings the film score back.
+  - Music › Extras › In-story radio › "Venues play their own music" (on).
+- **Second takes:** a bar, a busy bar, a café-cafeteria, a diner, the campus, the sea, the woods, a camp at nightfall, the carnival and the junkyard each have a second 40-second cut from a different part of your clip, picked at random.
+- **New versions made from the same recordings**, shaped live (no extra download): heard through a wall, from a distance, or in a big echoing room:
+  - A party or club through the wall (next door, music from downstairs, the club bathroom). Outside a club (the queue, the alley behind the bar, bouncers).
+  - Big echoing halls (prisons, mess halls, gyms, locker rooms, warehouses, train and bus stations, airports, auditoriums), school hallways, echoing lobbies (hotels, waiting rooms, banks, foyers, police stations, cinemas), an echoing ward (asylums, psych wards, hospital corridors).
+  - The back room (store rooms, staff rooms, behind the counter), a motel room (the motel fact now plays this), the sea through the walls (beach houses, inside the lighthouse, below deck), wind against the windows (snowed in, storms battering the house), night outside the tent or cabin, a fair in the distance, distant machinery and trains.
+
+- **Every recording now covers every place it can pass for**, not just the one it came from:
+  - **Restaurants** (bistros, steakhouses, pizzerias, delis, a dinner date, the waiter) play the diner, the café or the busy restaurant-bar, one picked each time; the fancy restaurant fact does the same.
+  - **Bars:** any bar (hotel, dive, piano, local), lounges, saloons, taverns, speakeasies, jukeboxes, last call, the country club. **Busy rooms:** clubs, parties, dance floors and halls, casinos, frat houses, ballrooms, galas, receptions, the club bathroom.
+  - **Diner:** also truck stops, burger joints, fast food, drive-thrus. **Café:** bakeries, tea rooms, bookshops. **Cafeteria:** malls, lobbies, waiting rooms, police stations and bullpens, the cinema.
+  - **Bedroom:** anyone's room (a friend's, "Chloe's room"), hotel rooms, guest rooms, apartments, flats, lofts, penthouses, in bed, bathrooms. **House:** any house or home (yours, theirs, someone's parents'), dining rooms, hallways, dealers' flats and trap houses. **Dorm:** also boarding schools, barracks and bunk rooms.
+  - **Campus:** high school, college, university, lockers, the school. **Outdoors by day:** your Before the Storm title clip (birdsong) plus the woods, for parks, gardens, fields, meadows, picnics, farms, riverbanks, pools and the outdoors fact. **Neighbourhood:** front yards, porches, driveways, cul-de-sacs, walking someone home, by day the birdsong and by night the suburb at night.
+  - **Roadside** (outside Two Whales): parking garages, bus stops, phone booths, laundromats, outside any shop or bar; at night it becomes the motel. **Motel:** inns too. **Junkyard:** rail yards, train tracks, trailer parks, abandoned lots, the train fact.
+  - **The sea:** marinas, coastlines, boats. **Clifftop:** lookouts, hilltops, ridges. **Wind:** the rooftop or the overlook.
+  - **Old stone hall:** museums, galleries, libraries, manors, stately homes, chapels, funerals. **The city after dark:** any street at night, crime scenes and dangerous places at night.
+- **Quiet rooms stay quiet.** Chloe's room and Max's dorm were nearly silent recordings, and 1.88.0 turned them up to match the bar, which would have meant a loud hiss. They're now cut at a quiet room level.
+
+## 1.88.0: real place recordings, and everyday and erotic sounds on their own switches
+
+- **Why your bar sounded like snow on a beach:** the "murmuring room" under bars, diners and clubs was made up from filtered noise, and on a phone it read as surf or wind. It's gone. Bars, diners, cafés and clubs now play real recordings.
+- **26 real place recordings from your clips**, each cut into a seamless 40-second loop, started at a random point each time with a slow swell so the join never shows: a bar, a busy bar or club (parties, dance halls), a café or restaurant, a cafeteria (also malls and public places), a diner, outside by the road (parking lots, gas stations), two dorms, a quiet house (kitchen, living room, a friend's place), a bedroom, a campus by day and one at night, a hospital room, the sea (beaches, harbours, piers), a windy clifftop or lighthouse (two takes), a rooftop in the wind (also graveyards, snowed-in and abandoned places), the woods, a camp at nightfall (the woods or a campfire at night), a quiet suburb at night, a junkyard, a motel at night, a carnival or boardwalk, the city after dark, and an old stone hall (churches, chapels, cathedrals, mansions, castles).
+- **Night and day:** a campus, the woods, a suburb and the city each switch to their night recording when the board says it's night.
+- **Everyday and erotic sounds can each be switched off.** Music › Extras › Ambience › What plays: "Everyday sounds" (places, weather, a heartbeat in danger, doors, gunshots) and "Erotic sounds" (the bed and furniture, bodies, breath, fingers, spanking, the whip and her voice). In a heated scene a slap or the whip counts as erotic; outside one it's everyday.
+- Synthetic crickets no longer play on top of an outdoor recording that already has its own night sounds.
+
 ## 1.87.0: the story moves the cast too
 
 - **Cast members in the scene now get automatic feelings and facts, like the character does.** When someone from your cast is in the scene, the hidden line can say how they changed this reply: one feeling (wary +10, scared off) and one lasting fact (in uniform, arrested, or that fact off). It's asked for only when something actually changed for them, so most replies add nothing, and a person costs roughly 10 to 20 tokens when they do.

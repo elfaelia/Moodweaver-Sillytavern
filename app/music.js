@@ -12,6 +12,7 @@ import { readCsv, readXlsx } from '../engine/xlsx.js';
 import { shortName } from '../engine/util.js';
 import { pronounOf } from '../engine/pronouns.js';
 import { BEATS, beatsIn, plainStory, radioIn, radioKind } from '../engine/scene-words.js';
+import { VENUE_BY_ID, artistMatch, fitsVenue, searchesFor, venueNow } from '../engine/venues.js';
 import * as amb from './ambience.js';
 import * as sp from './spotify.js';
 
@@ -31,6 +32,7 @@ export function music() {
     if (!m.extras || typeof m.extras !== 'object') m.extras = { ...EXTRA_DEFAULTS, ...(m.fade === false ? { fade: 'off' } : {}) };
     for (const [k, v] of Object.entries(EXTRA_DEFAULTS)) if (!['off', 'all', 'some'].includes(m.extras[k])) m.extras[k] = v;
     if (![1, 2, 3].includes(Number(m.ambLevel))) m.ambLevel = 2;
+    m.ambPlaces = m.ambPlaces !== false; m.ambSex = m.ambSex !== false; m.venues = m.venues !== false;
     return m;
 }
 // ---- Extras ----
@@ -40,8 +42,8 @@ export const EXTRAS = [
     { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
     { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
     { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
-    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm, a ward, a diner, an office hum, a basement, wind, waves, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, skin slapping when it’s rough, fingers, grinding, spanking or a whip when the story names them, and her moans when one of you is a she, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
-    { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it.' },
+    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm; real recordings of a bar, a busy bar or club, a café or restaurant, a cafeteria, a diner, outside by the road, a dorm, a quiet house, a bedroom, a campus by day or night, a hospital room, the sea, a windy clifftop or rooftop, the woods, a camp at nightfall, a junkyard, a motel at night, a carnival, the city after dark and an old stone hall; an office hum, a basement, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, skin slapping when it’s rough, fingers, grinding, spanking or a whip when the story names them, and her moans when one of you is a she, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
+    { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it. Venues do the same by themselves: a club, a jazz bar, a cocktail bar, a dance, a party or a gig plays what would be on there, from your playlists when their genres fit and from Spotify search for the rest (in the story’s era), or the band named at a gig. Leaving the venue, or a sex scene, brings the film score back.' },
 ];
 const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', radio: 'all' };
 const charKey = () => norm(shortName(target()?.name ?? ''));
@@ -58,6 +60,8 @@ export function toggleExtraFor(id, name = '') {
 export const extraChars = id => Object.values(music().chars).filter(c => c.x?.[id]).map(c => c.name);
 export const thisCharName = () => shortName(target()?.name ?? '');
 export function setExtra(id, mode) { const m = music(); m.extras[id] = mode; save(); updateAmbience(); changed(); }
+export function toggleVenues() { const m = music(); m.venues = !m.venues; if (!m.venues && mus.radio?.venue) mus.radio = null; save(); changed(); }
+export function toggleAmbKind(kind) { const m = music(), k = kind === 'sex' ? 'ambSex' : 'ambPlaces'; m[k] = m[k] === false; save(); updateAmbience(); changed(); }
 export function setAmbLevel(level) { const m = music(); m.ambLevel = Number(level); save(); updateAmbience(); changed(); }
 
 // Not saved: what's playing and why.
@@ -182,7 +186,7 @@ function ranked(snap, m = music(), exclude = []) {
     const songs = rest.length >= 3 ? rest : all, recent = new Set(m.recent.slice(-20));
     let list = rank(songs, snap, { recent, themeOn: m.themes, sound: m.sound, cued: cuedNow(m), radio: radioOn(m) });
     // In-story radio: only songs from the story's era or earlier (by the sheet's Year), still in order of fit.
-    if (radioOn(m)) {
+    if (radioOn(m) && !mus.radio.venue) {
         const end = eraEnd(), year = new Map(songs.map(s => [s.uri, s.tags.yr]));
         const period = list.filter(x => year.get(x.uri) && (!end || year.get(x.uri) <= end));
         mus.radio.empty = !period.length; if (period.length) list = period;
@@ -200,6 +204,42 @@ function ranked(snap, m = music(), exclude = []) {
 // ---- Radio, stings and peaks ----
 const RADIO_REPLIES = 6, STING_REST = 10 * 60 * 1000;
 export const radioOn = (m = music()) => Boolean(mus.radio && mus.radio.chat === ctx().chatId && extraOn('radio', m));
+// ---- Venue music (1.88.1) ----
+// The venue the scene is in, when venue music is on and the scene isn't sex (the film score takes that back).
+function venueHere(snap, m = music()) {
+    if (!extraOn('radio', m) || m.venues === false || snap?.heat === 'sex') return null;
+    return venueNow(snap?.places ?? new Set(), recentStory(6));
+}
+// A line-up for the venue: your fitting songs, then real tracks from Spotify search (cached for the session per venue,
+// era and artist), never the last 20 played. A named artist leads with their own songs.
+async function venueLineup(m, v, exclude = []) {
+    const end = eraEnd(), recent = new Set([...m.recent.slice(-20), ...exclude]), shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
+    const inEra = yr => !end || !yr || yr <= end;
+    const own = usableSongs(m).filter(s => !recent.has(s.uri) && inEra(s.tags?.yr) && (v.artist ? artistMatch(s.a ?? m.songs[s.uri]?.a, v.artist) : fitsVenue(s.g, v.id))).map(s => s.uri);
+    const key = `${v.id}|${v.artist}|${end}`; mus.venueCache ??= new Map(); mus.extra ??= new Map();
+    let found = mus.venueCache.get(key);
+    if (!found || found.filter(t => !recent.has(t.uri)).length < 6) {
+        found = [];
+        for (const q of searchesFor(v.id, v.artist, end)) {
+            try { found.push(...(await sp.searchTracks(m, q, v.artist ? 3 : 2))); } catch (err) { if (err.code === 'slow') break; }
+            if (found.length >= 60) break;
+        }
+        found = [...new Map(found.filter(t => inEra(t.yr) && (!v.artist || artistMatch(t.a, v.artist))).map(t => [t.uri, t])).values()];
+        mus.venueCache.set(key, found);
+    }
+    for (const t of found) mus.extra.set(t.uri, t);
+    const searched = shuffle(found.filter(t => !recent.has(t.uri)).map(t => t.uri)), mine = shuffle(own);
+    // Mostly your songs when you have plenty, with search mixed in so it never runs dry.
+    const out = []; while ((mine.length || searched.length) && out.length < 15) { if (mine.length) out.push(mine.shift()); if (searched.length && (out.length % 3 === 2 || !mine.length || v.artist)) out.push(searched.shift()); }
+    return [...new Set(out)].slice(0, 15);
+}
+async function venuePlay(m, snap, exclude = []) {
+    const v = mus.radio, uris = await venueLineup(m, { id: v.venue, artist: v.artist }, exclude);
+    if (!uris.length) { mus.radio.empty = true; return false; }
+    mus.radio.empty = false;
+    try { await playList(m, uris, [v.artist ? `${v.artist} at the gig` : VENUE_BY_ID[v.venue]?.label ?? 'music in the room'], snap, Boolean(mus.now)); m.on = true; save(); } catch (err) { say(err.message, true); }
+    return true;
+}
 // The last year of the story's era (era_1960s… → 1969), from either of you; 0 when no era is set.
 export function eraEnd() {
     const ch = target(), years = [];
@@ -252,7 +292,8 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     if (places.has('stormy')) beds.push('storm'); else if (places.has('raining')) beds.push('rain');
     else if (sky && (stop < 0 || sky[1] < stop)) beds.push(sky[0]);
     // The place: a place fact first, else the place the last 4 messages most recently put them in.
-    const place = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
+    const where = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
+    const place = snap?.night && amb.NIGHT_BEDS[where] && !(where === 'fire' && !OUTSIDE.has([...places].find(p => amb.PLACE_BEDS[p] === 'fire') ?? 'campfire')) ? amb.NIGHT_BEDS[where] : where;
     if (place) beds.push(place);
     // A facility under it all (a facility place, or the last 4 messages put them in one), live wires, an alarm.
     if ([...places].some(p => amb.VENT_PLACES.has(p)) || texts.slice(0, 4).some(t => amb.MORE_WORDS.vent.test(t))) beds.push('vent');
@@ -264,10 +305,11 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     const near = texts.slice(0, 3), has = id => amb.LAYER_WORDS.find(([k]) => k === id)[1];
     if (places.has('darkroom') || places.has('photo_studio') || near.some(t => has('camera').test(t))) beds.push('camera');
     if (near.slice(0, 2).some(t => has('clock').test(t))) beds.push('clock');
-    const outside = [...places].some(p => OUTSIDE.has(p)) || ['wind', 'waves', 'fire'].includes(place);
+    const outside = ([...places].some(p => OUTSIDE.has(p)) || ['wind', 'waves', 'fire'].includes(place)) && !amb.LOOPS[place];
     if (!snap?.night && near.some(t => has('birds').test(t)) && !beds.includes('storm')) beds.push('birds');
     if (snap?.night && outside && !beds.includes('rain') && !beds.includes('storm')) beds.push('crickets');
-    return [...new Set(beds)].slice(0, amb.MAX_BEDS);
+    // 1.88: everyday and erotic sounds can each be switched off.
+    return [...new Set(beds)].filter(b => amb.EROTIC_BEDS.has(b) ? m.ambSex !== false : m.ambPlaces !== false).slice(0, amb.MAX_BEDS);
 }
 // Ambience runs on its own line (1.83): with or without Spotify, whether the music is playing or paused. It has its
 // own pause (mus.ambPaused, this session only). After each reply it re-reads the scene, and plays one-off sounds
@@ -278,7 +320,7 @@ function ambienceAfterReply(m) {
     mus.latest = snap; updateAmbience(snap);
     const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}|${last?.send_date ?? ''}|${last?.swipe_id ?? 0}`, same = `${ctx().chatId}|${chat.length}`;
     const fresh = Boolean(mus.ambMark) && !mus.ambMark.startsWith(same + '|'); mus.ambMark = mark;
-    if (fresh && !last?.is_user && !mus.ambPaused) { const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([, re]) => re.test(said)).map(([id]) => id)); }
+    if (fresh && !last?.is_user && !mus.ambPaused) { const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([id, re]) => re.test(said) && ((snap.heat && ['slap', 'whip'].includes(id)) ? m.ambSex !== false : m.ambPlaces !== false)).map(([id]) => id)); }
 }
 export function toggleAmbience() { mus.ambPaused = !mus.ambPaused; if (!mus.ambPaused) { amb.unlock(); mus.latest ??= sceneNow(); } updateAmbience(); changed(); }
 export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel, snap?.energy ?? 3, amb.paceNudge(recentStory(2))); } catch { /* no sound here */ } }
@@ -306,7 +348,7 @@ async function playList(m, uris, why, snap, cut = false, startMs = 0) {
     await sp.play(m, uris, device.id, startMs);
     if (xfade) setTimeout(() => void ramp(m, device, low, vol, 3200), 300);
     mus.lineup = uris; mus.anchor = snap; mus.cutAt = Date.now(); mus.why = why; mus.userPaused = false; mus.wasPlaying = true;
-    const s = m.songs[uris[0]];
+    const s = m.songs[uris[0]] ?? mus.extra?.get(uris[0]);
     mus.now = { uri: uris[0], name: s?.n ?? '', artist: s?.a ?? '', art: '', ms: s?.ms ?? 0, started: Date.now() - startMs, progress: startMs, playing: true };
     updateAmbience(snap);
     remember(m, uris[0]); say(''); setTimeout(() => void sync(), 1500);
@@ -317,6 +359,7 @@ export async function start(exclude = [], deep = false, sure = false) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
     const snap = sceneNow(deep) ?? snapshot({}); mus.latest = snap;
     readCues(m, deep); // Play and Next hear the story too, not only a new reply.
+    if (mus.radio?.venue && radioOn(m) && await venuePlay(m, snap, exclude)) return;
     const list = ranked(snap, m, exclude);
     if (!list.length) return say('No songs yet: tick a playlist and tap Load songs, or import a song sheet.', true);
     const first = pickCued(list, null, sure ? 1 : CUE_CHANCE) ?? pick(list);
@@ -348,6 +391,13 @@ export async function afterReply() {
     if (mus.locked || swiped || (mus.chosen && mus.chosen === mus.now?.uri)) { changed(); return; }
     // The words of this turn: the newest reply, and your message if it came just before it.
     const turn = [last?.is_user ? '' : last?.mes, chat.at(-2)?.is_user ? chat.at(-2).mes : ''].filter(Boolean).join('\n');
+    // Venue music: arriving at a venue (or the band named at a gig changing) switches to what's playing there; leaving
+    // it, or the scene turning to sex, brings the film score back. While in the venue its line-up plays on.
+    const venue = venueHere(snap, m), vKey = venue ? `${venue.id}|${venue.artist}` : '', wasVenue = mus.radio?.venue && radioOn(m) ? mus.radio.key : '';
+    if (vKey !== wasVenue) {
+        if (venue) { mus.radio = { chat: ctx().chatId, kind: venue.artist ? `${venue.artist}, live on stage,` : VENUE_BY_ID[venue.id].label, left: Infinity, venue: venue.id, artist: venue.artist, key: vKey }; if (await venuePlay(m, snap)) return; mus.radio = null; }
+        else if (wasVenue) { mus.radio = null; const list = ranked(snap, m), first = list.length ? pick(list) : null; if (first) { try { await playList(m, lineup(list, first), ['left the venue'], snap, true); } catch (err) { say(err.message, true); } return; } }
+    } else if (venue) { changed(); return; }
     // In-story radio: switched on, kept on (for a while, or while the story keeps mentioning it), or switched off.
     if (extraOn('radio', m)) {
         const said = radioIn(turn), was = radioOn(m);
@@ -717,7 +767,7 @@ export function musicLine() {
     const m = music();
     // In-story radio: the opposite of a film score. The characters hear it, so Claude is told what's on.
     if (m.on && mus.now?.playing && radioOn(m) && !mus.radio.empty) {
-        const yr = cleanTags(m.tags[mus.now.uri] ?? {}).yr;
+        const yr = cleanTags(m.tags[mus.now.uri] ?? {}).yr || mus.extra?.get(mus.now.uri)?.yr;
         return `Music in the scene: ${mus.radio.kind} is playing "${mus.now.name}" by ${mus.now.artist || 'unknown'}${yr ? ` (${yr})` : ''}. Everyone present can hear it. It can be noticed, mentioned, hummed, danced to or switched off when that fits, but it doesn't take over the scene. Don't quote its lyrics.`;
     }
     if ((!m.feel && !m.tell) || !m.on || !mus.now?.playing) return '';

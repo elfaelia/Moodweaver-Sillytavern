@@ -156,6 +156,17 @@ export async function songsOf(store, id) {
     catch (err) { if (![404, 400].includes(err.status)) throw err; return (await all(store, `/playlists/${encodeURIComponent(id)}/tracks`)).map(trackOf).filter(Boolean); }
 }
 
+// Spotify search (1.88.1, venue music): real tracks for a query, a few pages from a random start so each search
+// brings fresh results. Pages of 10 (the most a development app may ask for at once since 2026).
+export async function searchTracks(store, q, pages = 3) {
+    const start = Math.floor(Math.random() * 4) * 10, out = [];
+    for (let i = 0; i < pages; i++) {
+        const page = await call(store, 'GET', '/search', { query: { q, type: 'track', limit: 10, offset: start + i * 10 } }).catch(err => { if (err.code === 'slow') throw err; return null; });
+        const items = page?.tracks?.items ?? []; out.push(...items); if (items.length < 10) break;
+    }
+    return out.filter(t => t?.uri?.startsWith('spotify:track:') && !t.is_local).map(t => ({ uri: t.uri, n: t.name ?? '', a: (t.artists ?? []).map(a => a.name).join(', '), ms: t.duration_ms ?? 0, yr: Number(String(t.album?.release_date ?? '').slice(0, 4)) || 0 }));
+}
+
 // ---- Playback ----
 export const player = store => call(store, 'GET', '/me/player', { query: { additional_types: 'track' } });
 export const devices = async store => (await call(store, 'GET', '/me/player/devices'))?.devices ?? [];

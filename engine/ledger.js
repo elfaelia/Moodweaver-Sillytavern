@@ -38,7 +38,7 @@ export function settle(records, isLive, undo) {
 }
 
 // Applies { id, delta } changes to target and records [before, after] for each id it moved.
-// target: { get(id), set(id, value), pinned(id) }. resolve(name, delta) → id or null.
+// target: { get(id), set(id, value), pinned(id) }. resolve(name, delta) \u2192 id or null.
 export function track(target, list, resolve, clamp = (v) => Math.max(0, Math.min(100, v))) {
     const moved = {};
     for (const { name, delta } of list ?? []) {

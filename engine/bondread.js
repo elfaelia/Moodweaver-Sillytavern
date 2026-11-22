@@ -21,7 +21,7 @@ export function bondReadMessages({ n, u, notes = '', scene = [], current = {}, m
 export function parseBondRead(text, meters = []) {
     const clean = String(text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     let data;
-    try { data = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn’t send back a reading it could use. Nothing changed.'); }
+    try { data = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn\u2019t send back a reading it could use. Nothing changed.'); }
     if (!data || typeof data !== 'object') throw new Error('The reader sent back an empty reading. Nothing changed.');
     const out = { f: num(data.friendship, -100, 100), r: num(data.romance, -100, 100), t: num(data.trust, -100, 100), p: num(data.control, -100, 100), l: num(data.pull, -100, 100), m: {},
         dynamic: String(data.dynamic ?? '').replace(/\s+/g, ' ').trim().slice(0, 40), why: String(data.reason ?? '').replace(/\s+/g, ' ').trim().slice(0, 160) };
@@ -29,6 +29,6 @@ export function parseBondRead(text, meters = []) {
         const v = num(data.meters?.[word], two ? -100 : 0, 100);
         if (v !== null) out.m[key] = v;
     }
-    if (['f', 'r', 't', 'p', 'l'].every(k => out[k] === null) && !Object.keys(out.m).length && !out.dynamic) throw new Error('The reader’s answer had nothing to set. Nothing changed.');
+    if (['f', 'r', 't', 'p', 'l'].every(k => out[k] === null) && !Object.keys(out.m).length && !out.dynamic) throw new Error('The reader\u2019s answer had nothing to set. Nothing changed.');
     return out;
 }

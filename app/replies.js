@@ -67,7 +67,7 @@ function needTimeline(ch, chat = liveChat()) {
         if (!mine(m) || m.is_system) return;
         const board = hasBoard(m.mes) ? parseBoard(m.mes) : null, w = feed ? weaveOf(m) : null;
         // Enjoying themselves fills Fun even when the line didn't score it: a reply that raised a happy or desire
-        // feeling (playful, amused, heated, horny…) tops it up a little, so foreplay or a good time isn't "bored" (1.78).
+        // feeling (playful, amused, heated, horny\u2026) tops it up a little, so foreplay or a good time isn't "bored" (1.78).
         const deltas = { ...(w?.needDeltas ?? {}) };
         if (w && w.needs?.fun === undefined && deltas.fun === undefined) { const cats = w.moods.filter(x => x.delta > 0).map(x => BY_ID[feelingId(x.name)]?.category);
             if (cats.includes('desire')) deltas.fun = 8; else if (cats.includes('happy')) deltas.fun = 5; }
@@ -275,8 +275,8 @@ function moveRoles(ch, names) {
     const st = getState(ch), out = [];
     if (!st) return out;
     for (const name of names) {
-        const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} → ${label}`); };
-        if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}’s side)`); }
+        const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} \u2192 ${label}`); };
+        if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}\u2019s side)`); }
         else if (kind === 'shared') { const pair = getPair(`char:${ch.avatar}`, 'user', true); if (pair) { pair.moods ??= {}; raise(pair.moods, `${SHARED_BY_ID[id].label} (both ways)`); } }
         else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
     }
@@ -297,7 +297,7 @@ function migrateBond(bond, ch) {
 }
 // One step per reply of this character's that has a weave line, oldest first, from the chat itself.
 // Hidden messages still count: hiding a reply isn't taking it back.
-// Romance points from what a reply lit: +1 per turn-on (+2 when it's strong), −1 per turn-off (−2 when strong),
+// Romance points from what a reply lit: +1 per turn-on (+2 when it's strong), \u22121 per turn-off (\u22122 when strong),
 // at most 3 either way. Each phrase is matched once per chat read.
 function sparkRomance(prefs) {
     const seen = new Map();
@@ -355,7 +355,7 @@ export function bondList(ch, chat = liveChat()) {
     if (out.length) { const traits = bedroomTraits(getState(ch)); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
 }
-// Your persona's own side toward this character (Has them on a string, Captor of…), or {}.
+// Your persona's own side toward this character (Has them on a string, Captor of\u2026), or {}.
 function yourSide(ch) {
     const name = String(ch?.name ?? '').toLowerCase();
     const mine = (getUserState()?.relationships ?? []).find(r => r.target === '{{char}}' || resolveRelationName(r.target).toLowerCase() === name);
@@ -412,7 +412,7 @@ export function bondAxes(ch, bond = null) {
 }
 // Why each mood or fact is where it is, from the replies still in the chat: raised by the story, brought by a
 // fact, wearing off, fading. who: 'char' or 'user' (yours only change when a fact runs its course). Anything you
-// changed by hand since gets no note. For the faint "why" lines in the panel (Settings › Show why).
+// changed by hand since gets no note. For the faint "why" lines in the panel (Settings \u203a Show why).
 export function whyMap(ch, who = 'char') {
     const list = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch?.avatar}`] ?? [], st = who === 'user' ? getUserState() : getState(ch), out = new Map(), seen = new Set();
     for (let i = list.length - 1; i >= 0; i--) {
@@ -462,12 +462,12 @@ export function bondOverlaps(ch, history, bond = bondData(ch), list = null, bd =
 // Names for the Bonds tab's "Doubled up" list.
 export function overlapNames(list, n, u) {
     const name = x => x.kind === 'meter' ? `${MORE_METERS.find(m => m[0] === x.id)?.[1] ?? x.id} meter` : x.kind === 'base' ? 'Trust meter'
-        : x.kind === 'dynamic' ? `${fillDynamic(x.id, n, u)} (dynamic)` : x.kind === 'rel' ? `${RELATIONSHIP_BY_ID[x.id]?.label ?? x.id} ${u} (${n}’s side)`
+        : x.kind === 'dynamic' ? `${fillDynamic(x.id, n, u)} (dynamic)` : x.kind === 'rel' ? `${RELATIONSHIP_BY_ID[x.id]?.label ?? x.id} ${u} (${n}\u2019s side)`
         : x.kind === 'shared' ? `${SHARED_BY_ID[x.id]?.label ?? x.id} (both ways)` : `${BY_ID[x.id]?.label ?? x.id} (${x.kind === 'story' ? 'story' : 'moodlet'})`;
     return list.map(o => ({ key: o.key, label: o.label, keep: name(o.keep), both: o.both.map(name), drop: o.drop.filter(x => !feedsMeters(x)).map(name),
         held: o.drop.filter(feedsMeters).map(name), also: o.also.map(name) }));
 }
-// Sliders and both-ways tags that also move the meters (trusts, obsessed, captor of…). The note can skip them,
+// Sliders and both-ways tags that also move the meters (trusts, obsessed, captor of\u2026). The note can skip them,
 // but Tidy leaves them on: turning them off would shift the meters and maybe the dynamic.
 export const feedsMeters = x => x.kind === 'rel' ? Object.values(sliderAxes({ [x.id]: 100 })).some(Boolean) : x.kind === 'shared' ? Object.values(sliderAxes({}, { [x.id]: 100 })).some(Boolean) : false;
 // A new bond has no pronoun choices yet, so it's seeded with the guessed ones.
@@ -496,7 +496,7 @@ export const untouchedMemory = m => m?.boardText && m.text === m.boardText && m.
 function remember(writer, key, raw) {
     if (!writer || isNone(raw)) return '';
     const pair = getPair(`char:${writer.avatar}`, 'user', true); if (!pair) return '';
-    const text = String(raw).replace(/^[\[(“"]+|[\])”"]+$/g, '').trim().slice(0, 160);
+    const text = String(raw).replace(/^[\[(\u201c"]+|[\])\u201d"]+$/g, '').trim().slice(0, 160);
     pair.memories ??= [];
     if (!text || pair.memories.some(m => m.text.toLowerCase() === text.toLowerCase())) return '';
     const id = newId();
@@ -610,7 +610,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         // What the board's Physical State and Location name comes on first (the hidden line has had its say by now);
         // ones the story put on and the board has dropped come off, and a place goes when the Location changes.
         const fx = {};
-        // The hidden line's own "facts" list (1.78): what it names comes on, and "… off" takes off one the story put on.
+        // The hidden line's own "facts" list (1.78): what it names comes on, and "\u2026 off" takes off one the story put on.
         const told = (w?.facts ?? []).filter(x => !x.off).flatMap(x => [...factsIn(x.name, hot, true)]), ended = (w?.facts ?? []).filter(x => x.off).flatMap(x => [...factsIn(x.name, hot, true)]);
         for (const id of told) factsNamed.add(id);
         if (st.moodAuto !== false) for (const id of ended) if ((st.moods[id] ?? 0) > 0 && !st.pins?.[id] && (st.fromStory ?? []).includes(id)) { rec.m[id] = [rec.m[id]?.[0] ?? st.moods[id], 0]; st.moods[id] = 0; fx[id] = 'the story took it off'; st.fromStory = st.fromStory.filter(x => x !== id); }
@@ -641,7 +641,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             }
             // A reply that's plainly physical (kissing, mouths on skin) with no desire named still warms them a little.
             if (st.moodAuto !== false && !list.some(x => BY_ID[feelingId(x.name)]?.category === 'desire')) for (const [name, delta] of sceneFeelings(m.mes)) list.push({ name, delta: paceDelta(delta, pace) });
-            // The scene touching what they're into (Facts › Into) puts them a little in their element, never past strong.
+            // The scene touching what they're into (Facts \u203a Into) puts them a little in their element, never past strong.
             if (st.moodAuto !== false && (st.moods.in_their_element ?? 0) < 41 && !list.some(x => feelingId(x.name) === 'in_their_element') && touchesInterest(st, m.mes)) list.push({ name: 'in their element', delta: paceDelta(8, pace) });
             rec.m = track(moodTarget(st), list, (name, delta) => { const id = resolve(name, delta); if (id) named.add(id); return id && hold?.m?.has(id) ? null : id; });
             aimAt(st, list, rec);
@@ -873,7 +873,7 @@ function migrateChat(meta, chat) {
         const pair = getPair(wkey, 'user');
         if (pair?.memories?.length) {
             const said = new Map();
-            const norm = raw => isNone(raw) ? '' : String(raw).replace(/^[\[(“"]+|[\])”"]+$/g, '').trim().slice(0, 160).toLowerCase();
+            const norm = raw => isNone(raw) ? '' : String(raw).replace(/^[\[(\u201c"]+|[\])\u201d"]+$/g, '').trim().slice(0, 160).toLowerCase();
             chat.forEach((m, i) => {
                 if (!mine(m)) return;
                 for (const text of [norm(weaveOf(m)?.remember), norm(parseBoard(m.mes)?.remember)]) if (text) said.set(text, i);

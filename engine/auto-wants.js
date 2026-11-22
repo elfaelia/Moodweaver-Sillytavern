@@ -1,5 +1,5 @@
 // Wants from the meters (1.79): when a Bonds meter runs strong, the character wants something that follows from
-// it (Obsession → to know where you are every hour). Character only, behind Settings (Wants tab › "Wants from
+// it (Obsession \u2192 to know where you are every hour). Character only, behind Settings (Wants tab \u203a "Wants from
 // the meters"), at most two at a time, the strongest meters first. When the hidden line marks one done it goes,
 // and the same meter can't bring it back for REST messages. Nothing is stored: it's read from the meters and the
 // chat each time, so a swipe takes it with it. Data and pure functions.
@@ -18,10 +18,10 @@ export const METER_WANTS = {
     rt: 'to keep their hands off {u}', sw: 'to bring {u} round to their way of seeing it', cm: 'to keep {u} in on it and quiet', uw: 'to be good enough for {u}',
     pa: 'to make {u} give up on them', ex: 'to get one straight answer out of {u}', hi: 'to take {u} back somewhere from when they were young',
     sc: 'to give something up for {u} without {u} knowing', os: 'to get proof {u} feels it too', pt: 'to make the big decisions for {u}',
-    gr: 'to make {u} feel special, and theirs alone', pl: 'to make {u} laugh until {u} can’t stop', pi: 'to see {u} win something big', ts: 'to see if {u} stays when pushed',
+    gr: 'to make {u} feel special, and theirs alone', pl: 'to make {u} laugh until {u} can\u2019t stop', pi: 'to see {u} win something big', ts: 'to see if {u} stays when pushed',
 };
 // values: { r: 72, ob: 80, re: -65, ... } (base and extra meters together). replies: [[pos, weave]] oldest first.
-// manual: the wants already written by hand, so one that's there already isn't doubled. match(text, list) → item.
+// manual: the wants already written by hand, so one that's there already isn't doubled. match(text, list) \u2192 item.
 export function autoWants({ values = {}, u = 'them', replies = [], manual = [], match = () => null, now = 0 }) {
     const fill = t => t.replace(/\{u\}/g, u);
     const cand = Object.entries(values).flatMap(([k, v]) => v >= AT && METER_WANTS[k] ? [{ key: k, v }] : v <= -AT && METER_WANTS[`${k}-`] ? [{ key: `${k}-`, v: -v }] : [])

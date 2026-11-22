@@ -16,9 +16,9 @@ export function guessPronoun(text) {
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Pronouns only where the grammar is certain, and the name otherwise: a repeated name is never wrong, but
 // "taught she its rules" and "what her became" were. A later mention becomes a pronoun in three places:
-//  - possessive: "Lamb's" → "her";
-//  - subject: it opens a clause ("…, Lamb", "because Lamb", "the way Lamb") and a verb follows, or a helper
-//    verb follows wherever it is ("knows Lamb can't" → "knows she can't");
+//  - possessive: "Lamb's" \u2192 "her";
+//  - subject: it opens a clause ("\u2026, Lamb", "because Lamb", "the way Lamb") and a verb follows, or a helper
+//    verb follows wherever it is ("knows Lamb can't" \u2192 "knows she can't");
 //  - object: right after a preposition ("for Lamb"), or right after a verb with no verb following
 //    ("keeps Lamb close", "taught Lamb its rules").
 // Anything else keeps the name. tests/pronouns.mjs renders every templated line through this for he/she/they.
@@ -45,7 +45,7 @@ const ING_NOUN = new Set(['thing', 'nothing', 'something', 'anything', 'everythi
     'ending', 'sibling', 'string', 'spring', 'wing', 'swing', 'during', 'nothing', 'sting', 'offspring', 'calling', 'longing', 'blessing', 'warning', 'understanding', 'upbringing', 'boring', 'loving', 'darling']);
 const WANTS = new Set(['wants', 'needs']);
 const verbLike = w => !!w && !NOT_VERB.has(w) && (HELPER.test(w) || IRREGULAR.test(w) || /^[a-z]{2,}(s|ed)$/.test(w));
-// "they" as a subject needs the verb after it to agree ("Kenny is" → "they are", "Kenny keeps" → "they keep").
+// "they" as a subject needs the verb after it to agree ("Kenny is" \u2192 "they are", "Kenny keeps" \u2192 "they keep").
 const THEY = { s: 'they', o: 'them', p: 'their', r: 'themselves' };
 const THEY_VERB = { is: 'are', "isn't": "aren't", was: 'were', "wasn't": "weren't", has: 'have', "hasn't": "haven't", does: 'do', "doesn't": "don't" };
 const SAME_VERB = /^(can|can't|cannot|will|won't|would|wouldn't|could|couldn't|should|shouldn't|must|might|may|had|hadn't|did|didn't)$/;
@@ -60,7 +60,7 @@ function theyVerb(w) {
 }
 // One pass over both names in order. Different he/she: as above. The same pronoun on both sides, or "they":
 // a repeat only turns into a pronoun when the other name hasn't come up since this name was last said, so
-// "he" or "she" can only mean one person ("Kenny is sure his feelings…"; "Kenny tells Ellie Kenny…" keeps the name).
+// "he" or "she" can only mean one person ("Kenny is sure his feelings\u2026"; "Kenny tells Ellie Kenny\u2026" keeps the name).
 export function pronounize(text, n, u) {
     let out = String(text ?? '');
     const people = [[n, pronounOf(n)], [u, pronounOf(u)]].filter(([name]) => name);
@@ -71,7 +71,7 @@ export function pronounize(text, n, u) {
     const setOf = which => SETS[which] ?? THEY;
     const firstWords = new Set(people.map(([name]) => keyOf(name).split(/\s+/)[0]));
     const names = [...people].sort((x, y) => y[0].length - x[0].length);
-    const re = new RegExp(`(?<![\\w-])(${names.map(([name]) => esc(name)).join('|')})(['’]s)?(?![\\w-])`, 'g');
+    const re = new RegExp(`(?<![\\w-])(${names.map(([name]) => esc(name)).join('|')})(['\u2019]s)?(?![\\w-])`, 'g');
     const seen = new Set();
     let last = null, res = '', from = 0, m;
     while ((m = re.exec(out))) {
@@ -91,13 +91,13 @@ export function pronounize(text, n, u) {
     return res + out.slice(from);
 }
 function pick(hit, poss, before, after, set, they, firstWords) {
-    const words = before.trimEnd().match(/([A-Za-z'’-]+)\s*$/), prev = (words?.[1] ?? '').toLowerCase().replace('’', "'");
+    const words = before.trimEnd().match(/([A-Za-z'\u2019-]+)\s*$/), prev = (words?.[1] ?? '').toLowerCase().replace('\u2019', "'");
     const trimmed = before.trimEnd();
-    const prev2 = (trimmed.slice(0, trimmed.length - (words?.[0]?.length ?? 0)).match(/([A-Za-z'’-]+)\s*$/)?.[1] ?? '').toLowerCase();
-    const nextM = after.match(/^(\s+)([A-Za-z'’-]+)/), next = (nextM?.[2] ?? '').toLowerCase().replace('’', "'");
-    const next2 = (after.slice(nextM?.[0].length ?? 0).match(/^\s+([A-Za-z'’-]+)/)?.[1] ?? '').toLowerCase();
+    const prev2 = (trimmed.slice(0, trimmed.length - (words?.[0]?.length ?? 0)).match(/([A-Za-z'\u2019-]+)\s*$/)?.[1] ?? '').toLowerCase();
+    const nextM = after.match(/^(\s+)([A-Za-z'\u2019-]+)/), next = (nextM?.[2] ?? '').toLowerCase().replace('\u2019', "'");
+    const next2 = (after.slice(nextM?.[0].length ?? 0).match(/^\s+([A-Za-z'\u2019-]+)/)?.[1] ?? '').toLowerCase();
     const cap = w => !trimmed || /[.!?]$/.test(trimmed) ? w[0].toUpperCase() + w.slice(1) : w;
-    // "Lamb's" stays a name when it means "Lamb is/has" ("Lamb's never been…").
+    // "Lamb's" stays a name when it means "Lamb is/has" ("Lamb's never been\u2026").
     // "Lamb's feeling" may be "Lamb is feeling", so a word in -ing keeps the name too.
     if (poss) return /^(not|never|been|got|gone|always|still|just|already|the|a|an)$/.test(next) || (/^[a-z]{3,}ing$/.test(next) && !ING_NOUN.has(next)) ? null : [cap(set.p), 0];
     // "the other Lamb", "the old Lamb": a name used as a noun stays.
@@ -105,8 +105,8 @@ function pick(hit, poss, before, after, set, they, firstWords) {
     // "Easterman and Lamb", "Lamb or nobody": pairs read oddly with a pronoun.
     if (['and', 'or', 'nor'].includes(prev) && !verbLike(next)) return null;
     const pair = next === 'and' || next === 'or';
-    // "Lamb and Easterman" stays; "likes Kenny and acts as if…" can be "likes him and acts…".
-    const opens = !trimmed || /[.:;!?,(—–]$/.test(trimmed);
+    // "Lamb and Easterman" stays; "likes Kenny and acts as if\u2026" can be "likes him and acts\u2026".
+    const opens = !trimmed || /[.:;!?,(\u2014\u2013]$/.test(trimmed);
     if (pair && (firstWords.has(next2) || /^(the|a|an|his|her|their|everyone|anyone|nobody|no)$/.test(next2) || /^[A-Z]/.test(after.slice(nextM[0].length).trim()))) return null;
     // "wants"/"needs" are nouns in NOT_VERB, but straight after "that Kenny" or "Kenny wants" they're verbs.
     const verbNext = !pair && (verbLike(next) || (WANTS.has(next) && (opens || CLAUSE.has(prev))));
@@ -117,7 +117,7 @@ function pick(hit, poss, before, after, set, they, firstWords) {
         const v = theyVerb(next); if (!v) return null;
         // "they complain and does it anyway" would need a second verb changed too, so a clause with a
         // later "and/or/but <verb>s" keeps the name, and so does "nobody, Lamb included,".
-        const rest = after.slice(nextM[0].length), clause = rest.split(/[.;:!?—–]/)[0];
+        const rest = after.slice(nextM[0].length), clause = rest.split(/[.;:!?\u2014\u2013]/)[0];
         if (/^\s*,/.test(rest) || [...clause.matchAll(/\b(?:and|or|but|nor)\s+(?:\w+ly\s+|never\s+|still\s+|always\s+)?([a-z']+)/g)].some(x => x[1] !== v && theyVerb(x[1]) && theyVerb(x[1]) !== x[1])) return null;
         return [`${cap('they')}${nextM[1]}${v}`, nextM[0].length];
     }

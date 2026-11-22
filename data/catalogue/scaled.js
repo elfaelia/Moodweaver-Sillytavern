@@ -416,13 +416,13 @@ export const SCALED_MOOD_CUES = {
         ],
         [
             1,
-            "dead dove: dark content isn’t softened"
+            "dead dove: dark content isn\u2019t softened"
         ]
     ],
     "misogynist": [
         [
             81,
-            "openly and behaviourally misogynistic: devalues women’s autonomy, polices them by sexist double standards and makes choices from that contempt"
+            "openly and behaviourally misogynistic: devalues women\u2019s autonomy, polices them by sexist double standards and makes choices from that contempt"
         ],
         [
             41,
@@ -485,7 +485,7 @@ export const MERGED_PROMPT_CUES = {
     "calm": "calm and relaxed",
     "content": "content and satisfied",
     "curious": "curious, drawn to finding out more",
-    "oblivious": "oblivious to what’s happening",
+    "oblivious": "oblivious to what\u2019s happening",
     "expressive": "feelings show in their face, voice and body",
     "opening_up": "letting someone in and sharing how they feel"
 };

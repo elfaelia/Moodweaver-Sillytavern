@@ -44,19 +44,19 @@ export const cleanHeight = v => String(v ?? '').replace(/[<>]/g, '').trim().slic
 // Pet names (what this person calls the other) and sayings (phrases they really use): one per line, or pet names
 // separated by commas. Kept as typed; split only when sent.
 export const cleanWords = (v, max = 400) => String(v ?? '').replace(/[<>]/g, '').replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, max);
-const wordList = (v, commas) => cleanWords(v).split(commas ? /[\n,;]+/ : /\n+/).map(x => x.trim().replace(/^["“'‘]+|["”'’]+$/g, '')).filter(Boolean).slice(0, 12);
+const wordList = (v, commas) => cleanWords(v).split(commas ? /[\n,;]+/ : /\n+/).map(x => x.trim().replace(/^["\u201c'\u2018]+|["\u201d'\u2019]+$/g, '')).filter(Boolean).slice(0, 12);
 export const petNames = st => wordList(st?.petNames, true);
 export const sayings = st => wordList(st?.sayings, false);
 export const cleanInterests = v => String(v ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
-// Height as written ("6'1", "5 ft 10", "185 cm", "1.85 m", "185") → centimetres, or 0.
+// Height as written ("6'1", "5 ft 10", "185 cm", "1.85 m", "185") \u2192 centimetres, or 0.
 export function heightCm(text) {
-    const t = String(text ?? '').toLowerCase().replace(/[’′]/g, "'").replace(/[”″]/g, '"');
+    const t = String(text ?? '').toLowerCase().replace(/[\u2019\u2032]/g, "'").replace(/[\u201d\u2033]/g, '"');
     const ft = t.match(/(\d)\s*(?:'|ft|foot|feet)\s*(\d{1,2})?/); if (ft) return Math.round(Number(ft[1]) * 30.48 + Number(ft[2] ?? 0) * 2.54);
     const m = t.match(/\b([12])[.,](\d{1,2})\s*m\b/); if (m) return Math.round(Number(`${m[1]}.${m[2]}`) * 100);
     const cm = t.match(/\b(\d{2,3})\s*(?:cm)?\b/); const n = cm ? Number(cm[1]) : 0;
     return n >= 50 && n <= 260 ? n : 0;
 }
-// "38", "6'1" and "guitar, chess" → "38, 6'1, into guitar, chess". Empty when nothing's filled in.
+// "38", "6'1" and "guitar, chess" \u2192 "38, 6'1, into guitar, chess". Empty when nothing's filled in.
 // Favourites: food, drink, colour and style. Sent only when the scene comes near them (a meal, a bar, a gift,
 // getting dressed) or every few replies, so they colour choices without being repeated each time.
 export const FAVS = [
@@ -74,7 +74,7 @@ export const favText = (st, scene = '', all = false) => FAVS.filter(([k, , , top
 export const KIN = [['mother', 'mom', 'mum', 'mama', 'mommy', 'mummy', 'ma'], ['father', 'dad', 'daddy', 'papa', 'pa', 'pop', 'pops'], ['sister', 'sis'], ['brother', 'bro'],
     ['son'], ['daughter'], ['wife'], ['husband'], ['grandmother', 'grandma', 'granny', 'nan', 'nana', 'gran'], ['grandfather', 'grandpa', 'granddad', 'grandad', 'gramps'],
     ['aunt', 'auntie', 'aunty'], ['uncle'], ['cousin'], ['niece'], ['nephew'], ['stepmother', 'stepmom', 'stepmum'], ['stepfather', 'stepdad'], ['twin'],
-    ['fiancé', 'fiancée', 'fiance', 'fiancee'], ['in-laws', 'mother-in-law', 'father-in-law'], ['kids', 'children', 'baby', 'child']];
+    ['fianc\u00e9', 'fianc\u00e9e', 'fiance', 'fiancee'], ['in-laws', 'mother-in-law', 'father-in-law'], ['kids', 'children', 'baby', 'child']];
 const ANY_KIN = /\b(family|families|parents?|relatives?|siblings?|folks|in-laws|household|family name|bloodline|inheritance)\b/i;
 export const familyLines = st => cleanWords(st?.family, 400).split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 10);
 export function familyText(st, scene = '', all = false) {
@@ -84,7 +84,7 @@ export function familyText(st, scene = '', all = false) {
     return lines.filter(line => {
         const [rel, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
         const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(rel || line))).flat();
-        const names = ((rest || line).match(/\b[A-Z][a-z’']{2,}\b/) ?? []).slice(0, 1); // the first capitalised word: their name
+        const names = ((rest || line).match(/\b[A-Z][a-z\u2019']{2,}\b/) ?? []).slice(0, 1); // the first capitalised word: their name
         return [...kin, ...names.map(x => x.toLowerCase())].some(w => t.includes(` ${w} `) || t.includes(` ${w}'s `) || t.includes(` ${w}s `));
     }).join('; ');
 }
@@ -101,7 +101,7 @@ export function compareProfiles(a, b) {
 const AGE_GAP = 2, HEIGHT_GAP = 5;
 // self: { state }. other: { state, he: 'he' | 'she' | 'they' (their pronoun), ties: their ties toward self }.
 // Ages, heights and interests come from each state's profile.
-// Returns Map(turn id → { v, is: [labels], not: [labels] }) for the person's turn-ons and turn-offs that
+// Returns Map(turn id \u2192 { v, is: [labels], not: [labels] }) for the person's turn-ons and turn-offs that
 // the other person shows. For turn-offs, `not` is the opposite showing instead, which counts in their favour.
 const NO_SIGNS = { is: [], not: [] }, STOP = new Set(['with', 'about', 'other', 'people', 'things', 'their', 'being', 'someone', 'the', 'and', 'her', 'his', 'for', 'old', 'new', 'small', 'little']);
 export function turnSigns(self, other) {

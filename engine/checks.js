@@ -1,5 +1,5 @@
 // Dice checks, a little like D&D: before each reply Moodweaver rolls a d20 for the skills the scene is calling
-// on and adds the skill's level (−10 to +10) as the modifier. Claude is told the outcome in advance ("if she lies
+// on and adds the skill's level (\u221210 to +10) as the modifier. Claude is told the outcome in advance ("if she lies
 // this reply, it fails: he sees through it"), so success and failure come from the dice and the levels, not
 // from what the story would like. Contests pit one person's skill against the other's (a lie against reading
 // people, sneaking against watching, a hold against slipping free); everything else is a plain check against 12.
@@ -12,19 +12,19 @@ const d20 = (seed, key) => {
     h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
     return (Math.abs(h) % 20) + 1;
 };
-// attacker skills → the skills that resist them, and how each outcome reads. {a} attacker, {d} defender.
+// attacker skills \u2192 the skills that resist them, and how each outcome reads. {a} attacker, {d} defender.
 const CONTESTS = [
     { att: ['lying', 'con_artistry', 'masking_emotions', 'manipulation', 'gaslighting', 'disguise', 'forgery', 'faking_it', 'playing_victim', 'love_bombing', 'appearances'], def: ['reading_people', 'psychology', 'psychiatry', 'intuition', 'interrogation'],
         moods: ['lying', 'compulsive_liar', 'two_faced', 'manipulative', 'manipulator', 'secretive', 'scheming', 'gaslighting', 'masking'],
         verb: 'deceives', win: '{d} believes it', lose: '{d} sees through it, or senses something is off', what: 'deceiving' },
     { att: ['stealth', 'hiding', 'stalking', 'pickpocketing', 'sleight_of_hand', 'drugging'], def: ['surveillance', 'intuition', 'reading_people'],
-        verb: 'sneaks or palms something', win: '{d} doesn’t notice', lose: '{d} notices', what: 'sneaking past' },
+        verb: 'sneaks or palms something', win: '{d} doesn\u2019t notice', lose: '{d} notices', what: 'sneaking past' },
     { att: ['seduction', 'charm', 'charisma', 'negotiation', 'salesmanship', 'begging', 'courtship', 'guilt_tripping', 'jealousy_games', 'debate'], def: ['reading_people', 'psychology', 'intuition'],
-        verb: 'tries to win over or persuade', win: 'it works on {d}', lose: '{d} isn’t moved, and may see the effort', what: 'persuading' },
+        verb: 'tries to win over or persuade', win: 'it works on {d}', lose: '{d} isn\u2019t moved, and may see the effort', what: 'persuading' },
     { att: ['intimidation', 'interrogation', 'mental_torture', 'terrorising', 'disciplining'], def: ['masking_emotions', 'lying', 'emotional_maturity'],
         verb: 'tries to break or frighten', win: '{d} cracks or gives something away', lose: '{d} holds firm', what: 'pressuring' },
     { att: ['restraining', 'rope_work', 'captivity'], def: ['escape_artistry', 'strength', 'self_defence'],
-        verb: 'tries to hold or tie', win: '{d} can’t get free', lose: '{d} slips loose', what: 'holding' },
+        verb: 'tries to hold or tie', win: '{d} can\u2019t get free', lose: '{d} slips loose', what: 'holding' },
     { att: ['violence', 'knife_fighting', 'swordsmanship', 'ambush', 'strangling', 'blunt_weapons', 'boxing', 'martial_arts'], def: ['self_defence', 'violence', 'fitness', 'boxing', 'martial_arts'],
         verb: 'attacks', win: 'it lands on {d}', lose: '{d} gets clear or turns it', what: 'attacking' },
     { att: ['bratting'], def: ['brat_taming', 'domination', 'emotional_maturity'],

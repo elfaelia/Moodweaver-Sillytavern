@@ -189,3 +189,6 @@ console.log(MORE_METERS.map(([k]) => `${k} ${fed[k] ?? 0}/${(src.match(new RegEx
 - **Not resending everything.** Find ways for automatic moods and dynamics to steer replies without the whole active list being reprinted in every note.
 - **Your own options, done properly.** 1.50 removed them because they didn't behave like the built-in ones: they had no meter tests, no scaled wording, no "how it shows", and the scene reader couldn't weigh them the same way. A future version could bring them back only if a custom option gets the same machinery: a dynamic you write with a meter test, a mood with its own on-the-page wording, and so on.
 - **Faster drawing of big lists.** Since 1.51, browsing everything leaves folded groups empty until they're opened (`fillLazy` in `panel/render.js`); since 1.52 the Bonds tab's list of dynamics does the same. A person's own list still draws every row up front.
+
+## Plain ASCII code files
+Every .js file must be plain ASCII: write characters like ’ “ ✦ as \u escapes. In 1.90 iPhone Safari misread a curly quote in `data/catalogue/story.js` ("Invalid character '\ufffd'"), Moodweaver's files failed to load, and SillyTavern hung on "Initializing…". `node tests/ascii.mjs` checks; `node tests/ascii.mjs --fix` rewrites them. Run it before every release (song-tags.js included).

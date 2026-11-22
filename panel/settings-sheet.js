@@ -14,8 +14,8 @@ import { changeState, render } from './render.js';
 export function settingsView(state) {
     const whose = ui.who === 'user' ? playerName() : ui.who === 'story' ? 'the story' : subjectName();
     return `<section class="mw-settings">
-        <div class="mw-settings-head"><button type="button" class="mw-back" data-action="settings-close">‹ Back</button><b>Settings</b><small>${esc(whose)}</small></div>
-        <details class="mw-advanced" data-settings="launcher"><summary>◆ Moods button <small>this device</small></summary>${launchSettings()}</details>
+        <div class="mw-settings-head"><button type="button" class="mw-back" data-action="settings-close">\u2039 Back</button><b>Settings</b><small>${esc(whose)}</small></div>
+        <details class="mw-advanced" data-settings="launcher"><summary>\u25c6 Moods button <small>this device</small></summary>${launchSettings()}</details>
         <details class="mw-advanced" data-settings="panel"><summary>Panel</summary>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="whyOn" ${settings().whyOn !== false ? 'checked' : ''}> Show why: a faint line under moods and facts the story moved (raised by the story, from drunk, wearing off)</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
@@ -23,7 +23,7 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="dockClose" ${settings().dockClose !== false ? 'checked' : ''}> Close button on the dock</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="swipeTabs" ${settings().swipeTabs !== false ? 'checked' : ''}> Swipe sideways to change tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceShow" ${settings().diceShow === true ? 'checked' : ''}> Show the dice rolls on the Skills tab (spoils some surprises)</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> ✕ on the chips at the top, to take a mood or trait off</label>
+            <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> \u2715 on the chips at the top, to take a mood or trait off</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendsOn" ${settings().blendsOn !== false ? 'checked' : ''}> Author blends on the Story tab</label>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="authorStyle" ${settings().authorStyle !== false ? 'checked' : ''}> Show how each author writes</label>
             <p class="mw-fine">Wants you already set still reach the story.</p></details>
@@ -33,7 +33,7 @@ export function settingsView(state) {
             <label class="mw-field mw-shows-mode">How feelings show<select data-setting-choice="showsMode" aria-label="How feelings show">${[['all', 'Default wording + yours'], ['mine', 'Only what you wrote'], ['off', 'Off: names only']].map(([v, l]) => `<option value="${v}" ${settings().showsMode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
             
             <label class="mw-field">When their moods clash<select data-setting-choice="moodClash" aria-label="When their moods clash">${[['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']].map(([v, l]) => `<option value="${v}" ${settings().moodClash === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <p class="mw-fine">When your moods and theirs don’t match, the story may let it rub. Traits never clash.</p>
+            <p class="mw-fine">When your moods and theirs don\u2019t match, the story may let it rub. Traits never clash.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="splitNote" ${settings().splitNote !== false ? 'checked' : ''}> Split the note so the unchanging part can be cached</label>
             <p class="mw-fine">The explanations, the info board's layout, the hidden line's format and the author notes go once near the top of the prompt, where caching can reuse them every reply for much less. What's true right now (moods, facts, needs, the last board) and anything meant to change the scene still goes last, right before the reply, where it lands hardest. The top part only changes when you change settings, so it stays cached. Turn this off to send everything last in one block, as before.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="factOpposites" ${settings().factOpposites !== false ? 'checked' : ''}> Opposite facts switch each other off</label>
@@ -43,20 +43,20 @@ export function settingsView(state) {
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="turnsWhenRelevant" ${settings().turnsWhenRelevant !== false ? 'checked' : ''}> Send your turn-ons only when they fit the moment</label>
             <p class="mw-fine">What the character knows about you stays known. Each turn-on goes in an intimate scene, when the story touches it, when the other person shows it, and your two strongest one reply in six. Off sends them all every reply.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="traitFocus" ${settings().traitFocus !== false ? 'checked' : ''}> Traits in focus: three in full each reply (the ones the scene touches first, the rest taking turns), the others as names in the background</label>
-            <p class="mw-fine">Looks, style, voice, job and past go when the scene brings them up, when they’re set to overwhelming or maximum, and every few replies as a reminder. Age, height and what’s happening right now always go. Saves tokens when your card already says the same.</p>
+            <p class="mw-fine">Looks, style, voice, job and past go when the scene brings them up, when they\u2019re set to overwhelming or maximum, and every few replies as a reminder. Age, height and what\u2019s happening right now always go. Saves tokens when your card already says the same.</p>
             <label class="mw-field">Your feelings rubbing off<select data-setting-choice="contagion" aria-label="Your feelings rubbing off">${[['scene', 'When it fits who they are'], ['off', 'Off']].map(([v, l]) => `<option value="${v}" ${settings().contagion === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
             <p class="mw-fine">When the story reads a feeling in you (scared, sad, happy, wanting), a character with the empathy for it now and then feels a faint echo of it. Warm traits and caring moods make it likelier; cold-blooded, psychopathic, narcissistic or cruel ones stop it. Selective empathy only works if they're close to you.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="aftermath" ${settings().aftermath !== false ? 'checked' : ''}> Strong feelings leave an aftermath</label>
             <p class="mw-fine">When fear, rage, grief, desire or cruelty at strong or above has just ended, it leaves a wake for a reply or two: shaking hands after terror, a short fuse after rage. Light feelings like amusement or boredom just stop.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="stress" ${settings().stress !== false ? 'checked' : ''}> Stress and breaking points</label>
-            <p class="mw-fine">Stress builds when the character acts against their starred beliefs or nature, or strain piles up (fear, guilt, empty needs), and eases with rest and comfort. Strained, they cope in character (drink, work, control, prayer…); past what they can hold, they break once and come down from it. Shown on Info › Needs. Adds one short line while strained and one field to the hidden line.</p>
+            <p class="mw-fine">Stress builds when the character acts against their starred beliefs or nature, or strain piles up (fear, guilt, empty needs), and eases with rest and comfort. Strained, they cope in character (drink, work, control, prayer\u2026); past what they can hold, they break once and come down from it. Shown on Info \u203a Needs. Adds one short line while strained and one field to the hidden line.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="opinions" ${settings().opinions !== false ? 'checked' : ''}> Feelings about other people build up</label>
             <p class="mw-fine">Feelings the story aims at someone else ("angry at his wife") add up into how the character feels about them, matched to the Family box. Sent only when the scene names that person. Shown on the profile card.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="secrets" ${settings().secrets !== false ? 'checked' : ''}> Secrets and leverage</label>
             <p class="mw-fine">Secrets written on a profile card move from hidden to suspected, known (a hook the other one holds) and out, by the story or by your tap. A hidden one is sent only when the scene comes close to it; suspected and known go every reply. Adds one field to the hidden line while any secret exists.</p>
             <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendPlan" ${settings().blendPlan ? 'checked' : ''}> Ask it to plan the blend while thinking</label>
             <p class="mw-fine">Usually best off: Opus 5.5 plans on its own.</p>
-            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><details class="mw-sent-full"><summary>What’s sent, in full</summary><pre data-audit></pre>
+            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre>
             <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
             <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details></details>
         <details class="mw-advanced" data-settings="board"><summary>Info board</summary>
@@ -78,9 +78,9 @@ export function settingsView(state) {
         <details class="mw-advanced" data-settings="fresh"><summary>Clear everything <small>${esc(whose)}</small></summary>
             <p class="mw-fine">Turns off every moodlet, trait, turn-on, fact, want, item and skill for ${esc(whose)} in this chat, and their relationships (their side, both-ways and memories). Pins come off. Bonds meters, the board and saved defaults stay.</p>
             <label class="mw-toggle"><input type="checkbox" data-keep-types checked> Keep personality types</label>
-            <div class="mw-actions"><button type="button" class="mw-danger" data-action="clear-everything">Clear everything</button>${state.lastCleared ? '<button type="button" data-action="clear-undo">↺ Bring it back</button>' : ''}</div></details>
+            <div class="mw-actions"><button type="button" class="mw-danger" data-action="clear-everything">Clear everything</button>${state.lastCleared ? '<button type="button" data-action="clear-undo">\u21ba Bring it back</button>' : ''}</div></details>
         <details class="mw-advanced" data-settings="defaults"><summary>Defaults for new chats</summary>
-            <p class="mw-fine">A default is used for ${esc(whose)}’s new chats.</p>
+            <p class="mw-fine">A default is used for ${esc(whose)}\u2019s new chats.</p>
             <div class="mw-actions"><button data-action="baseline">${ui.who === 'cast' ? 'Save the whole cast' : ui.who === 'user' ? 'Save persona default' : ui.who === 'story' ? 'Save story default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moodlets</button></div></details>
         <details class="mw-advanced" data-settings="limits"><summary>Prompt & reader limits</summary>
             <label>Token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"></label>

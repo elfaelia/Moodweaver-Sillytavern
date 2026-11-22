@@ -1,4 +1,4 @@
-// Period lines for 1950s–60s America: picks which lines from data/catalogue/period.js go with this reply. A line
+// Period lines for 1950s\u201360s America: picks which lines from data/catalogue/period.js go with this reply. A line
 // is about one person and only goes when something on the cards wakes it, the person's Period tab allows it, and
 // it is written for their gender (he, she, or any). Opus 5.5 gets them as short plain sentences under one heading
 // that says they are the world around the two of them, not who they are. Pure functions; app/note.js works out

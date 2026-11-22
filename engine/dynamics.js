@@ -2,7 +2,7 @@
 export { DYNAMIC_GROUPS, ROLE_HOMES } from '../data/catalogue/dynamics.js';
 
 export const fill = (text, n, u) => String(text).replaceAll('{n}', n).replaceAll('{u}', u).replaceAll('{{char}}', n).replaceAll('{{user}}', u);
-const norm = s => String(s ?? '').toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const norm = s => String(s ?? '').toLowerCase().replace(/[\u2019']/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 const STOP = new Set(['and', 'the', 'of', 'to', 'on', 'for', 'a', 'an', 'with', 'their', 'them', 'they', 'is', 'in', 'it']);
 // The story's own words for the dynamic, matched to a name: the exact name first, then the best overlap
 // with names and matching words. rows: [name, test, cue, group, keys]. Returns the row or null.

@@ -5,7 +5,7 @@
 //   id      never change it: saved tags use it
 //   label   the name in the sheet and the panel
 //   moods   mood ids: the moment is on when someone in the scene feels one at 41 or more
-//   places  setting fact ids (Facts › Place & time): on when one of them is on
+//   places  setting fact ids (Facts \u203a Place & time): on when one of them is on
 //   dyn     dynamic group ids: on when the main or second dynamic is in one of them
 //   test    (optional) a further check on the scene snapshot (see engine/music.js)
 // The order here is the order in the sheet's dropdown and on the panel's chips.
@@ -89,7 +89,7 @@ export const HEARD_IN = [
     { id: 'gig', label: 'Gig / punk show' }, { id: 'club', label: 'Club / rave' }, { id: 'party', label: 'House party' }, { id: 'cocktail', label: 'Bar' },
     { id: 'jazz', label: 'Jazz club' }, { id: 'dance', label: 'Dance / ballroom' }, { id: 'car', label: 'Car stereo' }, { id: 'radio', label: 'Radio / record player' },
 ];
-// What the story's own words can switch on (engine/scene-words.js): word list → Moment.
+// What the story's own words can switch on (engine/scene-words.js): word list \u2192 Moment.
 export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving', sweet: 'sweet_moment', confess: 'love_confession', flirt: 'flirting',
     slowdance: 'slow_dance', chase: 'chase', fight: 'fight', heist: 'heist', betrayal: 'betrayal', row: 'confrontation', deal: 'deal', standoff: 'standoff', hustle: 'hustle',
     stoned: 'stoned', rolling: 'rolling', tripping: 'tripping', wired: 'wired', nodding: 'nodding', drunk: 'drunk', comedown: 'comedown' };
@@ -144,12 +144,12 @@ export const COMBOS = [
     { id: 'tender_menace', label: 'Tender menace', a: ['f:closeness', 'Weaponised kindness', 'Smiling threat', 'False mercy'], b: ['f:cruel'] },
     { id: 'calm_cruelty', label: 'Calm before the cut', a: ['f:calm', 'Eerily calm', 'Predatory patience', 'Businesslike'], b: ['f:cruel'] },
     { id: 'sweet_sinister', label: 'Sweet and sinister', a: ['f:happy'], b: ['f:cruel', 'f:scared', 'Hostage calm', 'Trapped'] },
-    { id: 'wanting_wrong', label: 'Wanting what’s wrong', a: ['f:desire'], b: ['Guilty lust', 'Forbidden want', 'Conflicted attraction', 'Ashamed', 'Guilty / regretful', 'Scared of being found out', 'Guilt-sick'] },
+    { id: 'wanting_wrong', label: 'Wanting what\u2019s wrong', a: ['f:desire'], b: ['Guilty lust', 'Forbidden want', 'Conflicted attraction', 'Ashamed', 'Guilty / regretful', 'Scared of being found out', 'Guilt-sick'] },
     { id: 'surrender', label: 'Fear and surrender', a: ['f:scared'], b: ['f:desire', 'Longing to submit', 'Wants to be taken'] },
     { id: 'hate_want', label: 'Hate and want', a: ['f:desire'], b: ['f:angry', 'Icy contempt', 'Hateful'] },
     { id: 'hollow_want', label: 'Wanting while numb', a: ['f:desire'], b: ['Numbed out', 'Dissociating', 'Empty', 'Dead-eyed', 'Hollowed out', 'Detached'] },
     { id: 'rage_in_love', label: 'Rage inside love', a: ['f:angry'], b: ['f:closeness', 'f:attachment'] },
-    { id: 'possessive_tender', label: 'Tender and possessive', a: ['f:closeness'], b: ['Possessive', 'Staking a claim', 'Possessive lust', 'Territorial', 'Controlling', 'Won’t let go', 'Holding on too tight'] },
+    { id: 'possessive_tender', label: 'Tender and possessive', a: ['f:closeness'], b: ['Possessive', 'Staking a claim', 'Possessive lust', 'Territorial', 'Controlling', 'Won\u2019t let go', 'Holding on too tight'] },
     { id: 'longing_gone', label: 'Longing for someone gone', a: ['Missing them', 'Yearning', 'Loyal to a ghost', 'Waiting on them', 'Heartsick'], b: ['Grieving', 'Numb grief', 'Old grief', 'Forsaken', 'Left behind', 'Mourning what they had'] },
     { id: 'sorry_loved_badly', label: 'Sorry I loved you badly', a: ['Guilt-sick', 'Contrite', 'Wishing they could undo it', 'Never said it', 'Guilty / regretful'], b: ['f:closeness', 'f:attachment'] },
     { id: 'saving_from_self', label: 'Saving them from me', a: ['Protective', 'Caretaking', 'Protective rage', 'Holding it together for them'], b: ['Ashamed', 'Worthless', 'Guilt-sick', 'Afraid of being a burden', 'Self-pitying'] },

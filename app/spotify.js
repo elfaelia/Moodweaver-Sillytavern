@@ -64,7 +64,7 @@ const pendingOf = (store, state) => {
     let local = null; try { local = JSON.parse(localStorage.getItem(PENDING) ?? 'null'); } catch { /* none */ }
     return [store.pending, local].find(p => p?.verifier && (!state || p.state === state)) ?? null;
 };
-// The code and state from a pasted address, or from SillyTavern's own return (?source=spotify&query=…).
+// The code and state from a pasted address, or from SillyTavern's own return (?source=spotify&query=\u2026).
 export function codeFrom(text) {
     const s = String(text ?? '').trim(); if (!s) return null;
     let url; try { url = new URL(s.includes('://') ? s : `http://x/?${s.replace(/^.*\?/, '')}`); } catch { return null; }

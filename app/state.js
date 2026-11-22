@@ -39,12 +39,12 @@ export const run = {
 };
 export const KEY = 'moodweaver';
 export const PROMPT_KEY = 'moodweaver-state';
-// The guide half of a split note (Settings › What is sent): sent in the prompt, above the chat, where it can be cached.
+// The guide half of a split note (Settings \u203a What is sent): sent in the prompt, above the chat, where it can be cached.
 export const GUIDE_KEY = 'moodweaver-guide';
 // Takes both halves of the note out, for a paused panel, a quiet generation or an error.
 export const clearNotes = c => { c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); c.setExtensionPrompt(GUIDE_KEY, '', 0, 0, false, 0); };
 export const ctx = () => SillyTavern.getContext();
-export const VERSION = '1.90.3';
+export const VERSION = '1.90.5';
 // Which folder this copy runs from, so a second installed copy can be spotted and named.
 export const SELF = new URL('../index.js', import.meta.url).href;
 export const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };
@@ -58,7 +58,7 @@ export const generationSnapshots = new Map();
 export const newId = () => Math.random().toString(36).slice(2, 10);
 // Live slider readouts: if a redraw has replaced the row, there's simply nothing to update.
 export const put = (scope, selector, text) => { const el = scope?.querySelector(selector); if (el) el.textContent = text; };
-// The ◆ Moods button glows in the leading feeling's tone. Only touches the DOM when the colour changes.
+// The \u25c6 Moods button glows in the leading feeling's tone. Only touches the DOM when the colour changes.
 let launcherTone = '';
 export function tintLauncher(colour) {
     if (!colour || colour === launcherTone) return;

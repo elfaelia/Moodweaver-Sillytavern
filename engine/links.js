@@ -4,7 +4,7 @@ import { MOODS } from '../data/catalogue.js';
 // both halves are on, and they sit under the dynamic in the Bonds lines. Written with names; index.js runs them
 // through the pronoun pass so they read "his" and "her".
 //
-// Role × dynamic: a role sets the frame (doctor, captor, boss), the dynamic says what's happening inside it.
+// Role \u00d7 dynamic: a role sets the frame (doctor, captor, boss), the dynamic says what's happening inside it.
 // [role ids (his side toward you or both ways), dynamic groups or names, text(n, u)]. First match wins.
 const ROLE_LINKS = [
     [['doctor_of', 'patient_of', 'scientist_and_subject'], ['Kept and tended', 'Tending', 'Strict and tender', 'Lab pet', 'Doll and dresser', 'Guardian', 'For your own good', 'Conditioning captor', 'Breaking in', 'captor'],
@@ -39,11 +39,11 @@ export function roleLink(roles = {}, dynamic, n, u) {
     return hit ? hit[2](n, u) : '';
 }
 
-// Mood × dynamic: how the strongest feeling shows inside the current dynamic, so neither one gets dropped.
+// Mood \u00d7 dynamic: how the strongest feeling shows inside the current dynamic, so neither one gets dropped.
 // What the dynamic keeps doing, by group, and how each family of feelings bends it.
 const HOLD = {
-    captor: 'the routines and the locks stay', obsess: 'the fixation stays', power: 'who’s in charge doesn’t change', romance: 'the love underneath holds',
-    heat: 'the pull between them stays', toxic: 'the cycle keeps turning', allies: 'they still have each other’s backs', roles: 'the roles still hold',
+    captor: 'the routines and the locks stay', obsess: 'the fixation stays', power: 'who\u2019s in charge doesn\u2019t change', romance: 'the love underneath holds',
+    heat: 'the pull between them stays', toxic: 'the cycle keeps turning', allies: 'they still have each other\u2019s backs', roles: 'the roles still hold',
     distance: 'the gap between them stays', own: 'their dynamic holds',
 };
 const BEND = {
@@ -51,7 +51,7 @@ const BEND = {
     sad: 'heavier and quieter, with cracks showing', scared: 'jumpy and defensive, ready to pull back or lash out', desire: 'charged, with touches that linger and everything leaning toward sex',
     happy: 'lighter and more playful than usual, teasing rather than hurting', closeness: 'softer, letting more tenderness through than usual, and gentle with the body', attachment: 'clingier and more possessive, unwilling to let go',
     cold: 'colder and more distant, done without warmth', calm: 'slower and more deliberate, perfectly controlled', bold: 'cockier and more forceful, pushing further',
-    masks: 'behind a mask, so what shows isn’t what’s underneath', energy: 'at a different pace than usual, restless or drained', headspace: 'distracted and half lost in thought',
+    masks: 'behind a mask, so what shows isn\u2019t what\u2019s underneath', energy: 'at a different pace than usual, restless or drained', headspace: 'distracted and half lost in thought',
 };
 // Pairs that already say the same thing, so a line would only repeat the dynamic.
 const SAME = new Set(['desire:heat', 'closeness:romance', 'attachment:obsess', 'cold:distance', 'cruel:toxic']);
@@ -62,7 +62,7 @@ export function moodLink(mood, dynamic, n) {
     return `${n} is ${word} inside ${dynamic.name.toLowerCase()}: ${HOLD[dynamic.group] ?? HOLD.own}, but ${BEND[mood.family]}`;
 }
 
-// Tie × dynamic: where a tie someone set and the current dynamic pull apart (or fit in a way worth saying),
+// Tie \u00d7 dynamic: where a tie someone set and the current dynamic pull apart (or fit in a way worth saying),
 // one line on how both are true at once, so Claude writes the strain instead of dropping either.
 // [tie ids, whose side ('n' his side toward you, 'u' yours toward him; both-ways tags count for either),
 //  dynamic groups or names, text(n, u)]. First match wins.
@@ -103,7 +103,7 @@ export function tieLink(his = {}, yours = {}, dynamic, n, u) {
     return hit ? hit[3](n, u) : '';
 }
 
-// Core traits × dynamic: how who someone is at heart changes the way they carry the dynamic, without
+// Core traits \u00d7 dynamic: how who someone is at heart changes the way they carry the dynamic, without
 // changing the dynamic. lead: 'n' when he holds the power right now, 'u' when you do, '' when nobody clearly does.
 // [trait ids, test(dynamic, lead), text(n, u, name)]. First match wins.
 const CORE_BENDS = [
@@ -160,7 +160,7 @@ export function tieOffer(d, his = {}, offered = []) {
     return id ? { id, value: 50 } : null;
 }
 
-// Mood × mood: where what the two of them feel right now doesn't match, one line saying it can rub, or not.
+// Mood \u00d7 mood: where what the two of them feel right now doesn't match, one line saying it can rub, or not.
 // Only feelings at clear or above, only the strongest mismatch, and only on some replies (moodClash setting),
 // so it's a chance of friction rather than a fight every turn. Traits never clash here: opposites can attract.
 // Bed roles are the one exception, because two who both lead (or both wait to be led) is a real snag.

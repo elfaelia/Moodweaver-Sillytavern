@@ -1,6 +1,6 @@
 // Music: your Spotify songs, picked for the scene by plain code (engine/music.js) and played on your Spotify.
 // Runs after each reply (afterReply), at the end of each song (a timer) and when you tap in the Music tab.
-// Nothing here is sent to Claude unless Settings › "Let the story feel the music" is on.
+// Nothing here is sent to Claude unless Settings \u203a "Let the story feel the music" is on.
 import { getCast, getState, getUserState, playerName, target } from './chat.js';
 import { bondAxes, bondData, bondList, liveFor } from './replies.js';
 import { KEY, ctx, run, ui } from './state.js';
@@ -40,10 +40,10 @@ export function music() {
 // characters ticked for it (saved with that character, so it follows them into every chat).
 export const EXTRAS = [
     { id: 'fade', label: 'Crossfade', note: 'A changing song fades out and the new one fades in, instead of a hard cut.' },
-    { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, “I love you”, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
+    { id: 'sting', label: 'Stings', note: 'A big beat in the newest reply (a slap, a gunshot, a door kicked in, \u201cI love you\u201d, a death, a first kiss, a reveal) cuts straight to a song tagged for it, once, whatever the hold time.' },
     { id: 'peak', label: 'Start at the peak', note: 'When a scene is already at full tilt, or a sting hits, the new song starts at its chorus or drop instead of its intro.' },
-    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm; real recordings of a bar, a busy bar or club, a café or restaurant, a cafeteria, a diner, outside by the road, a dorm, a quiet house, a bedroom, a campus by day or night, a hospital room, the sea, a windy clifftop or rooftop, the woods, a camp at nightfall, a junkyard, a motel at night, a carnival, the city after dark and an old stone hall; an office hum, a basement, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility’s vents, live wires buzzing, a distant alarm, a heartbeat when it’s frightening, breathing in any heat, and during sex whatever they’re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, skin slapping when it’s rough, fingers, grinding, spanking or a whip when the story names them, and her moans when one of you is a she, each its own layer, all in time with how fast they’re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
-    { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story’s era, and Claude is told what’s playing so the characters can react to it. Venues do the same by themselves: a club, a jazz bar, a cocktail bar, a dance, a party or a gig plays what would be on there, from your playlists when their genres fit and from Spotify search for the rest (in the story’s era), or the band named at a gig. Leaving the venue, or a sex scene, brings the film score back.' },
+    { id: 'amb', label: 'Ambience', note: 'Quiet sounds under the music, all picked by themselves from the place facts or, without them, from where the last few messages put you: rain or a storm; real recordings of a bar, a busy bar or club, a caf\u00e9 or restaurant, a cafeteria, a diner, outside by the road, a dorm, a quiet house, a bedroom, a campus by day or night, a hospital room, the sea, a windy clifftop or rooftop, the woods, a camp at nightfall, a junkyard, a motel at night, a carnival, the city after dark and an old stone hall; an office hum, a basement, a fire, the road, a train, a shower, a dripping cellar, street traffic, a ticking clock, birdsong by day and crickets at night, a camera clicking when one is in use, a facility\u2019s vents, live wires buzzing, a distant alarm, a heartbeat when it\u2019s frightening, breathing in any heat, and during sex whatever they\u2019re on (a creaking bed, an office chair, a desk, a wall, a car, a couch, the floorboards) plus wet, slick sounds, skin slapping when it\u2019s rough, fingers, grinding, spanking or a whip when the story names them, and her moans when one of you is a she, each its own layer, all in time with how fast they\u2019re moving. Big moments in a new reply (a slap, a door slamming, a zap, a gunshot, breaking glass, a clang of metal, thunder, a flatline, a drill) play once on top. It has its own line on the Music tab and plays with or without Spotify, even while the music is paused. It plays on the phone or computer you have SillyTavern open on: on iPhone any tap starts it, and the ringer switch must be off silent.' },
+    { id: 'radio', label: 'In-story radio', note: 'When the story turns on a radio, jukebox or record player, the music becomes what they can hear: songs from the story\u2019s era, and Claude is told what\u2019s playing so the characters can react to it. Venues do the same by themselves: a club, a jazz bar, a cocktail bar, a dance, a party or a gig plays what would be on there, from your playlists when their genres fit and from Spotify search for the rest (in the story\u2019s era), or the band named at a gig. Leaving the venue, or a sex scene, brings the film score back.' },
 ];
 const EXTRA_DEFAULTS = { fade: 'all', sting: 'all', peak: 'all', amb: 'off', radio: 'all' };
 const charKey = () => norm(shortName(target()?.name ?? ''));
@@ -115,7 +115,7 @@ export function sceneNow(deep = false) {
     const texts = [{ text: lastReply?.mes ?? '', weight: 1 }, { text: lastYou?.mes ?? '', weight: 0.6 }];
     // Story mode reads one reply further back too, so the scene's turn (a confession building, a chase starting)
     // carries, the way a film cue follows the scene and not one line.
-    // ↻ Re-roll reads it too, whatever the music follows.
+    // \u21bb Re-roll reads it too, whatever the music follows.
     if (follow === 'story' || deep) { const prevReply = chat.filter(x => x && !x.is_user && !x.is_system).at(-2); if (prevReply) texts.push({ text: prevReply.mes ?? '', weight: follow === 'story' ? 0.4 : 0.5 }); }
     if (mus.forced && mus.forced.chat !== ctx().chatId) mus.forced = null;
     const snap = snapshot({ people, who, facts, dyn, under, meters, horny: Number.isFinite(live?.hornyValue) ? live.hornyValue : null, night: live?.sky?.time === 'night', replies, appear, everyone, texts, force: mus.forced?.mode ?? '' });
@@ -144,7 +144,7 @@ function readCues(m, deep = false) {
     if (!m.cues) { mus.cues.clear(); return []; }
     const chat = ctx().chat ?? [], at = replyCount(), id = ctx().chatId;
     for (const [uri, c] of mus.cues) if (c.chat !== id || at - c.at >= CUE_REPLIES) mus.cues.delete(uri);
-    // A new reply: the newest reply and your last message. ↻ Re-roll (deep): the last 6 messages, yours and theirs, so a
+    // A new reply: the newest reply and your last message. \u21bb Re-roll (deep): the last 6 messages, yours and theirs, so a
     // line from a little while ago that's still the scene counts. Newer messages win a tie.
     const story = chat.filter(x => x && !x.is_system && x.mes), msgs = deep ? story.slice(-6).reverse() : [story.filter(x => !x.is_user).at(-1), story.filter(x => x.is_user).at(-1)].filter(Boolean);
     const songs = usableSongs(m), hits = new Map();
@@ -163,7 +163,7 @@ const cuedNow = m => {
     return out;
 };
 // When the story has just cued a song that fits the scene and isn't resting, it is almost always the pick (9 in 10);
-// ↻ Re-roll always takes it. The 3-hour rest after it plays is what stops it coming back again and again.
+// \u21bb Re-roll always takes it. The 3-hour rest after it plays is what stops it coming back again and again.
 const CUE_CHANCE = 0.9;
 // The strongest cue wins (an exact phrase like "like a dog" beats two theme words), then the newest, then the best fit.
 const cueRank = x => { const c = mus.cues.get(x.uri) ?? {}; return (c.strength ?? 1) * 10 - (c.back ?? 0); };
@@ -190,7 +190,7 @@ function ranked(snap, m = music(), exclude = []) {
         const end = eraEnd(), year = new Map(songs.map(s => [s.uri, s.tags.yr]));
         const period = list.filter(x => year.get(x.uri) && (!end || year.get(x.uri) <= end));
         mus.radio.empty = !period.length; if (period.length) list = period;
-        // 1.89: songs you marked Heard in › Radio (or Car stereo, in a car) come first.
+        // 1.89: songs you marked Heard in \u203a Radio (or Car stereo, in a car) come first.
         const want = /car/.test(mus.radio.kind ?? '') ? ['car', 'radio'] : ['radio'], heard = new Set(songs.filter(s => s.tags.dg?.some(d => want.includes(d))).map(s => s.uri));
         if (heard.size) list = [...list.filter(x => heard.has(x.uri)), ...list.filter(x => !heard.has(x.uri))];
     }
@@ -248,7 +248,7 @@ async function venuePlay(m, snap, exclude = []) {
     try { await playList(m, uris, [v.artist ? `${v.artist} at the gig` : VENUE_BY_ID[v.venue]?.label ?? 'music in the room'], snap, Boolean(mus.now)); m.on = true; save(); } catch (err) { say(err.message, true); }
     return true;
 }
-// The last year of the story's era (era_1960s… → 1969), from either of you; 0 when no era is set.
+// The last year of the story's era (era_1960s\u2026 \u2192 1969), from either of you; 0 when no era is set.
 export function eraEnd() {
     const ch = target(), years = [];
     for (const moods of [getState(ch)?.moods ?? {}, getUserState()?.moods ?? {}]) for (const [id, v] of Object.entries(moods)) { const y = id.match(/^era_(\d{3})0s/); if (y && v > 0) years.push(Number(y[1]) * 10 + 9); }
@@ -283,7 +283,7 @@ const IMAGINED = /\b(?:imagin\w*|fantas\w*|daydream\w*|pictur(?:es|ed|ing)|envis
 const SEX_ACT = new RegExp(SCENE_WORDS.sex[0][1].source + '|\\b(?:moan(?:s|ed|ing)?|undress(?:es|ed|ing)?|naked|on top of (?:her|him)|hips (?:roll|rolled|buck|bucked|snap|snapped|stutter)|rock(?:s|ed|ing)? into (?:her|him))', 'i');
 const PUBLIC_BEDS = new Set(['bar', 'barbusy', 'cafe', 'cafeteria', 'diner', 'restaurant', 'crowd', 'campus', 'campusnight', 'lobby', 'messhall', 'schoolhall', 'carnival', 'roadside', 'clubout', 'city', 'darkcity', 'waves', 'meadow', 'train', 'hospital', 'ward', 'chantry']);
 const PUBLIC_PLACES = new Set(['public', 'party', 'bar_club', 'jazz_club', 'dance_hall', 'shopping_mall', 'fancy_restaurant', 'late_night_diner', 'internet_cafe', 'high_school', 'lecture_hall', 'police_station', 'movie_theatre', 'country_club', 'train', 'art_gallery', 'bookshop', 'laundromat', 'hospital_ward', 'funeral', 'temple']);
-const realSentences = texts => texts.flatMap(t => String(t).split(/(?<=[.!?…"”])\s+|\n+/)).filter(x => x.trim() && !IMAGINED.test(x));
+const realSentences = texts => texts.flatMap(t => String(t).split(/(?<=[.!?\u2026"\u201d])\s+|\n+/)).filter(x => x.trim() && !IMAGINED.test(x));
 export function ambienceBeds(snap = mus.latest, m = music()) {
     if (!extraOn('amb', m) || mus.ambPaused) return [];
     const places = snap?.places ?? new Set(), texts = recentStory(6), beds = [];
@@ -291,7 +291,7 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     const spot = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
     const inPublic = [...places].some(p => PUBLIC_PLACES.has(p)) || PUBLIC_BEDS.has(spot);
     const sexNow = snap?.heat === 'sex' && near2.filter(t => SEX_ACT.test(t)).length >= (inPublic ? 2 : 1);
-    // Warmth you can hear (wet, fingers, grinding…): heat plus the words in a real sentence, never in public unless sex is happening.
+    // Warmth you can hear (wet, fingers, grinding\u2026): heat plus the words in a real sentence, never in public unless sex is happening.
     const heatNow = Boolean(snap?.heat) && (!inPublic || sexNow);
     // During sex, what they're on goes first: the newest of the last 3 messages to name it, else the place.
     if (sexNow) { const on = newestHit(amb.LOVE_WORDS, [realSentences(texts.slice(0, 3)).join(' ')])?.[0] ?? [...places].map(p => amb.LOVE_PLACES[p]).find(Boolean) ?? amb.LOVE_SPOTS[spot]; if (on) beds.push(on); }
@@ -357,7 +357,7 @@ export const unlockSound = () => { amb.unlock(); updateAmbience(); };
 const deviceFor = async m => {
     const list = await sp.devices(m); mus.devices = list;
     const chosen = list.find(d => d.id === m.device) ?? list.find(d => d.is_active) ?? list[0];
-    if (!chosen) throw Object.assign(new Error('Open Spotify on your phone or computer, play anything for a second, then tap ▶ again.'), { code: 'device' });
+    if (!chosen) throw Object.assign(new Error('Open Spotify on your phone or computer, play anything for a second, then tap \u25b6 again.'), { code: 'device' });
     return chosen;
 };
 // Volume in small steps (Spotify has no crossfade of its own through its API, so this is the next best thing).
@@ -467,7 +467,7 @@ export async function afterReply() {
     } else changed();
 }
 // ---- Skips (1.80) ----
-// A song that changed before it was nearly over, in the line-up's order (skipped in Spotify or with ⏭ here), is a
+// A song that changed before it was nearly over, in the line-up's order (skipped in Spotify or with \u23ed here), is a
 // skip. Skipped songs sit out for SKIP_REST. Two skips in one line-up, or reaching its last song, build a fresh
 // line-up from the scene as it is now: straight away if the song that's on only just started, else when it ends.
 const SKIP_REST = 30 * 60 * 1000;
@@ -529,7 +529,7 @@ export async function togglePlay() {
     try { if (!mus.now) return start(); const d = await deviceFor(m); if (mus.now.playing) { mus.userPaused = true; mus.wasPlaying = false; await sp.pause(m, d.id); } else { mus.userPaused = false; await sp.resume(m, d.id); } updateAmbience(); setTimeout(() => void sync(), 600); }
     catch (err) { say(err.message, true); }
 }
-// Jump within the playing song: to a spot (ms), or by a step (−15 s, +15 s).
+// Jump within the playing song: to a spot (ms), or by a step (\u221215 s, +15 s).
 export async function seekTo(ms) {
     const m = music(), n = mus.now; if (!n?.ms) return;
     const at = Math.max(0, Math.min(n.ms - 2000, Math.round(ms)));
@@ -537,23 +537,23 @@ export async function seekTo(ms) {
 }
 export const nowAt = () => { const n = mus.now; return n ? (n.playing ? Date.now() - n.started : n.progress ?? 0) : 0; };
 export const seekBy = sec => seekTo(nowAt() + sec * 1000);
-// ◆ Mark peak here: the playing song's peak becomes where it is now (saved in its tags and the sheet's Peak column).
+// \u25c6 Mark peak here: the playing song's peak becomes where it is now (saved in its tags and the sheet's Peak column).
 export function markPeak() {
     const uri = mus.now?.uri; if (!uri) return;
     const sec = Math.max(1, Math.round(nowAt() / 1000)); setTag(uri, 'pk', String(sec));
-    say(`Peak set at ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} for ${mus.now.name}. Change or clear it in ✎ Tags › Sting, peak and year.`);
+    say(`Peak set at ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')} for ${mus.now.name}. Change or clear it in \u270e Tags \u203a Sting, peak and year.`);
 }
 export const nextBest = () => { if (mus.now?.uri && nowAt() < (mus.now.ms || Infinity) - 8000) noteSkip(mus.now.uri); return start(mus.now ? [mus.now.uri] : []); };
-// ↻ Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
+// \u21bb Re-roll, for when you come back after a while: forget the old scene and line-up, look for songs added to your
 // lit playlists while SillyTavern was closed, read the last 6 messages again (scene kind,
 // moods, heat, lyric cues) and start a fresh line-up with a different song from the one that was on.
-// "This scene is…" you set yourself and lyric-cue rests are kept; ✕ Not here and Never during still count.
+// "This scene is\u2026" you set yourself and lyric-cue rests are kept; \u2715 Not here and Never during still count.
 export async function reRoll() {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
     if (mus.busy) return; mus.busy = true;
     try {
         if (Object.entries(m.playlists).some(([id, p]) => p.on && p.owned && !id.startsWith('csv:'))) {
-            mus.loading = 'Looking for new songs in your playlists…'; changed();
+            mus.loading = 'Looking for new songs in your playlists\u2026'; changed();
             try { await loadPlaylists(); } catch { /* offline: use the songs already here */ }
         }
         mus.story = null; mus.anchor = null; mus.lineup = []; mus.cues.clear(); mus.why = []; mus.lastFam = ''; mus.loading = '';
@@ -563,8 +563,8 @@ export async function reRoll() {
             const live = (mus.heard ?? []).filter(h => !h.resting && h.fits);
             const cueNote = !m.cues ? 'lyric cues are off' : live.length ? `cued: ${live[0].name}` : mus.heard?.length ? 'a cue was heard but its song is resting or doesn\'t fit this scene' : 'no lyric cues in the last 6 messages';
             const n = usableSongs(m).length;
-            say(n < 15 ? `Only ${n} ${n === 1 ? 'song' : 'songs'} to choose from, so the scene can't pick well. ${poolText(m)} Open ✦ Playlists below and light the playlist with your songs (or import your song sheet again).`
-                : `Re-rolled from the last 6 messages · ${n} songs · ${cueNote}.`);
+            say(n < 15 ? `Only ${n} ${n === 1 ? 'song' : 'songs'} to choose from, so the scene can't pick well. ${poolText(m)} Open \u2726 Playlists below and light the playlist with your songs (or import your song sheet again).`
+                : `Re-rolled from the last 6 messages \u00b7 ${n} songs \u00b7 ${cueNote}.`);
         }
     } finally { mus.busy = false; mus.loading = ''; changed(); }
 }
@@ -579,7 +579,7 @@ export function forceMode(mode) {
     mus.forced = mode ? { mode, left: 6, chat: ctx().chatId } : null;
     const m = music(); if (m.on && sp.signedIn(m)) void start(); else changed();
 }
-// ▶ on a song: you pick it. It plays now (whatever its rest or the scene) and holds until it ends, then the scene
+// \u25b6 on a song: you pick it. It plays now (whatever its rest or the scene) and holds until it ends, then the scene
 // picks again from there.
 export async function playChosen(uri) {
     const m = music(); if (!sp.signedIn(m)) return say('Sign in to Spotify first.', true);
@@ -591,18 +591,18 @@ export async function playChosen(uri) {
 }
 export function toggleLock() { mus.locked = !mus.locked; changed(); }
 export async function setOn(on) { const m = music(); m.on = on; save(); updateAmbience(); if (on) { await sync(); if (!mus.now?.playing) await start(); poller(); } else { clearTimeout(mus.timer); try { const d = await deviceFor(m); await sp.pause(m, d.id); } catch { /* nothing playing */ } changed(); } }
-// ✓ Fits and ✗ Not here: remember it for this kind of scene. Five ✗ in the same moment or heat add it to Never during.
+// \u2713 Fits and \u2717 Not here: remember it for this kind of scene. Five \u2717 in the same moment or heat add it to Never during.
 export async function feedback(good) {
-    const m = music(), uri = mus.now?.uri, snap = sceneNow() ?? mus.latest; if (!uri || !snap) return say('Nothing is playing to mark yet: tap ▶ first.', true);
+    const m = music(), uri = mus.now?.uri, snap = sceneNow() ?? mus.latest; if (!uri || !snap) return say('Nothing is playing to mark yet: tap \u25b6 first.', true);
     mus.latest = snap;
-    // ✗ Not here is final for this kind of scene: the song (and every other version of it, like a cover with the
+    // \u2717 Not here is final for this kind of scene: the song (and every other version of it, like a cover with the
     // same title) is never played in this kind of scene again. Undo it in the song's tags (Never during).
     if (!good) {
         const title = norm(String(m.songs[uri]?.n ?? mus.now?.name ?? '').replace(/\s*[-(\[].*$/, ''));
         const versions = Object.entries(m.songs).filter(([u, s]) => u === uri || (title && norm(String(s.n).replace(/\s*[-(\[].*$/, '')) === title)).map(([u]) => u);
         const never = [snap.mode ? `k:${snap.mode}` : '', snap.heat ? `h:${snap.heat}` : '', ...[...snap.moments].slice(0, 2).map(x => `mo:${x}`)].filter(Boolean);
         for (const u of versions) { const t = cleanTags(m.tags[u] ?? emptyTags()); t.nv = [...new Set([...t.nv, ...(snap.mode ? [`k:${snap.mode}`] : never)])]; m.tags[u] = t; youEdited(m, u); }
-        save(); say(`Noted: ${versions.length > 1 ? `no version of this song` : 'this song'} will play in ${snap.mode ? `a ${modeLabel(snap.mode)} scene` : 'scenes like this'} again. Finding something better…`);
+        save(); say(`Noted: ${versions.length > 1 ? `no version of this song` : 'this song'} will play in ${snap.mode ? `a ${modeLabel(snap.mode)} scene` : 'scenes like this'} again. Finding something better\u2026`);
         return start(versions);
     }
     const learn = m.learn[uri] ??= {};
@@ -613,15 +613,15 @@ export async function feedback(good) {
     // The song's sound (its Spotify genres) counts for this kind of scene too, so songs that sound like it rise.
     const g = m.songs[uri]?.g ?? [], kind = snap.mode || 'any', sound = m.sound[kind] ??= {};
     for (const x of g) { const k = norm(x); sound[k] = Math.max(-3, Math.min(4, (sound[k] ?? 0) + (good ? 1 : -0.5))); }
-    // The ✦ Fits button shows it took, for as long as this song plays (panel/music-tab.js).
+    // The \u2726 Fits button shows it took, for as long as this song plays (panel/music-tab.js).
     if (good) mus.fitsMark = { uri, at: Date.now(), scene: snap.mode ? modeLabel(snap.mode) : '' };
-    save(); say(good ? 'Noted: it fits scenes like this, and songs that sound like it will come up more.' : 'Noted. Finding something better…');
+    save(); say(good ? 'Noted: it fits scenes like this, and songs that sound like it will come up more.' : 'Noted. Finding something better\u2026');
     if (!good) await start([uri]);
 }
 
 // ---- Library ----
 export async function loadPlaylists() {
-    const m = music(); mus.loading = 'Reading your playlists…'; changed();
+    const m = music(); mus.loading = 'Reading your playlists\u2026'; changed();
     try {
         const list = await sp.playlists(m), seen = new Set(['liked']);
         m.playlists.liked ??= { name: 'Liked Songs', on: false, owned: true, count: 0 };
@@ -639,7 +639,7 @@ export async function loadSongs() {
     let n = 0;
     try {
         for (const [id, p] of todo) {
-            mus.loading = `Loading ${p.name} (${++n} of ${todo.length})…`; changed();
+            mus.loading = `Loading ${p.name} (${++n} of ${todo.length})\u2026`; changed();
             const songs = await sp.songsOf(m, id);
             // Only trust the answer to say what LEFT the playlist when it's complete. Spotify sometimes sends back far fewer
             // songs than the playlist holds (the count it gave a moment ago): then new songs are added and none are removed.
@@ -660,7 +660,7 @@ export async function loadSongs() {
 export function togglePlaylist(id) { const m = music(), p = m.playlists[id]; if (!p) return; p.on = !p.on; save(); changed(); if (p.on && p.owned && !id.startsWith('csv:') && sp.signedIn(m)) void loadSongs(); }
 
 // ---- Your songs, kept up to date without the sheet ----
-// Songs you tagged or changed in Moodweaver (✎ Tags, ✕ Not here) are yours: built-in tags never overwrite them.
+// Songs you tagged or changed in Moodweaver (\u270e Tags, \u2715 Not here) are yours: built-in tags never overwrite them.
 const youEdited = (m, uri) => { m.tagEdited[uri] = Date.now(); };
 // The tagged song list that comes with each version (data/song-tags.js). When a new version brings new or updated
 // tags, they're merged in by themselves on load: new songs are added and linked to their playlist, songs you never
@@ -680,7 +680,7 @@ export async function applyBundle(force = false) {
         for (const name of names) { const id = plFor(name); if (id && !m.songs[uri].pl?.includes(id)) m.songs[uri].pl = [...(m.songs[uri].pl ?? []), id]; }
         if (!m.tagEdited[uri]) {
             // Before 1.72.7 your own changes weren't marked, so anything that's clearly yours is kept on top: Never
-            // during (✕ Not here), Favourite, Off, Theme and a peak you set.
+            // during (\u2715 Not here), Favourite, Off, Theme and a peak you set.
             const t = cleanTags(x.t), old = cleanTags(m.tags[uri] ?? {});
             t.nv = [...new Set([...t.nv, ...old.nv])]; t.fav ||= old.fav; t.off ||= old.off; t.th ||= old.th; if (old.pk) t.pk = old.pk;
             if (JSON.stringify(cleanTags(t)) !== JSON.stringify(old)) { m.tags[uri] = cleanTags(t); updated++; }
@@ -689,23 +689,23 @@ export async function applyBundle(force = false) {
     m.bundle = B.version; save();
     if (added || updated) say(`Your song tags are up to date (${B.version}): ${added} songs added, ${updated} updated. Songs you changed yourself were kept.`);
 }
-// 🗑 Remove a song: out of your Spotify playlists (the ones you made), out of Moodweaver, and never added back by a
+// \ud83d\uddd1 Remove a song: out of your Spotify playlists (the ones you made), out of Moodweaver, and never added back by a
 // sheet or built-in tags. If it's playing, the next best song plays.
 export async function removeSong(uri) {
     const m = music(), s = m.songs[uri]; if (!s) return;
     const spotify = (s.pl ?? []).filter(id => !id.startsWith('csv:') && id !== 'liked' && m.playlists[id]?.owned);
-    if (spotify.length && !sp.canEdit(m)) return say('To remove songs from your Spotify playlists, Moodweaver needs permission to edit them: tap “Sign in again” in Music settings once, then try again.', true);
+    if (spotify.length && !sp.canEdit(m)) return say('To remove songs from your Spotify playlists, Moodweaver needs permission to edit them: tap \u201cSign in again\u201d in Music settings once, then try again.', true);
     try { for (const id of spotify) await sp.removeFromPlaylist(m, id, uri); }
-    catch (err) { return say(`Spotify wouldn’t remove it: ${err.message}`, true); }
+    catch (err) { return say(`Spotify wouldn\u2019t remove it: ${err.message}`, true); }
     const name = s.n; m.removed[uri] = { at: Date.now(), pl: spotify }; delete m.songs[uri]; delete m.tags[uri]; delete m.tagEdited[uri];
     for (const id of spotify) if (m.playlists[id]) m.playlists[id].count = Math.max(0, (m.playlists[id].count ?? 1) - 1);
-    save(); say(`Removed “${name}”${spotify.length ? ' from your Spotify playlist' : ''}.`);
+    save(); say(`Removed \u201c${name}\u201d${spotify.length ? ' from your Spotify playlist' : ''}.`);
     if (mus.now?.uri === uri) await nextBest();
 }
 // Songs with no tags yet, as plain text to paste to Claude for tagging (then they arrive with the next version).
 export function untaggedText() {
     const m = music();
-    return usableSongs(m).filter(x => !hasTags(m.tags[x.uri])).map(x => `${x.song.n} — ${x.song.a} — ${x.uri}`).join('\n');
+    return usableSongs(m).filter(x => !hasTags(m.tags[x.uri])).map(x => `${x.song.n} \u2014 ${x.song.a} \u2014 ${x.uri}`).join('\n');
 }
 // ---- The song sheet ----
 export function exportSheet() {
@@ -741,7 +741,7 @@ export async function importSheet(file) {
         save();
         mus.lastImport = { at: Date.now(), file: file.name, songs: Object.keys(got.tags).length, added: Object.keys(got.newSongs).length, playlists: Object.keys(got.ptags).length, chars: Object.keys(got.chars).length, unknown: [...got.unknown].slice(0, 12), unmatched: got.unmatched.slice(0, 8) };
         say(`Imported ${file.name}.`);
-    } catch (err) { say(`Couldn’t read that file: ${err.message}`, true); }
+    } catch (err) { say(`Couldn\u2019t read that file: ${err.message}`, true); }
 }
 export function setTag(uri, kind, value) {
     const m = music(), t = cleanTags(m.tags[uri] ?? emptyTags());
@@ -788,7 +788,7 @@ export function initMusic() {
     document.addEventListener('touchend', wake, { passive: true }); document.addEventListener('click', wake, { passive: true });
     void checkReturn().then(() => { if (music().on && sp.signedIn(music())) void sync(); });
 }
-// Settings › Music: what the story is told about the music, at the end of the note. Two switches:
+// Settings \u203a Music: what the story is told about the music, at the end of the note. Two switches:
 //   feel: a few words for the music's feel, never its name (about 15 tokens).
 //   tell: the song itself, title and artist whatever the story's era, to score the scene by: never quoted, named
 //         or heard by anyone, and only for the first replies of each song (tellFor: 1, 2 or 3; 0 = while it plays),

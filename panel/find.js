@@ -1,4 +1,4 @@
-// Search everything: one box (the ⌕ at the top) that looks through every tab at once (feelings, traits, Mind,
+// Search everything: one box (the \u2315 at the top) that looks through every tab at once (feelings, traits, Mind,
 // Intimacy, facts, story settings, turn-ons, skills, dynamics and relationship tags) and takes you to the one
 // you tap, opening its tab and its group. Typing only redraws the list under the box.
 import { MOODS, sectionOf } from '../data/catalogue.js';
@@ -49,6 +49,6 @@ export function findList(q) {
 }
 export function findView() {
     if (!ui.findOpen) return '';
-    return `<div class="mw-find" role="search"><input type="search" data-find placeholder="Search every tab…" aria-label="Search every tab" value="${esc(ui.findText ?? '')}">
+    return `<div class="mw-find" role="search"><input type="search" data-find placeholder="Search every tab\u2026" aria-label="Search every tab" value="${esc(ui.findText ?? '')}">
         <div class="mw-find-list" data-find-list>${findList(ui.findText ?? '')}</div></div>`;
 }

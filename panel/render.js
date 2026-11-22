@@ -28,7 +28,7 @@ import { musicView } from './music-tab.js';
 import { activeRelationshipTags, activeSharedTags } from '../engine/relationships.js';
 import { skillsOf } from '../engine/skills.js';
 
-// The token meter: the header pill and the footer give the total; Settings › What is sent splits it into the
+// The token meter: the header pill and the footer give the total; Settings \u203a What is sent splits it into the
 // guide (the same every reply, so cached after the first) and what's sent fresh, against your target.
 const kTokens = n => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 export function renderPreview() {
@@ -37,32 +37,32 @@ export function renderPreview() {
     const pill = ui.panel.querySelector('[data-token-pill]');
     if (pill) { pill.hidden = !info.tokens; pill.querySelector('b').textContent = kTokens(info.tokens || 0); pill.title = guide ? `About ${info.tokens} tokens a reply: ${guide} in the cached guide, ${fresh} sent fresh. Tap for details.` : `About ${info.tokens} tokens a reply. Tap for details.`; pill.classList.toggle('is-over', Boolean(info.overBudget)); }
     const mini = ui.panel.querySelector('[data-token-mini]');
-    if (mini) { mini.textContent = info.tokens ? `≈ ${info.tokens} tokens sent${guide ? ` (${guide} cached)` : ''}${info.overBudget ? ` · ${info.overBudget} over your ${info.target} target` : ''}` : ''; mini.classList.toggle('is-over', Boolean(info.overBudget)); }
+    if (mini) { mini.textContent = info.tokens ? `\u2248 ${info.tokens} tokens sent${guide ? ` (${guide} cached)` : ''}${info.overBudget ? ` \u00b7 ${info.overBudget} over your ${info.target} target` : ''}` : ''; mini.classList.toggle('is-over', Boolean(info.overBudget)); }
     const count = ui.panel.querySelector('[data-token-count]');
     if (count) {
         const max = Math.max((info.target || 1) + guide, info.tokens || 0), w = n => `${Math.round(n / max * 100)}%`;
         count.innerHTML = `<div class="mw-token-meter" role="img" aria-label="${info.tokens} tokens: ${guide} cached guide, ${fresh} fresh"><i class="is-guide" style="width:${w(guide)}"></i><i class="is-fresh" style="width:${w(fresh)}"></i>${info.target ? `<b style="left:${w(info.target + (guide ? guide : 0))}" title="Your target"></b>` : ''}</div>
-            <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first · ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply · target ${info.target ?? '—'}${guide ? ' (for the fresh part)' : ''} · ${info.selectedIds?.length || 0} settings in play</p>`;
+            <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first \u00b7 ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply \u00b7 target ${info.target ?? '\u2014'}${guide ? ' (for the fresh part)' : ''} \u00b7 ${info.selectedIds?.length || 0} settings in play</p>`;
     }
     const preview = ui.panel.querySelector('[data-preview]');
     if (preview) preview.textContent = info.prompt ? `${info.fixed ? `${info.fixed}\n\n` : ''}${info.prompt}` : 'No mood directions are being sent.';
     const audit = ui.panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role · depth ${settings().depth}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
+    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role \u00b7 depth ${settings().depth}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
     const last = ui.panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
-        last.textContent = snapshot ? `${snapshot.at}\nUser role · depth ${snapshot.depth}\n${snapshot.fixed ? `${snapshot.fixed}\n\n` : ''}${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
+        last.textContent = snapshot ? `${snapshot.at}\nUser role \u00b7 depth ${snapshot.depth}\n${snapshot.fixed ? `${snapshot.fixed}\n\n` : ''}${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
     }
     const warning = ui.panel.querySelector('[data-budget-warning]');
     if (warning) {
         warning.hidden = !info.overBudget;
-        warning.textContent = `Full blend kept: ${guide ? fresh : info.tokens} tokens${guide ? ' sent fresh' : ''} (${info.overBudget} above target). Details are in “What is sent to the model?”`;
+        warning.textContent = `Full blend kept: ${guide ? fresh : info.tokens} tokens${guide ? ' sent fresh' : ''} (${info.overBudget} above target). Details are in \u201cWhat is sent to the model?\u201d`;
     }
 }
 export function renderStatus() {
     if (ui.panel?.querySelector('[data-status]')) ui.panel.querySelector('[data-status]').textContent = run.status;
 }
-// A redraw that fails shows the error in the panel, so ◆ Moods always opens and the cause is visible.
+// A redraw that fails shows the error in the panel, so \u25c6 Moods always opens and the cause is visible.
 
 // A redraw that comes from the chat (a reply arriving, a swipe) waits while you're typing in
 // the panel, so it can't wipe a half-written board correction or note. It runs when you leave the field.
@@ -80,7 +80,7 @@ export function render(background = false, force = false) {
         globalThis.toastr?.error(String(err?.message ?? err), 'Moodweaver hit an error', { preventDuplicates: true });
         const where = String(err?.stack ?? '').split('\n').find(l => /\.js:\d+/.test(l))?.trim() ?? '';
         ui.panel.dataset.view = '';
-        ui.panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><div class="mw-brand-text"><h2>Moodweaver</h2></div></div><div class="mw-top-actions"><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
+        ui.panel.innerHTML = `<div class="mw-top"><div class="mw-brand"><div class="mw-brand-text"><h2>Moodweaver</h2></div></div><div class="mw-top-actions"><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">\u00d7</button></div></div>
             <div class="mw-empty mw-error"><p>The panel hit an error while drawing. Nothing was changed or lost.</p><pre>${esc(err?.message ?? err)}${where ? `\n${esc(where)}` : ''}</pre><p class="mw-fine">A screenshot of this box is enough to track it down.</p></div>
             <div class="mw-footer">v${VERSION}</div>`;
     }
@@ -99,7 +99,7 @@ function drawPanel() {
     if (ui.tab === 'wants' && settings().wantsTab === false) ui.tab = 'mood';
     if (ui.tab === 'music' && settings().musicTab === false) ui.tab = 'mood';
     const kind = tabKind();
-    // The faint "why" lines under rows and on chips (Settings › Show why).
+    // The faint "why" lines under rows and on chips (Settings \u203a Show why).
     ui.why = state && charState && settings().whyOn !== false && ['char', 'user'].includes(ui.who) && ['mood', 'trait', 'psyche', 'intimacy', 'state'].includes(kind) ? whyMap(ch, ui.who) : new Map();
     const active = state ? activeMoods(state) : [];
     const live = charState ? liveFor(ch) : null;
@@ -137,17 +137,17 @@ function drawPanel() {
         : ['char', 'user'].includes(ui.who) && ui.tab === 'period' ? periodView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
-            peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}’s side` : '', removing: ui.removingRelation, meterRows: ui.who === 'char' && peer?.key === '{{user}}' && bondData(ch).on })
+            peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}\u2019s side` : '', removing: ui.removingRelation, meterRows: ui.who === 'char' && peer?.key === '{{user}}' && bondData(ch).on })
         : sectionContent(state, kind, ch, active)}</div>`;
-    const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' · ') : '';
+    const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' \u00b7 ') : '';
     ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
-        <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">◷</i><b></b></button><button type="button" class="mw-icon-btn" data-action="find" aria-pressed="${Boolean(ui.findOpen)}" aria-label="Search every tab" title="Search every tab">⌕</button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what’s sent" title="Settings and what’s sent">⚙</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">×</button></div></div>
+        <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">\u25f7</i><b></b></button><button type="button" class="mw-icon-btn" data-action="find" aria-pressed="${Boolean(ui.findOpen)}" aria-label="Search every tab" title="Search every tab">\u2315</button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what\u2019s sent" title="Settings and what\u2019s sent">\u2699</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">\u00d7</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
-    ${members().length > 1 ? `<div class="mw-context"><label>Group chat · main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
+    ${members().length > 1 ? `<div class="mw-context"><label>Group chat \u00b7 main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${peopleBar(ch, charState)}
     ${state ? body : ''}
     ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
-    <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. · v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>↑</button>`;
+    <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. \u00b7 v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>\u2191</button>`;
     restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel); reglow(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
@@ -174,8 +174,8 @@ export function moonify(root) {
         const bond = input.closest('.mw-bond-meter');
         if (bond) box.classList.add('mw-stars', bond.classList.contains('mw-more-meter') ? 'mw-stars-line' : 'mw-stars-arc');
         else if (/^mw-(rel|pair|compare)-slider/.test(input.id)) box.classList.add('mw-stars', 'mw-stars-line');
-        // − and + either side (1.82): a step to the next moon down or up, so nothing small has to be aimed at.
-        const row = document.createElement('div'), step = (d, t) => `<button type="button" class="mw-step" data-range-step="${d}" aria-label="${t}" title="${t}"${input.disabled ? ' disabled' : ''}>${d < 0 ? '−' : '+'}</button>`;
+        // \u2212 and + either side (1.82): a step to the next moon down or up, so nothing small has to be aimed at.
+        const row = document.createElement('div'), step = (d, t) => `<button type="button" class="mw-step" data-range-step="${d}" aria-label="${t}" title="${t}"${input.disabled ? ' disabled' : ''}>${d < 0 ? '\u2212' : '+'}</button>`;
         row.className = 'mw-stepped'; input.after(row); row.insertAdjacentHTML('afterbegin', step(-1, 'Less')); row.append(box); row.insertAdjacentHTML('beforeend', step(1, 'More'));
         drawMoons(input, box);
     }
@@ -185,7 +185,7 @@ export function moonify(root) {
 export function pillify(root) {
     for (const sel of root?.querySelectorAll?.('select:not([data-pills]):not([multiple])') ?? []) {
         const opts = [...sel.options].filter(o => !o.hidden && !(o.disabled && !o.value));
-        const short = opts.length >= 2 && opts.length <= 5 && opts.every(o => o.text.trim().length <= 16) && opts.reduce((n, o) => n + o.text.trim().length, 0) <= 46 && !opts.some(o => o.value === '' && /…|\.\.\./.test(o.text));
+        const short = opts.length >= 2 && opts.length <= 5 && opts.every(o => o.text.trim().length <= 16) && opts.reduce((n, o) => n + o.text.trim().length, 0) <= 46 && !opts.some(o => o.value === '' && /\u2026|\.\.\./.test(o.text));
         if (!short) continue;
         sel.dataset.pills = '1'; sel.hidden = true; sel.tabIndex = -1;
         const row = document.createElement('div');
@@ -194,7 +194,7 @@ export function pillify(root) {
         sel.after(row);
     }
 }
-// Long explanations (1.82) fold to one faint line with an ⓘ; a tap opens them. Short notes, warnings and empty-list
+// Long explanations (1.82) fold to one faint line with an \u24d8; a tap opens them. Short notes, warnings and empty-list
 // lines stay as they are. Which ones are open is remembered by their first words, so a re-render keeps them open.
 const NOTE_SEL = 'p.mw-fine, p.mw-explainer, p.mw-music-note';
 const noteKey = el => el.textContent.trim().slice(0, 60);
@@ -347,13 +347,13 @@ function hidingRules(el) {
     return out.slice(0, 3);
 }
 function panelReport(showError) {
-    const lines = [`v${VERSION} from “${folderOf(SELF)}”`];
+    const lines = [`v${VERSION} from \u201c${folderOf(SELF)}\u201d`];
     if (!ui.panel?.isConnected) return [...lines, 'The panel is missing from the page.'].join('\n');
     const cs = getComputedStyle(ui.panel), r = ui.panel.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
     lines.push(`open: ${ui.panel.open ? 'yes' : 'no'}`);
     if (ui.lastDrawError) lines.push(`drawing failed: ${ui.lastDrawError}`);
     if (showError) lines.push(`showing failed: ${showError}`);
-    lines.push(`box: left ${Math.round(r.left)}, top ${Math.round(r.top)}, ${Math.round(r.width)}×${Math.round(r.height)} on a ${vw}×${vh} screen`);
+    lines.push(`box: left ${Math.round(r.left)}, top ${Math.round(r.top)}, ${Math.round(r.width)}\u00d7${Math.round(r.height)} on a ${vw}\u00d7${vh} screen`);
     lines.push(`style: display ${cs.display}, visibility ${cs.visibility}, opacity ${cs.opacity}, z-index ${cs.zIndex}, position ${cs.position}${ui.panel.hidden ? ', hidden attribute set' : ''}`);
     // Name the stylesheet rule that hides it, so a theme or another extension can be found.
     if (cs.display === 'none') lines.push(`hidden by: ${hidingRules(ui.panel).join(' | ') || 'no stylesheet rule found (inline style or a script)'}`);
@@ -363,7 +363,7 @@ function panelReport(showError) {
     return lines.join('\n');
 }
 export function openPanel() {
-    note('Pressed. Opening…');
+    note('Pressed. Opening\u2026');
     if (run.suspended) { note('Moodweaver is switched off in Manage extensions.', true); globalThis.toastr?.info('Moodweaver is switched off. Turn it back on in Manage extensions.'); return; }
     let showError = '';
     try {

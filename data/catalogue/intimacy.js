@@ -1,5 +1,5 @@
 // Intimacy: how someone wants and has sex, kept apart from Traits. Like traits, these stay put unless the
-// scene reader's ❂ Traits scope is on, and the ones switched on light up like turn-ons when the story touches them.
+// scene reader's \u2742 Traits scope is on, and the ones switched on light up like turn-ons when the story touches them.
 // Each option is one line of fields:
 //   id      never change it: saved chats store values under it
 //   label   the name in the panel
@@ -9,7 +9,7 @@
 // The order here is the order in the panel.
 export default [
     // Who leads, who follows and the parts they play: D/s, pet play, roleplay roles and kink practices.
-    { id: "bed_roles", name: "Roles in bed", icon: "♛", color: "#d49bc9", kind: "mood", order: 15, rows: [
+    { id: "bed_roles", name: "Roles in bed", icon: "\u265b", color: "#d49bc9", kind: "mood", order: 15, rows: [
         { id: "pleasure_dom", label: "Pleasure dom", cue: "dominates by controlling and lavishing pleasure on their partner", prompt: true },
         { id: "courtly_dom", label: "Courtly dom", cue: "old-fashioned, chivalrous dominance with manners and rules", prompt: true },
         { id: "soft_sub", label: "Soft sub", cue: "sweet, eager and wants to be held and guided", prompt: true },
@@ -28,7 +28,7 @@ export default [
         { id: "disciplinarian", label: "Disciplinarian", cue: "sets the rules and hands out correction or punishment when they're broken", prompt: true },
         { id: "task_focused_sub", label: "Task-focused submissive", cue: "likes clear tasks and the satisfaction of completing them for a partner", prompt: "likes clear tasks and the satisfaction of completing them for a partner" },
         { id: "dominant_bottom", label: "Dominant bottom", cue: "prefers the receiving role while directing the scene and keeping authority", prompt: "prefers the receiving role while directing the scene and keeping authority" },
-        { id: "submissive_top", label: "Submissive top", cue: "prefers the active role while following a partner’s lead", prompt: "prefers the active role while following a partner’s lead" },
+        { id: "submissive_top", label: "Submissive top", cue: "prefers the active role while following a partner\u2019s lead", prompt: "prefers the active role while following a partner\u2019s lead" },
         { id: "egalitarian_dynamic", label: "Egalitarian dynamic", cue: "prefers shared initiative and decisions, with neither person taking authority", prompt: "prefers shared initiative and decisions, with neither person taking authority" },
         { id: "deity_roleplay", label: "Deity (roleplay)", cue: "worshipped, given offerings and treated as divine", prompt: "plays a god or goddess: worshipped, given offerings and treated as divine" },
         { id: "devotee_roleplay", label: "Devotee (roleplay)", cue: "shows devotion through ritual, offerings and reverence", prompt: "plays the worshipper: shows devotion through ritual, offerings and reverence" },
@@ -49,7 +49,7 @@ export default [
         { id: "owner", label: "Owner", cue: "keeps a human pet: names, commands, treats, petting and a collar", prompt: true },
         { id: "brat_tamer", label: "Brat tamer", cue: "enjoys putting a mouthy, defiant sub back in their place", prompt: true },
         { id: "bratty", label: "Bratty", cue: "acts up to get a reaction" },
-        { id: "obedient", label: "Obedient", cue: "does as they’re told" },
+        { id: "obedient", label: "Obedient", cue: "does as they\u2019re told" },
         { id: "owned", label: "Owned", cue: "wants to belong to someone, body and all, and feel claimed", prompt: true },
         { id: "doll_keeper", label: "Doll keeper", cue: "treats their partner as a doll to dress, pose and play with", prompt: "doll keeper (treats their partner as a doll to dress, pose and play with)" },
         { id: "doll", label: "Doll", cue: "wants to be dressed, posed and played with like a doll", prompt: "doll (wants to be dressed, posed and played with)" },
@@ -75,14 +75,14 @@ export default [
         { id: "experimenter_role", label: "Experimenter", cue: "treats intimacy as an experiment: asking questions, testing, taking notes", prompt: true },
         { id: "indulgent_keeper", label: "Indulgent keeper", cue: "lets them push, sass and demand, and enjoys it, while the real control never leaves their hands", prompt: true },
         { id: "mouthy_captive", label: "Mouthy captive", cue: "trapped and still talks back: demands, sulks, bargains and tests how far the leash goes", prompt: true },
-        { id: "conditioning", label: "Conditioning", cue: "training their partner’s desires and responses", prompt: "conditioning their partner’s desires and responses" },
+        { id: "conditioning", label: "Conditioning", cue: "training their partner\u2019s desires and responses", prompt: "conditioning their partner\u2019s desires and responses" },
         { id: "conditioned", label: "Conditioned", cue: "their desires and responses have been trained", prompt: "conditioned (their desires and responses have been trained)" },
         { id: "test_subject", label: "Test subject", cue: "studies their partner like a test subject", prompt: "studies their partner like a test subject" },
-        { id: "mindfuck", label: "Mindfuck", cue: "messes with their partner’s head as part of it", prompt: "mindfuck (messing with their partner’s head as part of it)" },
+        { id: "mindfuck", label: "Mindfuck", cue: "messes with their partner\u2019s head as part of it", prompt: "mindfuck (messing with their partner\u2019s head as part of it)" },
         { id: "camera_control", label: "Camera as control", cue: "uses the camera to control, expose and possess", prompt: "uses the camera as a weapon, to control, expose and possess" },
     ] },
     // How they are about sex in general: open, shy, filthy-minded, vanilla, and how they look at a partner.
-    { id: "sexual_nature", name: "Sexual temperament", icon: "❀", color: "#dba3c0", kind: "mood", order: 15.2, rows: [
+    { id: "sexual_nature", name: "Sexual temperament", icon: "\u2740", color: "#dba3c0", kind: "mood", order: 15.2, rows: [
         { id: "vanilla", label: "Vanilla", cue: "wants straightforward, affectionate sex without kink or power play", prompt: true },
         { id: "sex_positive", label: "Sex-positive", cue: "open, curious and shameless about sex", prompt: true },
         { id: "late_bloomer", label: "Late bloomer", cue: "came to sex late and is discovering everything", prompt: true },
@@ -90,14 +90,14 @@ export default [
         { id: "dirty_minded", label: "Dirty minded", cue: "turns innocent remarks into innuendo, in their head or out loud", prompt: true, onPage: "innuendo in everything, smirks at double meanings" },
         { id: "covert_pervert", label: "Covert pervert", cue: "filthy thoughts behind a respectable face; it slips out in glances and double meanings", prompt: true, onPage: "proper on the surface, filthy thoughts and sly looks" },
         { id: "deviant", label: "Deviant", cue: "drawn to the taboo", prompt: "deviant, drawn to the taboo", onPage: "wants the taboo, steers toward it" },
-        { id: "repressed", label: "Repressed", cue: "won’t admit what they want; it leaks out as staring, overreacting or sudden guilt", prompt: true },
+        { id: "repressed", label: "Repressed", cue: "won\u2019t admit what they want; it leaks out as staring, overreacting or sudden guilt", prompt: true },
         { id: "fetishistic", label: "Fetishistic", cue: "fixated on one object, body part or act", prompt: "fetishistic (fixated on one object, body part or act)" },
         { id: "artistic_pervert", label: "Artistic pervert", cue: "dresses perversion up as art", prompt: "an artistic pervert (dresses their perversion up as art)" },
         { id: "male_gaze", label: "Male gaze", cue: "looking at their partner as a body, all looks and sex appeal", prompt: "male gaze (sees their partner as a body, all looks and sex appeal)", onPage: "notices bodies as a man would: weight, shape, what he wants to do" },
         { id: "female_gaze", label: "Female gaze", cue: "drinking in their partner as a whole person, how they look, feel and make them feel", prompt: "female gaze (drinks in their partner as a whole person: how they look, how they feel, how they make them feel)", onPage: "notices bodies as a woman would: hands, voice, how it feels" },
     ] },
     // What switches their desire on: closeness, distance, banter, being chased, fear, obedience.
-    { id: "attraction", name: "What draws them", icon: "✧", color: "#e3a9a9", kind: "mood", order: 15.4, rows: [
+    { id: "attraction", name: "What draws them", icon: "\u2727", color: "#e3a9a9", kind: "mood", order: 15.4, rows: [
         { id: "responsive_desire", label: "Responsive desire", cue: "desire builds in response to welcome closeness and atmosphere", prompt: "desire builds in response to welcome closeness and atmosphere" },
         { id: "spontaneous_desire", label: "Spontaneous desire", cue: "desire arrives on its own, before anything has happened between them", prompt: "desire arrives on its own, before anything has happened between them" },
         { id: "reciprocal_desire", label: "Drawn to being desired", cue: "feeling wanted draws them in and makes their own interest grow", prompt: "feeling wanted draws them in and makes their own interest grow" },
@@ -108,24 +108,24 @@ export default [
         { id: "attraction_to_contrast", label: "Attraction to contrast", cue: "differences in manner, background or appearance are part of what draws them in", prompt: "differences in manner, background or appearance are part of what draws them in", onPage: "drawn to how different they are; pokes at it" },
         { id: "competitive_attraction", label: "Competitive attraction", cue: "being matched or challenged makes a rival more compelling", prompt: "being matched or challenged makes a rival more compelling", onPage: "flirts by competing, wants to beat and have them" },
         { id: "wants_to_be_pursued", label: "Wants to be pursued", cue: "wants someone to make an effort and show that their interest lasts", prompt: "wants someone to make an effort and show that their interest lasts", onPage: "hard to get on purpose; glances back to see if they follow" },
-        { id: "seduction_as_hunting", label: "Seduction as hunting", cue: "the chase and the catch are the point; the person afterwards isn’t", prompt: true },
+        { id: "seduction_as_hunting", label: "Seduction as hunting", cue: "the chase and the catch are the point; the person afterwards isn\u2019t", prompt: true },
         { id: "care_as_foreplay", label: "Care as foreplay", cue: "nursing, feeding and washing someone is where their desire starts", prompt: true },
         { id: "fear_arousal", label: "Fear arousal", cue: "fear and arousal blur together for them", prompt: "fear and arousal blur together" },
         { id: "obedience_arousal", label: "Obedience as arousal", cue: "compliance itself turns them on; a fast yes is hotter than any touch", prompt: true },
-        { id: "losing_control_arousal", label: "Aroused by losing control", cue: "desire spikes exactly when they’re overpowered, and it shames them", prompt: true },
+        { id: "losing_control_arousal", label: "Aroused by losing control", cue: "desire spikes exactly when they\u2019re overpowered, and it shames them", prompt: true },
         { id: "post_violence_lust", label: "Violence, then lust", cue: "a fight, a beating or a kill leaves them wanting sex", prompt: true },
     ] },
     // The psychology under it: what sex means to them, how it ties to shame, pain, coping, family and the past.
-    { id: "psychosexual", name: "Psychosexual", icon: "⚘", color: "#c792b0", kind: "mood", order: 15.6, rows: [
+    { id: "psychosexual", name: "Psychosexual", icon: "\u2698", color: "#c792b0", kind: "mood", order: 15.6, rows: [
         { id: "sex_as_comfort", label: "Sex as comfort", cue: "uses sex to feel safe and soothed", prompt: true },
         { id: "sex_as_punishment", label: "Sex as punishment", cue: "uses sex to punish or to be punished", prompt: true },
-        { id: "hypersexual_coping", label: "Hypersexual coping", cue: "throws themselves into sex so they don’t have to feel anything", prompt: true },
+        { id: "hypersexual_coping", label: "Hypersexual coping", cue: "throws themselves into sex so they don\u2019t have to feel anything", prompt: true },
         { id: "revenge_sex", label: "Revenge sex", cue: "wants sex to get back at someone", prompt: true },
         { id: "repetition_compulsion", label: "Repetition compulsion", cue: "keeps recreating old harm in intimacy without realising", prompt: true },
         { id: "intimacy_performance_anxiety", label: "Performance anxiety", cue: "worries about measuring up during intimacy and gets stuck judging themselves", prompt: "worries about measuring up during intimacy and gets stuck judging themselves" },
-        { id: "fantasy_reality_gap", label: "Fantasy–reality gap", cue: "likes an idea in fantasy without necessarily wanting it to happen", prompt: "likes an idea in fantasy without necessarily wanting it to happen" },
+        { id: "fantasy_reality_gap", label: "Fantasy\u2013reality gap", cue: "likes an idea in fantasy without necessarily wanting it to happen", prompt: "likes an idea in fantasy without necessarily wanting it to happen" },
         { id: "overanalysing_attraction", label: "Overanalysing attraction", cue: "keeps picking apart what their attraction means instead of simply feeling it", prompt: "keeps picking apart what their attraction means instead of simply feeling it" },
-        { id: "compersion", label: "Compersion", cue: "takes pleasure in a partner’s happiness with others, alongside any mixed feelings", prompt: "takes pleasure in a partner’s happiness with others, alongside any mixed feelings" },
+        { id: "compersion", label: "Compersion", cue: "takes pleasure in a partner\u2019s happiness with others, alongside any mixed feelings", prompt: "takes pleasure in a partner\u2019s happiness with others, alongside any mixed feelings" },
         { id: "repressed_voyeur", label: "Repressed voyeur", cue: "drawn to watching private moments but denies or suppresses the interest; attention and self-restraint pull against each other", prompt: "drawn to watching private moments but denies or suppresses the interest; attention and self-restraint pull against each other" },
         { id: "sex_is_power", label: "Sex as power", cue: "sex is about power and control: who leads, who gives in and who wins", prompt: true },
         { id: "desire_as_validation", label: "Desire as validation", cue: "being desired feels like proof of their worth; indifference stings personally", prompt: "being desired feels like proof of their worth; indifference stings personally" },
@@ -133,14 +133,14 @@ export default [
         { id: "sex_without_closeness", label: "Sex without closeness", cue: "easy with sex, terrified of real intimacy", prompt: true },
         { id: "sexual_shame", label: "Sexual shame", cue: "desire tangled up with shame and guilt", prompt: "desire tangled up with shame and guilt" },
         { id: "sinful_desire", label: "Sinful desire", cue: "sees desire as sin and wants it anyway", prompt: "sees desire as sin and wants it anyway" },
-        { id: "madonna_whore", label: "Madonna-whore complex", cue: "can’t desire the one they respect, or respect the one they desire", prompt: "Madonna-whore complex (can’t desire the one they respect, or respect the one they desire)" },
+        { id: "madonna_whore", label: "Madonna-whore complex", cue: "can\u2019t desire the one they respect, or respect the one they desire", prompt: "Madonna-whore complex (can\u2019t desire the one they respect, or respect the one they desire)" },
         { id: "transference", label: "Transference", cue: "putting feelings about someone from their past onto them", prompt: "transference (putting feelings about someone from their past onto them)" },
         { id: "mother_issues", label: "Mother issues", cue: "unresolved stuff with their mother that bleeds into how they love and want", prompt: true },
         { id: "father_issues", label: "Father issues", cue: "unresolved stuff with their father that bleeds into how they love and want", prompt: true },
-        { id: "sex_as_currency", label: "Sex as currency", cue: "trades sex for drugs, safety, money or favours and doesn’t see it as anything else", prompt: true },
-        { id: "cant_fuck_sober", label: "Can’t do it sober", cue: "desire only switches on high or drunk; sober closeness feels unbearable", prompt: true },
+        { id: "sex_as_currency", label: "Sex as currency", cue: "trades sex for drugs, safety, money or favours and doesn\u2019t see it as anything else", prompt: true },
+        { id: "cant_fuck_sober", label: "Can\u2019t do it sober", cue: "desire only switches on high or drunk; sober closeness feels unbearable", prompt: true },
         { id: "swaps_cravings", label: "Swaps cravings", cue: "trades one craving for another: no fix means sex, no sex means a fix", prompt: true },
-        { id: "compulsive_cheating", label: "Compulsive cheating", cue: "can’t stay faithful; the betrayal is half the thrill", prompt: true },
+        { id: "compulsive_cheating", label: "Compulsive cheating", cue: "can\u2019t stay faithful; the betrayal is half the thrill", prompt: true },
         { id: "jealousy_as_fuel", label: "Jealousy as fuel", cue: "seeing them wanted by anyone else makes them want them violently", prompt: true },
         { id: "hate_as_desire", label: "Hate as desire", cue: "the more they loathe someone, the more they want them", prompt: true },
         { id: "cruelty_as_intimacy", label: "Cruelty as intimacy", cue: "affection only comes out as roughness, mockery and pain", prompt: true },
@@ -151,8 +151,8 @@ export default [
         { id: "morbid_desire", label: "Morbid desire", cue: "desire tangled up with death and decay", prompt: "desire tangled up with death and decay" },
         { id: "devouring_desire", label: "Devouring desire", cue: "want so strong it reads as wanting to consume them: bite, swallow, keep inside", prompt: true },
         { id: "preservation_fantasy", label: "Preservation fantasy", cue: "wants the one they desire kept exactly as they are: posed, kept, unchanging, forever theirs", prompt: true },
-        { id: "drawn_to_fading", label: "Drawn to the fading", cue: "wants someone most when they’re sick, weak or slipping away", prompt: true },
+        { id: "drawn_to_fading", label: "Drawn to the fading", cue: "wants someone most when they\u2019re sick, weak or slipping away", prompt: true },
         { id: "holy_masochism", label: "Holy masochism", cue: "pain, prayer and climax tangled into one ecstasy; suffering as worship", prompt: true },
-        { id: "body_as_property", label: "Body as property", cue: "treats a lover’s body as theirs to change: cut their hair, mark, scar, dress and feed them", prompt: true },
+        { id: "body_as_property", label: "Body as property", cue: "treats a lover\u2019s body as theirs to change: cut their hair, mark, scar, dress and feed them", prompt: true },
     ] },
 ];

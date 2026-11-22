@@ -6,14 +6,14 @@
 import { BY_ID } from '../data/catalogue.js';
 import { KIN, familyLines } from './turns.js';
 
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const WARM = new Set(['happy', 'closeness', 'love', 'attachment', 'desire', 'calm']);
 const COLD = new Set(['angry', 'cruel', 'cold', 'sad', 'scared']);
 const FADE = 0.985, MIN = 8;
 const STRIP = /^(his|her|their|my|your|the|that|this|a|an|old)\s+/i;
-// "his wife" → { key: 'margaret', name: 'Margaret' } when the family box has "Wife: Margaret…".
+// "his wife" \u2192 { key: 'margaret', name: 'Margaret' } when the family box has "Wife: Margaret\u2026".
 function who(about, family) {
-    const raw = String(about ?? '').trim().replace(/[’']s$/i, ''); let t = raw.toLowerCase();
+    const raw = String(about ?? '').trim().replace(/[\u2019']s$/i, ''); let t = raw.toLowerCase();
     while (STRIP.test(t)) t = t.replace(STRIP, '');
     if (!t || t.length > 30) return null;
     for (const f of family) {
@@ -25,7 +25,7 @@ function who(about, family) {
 export function familyPeople(st) {
     return familyLines(st).map(line => {
         const [rel, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
-        const name = ((rest || line).match(/\b[A-Z][a-z’']{2,}\b/) ?? [''])[0];
+        const name = ((rest || line).match(/\b[A-Z][a-z\u2019']{2,}\b/) ?? [''])[0];
         const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(rel))).flat();
         return { rel: rel.trim().toLowerCase(), name, kin };
     });
@@ -55,7 +55,7 @@ export function opinionWord(warm, cold) {
 }
 // Only people the scene names (by name or by relation) go to Claude.
 export function opinionLines(list, n, scene = '') {
-    const t = ` ${String(scene ?? '').toLowerCase().replace(/[^a-zà-ÿ' -]/g, ' ')} `;
+    const t = ` ${String(scene ?? '').toLowerCase().replace(/[^a-z\u00e0-\u00ff' -]/g, ' ')} `;
     const fam = list.filter(o => [o.name.toLowerCase().split(' ')[0], ...(o.rel ? [o.rel] : [])].some(w => w && (t.includes(` ${w} `) || t.includes(` ${w}'s `))));
     if (!fam.length) return [];
     return [`How ${pt(n)} has come to feel about others the scene brings up (from the story so far; let it colour how ${pt(n)} speaks of or to them): ${fam.slice(0, 4).map(o => `${pt(o.name)}: ${o.word}${o.feel.length ? ` (${o.feel.map(pt).join(', ')})` : ''}`).join('; ')}`];

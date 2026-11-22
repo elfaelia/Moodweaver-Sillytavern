@@ -12,13 +12,13 @@ export { RECIPES, STORY_RECIPES } from './catalogue/recipes.js';
 
 const SECTIONS = [...moodSection, ...traitSection, ...intimacySection, ...psycheSection, ...stateSection, ...storySection].sort((a, b) => a.order - b.order);
 
-// words: "seething, white-hot, out for blood" → ['seething', 'white-hot', 'out for blood'].
+// words: "seething, white-hot, out for blood" \u2192 ['seething', 'white-hot', 'out for blood'].
 const wordsOf = text => String(text).toLowerCase().split(',').map(w => w.trim()).filter(Boolean);
 export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.toLowerCase());
 
 // [id, name, icon, colour, rows, kind]; rows are [id, label, cue, note].
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
-// "hazy_drunk +4, emboldened +2" → [['hazy_drunk', 4], ['emboldened', 2]].
+// "hazy_drunk +4, emboldened +2" \u2192 [['hazy_drunk', 4], ['emboldened', 2]].
 const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
 export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.private ? { private: true } : {}), ...(r.size ? { size: r.size } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
@@ -37,7 +37,7 @@ for (const c of SECTIONS) for (const r of c.rows) {
 
 // Traits tab: who someone is, rather than how they feel right now. Intimacy tab: how they want and have sex
 // (catalogue/intimacy.js). Both are standing: they don't fade, and the scene reader only changes them when its
-// ❂ Traits scope is on.
+// \u2742 Traits scope is on.
 export const TRAIT_CATEGORIES = new Set(['love', 'sims', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
 export const INTIMACY_CATEGORIES = new Set(intimacySection.map(c => c.id));
 // Mind tab (catalogue/psyche.js): how someone's mind works underneath. Standing, like traits.

@@ -1,9 +1,9 @@
 // Secrets and leverage (1.79), after Crusader Kings III's secrets and hooks. Each person keeps a few secrets, one a
-// line on their profile card. A secret moves hidden → suspected → known (the other person knows: a hook they hold)
-// → out (everyone knows), or "used" when someone plays it against them. The story moves it by naming it on the
+// line on their profile card. A secret moves hidden \u2192 suspected \u2192 known (the other person knows: a hook they hold)
+// \u2192 out (everyone knows), or "used" when someone plays it against them. The story moves it by naming it on the
 // hidden line ("secrets: affair suspected"); you can also tap a state. The newer of the two wins. Read back from
 // the chat each time, so swiping a reply takes its step with it. Data and pure functions.
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 export const SECRET_STATES = ['hidden', 'suspected', 'known', 'out', 'used'];
 const STOP = new Set(['the', 'and', 'that', 'this', 'with', 'from', 'about', 'they', 'their', 'them', 'his', 'her', 'was', 'were', 'has', 'had', 'have', 'not', 'for', 'who', 'what', 'when', 'into', 'once', 'still']);
 const wordsOf = t => String(t ?? '').toLowerCase().replace(/[^a-z' ]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
@@ -17,7 +17,7 @@ export function secretList(st) {
     return cleanSecrets(st?.secrets).split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 6)
         .map(text => ({ key: secretKey(text), text, title: titleOf(text), words: wordsOf(text) }));
 }
-// "affair suspected" or "Ruth known" → { words, state }.
+// "affair suspected" or "Ruth known" \u2192 { words, state }.
 export function secretStep(item) {
     const t = String(item ?? '').toLowerCase().trim(), m = t.match(/\b(suspected|suspects?|known|knows|found out|out|exposed|public|used|spent|hidden)\.?$/);
     if (!m) return null;

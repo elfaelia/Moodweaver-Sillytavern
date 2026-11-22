@@ -60,7 +60,7 @@ export const SCENE_WORDS = {
 export const plainStory = s => String(s ?? '').replace(/<!--[\s\S]*?-->/g, ' ').replace(/```[\s\S]*?```/g, ' ').replace(/<details[\s\S]*?<\/details>/gi, ' ').replace(/<[^>]+>/g, ' ');
 
 // texts: [{ text, weight }]: the newest reply at weight 1, your last message at about 0.6.
-// Returns { intimate, sex, violence, … } as scores, and on: the kinds at 2 or more.
+// Returns { intimate, sex, violence, \u2026 } as scores, and on: the kinds at 2 or more.
 export function readScene(texts = []) {
     const score = {};
     for (const [kind, lists] of Object.entries(SCENE_WORDS)) {

@@ -8,18 +8,18 @@ import { SKILL_COMBOS, SKILL_GROUPS, SKILL_MERGED } from '../data/catalogue/skil
 import { pronounize } from './pronouns.js';
 import { sceneHas } from './util.js';
 
-const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’‘]/g, "'");
+const norm = s => String(s ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[\u2019\u2018]/g, "'");
 export { SKILL_GROUPS };
 export const SKILL_BY_ID = Object.fromEntries(SKILL_GROUPS.flatMap(g => g.rows.map(r => [r.id, { ...r, prompt: r.prompt || r.label.toLowerCase(), group: g.name, color: g.color }])));
 
-// 1–10, worded so the number and the word agree; the rule line in the note says what a level does. Below zero
+// 1\u201310, worded so the number and the word agree; the rule line in the note says what a level does. Below zero
 // (-1 to -10, the same reach as the good side) someone is actively bad at it: a hopeless liar, a cook whose food
 // tastes wrong.
 const SKILL_LEVELS = [[10, 'master'], [9, 'expert'], [7, 'skilled'], [5, 'competent'], [3, 'amateur'], [1, 'novice'], [-2, 'shaky'], [-4, 'poor'], [-6, 'bad'], [-8, 'terrible'], [-10, 'hopeless']];
 export const skillWord = v => v === 0 ? 'off' : SKILL_LEVELS.find(([min]) => v >= min)?.[1] ?? 'hopeless';
 export const SKILL_MIN = -10;
-// Before 1.76 the bad side went to −5. Saved levels from then are doubled once, so each keeps its word
-// (−5 hopeless becomes −10 hopeless); state.skillScale = 2 marks a state as already on the even scale.
+// Before 1.76 the bad side went to \u22125. Saved levels from then are doubled once, so each keeps its word
+// (\u22125 hopeless becomes \u221210 hopeless); state.skillScale = 2 marks a state as already on the even scale.
 export const SKILL_SCALE = 2;
 export const widenSkills = (obj, scale) => scale === SKILL_SCALE ? obj : Object.fromEntries(Object.entries(obj && typeof obj === 'object' ? obj : {}).map(([id, v]) => [id, Number(v) < 0 ? Number(v) * 2 : v]));
 const level = v => Math.max(SKILL_MIN, Math.min(10, Math.round(Number(v) || 0)));
@@ -36,7 +36,7 @@ export const cleanXp = obj => Object.fromEntries(Object.entries(obj && typeof ob
     .map(([id, [uses, idle]]) => [id, [Math.max(0, Math.round(Number(uses) || 0)), Math.max(0, Math.round(Number(idle) || 0))]]));
 
 // How fast picked skills change by themselves. per: uses needed per level (times the current level, so
-// 4 → 5 takes four times as long as 1 → 2). rust: replies without using it before it slips a level.
+// 4 \u2192 5 takes four times as long as 1 \u2192 2). rust: replies without using it before it slips a level.
 export const SKILL_PACE = {
     off: { label: 'Off: only by hand' },
     slow: { label: 'Slow', per: 8, rust: 150 },
@@ -45,7 +45,7 @@ export const SKILL_PACE = {
 };
 export const cleanSkillPace = v => SKILL_PACE[v] ? v : 'slow';
 
-// Words → patterns. "a|b c|stem*": whole words, spaces match any gap, '*' allows any ending.
+// Words \u2192 patterns. "a|b c|stem*": whole words, spaces match any gap, '*' allows any ending.
 const patterns = new Map();
 const escapeRe = w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const termsOf = words => [...new Set(norm(words).split(/[|,;]/).map(w => w.trim()).filter(w => w.length > 1))];
@@ -117,7 +117,7 @@ const RANK = { used: 0, scene: 1, context: 2 };
 export function litSkills(state, scene = '', used = '', cap = 5, context = null) {
     const s = norm(scene), u = norm(used), fits = x => Boolean(context?.size) && x.when.split(/\s+/).some(t => t && context.has(t));
     return skillsOf(state).map(x => { const pull = callStrength(x.words, s); return { ...x, pull, why: u && named(x, u) ? 'used' : pull >= CALLED ? 'scene' : fits(x) ? 'context' : '' }; })
-        // Within the scene's calls, the strongest call first; then how far from untrained (a hopeless −8 is as
+        // Within the scene's calls, the strongest call first; then how far from untrained (a hopeless \u22128 is as
         // worth sending as an expert 8), so a skill they are bad at isn't always the one left out.
         .filter(x => x.why).sort((a, b) => RANK[a.why] - RANK[b.why] || (a.why === 'scene' ? b.pull - a.pull : 0) || Math.abs(b.level) - Math.abs(a.level))
         .filter((x, i, all) => x.why !== 'context' || all.slice(0, i).filter(y => y.why === 'context').length < 3).slice(0, cap);
@@ -162,7 +162,7 @@ export function skillProgress(state, id) {
     if (!pace.per || !lv || lv >= 10 || cleanPins(state?.skillPins)[id]) return null;
     return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv)];
 }
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 // people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
 // levels only), then, only for what's lit: each skill's description, one combo line, and the rule.
 const roster = p => `${pt(p.name)}: ${p.all.map(x => `${pt(x.prompt)} ${x.level}`).join(', ')}`;
@@ -172,10 +172,10 @@ function comboOf(p, other, seed) {
     const text = hits[Math.abs(seed) % hits.length][2].replaceAll('{n}', p.name).replaceAll('{u}', other);
     return pronounize(text[0].toUpperCase() + text.slice(1), p.name, other);
 }
-export function skillLines(people = [], u = 'the player’s character', seed = 0, n = '') {
+export function skillLines(people = [], u = 'the player\u2019s character', seed = 0, n = '') {
     const all = people.filter(p => p.all?.length);
     if (!all.length) return [];
-    const out = [`Skills (10 master, 1 novice, 0 untrained, −1 to −10 bad at it down to hopeless): ${all.map(roster).join('; ')}.`];
+    const out = [`Skills (10 master, 1 novice, 0 untrained, \u22121 to \u221210 bad at it down to hopeless): ${all.map(roster).join('; ')}.`];
     const lit = people.filter(p => p.lit?.length);
     if (!lit.length) return out;
     out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level > 0 ? `${x.level}/10` : x.level} (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));

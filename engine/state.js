@@ -177,7 +177,7 @@ export function cleanTargets(targets = {}) {
     return Object.fromEntries(['hate', 'compareA', 'compareB', 'year'].map(key => [key,
         String(targets?.[key] ?? '').replace(/\s+/g, ' ').trim().slice(0, key === 'year' ? 20 : 80)]));
 }
-// "because…" notes on individual moods and facts.
+// "because\u2026" notes on individual moods and facts.
 // How a feeling shows on this particular person, in the player's words. It replaces the default
 // "how it shows" wording for that feeling, so Bateman's rage can be a pleasant smile.
 function cleanShows(shows = {}) {

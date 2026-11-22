@@ -55,7 +55,7 @@ const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFE699"/></patternFill></fill></fills>
 <borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs>
 <cellXfs count="5"><xf fontId="0" fillId="0" applyFont="1"/><xf fontId="1" fillId="2" applyFont="1" applyFill="1"><alignment wrapText="1" vertical="center"/></xf><xf fontId="1" fillId="3" applyFont="1" applyFill="1"><alignment wrapText="1" vertical="center"/></xf><xf fontId="2" fillId="2" applyFont="1" applyFill="1"/><xf fontId="3" fillId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-// sheets: [{ name, rows: [[cell…]…], styles?: [[styleIndex…]…] (per cell, row by row), widths?: [n…], freeze?: { row, col },
+// sheets: [{ name, rows: [[cell\u2026]\u2026], styles?: [[styleIndex\u2026]\u2026] (per cell, row by row), widths?: [n\u2026], freeze?: { row, col },
 //           lists?: [{ col, rows: [from, to], source: 'Lists!$A$2:$A$15' }] }]
 export function buildXlsx(sheets) {
     const sheetXml = s => {
@@ -85,7 +85,7 @@ const unx = s => String(s).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/
 const textIn = xml => [...String(xml).matchAll(/<(?:\w+:)?t(?:\s[^>]*)?>([\s\S]*?)<\/(?:\w+:)?t>/g)].map(m => unx(m[1])).join('');
 const attr = (tag, name) => tag.match(new RegExp(`\\s${name}="([^"]*)"`))?.[1];
 const colIndex = ref => { const letters = ref.match(/^[A-Z]+/)?.[0] ?? 'A'; let n = 0; for (const ch of letters) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
-// → { 'Songs': [[cell…]…], … } with every cell as text.
+// \u2192 { 'Songs': [[cell\u2026]\u2026], \u2026 } with every cell as text.
 export async function readXlsx(bytes) {
     const files = await unzip(bytes), get = name => files.has(name) ? dec.decode(files.get(name)) : '';
     const book = get('xl/workbook.xml'); if (!book) throw new Error('This spreadsheet has no workbook inside.');
@@ -109,9 +109,9 @@ export async function readXlsx(bytes) {
     }
     return out;
 }
-// CSV (Google Sheets' "Download as CSV", or exportify.net) → rows of text.
+// CSV (Google Sheets' "Download as CSV", or exportify.net) \u2192 rows of text.
 export function readCsv(text) {
-    const rows = []; let row = [], cell = '', quoted = false; const s = String(text).replace(/^﻿/, '');
+    const rows = []; let row = [], cell = '', quoted = false; const s = String(text).replace(/^\ufeff/, '');
     for (let i = 0; i < s.length; i++) {
         const ch = s[i];
         if (quoted) { if (ch === '"') { if (s[i + 1] === '"') { cell += '"'; i++; } else quoted = false; } else cell += ch; continue; }

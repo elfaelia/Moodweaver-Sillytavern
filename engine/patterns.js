@@ -12,7 +12,7 @@ function proseOf(mes) {
         .replace(/<(think|thinking|reasoning)>[\s\S]*?<\/\1>/gi, ' ')
         .replace(/^[^\n<]{0,6}<b>[^<:]{1,60}:\s*<\/b>.*$/gm, ' ')
         .replace(/<[^>]+>/g, ' ').replace(/[*_~`]+/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
-        .replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/[ \t]+/g, ' ').trim();
+        .replace(/[\u2019\u2018]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/[ \t]+/g, ' ').trim();
 }
 const STOP = new Set(('a an the and or but of to in on at for with from by as is was were be been it its it\'s he she they him her them his their hers theirs '
     + 'i you your my me we us our that this these those there then than so if not no do does did have has had into out up down over just '
@@ -25,7 +25,7 @@ const COMMON = new Set(('because nothing without through against another already
 const plain = w => STOP.has(w) || COMMON.has(w) || w.includes("'");
 const words = s => s.toLowerCase().replace(/[^a-z' ]+/g, ' ').split(/\s+/).filter(Boolean);
 const dialogue = s => [...s.matchAll(/"([^"]{1,400})"/g)].map(m => m[1]);
-const sentences = s => s.split(/(?<=[.!?…])\s+|\n+/).map(x => x.trim()).filter(x => x.length > 2);
+const sentences = s => s.split(/(?<=[.!?\u2026])\s+|\n+/).map(x => x.trim()).filter(x => x.length > 2);
 const PET_ADJ = 'little|sweet|dear|darling|poor|precious|clever|wicked|cruel|naughty|silly|stupid|good|bad|pretty|beautiful|filthy|dirty|lovely|wretched|stubborn|brave|foolish|perfect';
 const PET_NOUN = 'devil|monster|bully|brat|menace|beast|wretch|creature|thing|minx|vixen|lamb|dove|bird|pet|girl|boy|darling|dear|love|sweetheart|angel|doll|fool|idiot|liar|tyrant|terror|nightmare|tease|heathen|sinner|patient|subject|child|one|treasure|wonder|miracle';
 const PET_RE = new RegExp(`\\b(?:oh,?\\s+)?(?:you|my)\\s+(?:(?:${PET_ADJ})\\s+)?(?:${PET_NOUN})\\b`, 'gi');
@@ -33,10 +33,10 @@ const EXCLAIM_RE = /\bwhat\s+a\s+(?:[a-z]+\s+){0,2}(?:thing|creature|sight|mess|
 const PAIRED_RE = /\b(?:a|an|one|in one|with a|with one)\s+([a-z]+),\s+([a-z]+)\s+([a-z]+)/gi;
 const MOTION_RE = /\b(?:in|with)\s+(?:one|a)\s+(?:[a-z]+[ ,]+){0,2}(?:motion|movement|gesture|flourish|sweep|move|twist|flick|stroke|jerk|pass)\b/gi;
 const STOCK = [
-    ['“not X, but Y” / “it’s not X, it’s Y” turns', /\b(?:it'?s|it was|this is|that'?s)\s+not\s+[^.?!]{1,40}[.,;—-]+\s*(?:it'?s|it was|but)\b|\bnot\s+[a-z]+,\s+but\s+[a-z]+/gi],
-    ['“something [shifts/tightens/cracks]” vagueness', /\bsomething\s+(?:in\s+\w+\s+\w+\s+)?(?:shifts?|shifted|tightens?|tightened|cracks?|cracked|loosens?|loosened|settles?|settled|twists?|twisted|stirs?|stirred|flickers?|flickered|breaks?|broke)\b/gi],
-    ['“the way [someone] …” fixation', /\bthe way (?:he|she|they|you|her|his|their)\s+\w+/gi],
-    ['a breath they didn’t know they were holding / let out a breath', /\b(?:let(?:s)? out a breath|a breath (?:he|she|they) didn'?t know|breath (?:he|she|they)'?d been holding)\b/gi],
+    ['\u201cnot X, but Y\u201d / \u201cit\u2019s not X, it\u2019s Y\u201d turns', /\b(?:it'?s|it was|this is|that'?s)\s+not\s+[^.?!]{1,40}[.,;\u2014-]+\s*(?:it'?s|it was|but)\b|\bnot\s+[a-z]+,\s+but\s+[a-z]+/gi],
+    ['\u201csomething [shifts/tightens/cracks]\u201d vagueness', /\bsomething\s+(?:in\s+\w+\s+\w+\s+)?(?:shifts?|shifted|tightens?|tightened|cracks?|cracked|loosens?|loosened|settles?|settled|twists?|twisted|stirs?|stirred|flickers?|flickered|breaks?|broke)\b/gi],
+    ['\u201cthe way [someone] \u2026\u201d fixation', /\bthe way (?:he|she|they|you|her|his|their)\s+\w+/gi],
+    ['a breath they didn\u2019t know they were holding / let out a breath', /\b(?:let(?:s)? out a breath|a breath (?:he|she|they) didn'?t know|breath (?:he|she|they)'?d been holding)\b/gi],
     ['eyes darkening / something flickering in the eyes', /\b(?:eyes|gaze)\s+(?:darken|darkened|darkening|flicker|flickered|glint|glinted)\b|\bsomething\s+flicker\w*\s+(?:in|behind|across)\s+(?:his|her|their)\s+(?:eyes|face|gaze)\b/gi],
 ];
 const count = (map, key, example, reply) => { const e = map.get(key) ?? { n: 0, replies: new Set(), ex: [] }; e.n++; e.replies.add(reply); if (e.ex.length < 4 && !e.ex.some(x => x.toLowerCase() === example.toLowerCase())) e.ex.push(example); map.set(key, e); };
@@ -53,16 +53,16 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     const pets = new Map();
     replies.forEach((t, r) => { for (const line of dialogue(t)) for (const re of [PET_RE, EXCLAIM_RE]) for (const m of line.matchAll(re)) count(pets, 'pet', tidy(m[0]), r); });
     const pet = pets.get('pet');
-    if (pet && pet.n >= 3 && pet.replies.size >= 2) out.push({ label: 'calling someone by a pet name or epithet in the same shape (“you little ___”, “my ___”, “oh, you ___”, “what a ___ thing”)', examples: pet.ex, n: pet.n + 2 });
-    // 2. Paired adjectives in front of a noun, and “in one ___ motion”.
+    if (pet && pet.n >= 3 && pet.replies.size >= 2) out.push({ label: 'calling someone by a pet name or epithet in the same shape (\u201cyou little ___\u201d, \u201cmy ___\u201d, \u201coh, you ___\u201d, \u201cwhat a ___ thing\u201d)', examples: pet.ex, n: pet.n + 2 });
+    // 2. Paired adjectives in front of a noun, and \u201cin one ___ motion\u201d.
     const shapes = new Map();
     replies.forEach((t, r) => {
         for (const m of t.matchAll(PAIRED_RE)) if (!STOP.has(m[1].toLowerCase()) && !STOP.has(m[2].toLowerCase())) count(shapes, 'paired', tidy(m[0]), r);
         for (const m of t.matchAll(MOTION_RE)) count(shapes, 'motion', tidy(m[0]), r);
     });
     const paired = shapes.get('paired'), motion = shapes.get('motion');
-    if (paired && paired.n >= 3 && paired.replies.size >= 2) out.push({ label: 'two comma-joined adjectives in front of a noun (“a short, clean motion”)', examples: paired.ex, n: paired.n + 1 });
-    if (motion && motion.n >= 2 && motion.replies.size >= 2) out.push({ label: 'describing a movement as “in one ___ motion / with a ___ flourish”', examples: motion.ex, n: motion.n + 1 });
+    if (paired && paired.n >= 3 && paired.replies.size >= 2) out.push({ label: 'two comma-joined adjectives in front of a noun (\u201ca short, clean motion\u201d)', examples: paired.ex, n: paired.n + 1 });
+    if (motion && motion.n >= 2 && motion.replies.size >= 2) out.push({ label: 'describing a movement as \u201cin one ___ motion / with a ___ flourish\u201d', examples: motion.ex, n: motion.n + 1 });
     // 3. Stock constructions.
     for (const [label, re] of STOCK) {
         const hits = new Map();
@@ -74,10 +74,10 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     const openers = new Map(); let total = 0;
     replies.forEach((t, r) => { for (const s of sentences(t)) { const w = words(s.replace(/^"/, '')).slice(0, 2); if (w.length < 2 || ignore.has(w[0])) continue; total++; count(openers, w.join(' '), s.split(/\s+/).slice(0, 5).join(' '), r); } });
     const topOpen = [...openers.entries()].filter(([k, e]) => e.n >= 4 && e.n / Math.max(total, 1) >= 0.08 && e.replies.size >= 3 && !/^(i |the )/.test(k)).sort((a, b) => b[1].n - a[1].n)[0];
-    if (topOpen) out.push({ label: `sentences opening with “${topOpen[0]} …” (${topOpen[1].n} times)`, examples: topOpen[1].ex.slice(0, 3), n: topOpen[1].n });
+    if (topOpen) out.push({ label: `sentences opening with \u201c${topOpen[0]} \u2026\u201d (${topOpen[1].n} times)`, examples: topOpen[1].ex.slice(0, 3), n: topOpen[1].n });
     const firsts = replies.map(t => words(sentences(t)[0] ?? '').slice(0, 3).join(' ')).filter(Boolean);
     const sameStart = firsts.find((f, i) => firsts.filter(x => x === f).length >= 3 && firsts.indexOf(f) === i);
-    if (sameStart) out.push({ label: `starting replies the same way (“${sameStart} …”)`, examples: [], n: 5 });
+    if (sameStart) out.push({ label: `starting replies the same way (\u201c${sameStart} \u2026\u201d)`, examples: [], n: 5 });
     // 5. Word chunks (4 words) that keep coming back across replies.
     const grams = new Map();
     replies.forEach((t, r) => {
@@ -90,7 +90,7 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     });
     const chunks = [...grams.entries()].filter(([, e]) => e.replies.size >= 3).sort((a, b) => b[1].replies.size - a[1].replies.size).map(([k]) => k);
     const kept = []; for (const c of chunks) if (!kept.some(k => k.includes(c.split(' ').slice(1, 3).join(' ')))) kept.push(c);
-    if (kept.length) out.push({ label: 'phrases repeated across replies', examples: kept.slice(0, 4).map(k => `“${k}”`), n: 4, quoted: true });
+    if (kept.length) out.push({ label: 'phrases repeated across replies', examples: kept.slice(0, 4).map(k => `\u201c${k}\u201d`), n: 4, quoted: true });
     // 6. Distinctive words worn thin: in 4 or more of the last 5 replies.
     const vocab = new Map();
     replies.forEach((t, r) => { for (const w of new Set(words(t))) if (w.length >= 7 && !plain(w) && !ignore.has(w)) count(vocab, w, w, r); });
@@ -99,11 +99,11 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     return out.sort((a, b) => b.n - a.n).slice(0, max);
 }
 
-// The prompt block. strength: the Pattern breaker slider (1–100).
+// The prompt block. strength: the Pattern breaker slider (1\u2013100).
 export function patternLines(found, strength = 60) {
     if (!found?.length) return [];
     const list = found.slice(0, strength >= 61 ? 6 : strength >= 21 ? 4 : 2);
-    return [`Pattern breaker: the last few replies keep reusing these shapes. Don’t use them in this reply, not even with the words swapped, and don’t swap in a lookalike:`,
-        ...list.map(p => `- ${p.label}${p.examples.length ? `: ${p.quoted ? p.examples.join(', ') : p.examples.map(e => `“${e}”`).join(', ')}` : ''}`),
+    return [`Pattern breaker: the last few replies keep reusing these shapes. Don\u2019t use them in this reply, not even with the words swapped, and don\u2019t swap in a lookalike:`,
+        ...list.map(p => `- ${p.label}${p.examples.length ? `: ${p.quoted ? p.examples.join(', ') : p.examples.map(e => `\u201c${e}\u201d`).join(', ')}` : ''}`),
         `Write those beats another way: a different sentence shape, a different kind of detail, or leave the beat out. Only these exact shapes are out: ordinary words and contractions (doesn't, can't, he's) stay as normal.${strength >= 81 ? ' Vary sentence length and paragraph openings across the whole reply too.' : ''}`];
 }

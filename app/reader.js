@@ -41,9 +41,9 @@ export async function analyse(force = false, whom = ui.who, ch = target()) {
     const state = subject?.state;
     if (run.suspended || !state || !state.enabled || run.pending || whom === 'story') return;
     // Nothing ticked means nothing to read; don't pay for an empty request.
-    if (!SCOPES.some(([k]) => cleanScope(state.readScope)[k])) { if (force) { run.status = `Nothing to read: tick Moodlets, Body, Traits or Wants under ✧ Scene reader first.`; renderStatus(); } return; }
+    if (!SCOPES.some(([k]) => cleanScope(state.readScope)[k])) { if (force) { run.status = `Nothing to read: tick Moodlets, Body, Traits or Wants under \u2727 Scene reader first.`; renderStatus(); } return; }
     const profile = readerProfile();
-    if (!profile) { run.status = 'Pick a reader connection under ✧ Scene reader first.'; renderStatus(); return; }
+    if (!profile) { run.status = 'Pick a reader connection under \u2727 Scene reader first.'; renderStatus(); return; }
     const snapshot = identity(ch) + subject.key, revision = state.revision, metadata = c.chatMetadata;
     const fp = fingerprint(c.chat), userCount = c.chat.filter(m => m.is_user && !m.is_system).length;
     if (!force && (fp === state.lastFingerprint || (state.lastUserCount >= 0 && userCount > state.lastUserCount && userCount - state.lastUserCount < state.interval))) return;
@@ -52,7 +52,7 @@ export async function analyse(force = false, whom = ui.who, ch = target()) {
     const controller = new AbortController();
     run.pending = { controller, snapshot };
     const timer = setTimeout(() => controller.abort(), 45000);
-    run.status = `Reading the scene for ${subject.person.name}…`; render();
+    run.status = `Reading the scene for ${subject.person.name}\u2026`; render();
     try {
         // No fallback to the main model: a missing or invalid profile is an error.
         const response = await c.ConnectionManagerRequestService.sendRequest(profile, messages, settings().outputTokens,
@@ -74,13 +74,13 @@ export async function analyse(force = false, whom = ui.who, ch = target()) {
         await syncPromptNow(); render();
     }
 }
-// Bonds → Re-read the scene. One request to the reader's connection, only when tapped: where the
+// Bonds \u2192 Re-read the scene. One request to the reader's connection, only when tapped: where the
 // character and your persona stand now, from the latest messages. The meters are set there (pinned ones are
 // left alone) and, in story mode, the dynamic the reader names holds until a reply names another.
 export async function readBond(ch = target()) {
     const c = ctx(), bond = bondData(ch), profile = readerProfile();
     if (run.suspended || !ch || !bond.on || run.pending) return;
-    if (!profile) { run.status = 'Pick a reader connection under ✧ Scene reader (Moods tab) first.'; renderStatus(); return; }
+    if (!profile) { run.status = 'Pick a reader connection under \u2727 Scene reader (Moods tab) first.'; renderStatus(); return; }
     const n = shortName(ch.name), u = shortName(playerName()), list = bondList(ch), now = computeBond(bond, Infinity, n, u, bondAxes(ch), list);
     const on = cleanMore(bond.more).on, meters = on.map(k => { const m = MORE_METERS.find(x => x[0] === k); return { key: k, word: m[4], two: m[2] }; });
     const names = (bond.pool.length ? dynamicRows().filter(r => bond.pool.includes(r[0])) : dynamicRows()).map(r => fillDynamic(r[0], n, u));
@@ -91,7 +91,7 @@ export async function readBond(ch = target()) {
     const controller = new AbortController(), snapshot = identity(ch), fp = fingerprint(c.chat), metadata = c.chatMetadata;
     run.pending = { controller, snapshot };
     const timer = setTimeout(() => controller.abort(), 45000);
-    run.status = `Reading where ${n} and ${u} stand…`; render();
+    run.status = `Reading where ${n} and ${u} stand\u2026`; render();
     try {
         const response = await c.ConnectionManagerRequestService.sendRequest(profile, messages, settings().outputTokens,
             { stream: false, signal: controller.signal, extractData: true, includePreset: false, includeInstruct: true });

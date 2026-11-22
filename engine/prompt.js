@@ -13,7 +13,7 @@ import { TURN_BY_ID, compareProfiles, familyText, favText, petNames, profileText
 
 function directedCue(id, value, state, people) {
     if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
-    const { focus = 'the main character', player = 'the player’s character', subject = focus } = people;
+    const { focus = 'the main character', player = 'the player\u2019s character', subject = focus } = people;
     const targets = cleanTargets(state?.targets);
     const name = text => escapeHtml(text.replaceAll('{{char}}', focus).replaceAll('{{user}}', player));
     if (id === 'comparing_people') {
@@ -32,7 +32,7 @@ function directedCue(id, value, state, people) {
 }
 // 'all' sends the default "how it shows" plus your own; 'mine' only your own; 'off' neither.
 let SHOWS = 'all';
-// Traits in focus (⚙ Settings › What is sent › Traits): a few traits go in full each reply (the ones the scene
+// Traits in focus (\u2699 Settings \u203a What is sent \u203a Traits): a few traits go in full each reply (the ones the scene
 // names first, then the rest in turn, stronger ones more often) and the others go as one line of names, so traits
 // stay part of who someone is without crowding out this reply's feelings and dynamic. Off sends every trait in full.
 let TRAITS = { focus: true, scene: '', seed: 0 };
@@ -90,7 +90,7 @@ const moodName = (m, other, value = 0, state = null, people = {}) => {
 // Said once when narration and dialogue have their own authors. Opus 5.5 follows a split best when each side
 // is defined by what it covers, and told what the other side must not borrow.
 const AUTHOR_SPLIT = `Narration and dialogue are split between authors here. An author marked narration only shapes everything outside quotation marks: description, action, what the eye lingers on, inner life, sentence shape and paragraphing. An author marked dialogue only shapes what people say aloud: their vocabulary and slang, rhythm, interruptions, what they dodge or leave unsaid, and how they flirt, threaten, joke and ask for things. Everyone still talks like themselves, their era, class and history; the dialogue author decides how that sounds on the page, not who they are or what they want. Keep each voice on its own side: speech doesn't pick up the narration's sentence rhythm, and the narration doesn't start talking like the characters. Authors with no mark shape both.`;
-// The parts of an author's brief ("Prose: … Dialogue: … Minds: … People: … Hallmarks: …") that a role keeps:
+// The parts of an author's brief ("Prose: \u2026 Dialogue: \u2026 Minds: \u2026 People: \u2026 Hallmarks: \u2026") that a role keeps:
 // dialogue only keeps how people talk; narration only drops it.
 const BRIEF_PART = /(?=\b(?:Prose|Dialogue|Minds|People|Hallmarks): )/;
 function briefFor(style, role) {
@@ -131,9 +131,9 @@ function wildcardOf(strength = 0, seed = 0) {
     return h % 100 < strength ? WILDCARDS[(h >>> 8) % WILDCARDS.length] : '';
 }
 // Prompt-safe text. Only angle brackets could break the note's tags, so apostrophes stay readable ("he's", not "he&#39;s").
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
-// Inside name="…" a straight quote would end the name early, so it's swapped for a curly one.
-const pa = v => pt(v).replace(/"/g, '”');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
+// Inside name="\u2026" a straight quote would end the name early, so it's swapped for a curly one.
+const pa = v => pt(v).replace(/"/g, '\u201d');
 const tierWord = v => tierOf(v).name.toLowerCase();
 // The strength key in the note, shorter than the panel's wording but saying the same thing.
 const TIER_NOTE = { maximum: 'full force in nearly every line; several maximums fuse, none waters another down', overwhelming: 'dominates their voice and the main action',
@@ -163,7 +163,7 @@ function listLines(state, list, other, people = {}, lit = null) {
 }
 // Core traits: up to three, picked on the Traits tab, always true whatever the mood.
 const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
-// Starred beliefs: up to three views or alignments, picked with ✦, always sent as what this person acts on first.
+// Starred beliefs: up to three views or alignments, picked with \u2726, always sent as what this person acts on first.
 const beliefsOf = st => (st?.beliefs ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
 const famLine = (st, scene, all) => { const t = familyText(st, scene, all); return t ? [`Family (bring in only where it matters to this moment): ${pt(t)}`] : []; };
 const favLine = (st, scene, all) => { const t = favText(st, scene, all); return t ? [`Favourites (for choices, gifts, orders and small talk, never listed): ${pt(t)}`] : []; };
@@ -185,7 +185,7 @@ function profileLines(st, core, other, people, scene = '', all = true, beliefs =
         ...(core.length ? [`Core of who they are, true under any mood or dynamic (it shapes how feelings come out, not which ones): ${core.map(m => { const said = moodName(m, other, Math.max(61, st.moods[m.id]), st, people), name = lowerLabel(m.label); return said.toLowerCase().startsWith(name.toLowerCase()) ? said : `${name}: ${said}`; }).join('; ')}`] : [])];
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
-function personaLines(state, list, other, knowledge = {}, subject = 'the player’s character', people = {}) {
+function personaLines(state, list, other, knowledge = {}, subject = 'the player\u2019s character', people = {}) {
     const observer = pt(shortName(other));
     // Each heading names whose rows these are, so a scar or a chipped tooth here can't drift onto the observer.
     const who = pt(shortName(subject));
@@ -236,8 +236,8 @@ const touchesTurn = (id, scene) => { const t = TURN_BY_ID[id], text = String(sce
     return `${t.noun} ${t.keys ?? ''}`.toLowerCase().split(/[^a-z']+/).filter(w => w.length >= 4).some(w => new RegExp(`\\b${w.slice(0, Math.max(4, w.length - 2))}`).test(text)); };
 const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
 // Turn-ons, wants, their own rows and inventory, for one person. Kinds pick which of their own rows belong here.
-// lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id → status), done: Set }.
-// signs: { map: Map(turn id → { is, not }) from engine/turns.js turnSigns, who: the other person's name }.
+// lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id \u2192 status), done: Set }.
+// signs: { map: Map(turn id \u2192 { is, not }) from engine/turns.js turnSigns, who: the other person's name }.
 const signNote = (id, signs) => { const x = signs?.map?.get(id);
     return !x ? '' : x.is.length ? ` (in ${signs.who}: ${x.is.map(pt).join(', ')})` : ` (in ${signs.who}, the opposite: ${x.not.map(pt).join(', ')})`; };
 function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit = null, know = null, signs = null) {
@@ -307,12 +307,12 @@ function composePrompt(state, name, extras = {}) {
     const shown = st => m => mindOn(st, scene)(m) && factOn(st, scene, gate)(m);
     const mine = live(state).filter(m => m.kind !== 'story').filter(shown(state));
     const theirs = live(player?.state).filter(m => m.kind !== 'story').filter(shown(player?.state));
-    // Point of view and tense (Story › Point of view & tense) are their own instruction, not a weighted setting.
+    // Point of view and tense (Story \u203a Point of view & tense) are their own instruction, not a weighted setting.
     const storyAll = live(storyState).filter(m => m.kind === 'story');
     const views = storyAll.filter(m => m.category === 'viewpoint'), story = storyAll.filter(m => m.category !== 'viewpoint');
     const cast = liveCast(extras);
     const N = String(name ?? '').trim() || 'the character', n = pt(shortName(N));
-    const U = String(player?.name ?? '').trim() || 'the player’s character', u = pt(shortName(U));
+    const U = String(player?.name ?? '').trim() || 'the player\u2019s character', u = pt(shortName(U));
     const hasType = s => Boolean(activePersonality(s));
     const relationships = relationshipSets(state, N, extras);
     const pairs = (extras.pairs ?? []).map(p => ({ ...p, tags: activeSharedTags(p), memories: (p.memories ?? []).filter(m => m.value >= 41 && m.text) }))
@@ -341,7 +341,7 @@ function composePrompt(state, name, extras = {}) {
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
     const out = [`Where things stand for this reply, set by the player. These are more current than the character card and earlier messages.`];
-    // Split (Settings › What is sent): the explanations, the board format, the hidden-line format and the author notes
+    // Split (Settings \u203a What is sent): the explanations, the board format, the hidden-line format and the author notes
     // don't change from reply to reply, so they go in a guide near the top (fx) where the API can cache them. What's
     // true right now, and anything meant to change the scene, stays here, last, where it carries the most weight.
     // The guide's conditions follow what's set up (traits, Mind, turn-ons, wants), not values that move each reply,
@@ -424,7 +424,7 @@ function composePrompt(state, name, extras = {}) {
                 }
             }
             if (compare) out.push(`- ${tierWord(compare.value)}: ${pt(compareText(from, shortName(target), { ...compare, with: shortName(compare.with) }))}`);
-            if (note) out.push(`- in ${from}'s own words: “${pt(note)}”`);
+            if (note) out.push(`- in ${from}'s own words: \u201c${pt(note)}\u201d`);
         }
         if (standing.length && !placed) out.push(`${n} toward ${u}:`, ...standing.map(r => `- ${pt(r)}`));
         if (split) out.push('</relationships>');
@@ -432,13 +432,13 @@ function composePrompt(state, name, extras = {}) {
         if (!split) out.push('</relationships>');
     }
     if (signed || [state, ...cast.map(p => p.state)].some(st => st?.enabled && livePrefs(st).length)) guide('',
-        `Turn-ons and turn-offs are what draws someone in or puts them off in others, never what they're like themselves. One lands whenever the scene contains it, whoever brings it: attention snags, desire or disgust jumps, and it changes what they do next. At strong and above they steer toward their kinks when there's an opening.${signed ? ` One marked “in [name]: …” is part of who that person is, so it's in play whenever they're together without anyone raising it: it colours how they're seen from the start and builds over time, and a turn-off keeps grating. “The opposite” of a turn-off counts in their favour.` : ''}`);
+        `Turn-ons and turn-offs are what draws someone in or puts them off in others, never what they're like themselves. One lands whenever the scene contains it, whoever brings it: attention snags, desire or disgust jumps, and it changes what they do next. At strong and above they steer toward their kinks when there's an opening.${signed ? ` One marked \u201cin [name]: \u2026\u201d is part of who that person is, so it's in play whenever they're together without anyone raising it: it colours how they're seen from the start and builds over time, and a turn-off keeps grating. \u201cThe opposite\u201d of a turn-off counts in their favour.` : ''}`);
     if (lit && (lit.turns?.size || lit.traits?.size || lit.free?.length)) {
         // The mood they're in changes how hard it lands: aroused, a turn-on hits harder; angry, a turn-off does.
         const strongest = test => live(state).filter(m => analysed(m) && test(m) && state.moods[m.id] >= 41).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
         const heat = [...lit.turns ?? []].some(id => state.prefs?.[id] > 0) || lit.traits?.size ? strongest(m => AROUSED.has(m.id)) : null;
         const temper = [...lit.turns ?? []].some(id => state.prefs?.[id] < 0) || lit.free?.some(x => x.off) ? strongest(m => m.category === 'angry') : null;
-        out.push(`Anything marked “lit last reply” was set off by that reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.${heat ? ` ${n} is ${pt(lowerLabel(heat.label))} right now, so a lit turn-on hits harder still.` : ''}${temper ? ` ${n} is ${pt(lowerLabel(temper.label))} right now, so a lit turn-off bites harder and is slow to let go.` : ''}`);
+        out.push(`Anything marked \u201clit last reply\u201d was set off by that reply: it counts one step stronger now, keeps pulling at ${n}'s attention and body, and ${n} goes after more of it (or away from a lit turn-off) if the scene allows.${heat ? ` ${n} is ${pt(lowerLabel(heat.label))} right now, so a lit turn-on hits harder still.` : ''}${temper ? ` ${n} is ${pt(lowerLabel(temper.label))} right now, so a lit turn-off bites harder and is slow to let go.` : ''}`);
     }
     // Cravings and combos.
     if (lit?.craving?.size) out.push(`A craving is a strong turn-on that hasn't come up in a while: ${n} starts steering toward it with hints, tests and small provocations, and gets restless when the scene won't give it.`);
@@ -463,7 +463,7 @@ function composePrompt(state, name, extras = {}) {
     const plot = story.filter(m => !['era', 'stakes'].includes(m.category) && !STYLE_CATEGORIES.has(m.category) && !OWN_LINE.has(m.id));
     const peakOf = list => Math.max(0, ...list.map(m => storyState.moods[m.id]));
     const plotPeak = peakOf(plot), stylePeak = peakOf(styles), authorPeak = peakOf(styles.filter(isAuthor));
-    // Narration and dialogue given to different authors (Story › an author's "Narration" or "Dialogue" button).
+    // Narration and dialogue given to different authors (Story \u203a an author's "Narration" or "Dialogue" button).
     const roleSplit = styles.some(m => isAuthor(m) && storyState.authorRole?.[m.id]);
     // The period as one plain instruction and a short line, then what it does to the things in play.
     const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
@@ -558,7 +558,7 @@ function composePrompt(state, name, extras = {}) {
     const fixed = split && fx.length ? `<moodweaver_guide focus_character="${pa(N)}">\nHow to read the Moodweaver notes that come just before each reply, and the formats they ask for. The notes say what is true right now and outrank this guide wherever the two differ.\n\n${finish(fx).replace(/^\n+/, '')}\n</moodweaver_guide>` : '';
     return { prompt: `<moodweaver focus_character="${pa(N)}">\n${finish(out)}\n</moodweaver>`, fixed };
 }
-// Point of view and tense, as full instructions (Story › Point of view & tense). One narrator and one tense at a
+// Point of view and tense, as full instructions (Story \u203a Point of view & tense). One narrator and one tense at a
 // time (ONE_OF in catalogue/story.js); if an old chat has two on, the strongest wins. Second person goes with any
 // narrator. The full wording goes with the guide; a one-line reminder goes last, next to the prose rules, because
 // earlier replies in another point of view pull hard and the end of the note carries the most weight.

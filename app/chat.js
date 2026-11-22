@@ -25,7 +25,7 @@ export function peers() {
     if (ch) push('{{char}}', ch.name, 'Main character');
     push('{{user}}', playerName(), 'Your character');
     for (const m of members()) push(m.name, m.name, 'In this group chat');
-    for (const p of getCast(ch)) push(p.name, p.name, p.inScene ? 'Cast · in scene' : 'Cast · off scene', !p.inScene);
+    for (const p of getCast(ch)) push(p.name, p.name, p.inScene ? 'Cast \u00b7 in scene' : 'Cast \u00b7 off scene', !p.inScene);
     for (const r of relationshipList()) push(r.target, resolveRelationName(r.target), 'Not in the cast');
     const me = personKeyOfSubject();
     for (const p of list) { p.relation = relationFor(p.key); p.pair = getPair(me, keyForTarget(p.key)); }
@@ -89,7 +89,7 @@ export function getPair(a, b, create = false, labels = {}) {
     if (pair) Object.assign(pair.labels ??= {}, labels);
     return pair ?? null;
 }
-// Move shared labels (dating, enemies to lovers…) out of anyone's one-way side and into the pair.
+// Move shared labels (dating, enemies to lovers\u2026) out of anyone's one-way side and into the pair.
 export function migratePairs(ch = target()) {
     const meta = ctx().chatMetadata[KEY]; if (!meta || !ch) return;
     const cast = getCast(ch);
@@ -123,7 +123,7 @@ export const resolveRelationName = name => castName(name).replaceAll('{{char}}',
 export function validRelationName(value, exceptId = '') {
     const name = castName(value), resolved = resolveRelationName(name).toLowerCase();
     if (!name) throw new Error('Choose who this relationship is about.');
-    if (resolved === subjectName()?.toLowerCase()) throw new Error('Choose someone other than the person whose feelings you’re editing.');
+    if (resolved === subjectName()?.toLowerCase()) throw new Error('Choose someone other than the person whose feelings you\u2019re editing.');
     if (relationshipList().some(r => r.id !== exceptId && resolveRelationName(r.target).toLowerCase() === resolved)) throw new Error('That person already has a relationship blend here. Pick them from the list.');
     return name;
 }
@@ -202,9 +202,9 @@ export function turnKnowledgeRows(state, ch, knowledge) {
     if (!prefs.length) return '';
     const aware = prefs.filter(([id]) => ['known', 'suspected'].includes(knowledgeEntry(knowledge[`turn:${id}`]).mode)).length;
     return `<details class="mw-knowledge mw-advanced" data-anchor="turn-knowledge"><summary>Does ${esc(ch.name)} know? <small>${aware} of ${prefs.length} known or suspected</small></summary>
-        <p class="mw-fine">All of your turn-ons reach the story either way. If ${esc(ch.name)} doesn’t know one, it turns up by chance. If they suspect, they test it. If they know, they play into it on purpose.</p>` + prefs.map(([id, v]) => {
+        <p class="mw-fine">All of your turn-ons reach the story either way. If ${esc(ch.name)} doesn\u2019t know one, it turns up by chance. If they suspect, they test it. If they know, they play into it on purpose.</p>` + prefs.map(([id, v]) => {
         const key = `turn:${id}`, entry = knowledgeEntry(knowledge[key]), t = TURN_BY_ID[id];
-        return `<div class="mw-knowledge-row" data-knowledge-row="${key}" data-filter-item="knowledge" data-search="${esc(t.label + ' ' + t.cue)}"><label for="mw-knowledge-${key}">${esc(t.label)} <small>turn-${v > 0 ? 'on' : 'off'} · ${Math.abs(v)}%${knowledge[key]?.learned ? ' · picked up in the story' : ''}</small></label>
+        return `<div class="mw-knowledge-row" data-knowledge-row="${key}" data-filter-item="knowledge" data-search="${esc(t.label + ' ' + t.cue)}"><label for="mw-knowledge-${key}">${esc(t.label)} <small>turn-${v > 0 ? 'on' : 'off'} \u00b7 ${Math.abs(v)}%${knowledge[key]?.learned ? ' \u00b7 picked up in the story' : ''}</small></label>
             <select id="mw-knowledge-${key}" data-knowledge="${key}" aria-label="Does ${esc(ch.name)} know: ${esc(t.label)}">${[['scene', 'Unaware'], ['suspected', 'Suspects'], ['known', 'Knows']].map(([mode, label]) => `<option value="${mode}" ${(entry.mode === 'private' ? 'scene' : entry.mode) === mode ? 'selected' : ''}>${label}</option>`).join('')}</select>
             ${['known', 'suspected'].includes(entry.mode) ? `<input type="text" maxlength="120" data-knowledge-source="${key}" aria-label="Source for ${esc(t.label)}" placeholder="How they learned it (optional)" value="${esc(entry.source)}">` : ''}</div>`;
     }).join('') + '</details>';

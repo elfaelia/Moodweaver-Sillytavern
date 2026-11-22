@@ -12,15 +12,15 @@ const readable = scope => MOODS.filter(m => inScope(m, cleanScope(scope)));
 export function parseAnalysis(raw, data = {}) {
     const clean = String(raw).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
     let parsed;
-    try { parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn’t send back valid JSON. Nothing was changed. If the reader model always thinks first (Claude Opus 5.5 does), raise the Reader reply cap: thinking counts toward it.'); }
+    try { parsed = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1)); } catch { throw new Error('The reader didn\u2019t send back valid JSON. Nothing was changed. If the reader model always thinks first (Claude Opus 5.5 does), raise the Reader reply cap: thinking counts toward it.'); }
     if (!parsed || typeof parsed !== 'object') throw new Error('The reader sent back nothing usable. Nothing was changed.');
     // No feelings list, or one in the wrong shape, is a broken reply, not "no feelings": treating it as
     // empty would let every unpinned feeling fade. An empty list ({"moods":{}}) is still a real answer.
     const noMoods = !parsed.moods || typeof parsed.moods !== 'object' || Array.isArray(parsed.moods);
-    if (noMoods && !Array.isArray(parsed.wants) && !Array.isArray(parsed.new)) throw new Error('The reader’s reply had no feelings list. Nothing was changed.');
+    if (noMoods && !Array.isArray(parsed.wants) && !Array.isArray(parsed.new)) throw new Error('The reader\u2019s reply had no feelings list. Nothing was changed.');
     const allowed = new Set(data.ids ?? FEELINGS.map(m => m.id));
     const wantIds = new Set((data.wants ?? []).map(w => w.id));
-    // Only 0–100 counts; anything else is ignored rather than squeezed into range.
+    // Only 0\u2013100 counts; anything else is ignored rather than squeezed into range.
     const num = v => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100 ? Math.round(v) : null;
     const moods = {};
     for (const [id, value] of Object.entries(parsed.moods && typeof parsed.moods === 'object' ? parsed.moods : {})) {
@@ -30,7 +30,7 @@ export function parseAnalysis(raw, data = {}) {
         .map(w => ({ id: w.id, value: num(w.value), done: w.done === true }));
     const added = (Array.isArray(parsed.new) ? parsed.new : []).slice(0, 2).map(w => ({ kind: WANT_KINDS.includes(w?.kind) ? w.kind : 'want',
         text: text(w?.text, 120), value: num(w?.value) ?? 50 })).filter(w => w.text);
-    if (!Object.keys(moods).length && !wants.length && !added.length && Object.keys(parsed.moods ?? {}).length) throw new Error('The reader only sent back unknown options or values outside 0–100. Nothing was changed.');
+    if (!Object.keys(moods).length && !wants.length && !added.length && Object.keys(parsed.moods ?? {}).length) throw new Error('The reader only sent back unknown options or values outside 0\u2013100. Nothing was changed.');
     // A reply with wants but no feelings list updates the wants and leaves every feeling as it was.
     return { moods, wants, added, reason: typeof parsed.reason === 'string' ? parsed.reason.slice(0, 240) : '', ...(noMoods ? { skipMoods: true } : {}) };
 }

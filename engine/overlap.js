@@ -6,7 +6,7 @@
 // both-ways tag, then a story trope. Meters and the dynamic are never dropped; moodlets are only pointed out,
 // because a moodlet can be about anyone.
 const CONCEPTS = [
-    { key: 'obsession', label: 'Obsession', meter: 'ob', rel: ['obsessed', 'cant_let_go'], shared: ['obsessive_love'], dyn: ['Obsessed', 'Shrine', 'Fixated captor', 'Obsessive tenderness', 'Toxic obsession', 'Collector', 'Insatiable', 'Addicted', 'Stalker’s courtship'], mood: ['obsessed'] },
+    { key: 'obsession', label: 'Obsession', meter: 'ob', rel: ['obsessed', 'cant_let_go'], shared: ['obsessive_love'], dyn: ['Obsessed', 'Shrine', 'Fixated captor', 'Obsessive tenderness', 'Toxic obsession', 'Collector', 'Insatiable', 'Addicted', 'Stalker\u2019s courtship'], mood: ['obsessed'] },
     { key: 'possessive', label: 'Possessiveness', meter: 'po', rel: ['possessive', 'theyre_mine', 'wants_to_own'], shared: ['mutually_possessive'], dyn: ['Claimed', 'Possession', 'Possessive worship', 'Owned', 'Trophy', 'Closing the circle', 'Saved and kept'], mood: ['possessive'] },
     { key: 'jealousy', label: 'Jealousy', meter: 'je', rel: ['jealous'], shared: ['jealousy_games'], story: ['jealousy_plot'], dyn: ['Jealous storm', 'Jealous devotion'], mood: ['jealous'] },
     { key: 'protective', label: 'Protectiveness', meter: 'pr', rel: ['protects', 'would_die_for'], shared: ['who_did_this', 'touch_and_die'], dyn: ['Protector', 'Protective love', 'For your own good', 'Guardian'], mood: ['protective'] },
@@ -15,18 +15,18 @@ const CONCEPTS = [
     { key: 'care', label: 'Care', meter: 'ca', rel: ['caretaker_of', 'dotes'], dyn: ['Tending', 'Kept and tended', 'Obsessive tenderness', 'Strict and tender', 'Safe harbour', 'Provider and kept', 'Doll and dresser'], mood: ['caretaker'] },
     { key: 'discipline', label: 'Discipline', meter: 'di', shared: ['made_to_need'], dyn: ['Rules and rewards', 'Conditioning captor', 'Breaking in', 'Owned', 'Brat taming', 'Firm hand', 'Love as leverage'] },
     { key: 'lust', label: 'Lust', meter: 'lu', rel: ['lusts_after', 'turned_on_by'], dyn: ['In lust', 'Steamy love', 'Charged', 'Hate-lust', 'Insatiable', 'Tease and denial', 'Rivals in heat'] },
-    { key: 'resentment', label: 'Resentment', meter: 'rs', rel: ['resents'], shared: ['bad_blood'], dyn: ['Grudge', 'Resentful devotion', 'Bitter history', 'Can’t quit you', 'Guilt trip'], mood: ['resentful'] },
+    { key: 'resentment', label: 'Resentment', meter: 'rs', rel: ['resents'], shared: ['bad_blood'], dyn: ['Grudge', 'Resentful devotion', 'Bitter history', 'Can\u2019t quit you', 'Guilt trip'], mood: ['resentful'] },
     { key: 'respect', label: 'Respect', meter: 're', rel: ['respects', 'looks_down'], dyn: ['Grudging respect', 'Contempt'], neg: ['looks_down', 'Contempt'] },
     { key: 'fascination', label: 'Fascination', meter: 'fa', rel: ['fascinated', 'intrigued_by'], dyn: ['Specimen', 'Collector'] },
     { key: 'pedestal', label: 'Pedestal', meter: 'pe', rel: ['idolises'], shared: ['worship_and_ruin'], dyn: ['Worship', 'Shrine', 'Fallen idol'] },
     { key: 'corruption', label: 'Corruption', meter: 'co', rel: ['wants_to_corrupt'], shared: ['corrupting_love'], story: ['corruption_arc'], dyn: ['Corruption', 'Dark mentor', 'Puppet strings', 'Gaslit'] },
     { key: 'hurt', label: 'Urge to hurt', meter: 'hu', rel: ['wants_to_hurt'], dyn: ['Prey', 'Dangerous adoration', 'Breaking in', 'Tender sadist', 'Predatory patience'] },
     { key: 'loyalty', label: 'Loyalty', meter: 'ly', shared: ['ride_or_die'], dyn: ['Ride or die', 'Loyal to the end', 'Loyal love', 'Two against the world', 'Devoted servant'] },
-    { key: 'guidance', label: 'Guidance', meter: 'gd', rel: ['mentor', 'teacher_of'], dyn: ['Under their wing', 'Teacher and student', 'Mentor and protégé', 'Dark mentor'] },
+    { key: 'guidance', label: 'Guidance', meter: 'gd', rel: ['mentor', 'teacher_of'], dyn: ['Under their wing', 'Teacher and student', 'Mentor and prot\u00e9g\u00e9', 'Dark mentor'] },
     { key: 'volatility', label: 'Volatility', meter: 'vo', shared: ['on_off', 'push_and_pull', 'love_bomb_cycle'], dyn: ['On again, off again', 'Powder keg', 'Push and pull', 'Love-bomb cycle'] },
     { key: 'trust', label: 'Trust', base: 't', rel: ['trusts', 'distrusts', 'suspicious_of'], neg: ['distrusts', 'suspicious_of'] },
     { key: 'captor', label: 'Captor and captive', rel: ['captor_of'], shared: ['captor_captive', 'spoiled_captive', 'gilded_cage', 'stockholm'], story: ['captivity_horror', 'abduction_plot'],
-        dyn: ['Captor', 'Gilded cage', 'Captive’s hold', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Kept and tended', 'Princess and keeper', 'Breaking in', 'For your own good', 'Stockholm drift', 'Flight risk'] },
+        dyn: ['Captor', 'Gilded cage', 'Captive\u2019s hold', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Kept and tended', 'Princess and keeper', 'Breaking in', 'For your own good', 'Stockholm drift', 'Flight risk'] },
 ];
 
 // sent: { meters: { key: value } for meters on the line that are saying something, base: { t: value } when

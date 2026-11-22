@@ -72,7 +72,7 @@ export function settings() {
         contagion: saved.contagion === 'off' ? 'off' : 'scene', aftermath: saved.aftermath !== false, stress: saved.stress !== false, opinions: saved.opinions !== false, secrets: saved.secrets !== false, autoWants: saved.autoWants === true,
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
-        // How many period lines (Power, Medicine, Vices…) at most; when more apply, they take turns.
+        // How many period lines (Power, Medicine, Vices\u2026) at most; when more apply, they take turns.
         eraLines: ERA_LINE_CHOICES.includes(Number(saved.eraLines)) ? String(saved.eraLines) : '3',
         // The Wants tab can be hidden (wants you already set still go to the story), and the faint "why" lines too.
         wantsTab: saved.wantsTab !== false, musicTab: saved.musicTab !== false, blendsOn: saved.blendsOn !== false, dockClose: saved.dockClose !== false, swipeTabs: saved.swipeTabs !== false, diceOn: saved.diceOn !== false, diceShow: saved.diceShow === true, chipRemove: saved.chipRemove !== false, whyOn: saved.whyOn !== false, authorStyle: saved.authorStyle !== false, needsMood: saved.needsMood !== false,

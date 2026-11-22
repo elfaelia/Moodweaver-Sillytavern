@@ -9,7 +9,7 @@ export const VENUES = [
         genres: ['jazz', 'swing', 'blues', 'bebop', 'big band', 'lounge', 'bossa nova', 'torch', 'crooner'], search: ['jazz', 'vocal jazz', 'swing', 'blues', 'cool jazz', 'bossa nova'] },
     { id: 'club', label: 'the DJ in the club', places: [], words: /\b(?:night ?club|the club\b|dance ?floor|rave|the dj\b|dj booth|strobe lights?|bass (?:thumps|pounds|drops))\b/i,
         genres: ['dance', 'house', 'techno', 'electro', 'edm', 'disco', 'trance', 'club', 'electronic', 'synthpop', 'eurodance'], search: ['dance', 'house', 'electronic', 'disco', 'techno', 'dance pop'] },
-    { id: 'cocktail', label: 'the bar’s playlist', places: [], words: /\b(?:cocktail (?:bar|lounge)|rooftop bar|wine bar|hotel bar|martinis?|cosmopolitans?|mojitos?|happy hour)\b/i,
+    { id: 'cocktail', label: 'the bar\u2019s playlist', places: [], words: /\b(?:cocktail (?:bar|lounge)|rooftop bar|wine bar|hotel bar|martinis?|cosmopolitans?|mojitos?|happy hour)\b/i,
         genres: ['pop', 'dance pop', 'indie pop', 'synthpop', 'disco', 'r&b', 'neo soul', 'funk'], search: ['pop', 'dance pop', 'indie pop', 'disco', 'r&b'] },
     { id: 'dance', label: 'the band at the dance', places: ['dance_hall'], words: /\b(?:dance hall|ballroom|sock hop|prom\b|school dance|homecoming dance|the dance\b|slow dance|wedding reception)\b/i,
         genres: ['rock-and-roll', 'rockabilly', 'doo-wop', 'swing', 'big band', 'soul', 'motown', 'pop', 'rhythm and blues'], search: ['rock-and-roll', 'doo-wop', 'soul', 'motown', 'swing', 'pop'] },
@@ -23,9 +23,9 @@ const LEFT = /\b(?:(?:leave|left|leaving|walk(?:s|ed)? out of|step(?:s|ped)? out
 
 // The band or artist named at a gig: "a Descendents show", "seeing the Descendents", "the Misfits concert".
 const NAMED = [
-    /\b(?:see(?:ing)?|saw|watch(?:ing|ed)?|at|to|for) (?:a |an |the )?((?:[A-Z][\w'’&.!-]*)(?: (?:[A-Z][\w'’&.!-]*|of|the|and|&)){0,4}) (?:concert|gig|show|set)\b/,
-    /\b(?:concert|gig|show|set) (?:by|from|of) (?:the )?((?:[A-Z][\w'’&.!-]*)(?: (?:[A-Z][\w'’&.!-]*|of|the|and|&)){0,4})/,
-    /\b((?:[A-Z][\w'’&.!-]*)(?: (?:[A-Z][\w'’&.!-]*|of|the|and|&)){0,4}) (?:take|took|takes|hit|hits) the stage\b/,
+    /\b(?:see(?:ing)?|saw|watch(?:ing|ed)?|at|to|for) (?:a |an |the )?((?:[A-Z][\w'\u2019&.!-]*)(?: (?:[A-Z][\w'\u2019&.!-]*|of|the|and|&)){0,4}) (?:concert|gig|show|set)\b/,
+    /\b(?:concert|gig|show|set) (?:by|from|of) (?:the )?((?:[A-Z][\w'\u2019&.!-]*)(?: (?:[A-Z][\w'\u2019&.!-]*|of|the|and|&)){0,4})/,
+    /\b((?:[A-Z][\w'\u2019&.!-]*)(?: (?:[A-Z][\w'\u2019&.!-]*|of|the|and|&)){0,4}) (?:take|took|takes|hit|hits) the stage\b/,
 ];
 const NOT_NAMES = /^(?:The|A|An|His|Her|Their|This|That|Friday|Saturday|Sunday|Monday|Tuesday|Wednesday|Thursday|Tonight|Last|First|School|Prom|Halloween|Christmas|New Year)$/;
 export function artistIn(text) {

@@ -18,8 +18,8 @@ export { MOMENTS, HEAT, ENERGY, MODES };
 const DYN_IDS = new Set(DYN_GROUPS.map(g => g.id)), HEARD_IDS = new Set(HEARD_IN.map(x => x.id));
 export { HEARD_IN };
 
-// Names are compared without case, accents, quotes or extra spaces ("Dealer's flat" = "Dealer’s flat").
-export const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[’‘`´]/g, "'").replace(/[“”]/g, '"').toLowerCase().replace(/\s+/g, ' ').trim();
+// Names are compared without case, accents, quotes or extra spaces ("Dealer's flat" = "Dealer\u2019s flat").
+export const norm = s => String(s ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[\u2019\u2018`\u00b4]/g, "'").replace(/[\u201c\u201d]/g, '"').toLowerCase().replace(/\s+/g, ' ').trim();
 const byName = list => { const m = new Map(); for (const x of list) { m.set(norm(x.label), x.id); m.set(norm(x.id), x.id); } return m; };
 const NAMES = { cm: byName(COMBOS), f: byName(FAMILIES), m: byName(MOOD_LIST), p: byName(PLACES), mo: byName(MOMENTS), d: byName(DYN_GROUPS), h: byName(HEAT) };
 const LABEL = { f: Object.fromEntries(FAMILIES.map(x => [x.id, x.label])), m: Object.fromEntries(MOOD_LIST.map(x => [x.id, x.label])), p: Object.fromEntries(PLACES.map(x => [x.id, x.label])),
@@ -46,7 +46,7 @@ export function meaningsOf(moods = {}) {
 // ---- Tags ----
 // One song's (or one playlist's) tags. Character names are kept as typed (compared without case);
 // {{char}} and {{user}} stand for whoever the main character and your persona are in the chat.
-// nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (✗ Not here adds these).
+// nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (\u2717 Not here adds these).
 export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], st: [], pk: 0, yr: 0, dg: [], note: '' });
 const ids = (list, ok) => [...new Set((Array.isArray(list) ? list : []).filter(x => typeof x === 'string' && ok(x)))];
 export function cleanTags(t = {}) {
@@ -71,7 +71,7 @@ export function cleanPeak(v) {
 export const cleanYear = v => { const y = Number(String(v ?? '').match(/\b(1[89]\d\d|20\d\d)\b/)?.[1] ?? v); return y >= 1880 && y <= 2100 ? y : 0; };
 export const peakText = sec => sec ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : '';
 // ---- Lyric cues ----
-// Short phrases that nod to a song when the story says them ("like a dog" → I Wanna Be Your Dog). Lower case, 1 to 4
+// Short phrases that nod to a song when the story says them ("like a dog" \u2192 I Wanna Be Your Dog). Lower case, 1 to 4
 // words, up to 8 per song; a trailing * means any ending ("salivat*").
 export const cleanCues = list => [...new Set((Array.isArray(list) ? list : []).map(x => String(x).toLowerCase().replace(/[^a-z0-9'*\s-]/g, ' ').replace(/\s+/g, ' ').trim()).filter(x => x.replace(/\*/g, '').length >= 3 && x.split(' ').length <= 5))].slice(0, 8);
 const cueRe = new Map();
@@ -92,7 +92,7 @@ const CUE_COMMON = new Set('a about above ache aches across act after afternoon 
 // drooling) was chosen for that form and isn't an everyday word.
 // Everyday words of roleplay prose on top of the plain list: on their own they say nothing about a song.
 for (const w of 'pin pinned pins pinning pull pulled pulling forgot forgotten forgetting something anything nothing everything someone little small give gives gave given sign signs follow follows followed watch watched change changed changes world past memory memories remember remembered glass house wing grab grabbed press pressed hold holding held kiss kissed touch touched'.split(' ')) CUE_COMMON.add(w);
-// A word with a * counts as everyday when an everyday word starts with it (someth* → something, pull* → pull).
+// A word with a * counts as everyday when an everyday word starts with it (someth* \u2192 something, pull* \u2192 pull).
 const CUE_COMMON_LIST = [...CUE_COMMON];
 const cueCommon = w => {
     const s = w.replace('*', '');
@@ -146,10 +146,10 @@ export function mergeTags(own, ...fromPlaylists) {
 // input: {
 //   people: [{ name, role: 'char' | 'user', weight, moods: { id: value } }]  whose moods count (weight 1 or 0.5)
 //   who: names and tokens the scene is about, e.g. ['Easterman', '{{char}}']
-//   facts: { id: value } for everyone in the scene (places, bedroom facts…)
-//   dyn: main dynamic group, under: second dynamic group, meters: { hu, … }, horny: 0-100 or null
+//   facts: { id: value } for everyone in the scene (places, bedroom facts\u2026)
+//   dyn: main dynamic group, under: second dynamic group, meters: { hu, \u2026 }, horny: 0-100 or null
 //   night: the board says it's late, replies: how many replies the chat has, appear: names that just entered the scene
-//   everyone: [{ names: [name, token…], moods }] for everyone in the scene; a song tagged for one of them matches
+//   everyone: [{ names: [name, token\u2026], moods }] for everyone in the scene; a song tagged for one of them matches
 //   that person's own moods, even when the music follows someone else (heat counts both of you, whoever the music follows)
 //   texts: [{ text, weight }] the newest reply and your last message, read for what is actually happening }
 const LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), ROM = new Set(ROMANCE_MOODS), ROM_MO = new Set(['romance', 'longing', 'slow_dance']), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
@@ -277,9 +277,9 @@ function moodsBy(everyone = []) {
 }
 // What the snapshot says, in a few words, for the Now playing card.
 export function describe(snap, whoName = '') {
-    return [whoName, snap.mode ? MODE_BY_ID[snap.mode]?.label : '', snap.places.size ? labelOf('p', [...snap.places][0]) : '', [...snap.moments].map(id => labelOf('mo', id))[0] ?? '', snap.fams[0] ? labelOf('f', snap.fams[0]) : '', snap.heat === 'sex' ? 'Sex scene' : '', `energy ${snap.energy}`].filter(Boolean).join(' · ');
+    return [whoName, snap.mode ? MODE_BY_ID[snap.mode]?.label : '', snap.places.size ? labelOf('p', [...snap.places][0]) : '', [...snap.moments].map(id => labelOf('mo', id))[0] ?? '', snap.fams[0] ? labelOf('f', snap.fams[0]) : '', snap.heat === 'sex' ? 'Sex scene' : '', `energy ${snap.energy}`].filter(Boolean).join(' \u00b7 ');
 }
-// The things a ✓ Fits or ✗ Not here tap remembers about a scene.
+// The things a \u2713 Fits or \u2717 Not here tap remembers about a scene.
 export const learnKeys = snap => [snap.mode ? `k:${snap.mode}` : '', ...[...snap.places].map(p => `p:${p}`), ...[...snap.moments].map(m => `mo:${m}`), snap.fams[0] ? `f:${snap.fams[0]}` : '', snap.heat ? `h:${snap.heat}` : ''].filter(Boolean);
 
 // ---- Scoring ----
@@ -305,7 +305,7 @@ export function scoreSong(tags, snap, opts = {}) {
     const bright = ['happy', 'energy'].includes(tags.f[0]) && !tags.f.includes('desire') && !tags.h && !tags.mo.includes('seduction');
     if (snap.heat && bright) return { score: -Infinity, why: [] };
     // 1.80: old-time pop (crooners, doo-wop, swing, rockabilly) and bright upbeat pop sound wrong under foreplay and
-    // sex, whatever their tags say, unless it's the in-story radio or you said ✦ Fits for it in this heat.
+    // sex, whatever their tags say, unless it's the in-story radio or you said \u2726 Fits for it in this heat.
     if (snap.heat && !opts.radio && !((opts.learn?.[`h:${snap.heat}`] ?? 0) > 0) && wrongForHeat(tags, opts.g, snap.heat)) return { score: -Infinity, why: [] };
     let score = 0; const why = [], add = (n, w) => { score += n; if (w && n > 0) why.push(w); };
     if (snap.mode) { if (fitsMode(tags, snap.mode, snap)) add(POINTS.modeFit, MODE_BY_ID[snap.mode].label); else add(snap.mode === 'intimate' ? POINTS.modeMissIntimate : POINTS.modeMiss); }
@@ -337,12 +337,12 @@ export function scoreSong(tags, snap, opts = {}) {
     // Lyric cue: the story just said one of this song's phrases. A nudge, never a takeover, and only when the song
     // also fits this kind of scene (app/music.js keeps the cooldown).
     const cued = opts.cued?.get?.(opts.uri);
-    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode, snap))); if (cueOn) add(POINTS.cue, `“${cued}”`);
+    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode, snap))); if (cueOn) add(POINTS.cue, `\u201c${cued}\u201d`);
     if (tags.th && mine === true && opts.themeOn !== 'off') {
         const appears = snap.appear.some(a => chars.includes(a)), big = (snap.moodVal[snap.top[0]] ?? 0) >= 81;
         if (appears || (opts.themeOn === 'always' ? true : big)) add(POINTS.theme, 'theme');
     }
-    // Sounds like the songs you said fit this kind of scene (Spotify's genres: trip hop, dream pop…).
+    // Sounds like the songs you said fit this kind of scene (Spotify's genres: trip hop, dream pop\u2026).
     if (opts.sound && opts.g?.length) {
         const best = Math.max(...opts.g.map(g => opts.sound[norm(g)] ?? 0)), worst = Math.min(...opts.g.map(g => opts.sound[norm(g)] ?? 0));
         const s = best > 0 ? Math.min(POINTS.soundMax, best * POINTS.sound) : Math.max(-POINTS.soundMax, worst * POINTS.sound);
@@ -355,7 +355,7 @@ export function scoreSong(tags, snap, opts = {}) {
     }
     return { score: Math.round(score * 10) / 10, why, cue: cueOn };
 }
-// songs: [{ uri, tags (merged), learn }] → best first, unplayable ones left out.
+// songs: [{ uri, tags (merged), learn }] \u2192 best first, unplayable ones left out.
 export function rank(songs, snap, opts = {}) {
     const sound = opts.sound?.[snap.mode || 'any'];
     const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode, snap), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);

@@ -8,18 +8,18 @@ import { MOVED_WORDS } from '../data/catalogue/merged.js';
 
 // The board layout. The optional desire row is off unless selected for this chat.
 const boardTemplate = (char, user, includeHorny = false, rows = {}) => `<div class="ihyll-style">
-📅 <b>Date:</b> [In-world date: Weekday, Month Day, Year] | [Season] | [Weather Emoji] | [Forecast: Temp (°C/°F)]<br>
-🕒 <b>Time:</b> [Scene time (12h AM/PM)]<br>
-🗺️ <b>Location:</b> [Location] | <b>Present:</b> [NPCs currently visible] | <b>Activity:</b> [NPC posture/activity]<br>
-👔 <b> ${char}’s Outfit:</b> [Current appearance & outfit, short]<br>
-👗 <b>${user}’s Outfit:</b> [Current appearance & outfit, short]<br>
-🧠 <b>State:</b> [2–5 words for ${char}'s current mood, led by the strongest feelings; ${char}'s own state, not a description of what ${user} said or did]<br>
-💎 <b>Physical State:</b> [One short line on ${char}'s own body only: injuries, wet, drunk, tired, hungry or other bodily needs right now]${includeHorny ? '<br>\n🦄 <b>Horny:</b> [Current level, including none; one short line]' : ''}${rows.toward ? `<br>\n💞 <b>Toward ${user}:</b> [2–4 words for how ${char} feels about ${user} right now, strongest first]` : ''}${rows.remember ? `<br>\n📌 <b>Remember:</b> [none, unless something just happened between ${char} and ${user} that a later scene needs: one short line of plain fact]` : ''}
+\ud83d\udcc5 <b>Date:</b> [In-world date: Weekday, Month Day, Year] | [Season] | [Weather Emoji] | [Forecast: Temp (\u00b0C/\u00b0F)]<br>
+\ud83d\udd52 <b>Time:</b> [Scene time (12h AM/PM)]<br>
+\ud83d\uddfa\ufe0f <b>Location:</b> [Location] | <b>Present:</b> [NPCs currently visible] | <b>Activity:</b> [NPC posture/activity]<br>
+\ud83d\udc54 <b> ${char}\u2019s Outfit:</b> [Current appearance & outfit, short]<br>
+\ud83d\udc57 <b>${user}\u2019s Outfit:</b> [Current appearance & outfit, short]<br>
+\ud83e\udde0 <b>State:</b> [2\u20135 words for ${char}'s current mood, led by the strongest feelings; ${char}'s own state, not a description of what ${user} said or did]<br>
+\ud83d\udc8e <b>Physical State:</b> [One short line on ${char}'s own body only: injuries, wet, drunk, tired, hungry or other bodily needs right now]${includeHorny ? '<br>\n\ud83e\udd84 <b>Horny:</b> [Current level, including none; one short line]' : ''}${rows.toward ? `<br>\n\ud83d\udc9e <b>Toward ${user}:</b> [2\u20134 words for how ${char} feels about ${user} right now, strongest first]` : ''}${rows.remember ? `<br>\n\ud83d\udccc <b>Remember:</b> [none, unless something just happened between ${char} and ${user} that a later scene needs: one short line of plain fact]` : ''}
 </div>`;
 
 // ---- Reading a board back ----
 const LABELS = { date: /^date$/, time: /^time$/, location: /^location$/, present: /^present$/, activity: /^activity$/, state: /^state$/, physical: /^physical( state)?$/, horny: /^horny$/, toward: /^toward\b/, remember: /^remember$/ };
-const clean = v => String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').replace(/^[\s|:–-]+|[\s|]+$/g, '').trim();
+const clean = v => String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').replace(/^[\s|:\u2013-]+|[\s|]+$/g, '').trim();
 export const hasBoard = mes => typeof mes === 'string' && /<b>\s*(Date|Location|State):\s*<\/b>/i.test(mes);
 // Old boards leave the prompt. Each one is ~200 tokens of HTML and emoji, and the newest one is
 // summarised in Moodweaver's note instead, so a 20-reply context saves thousands of tokens. Every
@@ -55,13 +55,13 @@ export function parseBoard(mes) {
     return board && { ...board, outfits: board.outfits.map(o => ({ ...o })) };
 }
 function readBoard(mes) {
-    const start = mes.search(/<div[^>]*ihyll-style|📅|<b>\s*Date:/i);
+    const start = mes.search(/<div[^>]*ihyll-style|\ud83d\udcc5|<b>\s*Date:/i);
     const text = mes.slice(Math.max(0, start)).replace(/<br\s*\/?>/gi, '\n');
     const board = { outfits: [] };
     const re = /<b>\s*([^<:]{1,60}?):\s*<\/b>([\s\S]*?)(?=<b>\s*[^<:]{1,60}?:\s*<\/b>|\n|<\/div>|$)/gi;
     for (const [, rawLabel, rawValue] of text.matchAll(re)) {
         const label = rawLabel.trim().toLowerCase(), value = clean(rawValue);
-        const outfit = rawLabel.trim().match(/^(.+?)['’]s outfit$/i);
+        const outfit = rawLabel.trim().match(/^(.+?)['\u2019]s outfit$/i);
         if (outfit) { board.outfits.push({ name: clean(outfit[1]), text: value }); continue; }
         const key = Object.keys(LABELS).find(k => LABELS[k].test(label));
         if (key && !(key in board)) board[key] = value;
@@ -70,9 +70,9 @@ function readBoard(mes) {
         const parts = board.date.split('|').map(clean).filter(Boolean);
         board.day = parts[0] ?? '';
         board.season = parts.find(p => /winter|spring|summer|autumn|fall/i.test(p)) ?? '';
-        board.forecast = clean(parts.find(p => /forecast|°/i.test(p))?.replace(/^forecast:?/i, '') ?? '');
+        board.forecast = clean(parts.find(p => /forecast|\u00b0/i.test(p))?.replace(/^forecast:?/i, '') ?? '');
         board.emoji = parts.find(p => p !== board.day && !/[a-z0-9]/i.test(p)) ?? '';
-        board.temp = board.forecast.match(/-?\d+\s*°\s*[CF](?:\s*\/\s*-?\d+\s*°\s*[CF])?/)?.[0].replace(/\s+/g, '') ?? '';
+        board.temp = board.forecast.match(/-?\d+\s*\u00b0\s*[CF](?:\s*\/\s*-?\d+\s*\u00b0\s*[CF])?/)?.[0].replace(/\s+/g, '') ?? '';
     }
     return Object.keys(board).length > 1 || board.outfits.length ? board : null;
 }
@@ -100,20 +100,20 @@ function boardKey(mes) {
     for (let i = 0; i < mes.length; i++) hash = Math.imul(hash ^ mes.charCodeAt(i), 16777619);
     return `${mes.length}:${hash >>> 0}`;
 }
-// "vindicated, greedy, quietly manic" → three tiles.
-const phrases = text => String(text ?? '').split(/[,;]| and (?=[a-z]+ing\b)|·/i).map(clean).filter(p => p && p.length <= 90).slice(0, 8);
+// "vindicated, greedy, quietly manic" \u2192 three tiles.
+const phrases = text => String(text ?? '').split(/[,;]| and (?=[a-z]+ing\b)|\u00b7/i).map(clean).filter(p => p && p.length <= 90).slice(0, 8);
 
 // ---- Needs, read from the board's own words ----
 // 100 is fully met, 0 is desperate. Words only move a need when they clearly say so.
 const NEEDS = [
-    ['hunger', 'Hunger', 'stomach growling, distracted by food, shorter temper; eats whatever’s at hand when they can'],
+    ['hunger', 'Hunger', 'stomach growling, distracted by food, shorter temper; eats whatever\u2019s at hand when they can'],
     ['energy', 'Energy', 'heavy-lidded, yawning, slow and sloppy; wants to sit or lie down and dozes if left alone'],
-    ['bladder', 'Bladder', 'fidgeting, legs pressed together, distracted; cuts things short to find a toilet, or can’t'],
+    ['bladder', 'Bladder', 'fidgeting, legs pressed together, distracted; cuts things short to find a toilet, or can\u2019t'],
     ['hygiene', 'Hygiene', 'aware they smell and feel filthy; others notice; wants a wash'],
     ['comfort', 'Comfort', 'keeps shifting against pain, cold, cramp or restraint, and it shortens their temper'],
     ['social', 'Social', 'starved for company: talks to anyone, lingers and clings, or sulks at being left alone'],
     ['fun', 'Fun', 'bored and restless: needles people, picks at things, goes looking for trouble'],
-    ['health', 'Health', 'hurt or sick: winces, slows down, the body won’t do everything they want'],
+    ['health', 'Health', 'hurt or sick: winces, slows down, the body won\u2019t do everything they want'],
 ].map(([id, label, cue]) => ({ id, label, cue }));
 const NEED_IDS = new Set(NEEDS.map(n => n.id));
 // p: read from Physical State only. s: from State only. ps: either.
@@ -152,14 +152,14 @@ const HORNY = [
     [42, /interested|simmering|warm|curious|stirring|flicker|tempted|teasing|low hum|idle|smoulder|smolder|hint/],
     [8, /\bspent\b|sated|satisfied|drained|nothing|none|not in the mood|dead below|numb|repulsed|zero|\bcold\b/],
 ];
-const negated = (text, index) => /\b(not|no longer|isn'?t|wasn'?t|without|no)\s+(\w+\s+){0,2}$/.test(String(text).replace(/[’‘]/g, "'").slice(Math.max(0, index - 24), index));
+const negated = (text, index) => /\b(not|no longer|isn'?t|wasn'?t|without|no)\s+(\w+\s+){0,2}$/.test(String(text).replace(/[\u2019\u2018]/g, "'").slice(Math.max(0, index - 24), index));
 // Reads needs from the State and Physical State lines. Returns { id: { value, source } } for needs the words touch.
 // The worst reading wins, so "wired but exhausted" still counts as exhausted.
 function needsFromBoard(board) {
     const out = {};
     for (const [line, where] of [[board?.physical, 'p'], [board?.state, 's']]) for (const phrase of phrases(line)) {
-        // Boards are written with curly apostrophes (hasn’t), the patterns with straight ones.
-        const text = phrase.toLowerCase().replace(/[’‘]/g, "'");
+        // Boards are written with curly apostrophes (hasn\u2019t), the patterns with straight ones.
+        const text = phrase.toLowerCase().replace(/[\u2019\u2018]/g, "'");
         for (const [id, value, scope, re] of RULES) {
             if (!scope.includes(where)) continue;
             const m = re.exec(text); if (!m || negated(text, m.index)) continue;
@@ -169,7 +169,7 @@ function needsFromBoard(board) {
     return out;
 }
 export function hornyFromBoard(board) {
-    const text = String(board?.horny ?? '').toLowerCase().replace(/[’‘]/g, "'");
+    const text = String(board?.horny ?? '').toLowerCase().replace(/[\u2019\u2018]/g, "'");
     if (!text) return null;
     let best = null;
     for (const [value, re] of HORNY) { const m = re.exec(text); if (m && !negated(text, m.index) && (best === null || value > best)) best = value; }
@@ -225,7 +225,7 @@ export function needBias(moods = {}) {
 }
 const cleanNeedOpts = o => ({ bias: o?.bias && typeof o.bias === 'object' ? o.bias : {}, drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
 const hrs = h => h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : `${Math.round(h * 10) / 10} h`;
-// timeline: the character's replies oldest first, [{ index, board, needs: { id: level }, deltas: { id: ±n } }].
+// timeline: the character's replies oldest first, [{ index, board, needs: { id: level }, deltas: { id: \u00b1n } }].
 function simulateNeeds(timeline = [], options = {}) {
     const o = cleanNeedOpts(options), speed = NEED_SPEEDS[o.speed];
     const values = Object.fromEntries(NEEDS.map(n => [n.id, NEED_DEFAULT])), source = {}, known = {};
@@ -282,9 +282,9 @@ function skyOf(board) {
     else if (/dawn|sunrise/i.test(t)) hour = 6; else if (/dusk|sunset|evening/i.test(t)) hour = 19; else if (/night/i.test(t)) hour = 23;
     const time = hour === null ? '' : hour < 5 || hour >= 21 ? 'night' : hour < 8 ? 'dawn' : hour < 17 ? 'day' : 'dusk';
     const w = `${board.emoji ?? ''} ${board.forecast ?? ''} ${board.date ?? ''}`.toLowerCase();
-    const weather = /⛈|🌩|thunder|storm|lightning/.test(w) ? 'storm' : /🌧|☔|🌦|rain|drizzle|shower|downpour/.test(w) ? 'rain'
-        : /❄|🌨|☃|snow|sleet|blizzard|flurr/.test(w) ? 'snow' : /🌫|fog|mist|haze|smog/.test(w) ? 'fog'
-        : /☁|⛅|🌥|overcast|cloud/.test(w) ? 'cloud' : /☀|🌤|🌙|🌃|🌌|✨|clear|sunny|moonless|starry|stars/.test(w) ? 'clear' : '';
+    const weather = /\u26c8|\ud83c\udf29|thunder|storm|lightning/.test(w) ? 'storm' : /\ud83c\udf27|\u2614|\ud83c\udf26|rain|drizzle|shower|downpour/.test(w) ? 'rain'
+        : /\u2744|\ud83c\udf28|\u2603|snow|sleet|blizzard|flurr/.test(w) ? 'snow' : /\ud83c\udf2b|fog|mist|haze|smog/.test(w) ? 'fog'
+        : /\u2601|\u26c5|\ud83c\udf25|overcast|cloud/.test(w) ? 'cloud' : /\u2600|\ud83c\udf24|\ud83c\udf19|\ud83c\udf03|\ud83c\udf0c|\u2728|clear|sunny|moonless|starry|stars/.test(w) ? 'clear' : '';
     return { time, weather };
 }
 
@@ -377,7 +377,7 @@ export function namedIn(present, name) {
 }
 
 // ---- Prompt ----
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling hard at what they say and do'], [21, 'on their mind and colouring how they look at people'], [1, 'barely on their mind'], [0, 'not on their mind at all']];
 // What the newest board said, as one line, for when old boards are kept out of the prompt.
 // Corrected fields are left to the correction block below, so nothing is said twice.
@@ -405,12 +405,12 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     if (ended.length) out.push(`${n} no longer feels ${ended.join(', ')}: the player ended ${ended.length > 1 ? 'them' : 'it'}. Leave ${ended.length > 1 ? 'them' : 'it'} off the board's State and out of how ${n} acts, unless something new in this reply clearly brings ${ended.length > 1 ? 'them' : 'it'} back.`);
     const includeHorny = live?.meta?.includeHorny === true, toward = live?.meta?.includeToward === true;
     if (send) fixed.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don’t move it into Physical State.');
+        boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don\u2019t move it into Physical State.');
     if (stripped && live?.found) { const record = boardContinuity(live, char, user, split); if (record) { out.push(record); if (split) fixed.push(`The last reply's board, when the notes give it: ${CONTINUITY_RULE}`); } }
-    fixed.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs in the notes and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn’t a reason to increase it.' : ''}`);
+    fixed.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs in the notes and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn\u2019t a reason to increase it.' : ''}`);
     if (!live) return out;
     const b = live.meta;
-    const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}’s Outfit`], ['userOutfit', `${user}’s Outfit`], ['horny', 'Horny']]
+    const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}\u2019s Outfit`], ['userOutfit', `${user}\u2019s Outfit`], ['horny', 'Horny']]
         .filter(([k]) => b.pins[k] && (k !== 'horny' || includeHorny)).map(([k, label]) => `- ${label}: ${pt(b.pins[k])}`);
     const keepState = live.state.filter(t => t.kept).map(t => t.text), keepBody = live.physical.filter(t => t.kept).map(t => t.text);
     if (pins.length) out.push('', `The player corrected the last board. Put these on this reply's board and play them as true now; from here the story can change them like anything else:`, ...pins);
@@ -422,7 +422,7 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     const needRule = `Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins. Keep them off the board unless it already shows them.`;
     if (split) fixed.push(`${n}'s needs, when the notes list them: ${needRule}`);
     if (needs.length || (includeHorny && live.hornyPinned)) out.push('', split ? `${n}'s needs right now:` : `${n}'s needs right now (keep them off the board unless it already shows them). Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins:`,
-        ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn’t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
+        ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn\u2019t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
         ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
     const rest = live.needs.filter(nd => nd.known && !nd.pinned && nd.value > 35);
     if (rest.length) out.push(`Other needs: ${rest.map(nd => `${nd.label.toLowerCase()} ${needWord(nd.value).toLowerCase()}`).join(', ')}.`);
@@ -490,11 +490,11 @@ const RELATION_PHRASES = {
     "can't stay mad": ['cant_stay_angry', 60], 'wants her dead': ['wants_kill', 60], 'wants him dead': ['wants_kill', 60], 'creeped out': ['finds_creepy', 60],
     'soft on': ['cherishes', 60], 'hung up on': ['cant_let_go', 60], 'terrified of losing': ['afraid_to_lose', 85],
 };
-const SKIP = new Set(['with', 'over', 'them', 'their', 'they’re', 'they\'re', 'thinks', 'finds', 'wants', 'feels', 'about', 'around', 'despite', 'themselves', 'like', 'into', 'from', 'what', 'after', 'other', 'person', 'someone', 'something', 'love', 'more', 'than', 'keep']);
+const SKIP = new Set(['with', 'over', 'them', 'their', 'they\u2019re', 'they\'re', 'thinks', 'finds', 'wants', 'feels', 'about', 'around', 'despite', 'themselves', 'like', 'into', 'from', 'what', 'after', 'other', 'person', 'someone', 'something', 'love', 'more', 'than', 'keep']);
 // Board text as the matchers see it: lower case, straight apostrophes, letters only.
-const norm = s => ` ${String(s ?? '').toLowerCase().replace(/[’‘]/g, "'").replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim()} `;
+const norm = s => ` ${String(s ?? '').toLowerCase().replace(/[\u2019\u2018]/g, "'").replace(/[^a-z' -]/g, ' ').replace(/\s+/g, ' ').trim()} `;
 const PRONOUNS = /\b(her|his|him|hers|their|them|theirs|she|he|they|himself|herself|themselves)\b/g;
-const bareOf = s => norm(String(s).replace(/[’‘]/g, "'").toLowerCase().replace(PRONOUNS, ' '));
+const bareOf = s => norm(String(s).replace(/[\u2019\u2018]/g, "'").toLowerCase().replace(PRONOUNS, ' '));
 // "spiraling" finds Spiralling, "patronizing" finds Patronising: the catalogue is spelt the British way.
 const british = w => [w.replace(/iz(e|es|ed|ing|ation)$/, 'is$1'), w.replace(/yz(e|es|ed|ing)$/, 'ys$1'), w.replace(/([aeiou])l(ing|ed|er)$/, '$1ll$2'), w.replace(/or$/, 'our')].filter(x => x !== w);
 let feelIndex = null, feelPhrases = null, relIndex = null, relPhrases = null, feelSize = 0;
@@ -502,16 +502,16 @@ function buildFeelIndex() {
     if (feelIndex && feelSize === MOODS.length) return feelIndex;
     const map = new Map(), phrases = new Map(), byId = Object.fromEntries(MOODS.map(m => [m.id, m]));
     const ok = id => byId[id] && analysed(byId[id]);
-    const add = (word, id, value) => { word = word.toLowerCase().replace(/[’‘]/g, "'"); if (word.length > 3 && !SKIP.has(word) && ok(id) && !map.has(word)) map.set(word, { id, value }); };
+    const add = (word, id, value) => { word = word.toLowerCase().replace(/[\u2019\u2018]/g, "'"); if (word.length > 3 && !SKIP.has(word) && ok(id) && !map.has(word)) map.set(word, { id, value }); };
     const phrase = (text, id, value) => { const k = norm(text).trim(); if (k.includes(' ') && ok(id) && !phrases.has(k)) phrases.set(k, { id, value }); };
     // An option's own name comes first, so "giddy" is Giddy rather than a strong Excited.
     for (const m of MOODS) if (ok(m.id)) for (const part of [m.label, ...m.label.split(/\s*\/\s*/)]) {
         const p = part.toLowerCase().replace(/\s*\(.*\)\s*/, '').trim();
-        if (p.includes(' ')) phrase(p, m.id, 60); else add(p.replace(/[^a-z’'-]/g, ''), m.id, 60);
+        if (p.includes(' ')) phrase(p, m.id, 60); else add(p.replace(/[^a-z\u2019'-]/g, ''), m.id, 60);
     }
     for (const [id, names] of Object.entries(MERGED_SEARCH_NAMES)) for (const n of names) { if (n.includes(' ')) phrase(n, id, 60); else add(n, id, 60); }
     for (const [text, [id, value]] of Object.entries(FEELING_PHRASES)) phrase(text, id, value);
-    // Scaled wording next: its first word carries the strength (terrified → afraid at 85).
+    // Scaled wording next: its first word carries the strength (terrified \u2192 afraid at 85).
     // Where that word is already this option's own name ("heartbroken" for Hurt), it keeps the strength.
     for (const [id, steps] of Object.entries(SCALED_MOOD_CUES)) for (const [min, text] of steps) {
         const word = text.split(/[\s:,;]/)[0].toLowerCase(), value = min >= 81 ? 85 : min >= 41 ? 60 : 35, had = map.get(word);
@@ -532,9 +532,9 @@ function buildRelIndex() {
     for (const [word, id] of Object.entries(RELATION_SYNONYMS)) if (ids.has(id)) map.set(word, { id, value: 60 });
     for (const [word, [id, value]] of Object.entries(RELATION_WORDS)) if (ids.has(id)) map.set(word, { id, value });
     for (const t of RELATIONSHIP_TAGS) {
-        const words = t.label.toLowerCase().replace(/[^a-z’' -]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !SKIP.has(w));
+        const words = t.label.toLowerCase().replace(/[^a-z\u2019' -]/g, ' ').split(/\s+/).filter(w => w.length > 3 && !SKIP.has(w));
         if (words.length === 1 && !map.has(words[0])) map.set(words[0], { id: t.id, value: 60 });
-        // Whole names, with "them"/"their" and a trailing "with", "of", "by"… taken off: "wrapped around her finger".
+        // Whole names, with "them"/"their" and a trailing "with", "of", "by"\u2026 taken off: "wrapped around her finger".
         const bare = bareOf(t.label).trim(), short = bare.replace(/\s+(with|of|by|to|for|toward|about|on|at)$/, '');
         for (const k of [bare, short]) if (k.includes(' ') && !phrases.has(k)) phrases.set(k, { id: t.id, value: 60 });
     }
@@ -546,12 +546,12 @@ function strengthOf(phrase, base, first) {
     const v = STRONG.test(phrase) ? Math.max(base, 85) : WEAK.test(phrase) ? Math.min(base, 30) : base;
     return Math.min(95, v + (first ? 10 : 0));
 }
-// "giddy, quietly furious, a little scared" → [{ id, value, phrase }]. Each comma-separated piece can
+// "giddy, quietly furious, a little scared" \u2192 [{ id, value, phrase }]. Each comma-separated piece can
 // name up to three things ("tender but terrified"); phrases are matched before single words.
 function read(line, lookup, phraseList, bare = false) {
     const out = new Map();
     phrases(line).forEach((phrase, i) => {
-        const raw = phrase.toLowerCase().replace(/[’‘]/g, "'");
+        const raw = phrase.toLowerCase().replace(/[\u2019\u2018]/g, "'");
         let text = bare ? bareOf(phrase) : norm(phrase), hits = 0;
         const take = (hit, at) => {
             // at is the space before the match; the words just before it decide whether it's negated.
@@ -586,14 +586,14 @@ const PLAIN_FEELINGS = {
 };
 let labelIndex = null, labelSize = 0;
 export function feelingId(name) {
-    const text = String(name ?? '').toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const text = String(name ?? '').toLowerCase().replace(/[^a-z\u2019' /-]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!text) return null;
     if (!labelIndex || labelSize !== MOODS.length) {
         labelIndex = new Map(); labelSize = MOODS.length;
         // Every moodlet's own name and id first, then search aliases, so "giddy" is Giddy and not
         // Excited (which lists Giddy as an alias), and "masking (outward coldness)" is that one.
         const set = key => { key = key?.trim(); if (key && !labelIndex.has(key)) return key; return ''; };
-        for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), m.label.toLowerCase().replace(/[^a-z’' /-]/g, ' ').replace(/\s+/g, ' '), m.id.replace(/_/g, ' ')]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
+        for (const m of MOODS) if (analysed(m)) for (const key of [m.label.toLowerCase(), m.label.toLowerCase().replace(/[^a-z\u2019' /-]/g, ' ').replace(/\s+/g, ' '), m.id.replace(/_/g, ' ')]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
         for (const m of MOODS) if (analysed(m)) for (const key of [...m.label.toLowerCase().split(/\s*\/\s*/), ...(MERGED_SEARCH_NAMES[m.id] ?? []).map(x => x.toLowerCase())]) { const k = set(key); if (k) labelIndex.set(k, m.id); }
         for (const [word, id] of Object.entries({ ...PLAIN_FEELINGS, ...MOVED_WORDS })) if (BY_ID[id] && analysed(BY_ID[id]) && !labelIndex.has(word)) labelIndex.set(word, id);
         // Its own everyday words last, where the scene words don't already give the feeling another way.
@@ -606,15 +606,15 @@ export function feelingId(name) {
     for (const word of text.split(' ')) { const hit = buildFeelIndex().get(word) ?? (labelIndex.has(word) ? { id: labelIndex.get(word) } : null); if (hit) return hit.id; }
     return null;
 }
-// A relationship type named on the weave line's "toward" field: "obsessed with Lamb +5" → obsessed.
+// A relationship type named on the weave line's "toward" field: "obsessed with Lamb +5" \u2192 obsessed.
 export function relationId(name, other = '') {
     const drop = new Set(String(other).toLowerCase().split(/\s+/).filter(Boolean));
-    const text = String(name ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').split(/\s+/).filter(w => w && !drop.has(w)).join(' ').trim();
+    const text = String(name ?? '').toLowerCase().replace(/[^a-z\u2019' -]/g, ' ').split(/\s+/).filter(w => w && !drop.has(w)).join(' ').trim();
     if (!text) return null;
     const exact = RELATIONSHIP_TAGS.find(t => t.label.toLowerCase() === text || t.label.toLowerCase().replace(/\s+(with|of|by|to|for|toward|about|on)$/, '') === text || t.id.replace(/_/g, ' ') === text);
     if (exact) return exact.id;
     // "undone by her tears" is "Undone by their tears": pronouns don't decide the match.
-    const bare = s => s.toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\b(her|his|him|hers|their|them|theirs|she|he|they)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const bare = s => s.toLowerCase().replace(/[^a-z\u2019' -]/g, ' ').replace(/\b(her|his|him|hers|their|them|theirs|she|he|they)\b/g, ' ').replace(/\s+/g, ' ').trim();
     const plain = bare(text), loose = plain && RELATIONSHIP_TAGS.find(t => bare(t.label) === plain || bare(t.label).replace(/\s+(with|of|by|to|for|toward|about|on)$/, '') === plain);
     if (loose) return loose.id;
     for (const word of text.split(' ')) { const hit = buildRelIndex().get(word); if (hit) return hit.id; }
@@ -649,16 +649,16 @@ export function feedValues(moods, pins, fed, readings, fade = 15) {
     }
     return changed;
 }
-export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?a|no|—|-|\[.*\])\.?$/i.test(String(text).trim());
+export const isNone = text => !String(text ?? '').trim() || /^(none|nothing|n\/?a|no|\u2014|-|\[.*\])\.?$/i.test(String(text).trim());
 // ---- Facts and time, for facts that run their course (engine/moodpace.js) ----
 // A fact named outright: "drunk", "nosebleed", "wet" (its label, the label before any bracket, or its id), or
 // one of its words when it has them (those replace the label: "erection" for Hard, never "hard").
 // Only the facts that run a course or bring feelings, and only exact names, so a feeling word never lands here.
 let factIndex = null;
-const factKey = s => String(s ?? '').toLowerCase().replace(/[^a-z’' -]/g, ' ').replace(/\s+/g, ' ').trim();
+const factKey = s => String(s ?? '').toLowerCase().replace(/[^a-z\u2019' -]/g, ' ').replace(/\s+/g, ' ').trim();
 const factNames = m => m.words ? [m.id.replace(/_/g, ' '), ...m.words] : [m.label, m.label.replace(/\s*\(.*\)\s*$/, ''), m.id.replace(/_/g, ' ')];
 // Words that mean two different facts: wet from water, or wet with arousal. Read from the words around it first
-// (wet hair, the rain, a shower → water; aroused, thighs, slick → arousal), then from whether the person is
+// (wet hair, the rain, a shower \u2192 water; aroused, thighs, slick \u2192 arousal), then from whether the person is
 // heated right now (hot), then water. So "she's wet" in foreplay is arousal, and wet hair after a shower is not.
 const TWINS = { wet: ['wet', 'bedroom_wet'], soaked: ['soaked', 'bedroom_wet'], 'soaking wet': ['soaked', 'bedroom_wet'], dripping: ['soaked', 'bedroom_wet'] };
 const WATER = /\b(rain\w*|shower\w*|swim\w*|bath\w*|pool|sea|lake|river|ocean|storm\w*|puddle\w*|towel\w*|hair|coat|clothes|clothing|dress|shirt|umbrella|downpour|drench\w*|splash\w*|water|tub|sink|sweat\w*|tears?)\b/;

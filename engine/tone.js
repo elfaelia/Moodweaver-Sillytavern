@@ -10,7 +10,7 @@ export const TONES = {
     headspace: '#c59cff', desire: '#ff6fcf',
 };
 export const RESTING = '#7fd18a';
-// state.moods → { lead, shade, glow } colours plus the lead's id and strength. Nothing set: the resting green.
+// state.moods \u2192 { lead, shade, glow } colours plus the lead's id and strength. Nothing set: the resting green.
 export function moodTone(moods = {}) {
     let first = null, second = null;
     for (const [id, v] of Object.entries(moods ?? {})) {

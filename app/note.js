@@ -92,7 +92,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
-        // Dice for the skills in play (Settings › What is sent › Dice checks): rolled once per reply, swipes keep them.
+        // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
         const dice = settings().diceOn !== false ? checkLines(skillFolk, history.length, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
         run.rolls = { avatar: ch.avatar, list: dice.rolls };
         const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length), ...dice.lines];
@@ -104,7 +104,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const pairs = pairExtras(ch).map(p => pairDrop.size && p.names[0] === name && p.names[1] === player ? { ...p, moods: zero(p.moods, pairDrop) } : p);
         const storyNote = story && [...storyDrop].some(id => story.moods?.[id] > 0) ? { ...story, moods: zero(story.moods, storyDrop) } : story;
         const links = sceneLinks({ ch, state, mine, story, bond, bd, n, u });
-        // Aftermath of a strong feeling that just ended, and the player's feeling rubbing off (Settings › What is sent).
+        // Aftermath of a strong feeling that just ended, and the player's feeling rubbing off (Settings \u203a What is sent).
         const newestW = [...history].reverse().find(m => m && !m.is_system && writes(ch)(m)), seemsIds = (newestW ? weaveOf(newestW)?.seems ?? [] : []).map(feelingId).filter(Boolean);
         const close = Boolean(bd && (bd.f >= 41 || bd.r >= 41));
         const echoes = [...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
@@ -115,7 +115,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
             standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, traitFocus: settings().traitFocus !== false, split, echoes });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
-        // Music › "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
+        // Music \u203a "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
         if (musicLine) { result.prompt = result.prompt ? `${result.prompt}\n${musicLine}` : musicLine; result.tokens = (result.tokens ?? 0) + Math.ceil(musicLine.length / 4); }
         // In-chat, user role. Depth 0 puts the note after the latest chat message.
@@ -160,14 +160,14 @@ export const lastDynamic = new Map();
 export const scenePace = ch => MOOD_PACE[ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`]?.pace] ?? MOOD_PACE.steady;
 // The pace this character's feelings actually move at: the chat's pace, shifted by their temper (volatile swings
 // harder, stoic holds steadier; engine/moodpace.js).
-// Low hunger, energy or comfort on the info board make feelings quicker to flare (⚙ Settings › Panel can turn it off).
+// Low hunger, energy or comfort on the info board make feelings quicker to flare (\u2699 Settings \u203a Panel can turn it off).
 const lowNeeds = ch => settings().needsMood === false ? [] : (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35 && SHORT_FUSE.includes(nd.id)).map(nd => nd.label.toLowerCase());
 export const movePace = ch => temperPace(scenePace(ch), getState(ch)?.moods, lowNeeds(ch));
 // What the period does to what's switched on, and how the dynamic meets roles and the strongest feeling.
 const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);
 // "Doctor Easterman is he/him; Lamb is she/her." Only the ones that are known.
 function pronounLine(ch, bond, n, u) {
-    // "they" goes only when chosen (Non-binary under Info › Profile › Gender), not when Auto couldn't tell.
+    // "they" goes only when chosen (Non-binary under Info \u203a Profile \u203a Gender), not when Auto couldn't tell.
     const g = pronounsFor(ch, bond), word = { he: 'he/him', she: 'she/her', they: 'they/them' };
     const parts = [[n, g.n, bond.pn], [u, g.u, bond.pu]].filter(([, p, set]) => p !== 'they' ? word[p] : set === 'they').map(([name, p]) => `${name} is ${word[p]}`);
     return parts.length ? `${parts.join('; ')}.` : '';
@@ -214,7 +214,7 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         on(relMoods, ['captor_of', 'keeps_them']) || on(pairMoods, ['held_by_threat', 'gilded_cage', 'captor_captive']) || ['Captor', 'Gilded cage', 'Closing the circle', 'Guilty captor', 'Fixated captor', 'Conditioning captor', 'Romantic captor', 'Breaking in'].includes(dyn),
         on(relMoods, ['possessive', 'theyre_mine', 'wants_to_own', 'controls']) || on(pairMoods, ['mutually_possessive']) || ['Owned', 'Trophy', 'Claimed', 'Possession', 'Possessive worship'].includes(dyn),
         on(relMoods, ['manipulates']) || on(state.moods, ['gaslighting']) || ['Gaslit', 'Kept small', 'Puppet strings'].includes(dyn),
-        on(relMoods, ['stalks', 'watches_over']) || ['Stalker’s courtship', 'Watcher'].includes(dyn),
+        on(relMoods, ['stalks', 'watches_over']) || ['Stalker\u2019s courtship', 'Watcher'].includes(dyn),
         on(state.moods, ['domestic_tyrant', 'womaniser', 'judgemental_misogyny']),
     ].filter(Boolean);
     if (!top && tints.length && byMood >= 0) top = 'n';

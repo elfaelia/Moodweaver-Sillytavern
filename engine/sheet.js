@@ -6,13 +6,13 @@ import { HEARD_IN } from '../data/catalogue/music.js';
 
 export const TAG_COLS = ['Feeling 1', 'Feeling 2', 'Exact moods', 'Place 1', 'Place 2', 'Moment', 'Dynamic', 'Meaning', 'Heat', 'Energy', 'Character', 'Theme', 'Never during', 'Favourite', 'Off', 'Cues', 'Cue words', 'Sting', 'Peak', 'Year', 'Heard in', 'Notes'];
 // Sound (last column): the song's styles, like Spotify's genres (trip hop, dream pop). Exportify CSVs fill it in;
-// you can type your own. ✦ Fits teaches Moodweaver which sounds suit which kind of scene.
+// you can type your own. \u2726 Fits teaches Moodweaver which sounds suit which kind of scene.
 export const SONG_COLS = ['Song', 'Artist', 'Album', 'From playlist', "Spotify ID (don't edit)", 'Length', ...TAG_COLS, 'Sound'];
 export const PLAYLIST_COLS = ['Playlist', "Spotify ID (don't edit)", 'Songs', ...TAG_COLS];
 export const CHAR_COLS = ['Character', 'Default playlist', 'Theme song', 'Notes'];
 
 // ---- Spotify ids ----
-// "spotify:track:abc", "https://open.spotify.com/track/abc?si=…" or a bare id → "spotify:track:abc".
+// "spotify:track:abc", "https://open.spotify.com/track/abc?si=\u2026" or a bare id \u2192 "spotify:track:abc".
 export function trackUri(value) {
     const s = String(value ?? '').trim();
     const m = s.match(/spotify:track:([A-Za-z0-9]{22})/) ?? s.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?track\/([A-Za-z0-9]{22})/) ?? s.match(/^([A-Za-z0-9]{22})$/);
@@ -20,18 +20,18 @@ export function trackUri(value) {
 }
 const minutes = ms => { const s = Math.round((Number(ms) || 0) / 1000); return s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : ''; };
 
-// ---- Tags ⇄ cells ----
+// ---- Tags \u21c4 cells ----
 export function tagsToCells(t = emptyTags()) {
     const join = (kind, list) => list.map(id => labelOf(kind, id)).join(', ');
     const never = t.nv.map(v => { const [k, id] = [v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1)]; return labelOf(k, id); }).join(', ');
     return [labelOf('f', t.f[0] ?? '') || '', join('f', t.f.slice(1)), join('m', t.m), labelOf('p', t.p[0] ?? '') || '', join('p', t.p.slice(1)), join('mo', t.mo), join('d', t.d), join('cm', t.cm ?? []),
-        t.h ? labelOf('h', t.h) : '', t.e ? ENERGY.find(e => e.id === t.e)?.label ?? '' : '', t.c.join(', '), t.th ? 'Yes' : '', never, t.fav ? '★' : '', t.off ? 'Off' : '', (t.cue ?? []).join(', '), (t.cw ?? []).join(', '), (t.st ?? []).map(id => BEATS.find(b => b.id === id)?.label ?? id).join(', '), peakText(t.pk), t.yr || '', (t.dg ?? []).map(id => HEARD_IN.find(x => x.id === id)?.label ?? id).join(', '), t.note ?? ''];
+        t.h ? labelOf('h', t.h) : '', t.e ? ENERGY.find(e => e.id === t.e)?.label ?? '' : '', t.c.join(', '), t.th ? 'Yes' : '', never, t.fav ? '\u2605' : '', t.off ? 'Off' : '', (t.cue ?? []).join(', '), (t.cw ?? []).join(', '), (t.st ?? []).map(id => BEATS.find(b => b.id === id)?.label ?? id).join(', '), peakText(t.pk), t.yr || '', (t.dg ?? []).map(id => HEARD_IN.find(x => x.id === id)?.label ?? id).join(', '), t.note ?? ''];
 }
 const lookup = list => { const m = new Map(); for (const x of list) { m.set(norm(x.label), x.id); m.set(norm(x.id), x.id); } return m; };
 const MODE_ROWS = MODES.map(x => ({ id: x.id, label: `${x.label} scenes` }));
 const FIND = { cm: lookup(MEANINGS), f: lookup(FAMILIES), m: lookup(MOOD_LIST), p: lookup(PLACES), mo: lookup(MOMENTS), d: lookup(DYN_GROUPS), h: lookup(HEAT), k: new Map(MODE_ROWS.map(x => [norm(x.label), x.id])) };
-const YES = /^(yes|y|true|x|✓|✔|★|☆|\*|1|on|off)$/i;
-// A header row → where each column is, by name (spaces and case don't matter).
+const YES = /^(yes|y|true|x|\u2713|\u2714|\u2605|\u2606|\*|1|on|off)$/i;
+// A header row \u2192 where each column is, by name (spaces and case don't matter).
 export const headerIndex = row => { const m = new Map(); (row ?? []).forEach((h, i) => { const k = norm(h).replace(/[^a-z0-9]/g, ''); if (k && !m.has(k)) m.set(k, i); }); return m; };
 const cellOf = (row, idx, name) => { const i = idx.get(norm(name).replace(/[^a-z0-9]/g, '')); return i === undefined ? '' : String(row[i] ?? '').trim(); };
 // characters: the names SillyTavern knows, so "easterman" comes back as "Easterman".
@@ -81,7 +81,7 @@ export function sheetFile(lib, characters = []) {
     const charNames = [...new Set(['{{char}}', '{{user}}', 'Any', ...characters])];
     const lists = [['Feelings', FAMILIES.map(x => x.label)], ['Exact moods', MOOD_LIST.map(x => x.label)], ['Places', PLACES.map(x => x.label)], ['Moments', MOMENTS.map(x => x.label)],
         ['Dynamics', DYN_GROUPS.map(x => x.label)], ['Meanings', MEANINGS.map(x => x.label)], ['Heat', HEAT.map(x => x.label)], ['Energy', ENERGY.map(x => x.label)], ['Characters', charNames],
-        ['Never during', [...MODE_ROWS.map(x => x.label), ...FAMILIES.map(x => x.label), ...MOMENTS.map(x => x.label), ...HEAT.map(x => x.label)]], ['Yes', ['Yes']], ['Favourite', ['★']], ['Off', ['Off']], ['Stings', BEATS.map(b => b.label)], ['Heard in', HEARD_IN.map(x => x.label)], ['Playlists', pls.map(([, p]) => p.name)]];
+        ['Never during', [...MODE_ROWS.map(x => x.label), ...FAMILIES.map(x => x.label), ...MOMENTS.map(x => x.label), ...HEAT.map(x => x.label)]], ['Yes', ['Yes']], ['Favourite', ['\u2605']], ['Off', ['Off']], ['Stings', BEATS.map(b => b.label)], ['Heard in', HEARD_IN.map(x => x.label)], ['Playlists', pls.map(([, p]) => p.name)]];
     const listCol = Object.fromEntries(lists.map(([name, vals], i) => [name, `Lists!$${colName(i)}$2:$${colName(i)}$${Math.max(2, vals.length + 1)}`]));
     const listRows = Array.from({ length: Math.max(...lists.map(([, v]) => v.length)) + 1 }, (_, r) => lists.map(([name, vals]) => r === 0 ? name : vals[r - 1] ?? ''));
     const tagSource = { 'Feeling 1': 'Feelings', 'Feeling 2': 'Feelings', 'Exact moods': 'Exact moods', 'Place 1': 'Places', 'Place 2': 'Places', Moment: 'Moments', Dynamic: 'Dynamics', Meaning: 'Meanings', Heat: 'Heat', Energy: 'Energy', Character: 'Characters', Theme: 'Yes', 'Never during': 'Never during', Favourite: 'Favourite', Off: 'Off', Sting: 'Stings', 'Heard in': 'Heard in' };
@@ -100,14 +100,14 @@ export function sheetFile(lib, characters = []) {
         ['3. Exact moods: pick one, or type several separated by commas (Hunted, Dreading). They count far more than Feeling.'],
         ['4. Character: a name from your SillyTavern list, {{char}} (whoever the main character is), {{user}} (your persona) or Any.'],
         ['5b. Meaning: what the song is about when it is two feelings at once (Laughing through heartbreak, Tender menace). It only counts when someone feels both at once, and then it counts a lot.'],
-        ['5c. Cues: short phrases, separated by commas, that nod to the song when the story says them (like a dog, salivat* for I Wanna Be Your Dog). A * means any ending. A cue gives the song a nudge for the next few replies, only when it fits the scene, and not again for 10 minutes after it has played. Cue words: single words or stems from the song’s lyrics and themes (dog*, leash*, collar*, salivat*); any two of them close together in a reply count the same way, so the narrator’s own wording works.'],
-        ['5d. Sting: the big story beats this song can crash in on (Violence, Someone bursts in, Reveal, Love confession, First kiss, Death). When the newest reply has that beat, the song jumps in at once, if Stings are on for that character. Peak: where the song’s chorus or drop starts (1:05). When a scene is already at full tilt the song can start there. Blank: Moodweaver estimates it.'],
+        ['5c. Cues: short phrases, separated by commas, that nod to the song when the story says them (like a dog, salivat* for I Wanna Be Your Dog). A * means any ending. A cue gives the song a nudge for the next few replies, only when it fits the scene, and not again for 10 minutes after it has played. Cue words: single words or stems from the song\u2019s lyrics and themes (dog*, leash*, collar*, salivat*); any two of them close together in a reply count the same way, so the narrator\u2019s own wording works.'],
+        ['5d. Sting: the big story beats this song can crash in on (Violence, Someone bursts in, Reveal, Love confession, First kiss, Death). When the newest reply has that beat, the song jumps in at once, if Stings are on for that character. Peak: where the song\u2019s chorus or drop starts (1:05). When a scene is already at full tilt the song can start there. Blank: Moodweaver estimates it.'],
         ['5f. Heard in: the song is something the characters can hear in the room (a punk show, a club, a house party, a bar, a car stereo, a radio). When the story is there, these songs play first, as if coming from the room.'],
-        ['5e. Year: when this recording first came out (not a later reissue). The in-story radio only plays songs from the story’s own era, or earlier.'],
+        ['5e. Year: when this recording first came out (not a later reissue). The in-story radio only plays songs from the story\u2019s own era, or earlier.'],
         ['5. Never during: the song is never played in that kind of scene. Theme: plays when that character arrives or has a big moment.'],
-        ['6. In Google Sheets you can pick several values in one cell: select a column, Data › Data validation › Allow multiple selections.'],
-        ['7. When you are done: download as Microsoft Excel (.xlsx) or CSV, then tap Import song sheet in Moodweaver’s Music tab.'], [],
-        [`Exported ${new Date().toISOString().slice(0, 10)} · ${songRows.length} songs from ${pls.length} playlists`]];
+        ['6. In Google Sheets you can pick several values in one cell: select a column, Data \u203a Data validation \u203a Allow multiple selections.'],
+        ['7. When you are done: download as Microsoft Excel (.xlsx) or CSV, then tap Import song sheet in Moodweaver\u2019s Music tab.'], [],
+        [`Exported ${new Date().toISOString().slice(0, 10)} \u00b7 ${songRows.length} songs from ${pls.length} playlists`]];
     return buildXlsx([
         { name: 'Start here', rows: start, styles: [[4]], widths: [130] },
         { name: 'Songs', rows: [SONG_COLS, ...songRows], styles: [headStyles(6, SONG_COLS.length), ...songRows.map(autoStyle)], widths: [30, 22, 20, 18, 26, 7, ...tagWidths, 26], freeze: { row: 1, col: 2 }, lists: dropdowns(6, nSongs) },

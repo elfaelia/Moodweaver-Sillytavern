@@ -311,7 +311,7 @@ function openTab(tab) {
 }
 // Swiping sideways on the panel walks through the tabs (not on sliders, text or lists that scroll sideways).
 // Only a clear, quick, flat swipe counts: across at least a third of the panel (and 90px), within 0.7 s, never
-// drifting up or down more than a third of the way across, and with no scrolling during it. ⚙ Settings › Panel
+// drifting up or down more than a third of the way across, and with no scrolling during it. \u2699 Settings \u203a Panel
 // can turn swiping off.
 export function onPanelSwipe(start, end) {
     const dx = end.x - start.x, far = Math.max(90, (start.width || 360) / 3);
@@ -395,7 +395,7 @@ export async function onPanelClick(e) {
     if (['dyn-pool-save', 'dyn-pool-load', 'dyn-pool-clear', 'bond-reread'].includes(button.dataset.action)) {
         const ch = target(), key = `char:${ch?.avatar}`, act = button.dataset.action;
         if (act === 'bond-reread') { await readBond(ch); return; }
-        if (act === 'dyn-pool-save') { settings().dynamicPools[key] = [...bondData(ch).pool]; ctx().saveSettingsDebounced(); run.status = `Saved ${bondData(ch).pool.length} picks for ${ch.name}’s new chats.`; renderStatus(); return; }
+        if (act === 'dyn-pool-save') { settings().dynamicPools[key] = [...bondData(ch).pool]; ctx().saveSettingsDebounced(); run.status = `Saved ${bondData(ch).pool.length} picks for ${ch.name}\u2019s new chats.`; renderStatus(); return; }
         if (act === 'dyn-pool-load') { const saved = settings().dynamicPools?.[key] ?? []; await editBond(b => { b.pool = [...saved]; }); return; }
         await editBond(b => { b.pool = []; }); return;
     }
@@ -523,7 +523,7 @@ export async function onPanelClick(e) {
         const id = button.dataset.authorRole, role = button.dataset.role;
         await changeState(s => { s.authorRole = { ...(s.authorRole ?? {}) }; if (role) s.authorRole[id] = role; else delete s.authorRole[id]; }); return;
     }
-    // The ✕ beside a chip at the top: takes that mood, trait or turn-on off, with one step back.
+    // The \u2715 beside a chip at the top: takes that mood, trait or turn-on off, with one step back.
     if (button.dataset.chipOff || button.dataset.action === 'chip-undo') {
         const kind = tabKind(), u = ui.chipUndo;
         if (button.dataset.action === 'chip-undo') {
@@ -710,7 +710,7 @@ export async function onPanelClick(e) {
         case 'cast-add': {
             try {
                 const person = addCastMember(getCast(), ui.panel.querySelector('[data-cast-new]')?.value ?? '', newCastId(), [playerName(), ...members().map(ch => ch.name)]);
-                ui.selectedCastId = person.id; ui.who = 'cast'; ui.selectedPeer = ''; ui.castAction = ''; run.status = `${person.name} added to this chat’s cast.`;
+                ui.selectedCastId = person.id; ui.who = 'cast'; ui.selectedPeer = ''; ui.castAction = ''; run.status = `${person.name} added to this chat\u2019s cast.`;
                 render(); await persist(); await syncPrompt();
             } catch (error) { run.status = error.message; renderStatus(); }
             break;
@@ -723,7 +723,7 @@ export async function onPanelClick(e) {
             render(); await persist(); await syncPrompt(); break;
         }
         case 'cast-default':
-            saveCastDefault(); ui.castAction = ''; run.status = `Cast saved for ${target().name}’s future chats.`; render(); break;
+            saveCastDefault(); ui.castAction = ''; run.status = `Cast saved for ${target().name}\u2019s future chats.`; render(); break;
         case 'cast-load': ui.castAction = 'load'; render(); break;
         case 'cast-load-confirm': {
             if (!loadCastDefault()) break;
@@ -735,7 +735,7 @@ export async function onPanelClick(e) {
         case 'cancel': cancelAnalysis(); break;
         case 'analyse': await analyse(true); break;
         case 'clear': {
-            const whose = ui.who === 'user' ? `${playerName()}’s` : ui.who === 'story' ? 'the story’s' : `${ui.who === 'cast' ? selectedCast()?.name : target()?.name}’s`;
+            const whose = ui.who === 'user' ? `${playerName()}\u2019s` : ui.who === 'story' ? 'the story\u2019s' : `${ui.who === 'cast' ? selectedCast()?.name : target()?.name}\u2019s`;
             const kind = tabKind();
             const what = { mood: 'moodlets', trait: 'traits', intimacy: 'intimacy settings', turn: 'turn-ons and turn-offs', state: 'facts', story: 'story settings' }[kind];
             if (!confirm(`Clear ${whose} ${what}? Their sliders go to 0 and pins come off. Everything in the other tabs stays, and the list stays so you can set a new scene quickly.`)) break;
@@ -743,7 +743,7 @@ export async function onPanelClick(e) {
         }
         case 'clear-everything': {
             const keep = ui.panel.querySelector('[data-keep-types]')?.checked !== false, whose = ui.who === 'story' ? 'the story' : subjectName();
-            if (!confirm(`Clear everything set for ${whose} in this chat? Moodlets, traits, turn-ons, facts, wants, items, skills and relationships all go, pins too. ${keep ? 'Personality types stay.' : 'Personality types go too.'} “Bring it back” undoes it until you clear again.`)) break;
+            if (!confirm(`Clear everything set for ${whose} in this chat? Moodlets, traits, turn-ons, facts, wants, items, skills and relationships all go, pins too. ${keep ? 'Personality types stay.' : 'Personality types go too.'} \u201cBring it back\u201d undoes it until you clear again.`)) break;
             await clearEverything(keep); run.status = `Cleared everything for ${whose}.`; renderStatus(); break;
         }
         case 'clear-undo': await undoClear(); run.status = 'Brought back what was cleared.'; renderStatus(); break;
@@ -755,10 +755,10 @@ export async function onPanelClick(e) {
             s.reason = previous.reason; s.updatedAt = previous.updatedAt;
         }); break;
         case 'baseline': {
-            if (ui.who === 'cast') { saveCastDefault(); run.status = `Cast saved for ${target().name}’s future chats.`; renderStatus(); break; }
+            if (ui.who === 'cast') { saveCastDefault(); run.status = `Cast saved for ${target().name}\u2019s future chats.`; renderStatus(); break; }
             const key = ui.who === 'user' ? `user:${playerName()}` : ui.who === 'story' ? `story:${target().avatar}` : `char:${target().avatar}`;
             settings().baselines[key] = freshState(viewState()); ctx().saveSettingsDebounced();
-            run.status = ui.who === 'user' ? `Default saved for ${playerName()}’s future chats.` : ui.who === 'story' ? 'Story default saved for this character’s future chats.' : 'Default saved for this character’s future chats.'; renderStatus(); break;
+            run.status = ui.who === 'user' ? `Default saved for ${playerName()}\u2019s future chats.` : ui.who === 'story' ? 'Story default saved for this character\u2019s future chats.' : 'Default saved for this character\u2019s future chats.'; renderStatus(); break;
         }
     }
 }

@@ -4,7 +4,7 @@ import { secretStep } from './secrets.js';
 // model noticed about its own character this turn, so feelings, needs, relationships, meters and
 // memories all update from the reply it was already writing. No tool call, no extra request.
 //   <!-- weave: moods desperate -10, relieved +20 | needs hunger low | toward obsessed +5 | friendship +1 | romance +2 | trust -3 | power +2 | thinks: stubborn, his | sparked: her defiance | remember: none -->
-// Older chats wrote <!-- bond: … --> (1.33.0); both are read, and both are stripped from the prompt.
+// Older chats wrote <!-- bond: \u2026 --> (1.33.0); both are read, and both are stripped from the prompt.
 const LINE = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/i;
 const LINES = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/gi;
 const LINE_ALL = /[ \t]*<!--\s*(?:weave|bond)\s*:[\s\S]*?-->[ \t]*\n?/gi;
@@ -15,19 +15,19 @@ export const stripWeave = text => String(text ?? '').replace(LINE_ALL, '').repla
 export const weaveLines = text => [...String(text ?? '').matchAll(LINES)].map(m => m[1].trim());
 
 const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-const NONE = /^(none|nothing|n\/?a|no change|no|-|—|\[.*\])\.?$/i;
-const num = v => { const x = String(v ?? '').replace(/[−–]/g, '-').match(/[+-]?\s*\d+/); return x ? Math.round(Number(x[0].replace(/\s/g, ''))) : 0; };
-const unquote = s => String(s ?? '').trim().replace(/^["“'‘]+|["”'’.]+$/g, '').trim();
-// "she's mine to the bone" → "mine to the bone": the chips already read "Easterman thinks Lamb is…".
-const trait = s => unquote(s).replace(/^(?:(?:she|he|they|it|you)(?:['’]s|['’]re|\s+is|\s+are|\s+was)?|is|are)\s+/i, '').replace(/\s+/g, ' ').trim();
+const NONE = /^(none|nothing|n\/?a|no change|no|-|\u2014|\[.*\])\.?$/i;
+const num = v => { const x = String(v ?? '').replace(/[\u2212\u2013]/g, '-').match(/[+-]?\s*\d+/); return x ? Math.round(Number(x[0].replace(/\s/g, ''))) : 0; };
+const unquote = s => String(s ?? '').trim().replace(/^["\u201c'\u2018]+|["\u201d'\u2019.]+$/g, '').trim();
+// "she's mine to the bone" \u2192 "mine to the bone": the chips already read "Easterman thinks Lamb is\u2026".
+const trait = s => unquote(s).replace(/^(?:(?:she|he|they|it|you)(?:['\u2019]s|['\u2019]re|\s+is|\s+are|\s+was)?|is|are)\s+/i, '').replace(/\s+/g, ' ').trim();
 // Near-duplicates share a key: "stubborn", "Stubborn!", "so stubborn".
 export const traitKey = s => trait(s).toLowerCase().replace(/^(so|very|really|too)\s+/, '').replace(/[^a-z0-9' ]/g, '').trim();
 const list = (v, max, len) => NONE.test(String(v ?? '').trim()) ? [] : String(v ?? '').split(/[,;]/).map(unquote).filter(s => s && !NONE.test(s) && s.length <= len).slice(0, max);
-// "desperate -10, Clingy / needy +5" → [{ name, delta }]. Entries without a number are skipped.
+// "desperate -10, Clingy / needy +5" \u2192 [{ name, delta }]. Entries without a number are skipped.
 function changes(v, max = 5) {
     if (NONE.test(String(v ?? '').trim())) return [];
     return String(v ?? '').split(/[,;]/).map(part => {
-        const m = part.trim().replace(/[−–]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*(?:\(?\s*(?:at|about|over|toward|towards)\s+([^)]+?)\)?)?\s*$/i);
+        const m = part.trim().replace(/[\u2212\u2013]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*(?:\(?\s*(?:at|about|over|toward|towards)\s+([^)]+?)\)?)?\s*$/i);
         if (!m) return null;
         // "afraid off" ends a feeling outright: the model only sees strength words, not numbers.
         // Who it's about: "angry +10 at his wife" or "angry at his wife +10".
@@ -38,12 +38,12 @@ function changes(v, max = 5) {
 }
 const NEED_WORDS = { critical: 10, low: 30, okay: 55, ok: 55, fine: 85, full: 95, met: 90 };
 const NEED_NAMES = ['hunger', 'energy', 'bladder', 'hygiene', 'comfort', 'social', 'fun', 'health'];
-// "hunger low, energy critical" → { hunger: 30, energy: 10 }. 1.39.0: "health -10" is a change, kept
+// "hunger low, energy critical" \u2192 { hunger: 30, energy: 10 }. 1.39.0: "health -10" is a change, kept
 // separately in deltas so older readers that only know levels never mistake it for one.
 function needs(v, deltas = null) {
     const out = {};
     for (const part of NONE.test(String(v ?? '').trim()) ? [] : String(v ?? '').split(/[,;]/)) {
-        const t = part.trim().toLowerCase().replace(/[−–]/g, '-');
+        const t = part.trim().toLowerCase().replace(/[\u2212\u2013]/g, '-');
         const d = t.match(/^([a-z]+)\s*:?\s*([+-])\s*(\d{1,3})\b/);
         if (d && NEED_NAMES.includes(d[1])) { if (deltas) deltas[d[1]] = clamp((deltas[d[1]] ?? 0) + Number(d[2] + d[3]), -100, 100); continue; }
         const m = t.match(/^([a-z]+)\s*:?\s*(critical|low|okay|ok|fine|full|met|\d{1,3})\b/);
@@ -51,22 +51,22 @@ function needs(v, deltas = null) {
     }
     return out;
 }
-// "get her to eat +, escape -, keep her safe done" → [{ text, status }]
+// "get her to eat +, escape -, keep her safe done" \u2192 [{ text, status }]
 const wantItems = v => list(v, 4, 80).map(s => {
-    const m = s.replace(/[−–]/g, '-').match(/^(.+?)\s*(\+|-|\bdone\b|\bcame true\b|\bblocked\b|\bcloser\b)\s*$/i);
+    const m = s.replace(/[\u2212\u2013]/g, '-').match(/^(.+?)\s*(\+|-|\bdone\b|\bcame true\b|\bblocked\b|\bcloser\b)\s*$/i);
     if (!m) return { text: s, status: '+' };
     const k = m[2].toLowerCase();
     return { text: unquote(m[1]), status: k === '-' || k === 'blocked' ? '-' : k === '+' || k === 'closer' ? '+' : 'done' };
 }).filter(w => w.text);
-// "her defiance, her crying (off)" → [{ text, off }]
+// "her defiance, her crying (off)" \u2192 [{ text, off }]
 const sparks = v => list(v, 3, 60).map(s => ({ text: s.replace(/\s*\((?:off|turn-?off)\)\s*$/i, '').trim(), off: /\((?:off|turn-?off)\)\s*$/i.test(s) })).filter(s => s.text);
-// "arousal +6, restraint -4, bold +5, tender +3, shame +4" or "release" → { a, s, b, t, x, h, release }.
+// "arousal +6, restraint -4, bold +5, tender +3, shame +4" or "release" \u2192 { a, s, b, t, x, h, release }.
 // Tender counts as the opposite of rough.
 const DESIRE_WORDS = [[/^(arousal|aroused|desire|horny)$/, 'a', 1], [/^(restraint|holding back|holding)$/, 's', 1], [/^(bold|boldness|forward)$/, 'b', 1],
     [/^(rough|roughness|cruel)$/, 't', 1], [/^(tender|gentle|soft)$/, 't', -1], [/^(fixation|fixated|fixed)$/, 'x', 1], [/^(shame|ashamed)$/, 'h', 1]];
 function desireOf(v) {
     if (!v || NONE.test(String(v).trim())) return null;
-    const t = String(v).toLowerCase().replace(/[−–]/g, '-'), out = { a: 0, s: 0, b: 0, t: 0, x: 0, h: 0, release: /(^|[,;]\s*)(release|released)\b/.test(t.trim()) };
+    const t = String(v).toLowerCase().replace(/[\u2212\u2013]/g, '-'), out = { a: 0, s: 0, b: 0, t: 0, x: 0, h: 0, release: /(^|[,;]\s*)(release|released)\b/.test(t.trim()) };
     for (const part of t.split(/[,;]/)) {
         const m = part.trim().match(/^([a-z ]+?)?\s*:?\s*([+-]\s*\d{1,3})/); if (!m) continue;
         const word = (m[1] ?? 'arousal').trim() || 'arousal', hit = DESIRE_WORDS.find(([re]) => re.test(word)); if (!hit) continue;
@@ -80,7 +80,7 @@ function castOf(v) {
     if (!v || NONE.test(String(v).trim())) return [];
     return String(v).split(';').map(part => {
         const m = part.trim().match(/^([^:]{1,60}):\s*(.+)$/); if (!m) return null;
-        const items = m[2].split(',').map(x => x.trim().replace(/[−–]/g, '-')).filter(x => x && !NONE.test(x)).slice(0, 3).map(x => {
+        const items = m[2].split(',').map(x => x.trim().replace(/[\u2212\u2013]/g, '-')).filter(x => x && !NONE.test(x)).slice(0, 3).map(x => {
             const c = x.match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone|\bended)\.?$/i);
             return c ? { name: unquote(c[1]).toLowerCase(), delta: /off|gone|ended/i.test(c[2]) ? -100 : clamp(num(c[2]), -40, 40) } : { name: unquote(x).toLowerCase(), delta: null };
         }).filter(x => x.name && x.name.length <= 50 && x.delta !== 0);
@@ -111,7 +111,7 @@ function readLine(body) {
         desire: desireOf(f.desire), meters: metersOf(f.meters), used: list(f.used, 6, 50),
         seems: 'seems' in f ? (NONE.test(String(f.seems).trim()) ? [] : list(f.seems, 3, 30)) : null,
         // 1.79: stress this reply, "+10" or "-5" (engine/stress.js).
-        stress: (() => { const m = String(f.stress ?? '').replace(/[−–]/g, '-').match(/([+-]?)\s*(\d{1,2})/); return m ? Math.max(-20, Math.min(20, Number((m[1] || '+') + m[2]))) : 0; })(),
+        stress: (() => { const m = String(f.stress ?? '').replace(/[\u2212\u2013]/g, '-').match(/([+-]?)\s*(\d{1,2})/); return m ? Math.max(-20, Math.min(20, Number((m[1] || '+') + m[2]))) : 0; })(),
         // 1.79: secrets that moved this reply ("affair suspected, debts known"), engine/secrets.js.
         secrets: list(f.secrets, 4, 80).map(secretStep).filter(Boolean),
         // 1.78: facts about the character the story made or ended this reply ("fired, in uniform, engaged off").
@@ -209,7 +209,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand.`,
             ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
             ...(dynamic ? [split ? '- dynamic: only if it has changed, what it is now (see just before the reply).' : `- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
-            `- thinks: ${n} thinks ${u} is… (stubborn, his, a liar).`,
+            `- thinks: ${n} thinks ${u} is\u2026 (stubborn, his, a liar).`,
             `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`,
             ...(notice ? [`- noticed: any of ${u}'s turn-ons or turn-offs that ${n} picked up on this reply from how ${u} reacted, by name.`] : [])] : []),
         ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),

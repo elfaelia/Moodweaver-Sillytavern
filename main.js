@@ -59,8 +59,8 @@ function setup() {
     const settingsHost = document.querySelector('#extensions_settings2') ?? document.querySelector('#extensions_settings');
     if (settingsHost) {
         const entry = document.createElement('div'); entry.className = 'mw-settings-entry';
-        entry.innerHTML = `<b>◆ Moodweaver</b> <small class="mw-ver">v${VERSION}</small><p>Character moods, blended your way.</p><button class="menu_button" data-mw-open>Open mood panel</button>
-            <label class="checkbox_label mw-entry-toggle"><input type="checkbox" data-launch="show" ${launch.show ? 'checked' : ''}><span>Show the ◆ Moods button on this device</span></label><p class="mw-diag" data-mw-diag hidden></p>`;
+        entry.innerHTML = `<b>\u25c6 Moodweaver</b> <small class="mw-ver">v${VERSION}</small><p>Character moods, blended your way.</p><button class="menu_button" data-mw-open>Open mood panel</button>
+            <label class="checkbox_label mw-entry-toggle"><input type="checkbox" data-launch="show" ${launch.show ? 'checked' : ''}><span>Show the \u25c6 Moods button on this device</span></label><p class="mw-diag" data-mw-diag hidden></p>`;
         entry.querySelector('[data-mw-open]').onclick = openPanel;
         entry.querySelector('[data-launch="show"]').addEventListener('change', e => setLaunch({ show: e.target.checked }));
         settingsHost.append(entry);
@@ -68,7 +68,7 @@ function setup() {
     if (!addWandItem()) { let tries = 0; const again = setInterval(() => { if (addWandItem() || ++tries > 20) clearInterval(again); }, 500); }
     addSlashCommand();
     // A chat redraw that waited for you runs a moment after you leave the field or lift your finger: long
-    // enough for the tap that moved focus (on "＋ Remember", say) to land on the button it was aimed at.
+    // enough for the tap that moved focus (on "\uff0b Remember", say) to land on the button it was aimed at.
     const later = () => setTimeout(() => { if (ui.renderLater && !typingInPanel()) render(); }, 350);
     ui.panel.addEventListener('focusout', later);
     ui.panel.addEventListener('pointerdown', () => { ui.pointerInPanel = true; }, { passive: true });

@@ -23,10 +23,10 @@ export const PLACE_BEDS = {
 // Places that are outdoors (rain falls on them, not on the windows).
 export const OUTDOOR_BEDS = new Set(['wind', 'waves', 'fire', 'forest', 'meadow', 'suburb', 'suburbnight', 'campus', 'campusnight', 'campnight', 'cliff', 'junkyard', 'roadside', 'motel', 'carnival', 'darkcity', 'city', 'clubout', 'fairfar', 'yardfar', 'car', 'train']);
 export const NIGHT_BEDS = { suburb: 'suburbnight', meadow: 'suburbnight', campus: 'campusnight', forest: 'campnight', fire: 'campnight', city: 'darkcity', roadside: 'motel' };
-export const BED_LABELS = { breathlow: 'her breathing now and then', rainin: 'rain on the windows', bar: 'a bar', barbusy: 'a busy bar', cafe: 'a café', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
-    rain: 'rain', storm: 'a storm', monitor: 'a ward’s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'the sea', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
+export const BED_LABELS = { breathlow: 'her breathing now and then', rainin: 'rain on the windows', bar: 'a bar', barbusy: 'a busy bar', cafe: 'a caf\u00e9', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
+    rain: 'rain', storm: 'a storm', monitor: 'a ward\u2019s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'the sea', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
-    wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'her breathing', heart: 'a heartbeat', vent: 'a facility’s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
+    wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'her breathing', heart: 'a heartbeat', vent: 'a facility\u2019s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
     fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt', voice: 'her moans and whimpers',
     bed: 'a creaking bed', chair: 'a squeaking office chair', desk: 'a rattling desk', wall: 'thuds against the wall', springs: 'a rocking car', couch: 'a creaking couch', floor: 'creaking floorboards' };
 // During sex (1.80): what they're on, from the last 3 messages, else the place. Newest message wins. These beds
@@ -83,8 +83,8 @@ export const SHOT_WORDS = [
     ['shot', /\b(?:gunshots?|gun ?fire|shots? (?:ring|rang) out|fired? (?:the|a|his|her|their) (?:gun|pistol|revolver|rifle)|pull(?:s|ed)? the trigger|the gun (?:goes|went) off)\b/i],
     ['thunder', /\b(?:thunder (?:cracks|crashes|booms|rolls)|crack of thunder|lightning (?:strikes|cracks))\b/i],
     ['flatline', /\b(?:flat ?line[sd]?|monitor (?:screams|flatlines)|no pulse|code blue)\b/i],
-    ['defib', /\b(?:defibrillat\w*|paddles (?:to|on|against) (?:his|her|their|the) chest|(?:shouts?|calls?|yells?) ['"“]?clear)\b/i],
-    ['drill', /\b(?:(?:the|a) drill (?:whines|whirs|screams|bites|spins|starts)|drill(?:s|ed|ing)? into|bone ?saw|whirr?(?:s|ing)? of (?:a|the) (?:drill|saw)|dentist['’]?s drill)\b/i],
+    ['defib', /\b(?:defibrillat\w*|paddles (?:to|on|against) (?:his|her|their|the) chest|(?:shouts?|calls?|yells?) ['"\u201c]?clear)\b/i],
+    ['drill', /\b(?:(?:the|a) drill (?:whines|whirs|screams|bites|spins|starts)|drill(?:s|ed|ing)? into|bone ?saw|whirr?(?:s|ing)? of (?:a|the) (?:drill|saw)|dentist['\u2019]?s drill)\b/i],
 ];
 // The scene's own words, for when no place fact is set: a bed lasts while recent replies keep it in view. Weather and
 // layers (a clock, birds, the camera) sit on top of the place. Only the story's words count, not hidden notes.
@@ -116,8 +116,8 @@ export const PLACE_WORDS = [
     ['barbusy', /\b(?:night ?club|the club\b|party|dance ?floor|packed bar|crowded (?:bar|room|pub|restaurant)|dance ?hall|casino|frat house|ballroom|reception|gala|banquet)\b/i],
     ['diner', /\b(?:diner|greasy spoon|lunch counter|counter stools?|truck ?stop|waitress (?:refills|pours|brings)|milkshake|burger joint|drive-?thru|fast food)\b/i],
     ['cafeteria', /\b(?:cafeteria|canteen|lunch ?room|mess hall|food court|dining hall|the mall\b|shopping (?:mall|centre|center))\b/i],
-    ['restaurant', /\b(?:restaurants?|bistro|eatery|steakhouse|pizzeria|trattoria|brasserie|deli\b|brunch|dinner date|their table|the waiter|maître d|reservation)\b/i],
-    ['cafe', /\b(?:caf[eé]s?|coffee ?shop|coffee ?house|espresso bar|tea ?room|bakery|bookshop|bookstore|book store)\b/i],
+    ['restaurant', /\b(?:restaurants?|bistro|eatery|steakhouse|pizzeria|trattoria|brasserie|deli\b|brunch|dinner date|their table|the waiter|ma\u00eetre d|reservation)\b/i],
+    ['cafe', /\b(?:caf[e\u00e9]s?|coffee ?shop|coffee ?house|espresso bar|tea ?room|bakery|bookshop|bookstore|book store)\b/i],
     ['bar', /\b(?:(?:a|the|this|that|his|her|their)(?: (?!iron|metal|steel|chocolate|soap|candy|crow)\w+){0,2} bar\b|bar (?:restroom|bathroom|toilets?)|bar ?stools?|(?:a|the|this|that) pub\b|tavern|saloon|lounge|bartender|barkeep|barman|barmaid|speakeasy|jukebox|on the rocks|last call|clubhouse)\b/i],
     ['junkyard', /\b(?:junk ?yard|scrap ?yard|salvage yard|wrecked cars|scrap metal|rail ?yard|train ?yard|train tracks|trailer park|abandoned lot|the tracks)\b/i],
     ['motel', /\b(?:motel|motor ?inn|inn\b|hotel balcony|walkway outside)\b/i],
@@ -244,7 +244,7 @@ const filter = (type, freq, q = 0.7) => { const f = ac.createBiquadFilter(); f.t
 const gainOf = v => { const g = ac.createGain(); g.gain.value = v; return g; };
 const osc = (type, freq) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = freq; o.start(); return o; };
 const chain = (...nodes) => { for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]); return nodes.at(-1); };
-// A slow wobble on an AudioParam: centre ± depth at rate Hz.
+// A slow wobble on an AudioParam: centre \u00b1 depth at rate Hz.
 function wobble(param, centre, depth, rate) { const o = osc('sine', rate), g = gainOf(depth); param.value = centre; o.connect(g).connect(param); return o; }
 // Something that happens now and then (a drip, a beep, a clink): fn(time) every min..max seconds.
 function every(min, max, fn) {
@@ -278,7 +278,7 @@ function strokes(fn) {
         if (!alive || !ac) return;
         // Glide toward the scene's pace (1.83): a new pace takes about six strokes to settle, like speeding up for real.
         strokeRate += (targetRate - strokeRate) * 0.28;
-        // A slow build and ease (±12% over 18-38 s) and a slight push-pull between strokes, like people, not a metronome.
+        // A slow build and ease (\u00b112% over 18-38 s) and a slight push-pull between strokes, like people, not a metronome.
         const drift = 1 + 0.12 * Math.sin((Date.now() - born) / wave * 2 * Math.PI);
         let wait = 1 / (strokeRate * drift) * (i % 2 ? 1.06 : 0.94);
         if (Date.now() > pauseAt) { pauseAt = Date.now() + 20000 + Math.random() * 40000; wait = 2 + Math.random() * 4; }

@@ -20,9 +20,9 @@ export const ERA_LOCALE = Object.fromEntries(REGIONAL_ERAS.map(([id, , , , after
 // "write American": each line says what to use and names the opposite side's giveaways to leave out.
 const TECHNIQUE = 'Authors and styles in these notes shape technique, never accent, spelling or idiom.';
 export const LOCALE_RULES = {
-    us: `Narration and dialogue are American English: color, realize, gray, center, toward; Mom, apartment, gas, elevator, sidewalk, trash, cookie, vacation, fall, the hospital. Leave out British giveaways: colour or realise spellings, Mum, flat, lift, pavement, rubbish, biscuit, holiday, “in hospital”, “bloody”, “mate”, “brilliant”, “fancy”, “reckon”, “whilst”, “cheers”, and “quite” or “rather” as intensifiers. Only a character the card makes British talks that way. ${TECHNIQUE}`,
-    uk: `Narration and dialogue are British English: colour, realise, grey, centre, travelled; Mum, flat, lift, pavement, rubbish, biscuit, holiday, autumn, in hospital. Leave out American giveaways: color or realize spellings, Mom, apartment, elevator, sidewalk, trash, cookie, vacation, fall for autumn, “gotten”, “awesome”, “buddy”, “y’all”. Only a character the card makes American talks that way. ${TECHNIQUE}`,
-    scot: `Narration uses British spelling and words: colour, realise, grey; Mum, flat, rubbish, holiday. Scottish characters sound Scottish where it fits the speaker: aye, wee, ken, lass, bairn, kirk, och, dinnae, cannae, outwith; broader for working folk, lighter for gentry and the educated. Use a few Scots words and turns of phrase, not phonetic spelling throughout. Leave out American giveaways: color, Mom, apartment, “gotten”, “okay”. ${TECHNIQUE}`,
+    us: `Narration and dialogue are American English: color, realize, gray, center, toward; Mom, apartment, gas, elevator, sidewalk, trash, cookie, vacation, fall, the hospital. Leave out British giveaways: colour or realise spellings, Mum, flat, lift, pavement, rubbish, biscuit, holiday, \u201cin hospital\u201d, \u201cbloody\u201d, \u201cmate\u201d, \u201cbrilliant\u201d, \u201cfancy\u201d, \u201creckon\u201d, \u201cwhilst\u201d, \u201ccheers\u201d, and \u201cquite\u201d or \u201crather\u201d as intensifiers. Only a character the card makes British talks that way. ${TECHNIQUE}`,
+    uk: `Narration and dialogue are British English: colour, realise, grey, centre, travelled; Mum, flat, lift, pavement, rubbish, biscuit, holiday, autumn, in hospital. Leave out American giveaways: color or realize spellings, Mom, apartment, elevator, sidewalk, trash, cookie, vacation, fall for autumn, \u201cgotten\u201d, \u201cawesome\u201d, \u201cbuddy\u201d, \u201cy\u2019all\u201d. Only a character the card makes American talks that way. ${TECHNIQUE}`,
+    scot: `Narration uses British spelling and words: colour, realise, grey; Mum, flat, rubbish, holiday. Scottish characters sound Scottish where it fits the speaker: aye, wee, ken, lass, bairn, kirk, och, dinnae, cannae, outwith; broader for working folk, lighter for gentry and the educated. Use a few Scots words and turns of phrase, not phonetic spelling throughout. Leave out American giveaways: color, Mom, apartment, \u201cgotten\u201d, \u201cokay\u201d. ${TECHNIQUE}`,
 };
 // A second regional era only covers its own people; narration stays with the strongest.
 export const LOCALE_SPEAKERS = {
@@ -60,5 +60,5 @@ function respell(text) {
         .replace(ll, (_, stem, end) => `${stem}${end}`)
         .replace(words, w => caseLike(w, WORDS[w.toLowerCase()]));
 }
-// Text the player typed inside “quotes” is left exactly as written.
-export const toAmerican = text => String(text).split(/(“[^”]*”)/).map((part, i) => i % 2 ? part : respell(part)).join('');
+// Text the player typed inside \u201cquotes\u201d is left exactly as written.
+export const toAmerican = text => String(text).split(/(\u201c[^\u201d]*\u201d)/).map((part, i) => i % 2 ? part : respell(part)).join('');

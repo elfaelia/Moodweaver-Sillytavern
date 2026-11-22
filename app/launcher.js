@@ -4,9 +4,9 @@ import { clamp, escapeHtml as esc } from '../engine/util.js';
 import { openPanel } from '../panel/render.js';
 import { clearAllPins } from '../panel/settings-sheet.js';
 
-// ---- The ◆ Moods button, set per device ----
+// ---- The \u25c6 Moods button, set per device ----
 // Show or hide it, make it small, and drag it anywhere. Kept in this browser only, so hiding it on
-// your phone doesn't hide it on your computer. The ✨ wand menu, /moods and Extensions always open
+// your phone doesn't hide it on your computer. The \u2728 wand menu, /moods and Extensions always open
 // the panel, so a hidden button never locks you out.
 const LAUNCH_KEY = 'moodweaver.launcher';
 export const launch = (() => {
@@ -36,7 +36,7 @@ export function placeLauncher() {
     const el = document.getElementById('moodweaver-launcher'); if (!el) return;
     el.hidden = run.suspended || !launch.show;
     el.classList.toggle('is-small', Boolean(launch.small));
-    el.innerHTML = `<span aria-hidden="true">◆</span>${launch.small ? '' : ' Moods'}`;
+    el.innerHTML = `<span aria-hidden="true">\u25c6</span>${launch.small ? '' : ' Moods'}`;
     if (el.hidden || launch.x == null || launch.y == null) { el.classList.remove('is-placed'); el.style.left = ''; el.style.top = ''; return; }
     el.classList.add('is-placed');
     const b = launchBounds(el);
@@ -84,11 +84,11 @@ function syncLaunchControls() {
     for (const box of document.querySelectorAll('[data-launch="show"]')) box.checked = Boolean(launch.show);
     for (const box of document.querySelectorAll('[data-launch="small"]')) box.checked = Boolean(launch.small);
 }
-export const launchSettings = () => `<label class="mw-toggle"><input type="checkbox" data-launch="show" ${launch.show ? 'checked' : ''}> Show the ◆ Moods button</label>
-    <label class="mw-toggle"><input type="checkbox" data-launch="small" ${launch.small ? 'checked' : ''}> Small button (just ◆)</label>
-    <p class="mw-fine">Drag the button anywhere to move it. This device remembers where. With it hidden, open Moodweaver from the ✨ wand menu next to the message box, with /moods, or from Extensions.</p>
+export const launchSettings = () => `<label class="mw-toggle"><input type="checkbox" data-launch="show" ${launch.show ? 'checked' : ''}> Show the \u25c6 Moods button</label>
+    <label class="mw-toggle"><input type="checkbox" data-launch="small" ${launch.small ? 'checked' : ''}> Small button (just \u25c6)</label>
+    <p class="mw-fine">Drag the button anywhere to move it. This device remembers where. With it hidden, open Moodweaver from the \u2728 wand menu next to the message box, with /moods, or from Extensions.</p>
     <div class="mw-actions"><button type="button" data-action="launch-reset"${launch.x == null ? ' disabled' : ''}>Put it back in the corner</button></div>`;
-// A ◆ Moodweaver row in SillyTavern's ✨ wand menu.
+// A \u25c6 Moodweaver row in SillyTavern's \u2728 wand menu.
 export function addWandItem() {
     if (document.getElementById('moodweaver-wand')) return true;
     const menu = document.getElementById('extensionsMenu'); if (!menu) return false;
@@ -102,7 +102,7 @@ export function addWandItem() {
     document.getElementById('extensionsMenuButton')?.style.removeProperty('display');
     return true;
 }
-// /moods opens the panel. /moods button on|off|small|big|reset changes the ◆ button on this device.
+// /moods opens the panel. /moods button on|off|small|big|reset changes the \u25c6 button on this device.
 export function addSlashCommand() {
     try {
         const { SlashCommandParser, SlashCommand, SlashCommandArgument, ARGUMENT_TYPE } = ctx();
@@ -110,7 +110,7 @@ export function addSlashCommand() {
         const words = SlashCommandArgument?.fromProps && ARGUMENT_TYPE ? [SlashCommandArgument.fromProps({ description: 'unpin, or button on / off / small / big / reset', typeList: [ARGUMENT_TYPE.STRING], isRequired: false })] : [];
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             name: 'moods', returns: 'nothing', unnamedArgumentList: words,
-            helpString: 'Opens the Moodweaver panel. <code>/moods unpin</code> unpins everything in this chat. <code>/moods button on</code>, <code>off</code>, <code>small</code>, <code>big</code> or <code>reset</code> changes the ◆ Moods button on this device.',
+            helpString: 'Opens the Moodweaver panel. <code>/moods unpin</code> unpins everything in this chat. <code>/moods button on</code>, <code>off</code>, <code>small</code>, <code>big</code> or <code>reset</code> changes the \u25c6 Moods button on this device.',
             callback: (_args, value) => {
                 const words = String(value ?? '').toLowerCase().trim().split(/\s+/).filter(Boolean);
                 if (words[0] === 'unpin') { void clearAllPins().then(done => globalThis.toastr?.info(done ? `Unpinned ${done}.` : 'Nothing was pinned.', 'Moodweaver')); return ''; }
@@ -128,8 +128,8 @@ export function addSlashCommand() {
 }
 // An older copy got here first. Say so where it can be seen, since only one copy can run.
 export function warnDuplicate(existing) {
-    const other = existing.dataset.source ? `v${existing.dataset.version} in “${folderOf(existing.dataset.source)}”` : 'an older copy';
-    const msg = `Two copies of Moodweaver are installed. ${other} is the one running, so v${VERSION} in “${folderOf(SELF)}” is switched off. Delete the other one in Manage extensions, then reload.`;
+    const other = existing.dataset.source ? `v${existing.dataset.version} in \u201c${folderOf(existing.dataset.source)}\u201d` : 'an older copy';
+    const msg = `Two copies of Moodweaver are installed. ${other} is the one running, so v${VERSION} in \u201c${folderOf(SELF)}\u201d is switched off. Delete the other one in Manage extensions, then reload.`;
     console.warn('[Moodweaver]', msg);
     globalThis.toastr?.warning(msg, 'Moodweaver', { timeOut: 0, extendedTimeOut: 0 });
     const show = () => { const entry = document.querySelector('.mw-settings-entry'); if (entry && !entry.querySelector('.mw-dup')) entry.insertAdjacentHTML('beforeend', `<p class="mw-diag mw-dup is-bad">${esc(msg)}</p>`); };

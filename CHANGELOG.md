@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.90.5: Kenny's songs double-checked
+- The 149 Kenny songs that 1.90.0 marked "not web-verified" were researched again online. 138 are now confirmed from real sources (Wikipedia, Songfacts, Last.fm, Bandcamp, AllMusic, soundtrack listings), with their tags corrected where the research changed the picture. 11 small or obscure tracks still couldn't be found anywhere and keep the "not web-verified" note.
+- One correction: Deftones' "Do You Believe" is a Cardigans cover, and is tagged that way.
+- These merge in by themselves. Songs you've changed yourself keep your tags.
+
+## 1.90.4
+- Fixed: SillyTavern stuck on "Initializing…" on iPhone. Safari misread one character in data/catalogue/story.js (the authors and writing styles), so none of Moodweaver could load, and SillyTavern waited for it forever. Every code file is now plain ASCII (curly quotes, stars and accents written as \u escapes, which mean exactly the same), checked by tests/ascii.mjs.
+- The front door from 1.90.3 stays: Moodweaver loads in the background, so SillyTavern never waits for it. Its strip now only appears when loading takes over 3 seconds or a file fails.
+
 ## 1.90.3
 - The iPhone hang: with the Moodweaver folder taken out, the phone loads, so something in Moodweaver's files stops Safari while they load (before ?mwoff can act). Moodweaver now loads through a small front door (index.js) that brings in its files one at a time, in the background, so SillyTavern never waits for it. A strip at the top of the screen shows each file as it loads; if one is slow or fails it says which, and if the counting stops the page itself froze. It disappears once everything has loaded. The start-up itself moved to main.js.
 - The 1.90.2 startup log is gone (it couldn't write its file); ?mwoff stays.

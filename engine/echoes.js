@@ -6,7 +6,7 @@
 //     catch her fear at all; the dynamic and their own moods decide what they make of it instead.
 import { BY_ID, sectionOf } from '../data/catalogue.js';
 
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const lower = m => m.label.split('/')[0].trim().toLowerCase();
 
 // What each kind of feeling leaves behind once it's gone. Kinds that leave nothing aren't listed.

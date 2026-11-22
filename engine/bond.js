@@ -31,7 +31,7 @@ const ROMANCE_OFF = new Set(['not_attracted', 'finds_plain', 'finds_ugly', 'turn
 const FRIEND_SHARED = ['friends', 'best_friends', 'childhood_friends', 'platonic_soulmates', 'chosen_family', 'ride_or_die'];
 const OWN_AXIS = new Set(['trusts', 'distrusts', 'suspicious_of', 'fears']);
 const ROMANCE_SHARED = ['dating', 'engaged', 'married', 'soulmates', 'lovers', 'mutual_pining', 'slow_burn'];
-// Theirs is the player's own side toward the character (Lamb → Easterman), so a player who has
+// Theirs is the player's own side toward the character (Lamb \u2192 Easterman), so a player who has
 // the character on a string counts toward Pull, and one who holds the keys counts toward Control.
 const CONTROL = [['controls'], ['dominates'], ['captor_of'], ['keeps_them'], ['guardian_of', 0.6], ['doctor_of', 0.5], ['employs_in_house', 0.6], ['lets_them_win', 0.5], ['snaps_back', 0.6], ['deals_to', 0.4]];
 const UNDER = [['submits_to'], ['captive_of'], ['in_service_to', 0.6], ['ward_of', 0.6], ['patient_of', 0.5], ['fears', 0.5], ['buys_from', 0.4]];
@@ -364,7 +364,7 @@ export function sparkTarget(text, prefs = {}, traits = []) {
     return { id: '', trait: bestMatch(text, items) };
 }
 
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 // Rows for the relationships block, under "[character] toward [player]". Words only: a number tells the
 // model less than "wary" does. The request for the hidden line is built in weave.js.
 export function bondStanding({ bond, chatLength, n, u, axes = null, list = null }) {
@@ -381,7 +381,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
 }
 
 // ---- The desire meter (1.39.1; scales added in 1.39.2) ----
-// Arousal toward the player right now, plus scales for how it shows: boldness, tender ↔ rough, fixation on
+// Arousal toward the player right now, plus scales for how it shows: boldness, tender \u2194 rough, fixation on
 // them, shame, and holding back. Frustration builds without release. Read from the hidden line reply by
 // reply like the other meters, so swipes undo it. Pace caps how fast arousal climbs; a cap stops it at a stage.
 // Its pace is the character's one pace (set on the Moods card).
@@ -390,7 +390,7 @@ const DESIRE_STAGES = [[95, 'Past thinking'], [81, 'Desperate'], [61, 'Aching'],
 // key, label, starting value, words by strength.
 export const DESIRE_SCALES = [
     ['b', 'Boldness', 50, [[81, 'predatory'], [61, 'forward'], [41, 'open about it'], [21, 'coy'], [0, 'shy']]],
-    ['t', 'Tender ↔ rough', 45, [[81, 'cruel'], [61, 'rough'], [41, 'eager'], [21, 'sweet'], [0, 'tender']]],
+    ['t', 'Tender \u2194 rough', 45, [[81, 'cruel'], [61, 'rough'], [41, 'eager'], [21, 'sweet'], [0, 'tender']]],
     ['x', 'Fixation', 50, [[81, 'only them'], [61, 'fixed on them'], [41, 'mostly them'], [21, 'drawn to them'], [0, 'anyone would do']]],
     ['h', 'Shame', 0, [[81, 'hates themselves for it'], [61, 'sick with it'], [41, 'ashamed'], [21, 'uneasy about it'], [1, 'a twinge'], [0, 'none']]],
     ['s', 'Holding back', 25, [[81, 'fighting it with everything'], [61, 'holding back hard'], [41, 'holding back some'], [21, 'barely holding back'], [0, 'not holding back']]],

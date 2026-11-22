@@ -6,15 +6,15 @@
 import { BY_ID } from '../data/catalogue.js';
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const pt = v => String(v ?? '').replace(/</g, '‹').replace(/>/g, '›');
+const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 
-// Levels: 0–33 nothing is sent, then three levels, each with its own word.
+// Levels: 0\u201333 nothing is sent, then three levels, each with its own word.
 export const STRESS_LEVELS = [[90, 3, 'at breaking point'], [67, 2, 'badly strained'], [34, 1, 'under strain'], [0, 0, 'steady']];
 export const stressLevel = v => STRESS_LEVELS.find(([min]) => v >= min);
 // After a break, stress falls to this and no new break comes for BREAK_REST replies.
 const AFTER_BREAK = 45, BREAK_REST = 6;
 
-// Feelings that rise under strain, and ones that let it out. Per reply, at most +6 and −4 from feelings.
+// Feelings that rise under strain, and ones that let it out. Per reply, at most +6 and \u22124 from feelings.
 const STRAIN_FAMILIES = new Set(['scared', 'sad', 'angry']);
 const STRAIN_HARD = new Set(['guilty', 'guilt_sick', 'ashamed', 'self_directed_rage', 'trapped', 'cornered', 'losing_control', 'overwhelmed', 'humiliated_rage',
     'status_panic', 'fear_of_being_found_out', 'helpless', 'despairing', 'spiralling', 'catastrophising', 'nervous_wreck', 'quietly_breaking', 'pent_up', 'frustrated']);
@@ -35,13 +35,13 @@ const COPING = [
     [['controlling', 'perfectionist', 'disciplined', 'ocd', 'uptight', 'stiff'], 'tightens control: rules, order, routine and other people put exactly where they belong'],
     [['devout', 'puritanical', 'fanatic', 'spiritual'], 'prays harder and judges harder, and punishes their own wanting'],
     [['workaholic'], 'buries themself in work and stays late'],
-    [['sadistic_personality', 'psychopathic', 'sociopathic'], 'takes it out on someone who can’t fight back, and feels calmer after'],
+    [['sadistic_personality', 'psychopathic', 'sociopathic'], 'takes it out on someone who can\u2019t fight back, and feels calmer after'],
     [['hot_headed', 'volatile', 'violent', 'explosive_rage'], 'snaps, slams doors and picks fights over nothing'],
     [['womaniser', 'sim_flirty'], 'goes looking for sex or attention to feel in charge again'],
     [['keeps_up_appearances', 'repressed'], 'polishes the surface: perfect manners and a pressed shirt, and nothing allowed to show'],
     [['lone_wolf', 'withdrawn', 'introverted'], 'disappears for hours and answers in single words'],
     [['self_destructive', 'gambling_compulsion'], 'does something reckless just to feel something else'],
-    [['soft_hearted', 'caretaker', 'people_pleaser'], 'fusses over everyone else so they don’t have to look at themself'],
+    [['soft_hearted', 'caretaker', 'people_pleaser'], 'fusses over everyone else so they don\u2019t have to look at themself'],
     [['smoker'], 'chain-smokes and paces'],
     [['binge_eater', 'bulimic', 'anorexic'], 'eats too much or not at all'],
     [['insomniac'], 'stops sleeping and wanders the house at night'],
@@ -55,20 +55,20 @@ export function copingOf(st) {
 
 // What a break looks like: the first that fits, strongest first, else by what's been building (rage, grief, fear).
 const BREAKS = [
-    [['alcoholic', 'functional_addict', 'substance_abuser'], 'goes on a binge: drinks or uses until the edges blur, and does or says something they can’t take back'],
-    [['sadistic_personality', 'psychopathic', 'sociopathic', 'explosive_rage', 'violent'], 'goes cold and does something cruel and deliberate, worse than they’ve shown before'],
-    [['controlling', 'perfectionist', 'ocd', 'disciplined'], 'tries to seize control of everything at once: rules, locks, schedules, people, and comes apart when it won’t hold'],
+    [['alcoholic', 'functional_addict', 'substance_abuser'], 'goes on a binge: drinks or uses until the edges blur, and does or says something they can\u2019t take back'],
+    [['sadistic_personality', 'psychopathic', 'sociopathic', 'explosive_rage', 'violent'], 'goes cold and does something cruel and deliberate, worse than they\u2019ve shown before'],
+    [['controlling', 'perfectionist', 'ocd', 'disciplined'], 'tries to seize control of everything at once: rules, locks, schedules, people, and comes apart when it won\u2019t hold'],
     [['devout', 'puritanical', 'fanatic'], 'falls into a frenzy of guilt and penance, confession or self-punishment'],
     [['repressed', 'keeps_up_appearances', 'stiff'], 'cracks in public: the mask slips where people can see, and they hate that most of all'],
-    [['lone_wolf', 'withdrawn', 'introverted', 'avoidant_attachment'], 'vanishes: leaves without a word, for hours or a night, and won’t say where'],
+    [['lone_wolf', 'withdrawn', 'introverted', 'avoidant_attachment'], 'vanishes: leaves without a word, for hours or a night, and won\u2019t say where'],
     [['borderline', 'anxious_attachment', 'codependent'], 'clings and accuses in turns: begging the other person not to leave, then pushing them away'],
     [['manic', 'bipolar'], 'goes manic: no sleep, big plans, money spent, risks taken'],
-    [['self_destructive', 'gambling_compulsion'], 'throws something important away: a fight they can’t win, a risk that costs them, a bridge burned'],
-    [['soft_hearted', 'sensitive', 'people_pleaser'], 'breaks down crying where they least want to, and can’t stop'],
+    [['self_destructive', 'gambling_compulsion'], 'throws something important away: a fight they can\u2019t win, a risk that costs them, a bridge burned'],
+    [['soft_hearted', 'sensitive', 'people_pleaser'], 'breaks down crying where they least want to, and can\u2019t stop'],
 ];
 const BREAK_BY_FAMILY = {
     angry: 'loses their temper completely: shouting, breaking things, saying the cruelest true thing they know',
-    sad: 'collapses inward: can’t get up, can’t eat, can’t talk, and lets everything go',
+    sad: 'collapses inward: can\u2019t get up, can\u2019t eat, can\u2019t talk, and lets everything go',
     scared: 'panics and runs, or freezes and shuts down until someone gets them out',
 };
 function breakOf(st, families) {
@@ -117,6 +117,6 @@ export function stressLines(s, n) {
     if (s.breaking) return [`Breaking point: ${pt(n)} has been pushed past what ${pt(n)} can hold. This reply ${pt(n)} ${s.breaking}. Make it ${pt(n)}'s own and let it land; it passes within a reply or two and leaves its mark.`];
     if (s.after) return [`After the break: ${pt(n)} is coming down from it, drained, raw and dealing with what was done or said. Let the cost show; don't wave it away.`];
     if (s.level < 1) return [];
-    const how = s.level >= 2 ? 'It shows more than they want: in their temper, hands and choices.' : 'It leaks into small things and doesn’t need naming.';
+    const how = s.level >= 2 ? 'It shows more than they want: in their temper, hands and choices.' : 'It leaks into small things and doesn\u2019t need naming.';
     return [`Stress: ${pt(n)} is ${s.word}. ${pt(n)} copes the way ${pt(n)} does: ${s.coping}. ${how}`];
 }

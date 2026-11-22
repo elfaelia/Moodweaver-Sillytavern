@@ -99,7 +99,7 @@ export function compareText(subject, target, compare) {
 
 // One person's side toward everyone else. Absent people still count: they get woven in, not summoned.
 export function relationshipSets(state, name, extras = {}) {
-    const player = extras.player?.name || 'the player’s character';
+    const player = extras.player?.name || 'the player\u2019s character';
     const cast = Array.isArray(extras.cast) ? extras.cast : [];
     const resolve = value => relationshipName(value).replaceAll('{{char}}', name).replaceAll('{{user}}', player);
     const owners = [{ name, state }, { name: player, state: extras.player?.state, isPlayer: true },

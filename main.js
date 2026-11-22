@@ -3,6 +3,7 @@ import { addSlashCommand, addWandItem, launch, placeLauncher, setLaunch, warnDup
 import { startGenerating, stopGenerating, syncPrompt, syncPromptNow } from './app/note.js';
 import { analyse, cancelAnalysis } from './app/reader.js';
 import { queueBoard, reconcile } from './app/replies.js';
+import { queueFillIn } from './app/fill-in.js';
 import { settings } from './app/settings.js';
 import { SELF, VERSION, clearNotes, ctx, generationSnapshots, run, ui } from './app/state.js';
 import { hasBoard, stripBoard } from './engine/board.js';
@@ -29,6 +30,8 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
         if (stripBoards && !continuing && !m.is_user && hasBoard(next)) { const cut = stripBoard(next); if (cut.trim()) next = cut; }
         if (next !== mes) chat[i] = { ...structuredClone(m), mes: next };
     }
+    // Adding a missing hidden line (app/fill-in.js) is a quiet request that needs the note and its line format.
+    if (!run.suspended && type === 'quiet' && run.fillIn) { await syncPrompt(true, chat, type); return; }
     if (run.suspended || ['quiet', 'impersonate'].includes(type)) {
         ++run.promptVersion; clearNotes(ctx()); return;
     }
@@ -106,8 +109,12 @@ function setup() {
     for (const event of ['MESSAGE_RECEIVED', 'CHARACTER_MESSAGE_RENDERED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_DELETED', 'CHARACTER_FIRST_MESSAGE_SELECTED']) {
         if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], queueBoard);
     }
+    // The "Add the hidden line" button under a reply that came without one.
+    for (const event of ['CHAT_CHANGED', 'MESSAGE_RECEIVED', 'CHARACTER_MESSAGE_RENDERED', 'MESSAGE_SWIPED', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_DELETED', 'GENERATION_STARTED', 'GENERATION_ENDED', 'GENERATION_STOPPED', 'MORE_MESSAGES_LOADED']) {
+        if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], queueFillIn);
+    }
     c.eventSource.on(c.eventTypes.GENERATION_AFTER_COMMANDS, (type, _args, dryRun) => {
-        if (['quiet', 'impersonate'].includes(type)) { ++run.promptVersion; clearNotes(c); }
+        if (['quiet', 'impersonate'].includes(type) && !(type === 'quiet' && run.fillIn)) { ++run.promptVersion; clearNotes(c); }
         else if (dryRun) return syncPrompt(true);
     });
     for (const event of ['CONNECTION_PROFILE_CREATED', 'CONNECTION_PROFILE_DELETED', 'CONNECTION_PROFILE_UPDATED']) {

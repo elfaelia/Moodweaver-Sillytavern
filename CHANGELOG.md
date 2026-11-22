@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.90.1: lighter start on phones
+- After 1.90.0, SillyTavern on an iPhone stuck on "Initializing…" (the laptop was fine). The 1,084 built-in songs are now stored as one JSON string, which Safari reads much faster and with far less memory than the big block of code it was before. They also merge in 8 seconds after SillyTavern has loaded, never while it's loading, in small steps so the page never freezes.
+
 ## 1.90.0: Kenny's playlist and 13 kinds of scene
 - **13 kinds of scene instead of 7**, chosen from a dropdown ("This scene is…") with a one-line hint for each: Erotic (was Intimate), Romantic (new), Sweet, Tender, Danger, Action (new: chase, fight, job), Drama (new: row, betrayal, confrontation), Tense (new: a normal drug deal, a standoff, waiting), Street (new: hustling, cruising), High (new), Sorrow, Dark, Party.
 - **Erotic and Romantic are really split.** Songs that sound sexual are Erotic; love and longing songs that don't are Romantic and never play during sex. A love scene with no heat now reads as Romantic, not Erotic.

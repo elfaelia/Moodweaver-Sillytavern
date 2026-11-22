@@ -669,8 +669,10 @@ export async function applyBundle(force = false) {
     let B; try { B = (await import('../data/song-tags.js')).SONG_TAGS; } catch { return; }
     const m = music(); if (!B?.version || (!force && m.bundle === B.version)) return;
     const plFor = name => Object.entries(m.playlists).filter(([, p]) => norm(p.name) === norm(name)).sort((a, b) => Number(a[0].startsWith('csv:')) - Number(b[0].startsWith('csv:')))[0]?.[0];
-    let added = 0, updated = 0;
+    let added = 0, updated = 0, n = 0;
     for (const [uri, x] of Object.entries(B.songs)) {
+        // Every 100 songs, let the page breathe, so a phone never freezes while 1,000+ songs merge in.
+        if (++n % 100 === 0) await new Promise(r => setTimeout(r, 0));
         if (m.removed[uri]) continue;
         if (!m.songs[uri]) { m.songs[uri] = { n: x.n, a: x.a, al: x.al ?? '', ms: x.ms ?? 0, pl: [], ...(x.g?.length ? { g: x.g } : {}) }; added++; }
         // A song can be on more than one of your playlists (1.89: Easterman's and Kenny's).
@@ -776,7 +778,9 @@ export function poller() {
     mus.poll = setInterval(() => { if (music().on && document.visibilityState === 'visible' && sp.signedIn(music())) void sync(); }, 45000);
 }
 export function initMusic() {
-    music(); poller(); void applyBundle();
+    music(); poller();
+    // Built-in tags merge a little after SillyTavern has finished loading, never during it (1.90.1).
+    setTimeout(() => void applyBundle().catch(err => console.warn('[Moodweaver] built-in song tags', err)), 8000);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible') return; if (music().on && sp.signedIn(music())) void sync(); updateAmbience(); });
     // iPhone Safari only lets sound start inside a tap. Any tap on the page (not only the Music tab) wakes the
     // ambience when it's waiting, including after the screen was locked.

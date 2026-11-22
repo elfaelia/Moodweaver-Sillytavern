@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.90.6: a deal is the job, not danger
+- A buyer turning up no longer reads as Danger. Everyday street words were counting as threat: "the corner" (where dealers stand) counted as being cornered, "hide the stash" as hiding from someone, and "a hit", "crack" and "a shot" as violence. Now only "cornered", "hiding from", "hunting him down", "shot him", "kill her" and the like count.
+- When the story is about dealing (someone wanting to buy or score, "you got anything?", a sale, a dime bag, cash) and nothing truly threatening is said, Danger stays out: a calm deal is Street, and a deal with unease in it (paranoia, a hand drifting to a waistband, someone watching warily) is Tense. A gun pulled, blood, a real beating or real fear in the moods still make it Danger, and a police chase is Action.
+- Escape needs fear or flight in the scene too, not just a rough part of town and high energy.
+
 ## 1.90.5: Kenny's songs double-checked
 - The 149 Kenny songs that 1.90.0 marked "not web-verified" were researched again online. 138 are now confirmed from real sources (Wikipedia, Songfacts, Last.fm, Bandcamp, AllMusic, soundtrack listings), with their tags corrected where the research changed the picture. 11 small or obscure tracks still couldn't be found anywhere and keep the "not web-verified" note.
 - One correction: Deftones' "Do You Believe" is a Cardigans cover, and is tagged that way.

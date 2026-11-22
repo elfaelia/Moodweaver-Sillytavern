@@ -12,7 +12,7 @@
 
 export const MOMENTS = [
     { id: 'hunted', label: 'Being hunted', moods: ['hunted', 'prey_instinct', 'cornered', 'panicking'], places: [], dyn: [] },
-    { id: 'escape', label: 'Escape', moods: ['trapped', 'desperate'], places: ['abandoned', 'dangerous'], dyn: [], test: s => s.energy >= 4 },
+    { id: 'escape', label: 'Escape', moods: ['trapped', 'desperate'], places: ['abandoned', 'dangerous'], dyn: [], test: s => s.energy >= 4 && (s.fams.slice(0, 2).includes('scared') || (s.words.hunted ?? 0) >= 1) },
     { id: 'captivity', label: 'Captivity', moods: ['hostage_calm', 'helpless', 'trapped', 'dreading_punishment'], places: ['padded_cell', 'glass_cage', 'basement', 'interrogation_room'], dyn: ['captor'] },
     { id: 'experiment', label: 'Experiment', moods: ['clinical_cruelty', 'playing_god'], places: ['observation_room', 'operating_theatre', 'hydrotherapy_room', 'garage_lab', 'facility'], dyn: ['clinic'] },
     { id: 'violence', label: 'Violence', moods: ['violent', 'bloodthirsty', 'seeing_red', 'murderous'], places: ['crime_scene'], dyn: [], test: s => s.meters.hu >= 61 },

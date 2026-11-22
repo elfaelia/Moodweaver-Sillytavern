@@ -205,6 +205,15 @@ export function snapshot(input = {}) {
     // What the story's words say is happening adds its moments (a kiss is foreplay whatever the moods say).
     for (const [kind, mo] of Object.entries(WORD_MOMENTS)) if (words.on.has(kind)) moments.add(mo);
     if (heat === 'slow') moments.add('seduction');
+    // 1.90.6: a deal on its own is the job, not danger. When the story is about dealing (a buyer, a sale, the stash) and
+    // nothing truly threatening is said (a weapon out, blood, cops closing in, real fear in the moods), Danger's moments
+    // are dropped: a calm deal reads as Street, an uneasy one as Tense.
+    if (words.score.deal >= 1 || words.score.hustle >= 2 || moments.has('deal')) {
+        const fear = ['hunted', 'prey_instinct', 'cornered', 'panicking', 'violent', 'bloodthirsty', 'seeing_red', 'murderous', 'terrified'].some(id => (moodVal[id] ?? 0) >= 41) || fams[0] === 'scared';
+        const threat = (words.score.violence ?? 0) >= 3 || (words.score.hunted ?? 0) >= 3 || (words.score.chase ?? 0) >= 2;
+        if (!fear && !threat) for (const mo of ['hunted', 'violence', 'escape']) moments.delete(mo);
+        if (words.score.deal >= 1.5) moments.add('deal');
+    }
     if (heat) { moments.delete('sleep'); moments.delete('party'); }
     if (heat || !snap.sweet) for (const mo of ['love_confession', 'flirting', 'sweet_moment']) if (!words.on.has(Object.keys(WORD_MOMENTS).find(k => WORD_MOMENTS[k] === mo))) moments.delete(mo);
     if (snap.sweet && !heat && words.score.confess >= 1) moments.add('love_confession');

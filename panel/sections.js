@@ -151,6 +151,7 @@ function profileCard(state, ch) {
             <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
             <label class="mw-pf mw-pf-wide"><span>Into</span><input type="text" data-profile="interests" maxlength="120" enterkeyhint="done" placeholder="guitar, old films, chess" value="${esc(state.interests ?? '')}"></label>
         </div>
+        ${genderRow(ch)}
         ${sizeRow(state, ch)}
         <div class="mw-profile-favs"><span class="mw-profile-sub">Favourites <small>sent when the scene comes near them</small></span>
             <div class="mw-profile-grid">${FAVS.map(([k, label, hint]) => `<label class="mw-pf"><span>${esc(label.replace('Favourite ', ''))}</span><input type="text" data-fav="${k}" maxlength="60" enterkeyhint="done" placeholder="${esc(hint)}" value="${esc(state.favs?.[k] ?? '')}"></label>`).join('')}</div></div>
@@ -183,6 +184,16 @@ function opinionRow(ch) {
     const list = opinionsNow(ch, effectiveChat(ctx().chat ?? [])); if (!list.length) return '';
     return `<div class="mw-profile-voice mw-opinions"><span class="mw-profile-sub">Feelings about others <small>built from the story, sent when the scene names them</small></span>
         <div class="mw-opinion-list">${list.map(o => `<span class="mw-opinion ${o.score >= 0 ? 'is-warm' : 'is-cold'}"><b>${esc(o.name)}</b> ${esc(o.word)}${o.feel.length ? ` <small>${esc(o.feel.join(', '))}</small>` : ''}</span>`).join('')}</div></div>`;
+}
+// Gender (1.89): sets the pronouns every line uses (he/she/they), which period lines apply, the body-size row,
+// and the women-only sounds. Auto reads the card or persona; a persona nobody described counts as a woman.
+export const GENDERS = [['auto', 'Auto'], ['he', 'Man'], ['she', 'Woman'], ['they', 'Non-binary']];
+const GENDER_WORD = { he: 'a man, he/him', she: 'a woman, she/her', they: 'they/them, or names' };
+function genderRow(ch) {
+    if (!ch || (ui.who !== 'user' && ui.who !== 'char')) return '';
+    const k = ui.who === 'user' ? 'u' : 'n', bond = bondData(ch), v = bond[k === 'u' ? 'pu' : 'pn'] ?? 'auto', now = pronounsFor(ch, bond)[k];
+    return `<div class="mw-profile-size mw-gender"><span class="mw-profile-sub">Gender <small>${v === 'auto' ? `Auto reads ${k === 'u' ? 'your persona' : 'the card'}: ${GENDER_WORD[now]}` : GENDER_WORD[v]}. Sets pronouns, period lines and body rows</small></span>
+        <div class="mw-size-row" role="group" aria-label="Gender">${GENDERS.map(([id, label]) => `<button type="button" class="mw-size-chip" data-gender="${id}" aria-pressed="${v === id}">${label}</button>`).join('')}</div></div>`;
 }
 // Body size on the profile, by gender: penis size for a man, breast size for a woman, both when the pronouns
 // don't say. Each is a private fact (sent only in intimate or private moments); tap one to set it, tap it again

@@ -31,7 +31,8 @@ const SUBJ = 'is|was|has|had|does|did|can|can\'t|will|won\'t|would|wouldn\'t|cou
 const BAD = [
     [/\b(to|for|with|from|at|of|into|onto|about|around|toward|towards|without|against|behind|beside|through|by)\s+(he|she)\b/i, 'subject pronoun after a preposition'],
     [/\b(other|another|same|whole|the|a|an)\s+(he|she|him)\b/i, 'pronoun used as a noun'],
-    [/\b(his|her)\s+\w+ing\b(?=\s+(for|about|that|it|him|her))/i, 'possessive where "is" was meant'],
+    // "can't see her waiting for more" is an object, so "her" after a seeing/keeping verb is fine.
+    [/(?<!\b(?:see|saw|seen|watch|watches|watched|hear|hears|heard|find|finds|found|catch|catches|caught|leave|leaves|left|keep|keeps|kept|feel|feels|felt|imagine|imagines|picture|pictures)\s)\b(his|her)\s+\w+ing\b(?=\s+(for|about|that|it|him|her))/i, 'possessive where "is" was meant'],
     [/\b(taught|told|gave|made|keeps|lets|makes|watches|raised|leaves|wants|needs)\s+(he|she)\b(?!\s+(is|was|has|had|does|did|can|will|would|could|should|must|might|never|always|still)\b)/i, 'subject pronoun where an object belongs'],
     [new RegExp(`(?<!\\b(?:with|for|to|from|of|at|by|about|without|against|near)\\s)\\b(him|her)\\s+(${SUBJ})\\b`, 'i'), 'object pronoun where a subject belongs'],
     [/\bhim\s+(thinks|knows|wants|needs|feels|keeps|says|does|gets|makes|takes)\b/i, 'object pronoun where a subject belongs'],
@@ -39,7 +40,7 @@ const BAD = [
     [/\b(\w+)self\b/, 'name-self left in'],
     [/\b(he|she|him|her|his)\s+and\s+(he|she|him|her)\b/i, 'two pronouns joined'],
 ];
-const combos = [['he', 'she'], ['she', 'he'], ['he', 'he'], ['she', 'she'], ['they', 'she'], ['he', 'they']];
+const combos = [['he', 'she'], ['she', 'he'], ['he', 'he'], ['she', 'she'], ['they', 'she'], ['he', 'they'], ['they', 'they']];
 let fails = 0, changed = 0;
 for (const [pn, pu] of combos) {
     setPronoun(N, pn); setPronoun(U, pu);

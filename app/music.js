@@ -11,7 +11,7 @@ import { readSheet, sheetFile } from '../engine/sheet.js';
 import { readCsv, readXlsx } from '../engine/xlsx.js';
 import { shortName } from '../engine/util.js';
 import { pronounOf } from '../engine/pronouns.js';
-import { BEATS, beatsIn, plainStory, radioIn, radioKind } from '../engine/scene-words.js';
+import { BEATS, SCENE_WORDS, beatsIn, plainStory, radioIn, radioKind } from '../engine/scene-words.js';
 import { VENUE_BY_ID, artistMatch, fitsVenue, searchesFor, venueNow } from '../engine/venues.js';
 import * as amb from './ambience.js';
 import * as sp from './spotify.js';
@@ -269,27 +269,39 @@ const OUTSIDE = new Set(['outdoors', 'rooftop_night', 'graveside', 'isolated', '
 const recentStory = (n = 6) => (ctx().chat ?? []).filter(x => x && !x.is_system && x.mes).slice(-n).reverse().map(x => plainStory(x.mes));
 // Which of these word lists the newest text matches: [id, how many messages back] for the most recent match.
 const newestHit = (list, texts) => { let best = null; for (const [id, re] of list) { const i = texts.findIndex(t => re.test(t)); if (i >= 0 && (!best || i < best[1])) best = [id, i]; } return best; };
+// 1.88.4: sex sounds only for sex happening now. A sentence that's imagined, wished, remembered or hypothetical doesn't
+// count, and in a public place it takes two sentences of plain sex in the last two messages.
+const IMAGINED = /\b(?:imagin\w*|fantas\w*|daydream\w*|pictur(?:es|ed|ing)|envision\w*|dream(?:s|ed|ing|t)?|would|could|might|wants? to|wanted to|wish(?:es|ed)?|if only|what it would|what it'd|remember(?:s|ed|ing)?|memor(?:y|ies)|recall\w*|thinks? (?:about|of)|thought (?:about|of)|thinking (?:about|of)|in (?:his|her|their|my) (?:head|mind)|(?:his|her|their|my) mind|mind (?:wanders|wandered|drifts|drifted|goes|went)|later tonight|someday|one day|longs? to|craves?|craved|aches? to|ached to|tempted)\b/i;
+const SEX_ACT = new RegExp(SCENE_WORDS.sex[0][1].source + '|\\b(?:moan(?:s|ed|ing)?|undress(?:es|ed|ing)?|naked|on top of (?:her|him)|hips (?:roll|rolled|buck|bucked|snap|snapped|stutter)|rock(?:s|ed|ing)? into (?:her|him))', 'i');
+const PUBLIC_BEDS = new Set(['bar', 'barbusy', 'cafe', 'cafeteria', 'diner', 'restaurant', 'crowd', 'campus', 'campusnight', 'lobby', 'messhall', 'schoolhall', 'carnival', 'roadside', 'clubout', 'city', 'darkcity', 'waves', 'meadow', 'train', 'hospital', 'ward', 'chantry']);
+const PUBLIC_PLACES = new Set(['public', 'party', 'bar_club', 'jazz_club', 'dance_hall', 'shopping_mall', 'fancy_restaurant', 'late_night_diner', 'internet_cafe', 'high_school', 'lecture_hall', 'police_station', 'movie_theatre', 'country_club', 'train', 'art_gallery', 'bookshop', 'laundromat', 'hospital_ward', 'funeral', 'temple']);
+const realSentences = texts => texts.flatMap(t => String(t).split(/(?<=[.!?…"”])\s+|\n+/)).filter(x => x.trim() && !IMAGINED.test(x));
 export function ambienceBeds(snap = mus.latest, m = music()) {
     if (!extraOn('amb', m) || mus.ambPaused) return [];
     const places = snap?.places ?? new Set(), texts = recentStory(6), beds = [];
+    const near2 = realSentences(texts.slice(0, 2)), said = re => near2.some(t => re.test(t));
+    const spot = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
+    const inPublic = [...places].some(p => PUBLIC_PLACES.has(p)) || PUBLIC_BEDS.has(spot);
+    const sexNow = snap?.heat === 'sex' && near2.filter(t => SEX_ACT.test(t)).length >= (inPublic ? 2 : 1);
+    // Warmth you can hear (wet, fingers, grinding…): heat plus the words in a real sentence, never in public unless sex is happening.
+    const heatNow = Boolean(snap?.heat) && (!inPublic || sexNow);
     // During sex, what they're on goes first: the newest of the last 3 messages to name it, else the place.
-    if (snap?.heat === 'sex') { const on = newestHit(amb.LOVE_WORDS, texts.slice(0, 3))?.[0] ?? [...places].map(p => amb.LOVE_PLACES[p]).find(Boolean); if (on) beds.push(on); }
+    if (sexNow) { const on = newestHit(amb.LOVE_WORDS, [realSentences(texts.slice(0, 3)).join(' ')])?.[0] ?? [...places].map(p => amb.LOVE_PLACES[p]).find(Boolean) ?? amb.LOVE_SPOTS[spot]; if (on) beds.push(on); }
     // The bodies: skin on skin when it's rough or fast (the words, or the scene running hot), breath in any heat,
     // a heartbeat when it's frightening and fast or the story names one. All keep time with the scene's energy.
-    const near2 = texts.slice(0, 2), said = re => near2.some(t => re.test(t));
     // Wet and skin are separate layers (1.83): wet in any sex scene, under the furniture; slaps join when it's rough or fast.
     const pace = (snap?.energy ?? 3) + amb.paceNudge(near2);
-    if (snap?.heat === 'sex' || (snap?.heat && said(amb.MORE_WORDS.wet))) beds.push('wet');
-    if (snap?.heat === 'sex' && (pace >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
+    if (sexNow || (heatNow && said(amb.MORE_WORDS.wet))) beds.push('wet');
+    if (sexNow && (pace >= 4 || said(amb.MORE_WORDS.skin))) beds.push('skin');
     // 1.85: acts with their own layer when the last 2 messages name them (fingers, grinding, spanking, a whip or belt),
     // and her voice in sex when you or the character is a she.
-    if (snap?.heat) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
-    if (snap?.heat === 'sex' && [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she')) beds.push('voice');
+    if (heatNow) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
+    if (sexNow && [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she')) beds.push('voice');
     // Breathing (1.88.2): in sex, or when the last 2 messages say someone is panting or gasping. Not just for any warmth:
     // under a bar's voices it was a constant whoosh.
     // 1.88.3: her own recordings, so only when you or the character is a she, in runs that swell and fade.
     const she = [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she');
-    if (she && said(amb.MORE_WORDS.breath)) beds.push('breath'); else if (she && snap?.heat === 'sex') beds.push('breathlow');
+    if (she && heatNow && said(amb.MORE_WORDS.breath)) beds.push('breath'); else if (she && sexNow) beds.push('breathlow');
     if ((snap?.mode === 'danger' && (snap?.energy ?? 3) >= 4) || said(amb.MORE_WORDS.heart)) beds.push('heart');
     // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).
     const stop = texts.findIndex(t => amb.WEATHER_STOP.test(t)), sky = newestHit(amb.WEATHER_WORDS, texts);
@@ -327,7 +339,7 @@ function ambienceAfterReply(m) {
     mus.latest = snap; updateAmbience(snap);
     const chat = ctx().chat ?? [], last = chat.at(-1), mark = `${ctx().chatId}|${chat.length}|${last?.send_date ?? ''}|${last?.swipe_id ?? 0}`, same = `${ctx().chatId}|${chat.length}`;
     const fresh = Boolean(mus.ambMark) && !mus.ambMark.startsWith(same + '|'); mus.ambMark = mark;
-    if (fresh && !last?.is_user && !mus.ambPaused) { const said = plainStory(last?.mes ?? ''); amb.oneShots(amb.SHOT_WORDS.filter(([id, re]) => re.test(said) && ((snap.heat && ['slap', 'whip'].includes(id)) ? m.ambSex !== false : m.ambPlaces !== false)).map(([id]) => id)); }
+    if (fresh && !last?.is_user && !mus.ambPaused) { const said = realSentences([plainStory(last?.mes ?? '')]).join(' '); amb.oneShots(amb.SHOT_WORDS.filter(([id, re]) => re.test(said) && ((snap.heat && ['slap', 'whip'].includes(id)) ? m.ambSex !== false : m.ambPlaces !== false)).map(([id]) => id)); }
 }
 export function toggleAmbience() { mus.ambPaused = !mus.ambPaused; if (!mus.ambPaused) { amb.unlock(); mus.latest ??= sceneNow(); } updateAmbience(); changed(); }
 export function updateAmbience(snap = mus.latest) { try { const m = music(); amb.setBeds(ambienceBeds(snap, m), m.ambLevel, snap?.energy ?? 3, amb.paceNudge(recentStory(2))); } catch { /* no sound here */ } }

@@ -169,7 +169,6 @@ export async function onPanelChange(e) {
     if (input.hasAttribute('data-dyn-nudge')) { await editBond(b => { b.nudge = input.checked; }); return; }
     if (input.hasAttribute('data-dyn-under')) { await editBond(b => { b.under = input.checked; }); return; }
     if (input.hasAttribute('data-bond-ties')) { await editBond(b => { b.ties = input.value; }); return; }
-    if (input.dataset.dynPronoun) { await editBond(b => { b[input.dataset.dynPronoun === 'u' ? 'pu' : 'pn'] = input.value; }); return; }
     if (input.dataset.dynPool) { const name = input.dataset.dynPool; await editBond(b => { b.pool = input.checked ? [...b.pool, name] : b.pool.filter(x => x !== name); }); return; }
     if (input.hasAttribute('data-board-feed')) { await editBoard(b => { b.feed = input.checked; }); return; }
     if (input.hasAttribute('data-board-toward')) { await editBoard(b => { b.includeToward = input.checked; }); return; }
@@ -431,6 +430,7 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
+    if (button.dataset.gender) { const key = ui.who === 'user' ? 'pu' : 'pn', v = button.dataset.gender; await editBond(b => { b[key] = v; }); return; }
     if (button.dataset.size) {
         // One size per group: tapping one clears the others in its group; tapping the one that's on clears it.
         const id = button.dataset.size, group = MOODS.filter(m => m.size === BY_ID[id]?.size).map(m => m.id);

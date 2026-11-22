@@ -46,7 +46,7 @@ export function periodView(state, ch) {
             }).join('')}`).join('')}</details>`;
     }).join('');
     return `<section class="mw-period" aria-label="Period lines">
-        <p class="mw-explainer">How the world of 1950s–60s America treats ${esc(names[k])}${GENDER[gender] ? `, from the lines written for ${GENDER[gender]} and for anyone` : ', from the lines written for anyone (set he or she under Bonds › Pronouns for more)'}. A line only goes with a reply when something on the cards wakes it. Tap one to switch it off for ${esc(names[k])}.</p>
+        <p class="mw-explainer">How the world of 1950s–60s America treats ${esc(names[k])}${GENDER[gender] ? `, from the lines written for ${GENDER[gender]} and for anyone` : ', from the lines written for anyone (set Man or Woman under Facts › Profile › Gender for more)'}. A line only goes with a reply when something on the cards wakes it. Tap one to switch it off for ${esc(names[k])}.</p>
         ${eraNote}${pick}${presets}
         <p class="mw-fine">${on} of ${lines.length} lines on for ${esc(names[k])}.</p>
         ${nowBox}${cats}</section>`;

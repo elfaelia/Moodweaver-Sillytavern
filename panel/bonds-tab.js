@@ -1,6 +1,6 @@
 import { MORE_METERS, MORE_PRESETS, computeMore, moreWord } from '../engine/meters.js';
 import { computeBond, computeDesire, DESIRE_CAPS, DESIRE_SCALES, scaleWord, frustrationWord, dynamicRows, DYNAMIC_GROUPS, PACE, TIES, paceOf } from '../engine/bond.js';
-import { PRONOUN_CHOICES, pronounize, pronounOf } from '../engine/pronouns.js';
+import { pronounize } from '../engine/pronouns.js';
 import { fill } from '../engine/dynamics.js';
 import { ui } from '../app/state.js';
 
@@ -155,7 +155,6 @@ function dynCard(bond, d, n, u, { canRead, pending, savedPool, drivers }) {
     return `<div class="mw-dyn-card" data-anchor="bond-dynamic" data-dynamic="${slug(d.dynamic.key)}" data-tone="${d.dynamic.tone}"><small>${esc(n)} &amp; ${esc(u)}${d.swing ? ' <b class="mw-swing">⇄ swinging</b>' : ''}</small><h3>${esc(d.dynamic.name)}</h3><p>${esc(cap(d.dynamic.cue))}</p>
         ${d.under ? `<div class="mw-dyn-under" data-tone="${d.under.tone}"><small>Underneath</small><b>${esc(d.under.name)}</b><span>${esc(cap(d.under.cue))}</span></div>` : ''}
         ${driversLine(drivers, n, u)}
-        <details class="mw-dyn-pron-box" data-anchor="dyn-pronouns"><summary>Pronouns <small>${esc([[n, bond.pn], [u, bond.pu]].map(([who, v]) => v === 'auto' ? pronounOf(who) : v).join(' · '))}</small></summary><div class="mw-dyn-pronouns" role="group" aria-label="Pronouns">${[['n', n, bond.pn], ['u', u, bond.pu]].map(([k, who, v]) => `<label>${esc(who)}<select data-dyn-pronoun="${k}" aria-label="Pronouns for ${esc(who)}">${PRONOUN_CHOICES.map(([id, label]) => `<option value="${id}" ${v === id ? 'selected' : ''}>${id === 'auto' ? `Auto (${pronounOf(who) === 'they' ? 'names' : pronounOf(who)})` : label}</option>`).join('')}</select></label>`).join('')}</div></details>
         <div class="mw-dyn-modes" role="group" aria-label="Who names the dynamic">${[['story', '✧ Story'], ['meters', '≋ Meters'], ['pick', '✎ I pick']].map(([k, label]) => `<button type="button" data-dyn-mode="${k}" aria-pressed="${mode === k}">${label}</button>`).join('')}</div>
         ${mode === 'pick' ? `<div class="mw-dyn-pickrow"><label class="mw-dyn-pick">Dynamic<select data-bond-dynamic aria-label="Their dynamic">${options}</select></label>${pool.size ? `<button type="button" class="mw-chip-btn" data-action="dyn-pick-all" aria-pressed="${!narrow}">${narrow ? `Show all ${dynamicRows().length}` : `Only my ${pool.size} picks`}</button>` : ''}</div>` : ''}
         <div class="mw-dyn-row"><label title="How much the relationship sliders you set between them hold the meters and the dynamic">Your sliders<select data-bond-ties aria-label="How much your relationship sliders weigh">${Object.entries(TIES).map(([k, t]) => `<option value="${k}" ${bond.ties === k ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select></label>

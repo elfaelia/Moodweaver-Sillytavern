@@ -167,8 +167,9 @@ export const movePace = ch => temperPace(scenePace(ch), getState(ch)?.moods, low
 const strongIn = (moods, ids, min = 41) => ids.some(id => (moods?.[id] ?? 0) >= min);
 // "Doctor Easterman is he/him; Lamb is she/her." Only the ones that are known.
 function pronounLine(ch, bond, n, u) {
-    const g = pronounsFor(ch, bond), word = { he: 'he/him', she: 'she/her' };
-    const parts = [[n, g.n], [u, g.u]].filter(([, p]) => word[p]).map(([name, p]) => `${name} is ${word[p]}`);
+    // "they" goes only when chosen (Non-binary under Info › Profile › Gender), not when Auto couldn't tell.
+    const g = pronounsFor(ch, bond), word = { he: 'he/him', she: 'she/her', they: 'they/them' };
+    const parts = [[n, g.n, bond.pn], [u, g.u, bond.pu]].filter(([, p, set]) => p !== 'they' ? word[p] : set === 'they').map(([name, p]) => `${name} is ${word[p]}`);
     return parts.length ? `${parts.join('; ')}.` : '';
 }
 // The links go right under the dynamic they talk about.

@@ -41,6 +41,8 @@ export const LOVE_WORDS = [
     ['floor', /\b(?:on the floor(?:boards)?|floorboards|on the rug|on the carpet)\b/i],
     ['bed', /\b(?:bed(?:s|sheets|springs|frame|post|posts)?|mattress|headboard|sheets|four-poster|bunk|cot|on the pillows?)\b/i],
 ];
+// The room the story put them in, when no furniture is named (1.88.4).
+export const LOVE_SPOTS = { bedroom: 'bed', dorm: 'bed', motelroom: 'bed', house: 'couch', backroom: 'desk' };
 export const LOVE_PLACES = { bedroom_place: 'bed', hotel_room: 'bed', cheap_motel: 'bed', dorm_room: 'bed', upscale_apartment: 'bed', sleep_room: 'bed', suburban_home: 'bed', corporate_office: 'chair', at_work: 'chair', in_a_car: 'springs', drive_in: 'springs', parking_lot: 'springs', living_room: 'couch', friends_place: 'couch', kitchen: 'desk', photo_studio: 'couch' };
 const LOVE_BEDS = new Set(LOVE_WORDS.map(([k]) => k));
 // More layers (1.81): rough sex, breath, a heartbeat in fear, a facility, live wires, an alarm.
@@ -116,7 +118,7 @@ export const PLACE_WORDS = [
     ['cafeteria', /\b(?:cafeteria|canteen|lunch ?room|mess hall|food court|dining hall|the mall\b|shopping (?:mall|centre|center))\b/i],
     ['restaurant', /\b(?:restaurants?|bistro|eatery|steakhouse|pizzeria|trattoria|brasserie|deli\b|brunch|dinner date|their table|the waiter|maître d|reservation)\b/i],
     ['cafe', /\b(?:caf[eé]s?|coffee ?shop|coffee ?house|espresso bar|tea ?room|bakery|bookshop|bookstore|book store)\b/i],
-    ['bar', /\b(?:(?:a|the|this|that|his|her|their|local|dive|hotel|gay|piano) bar\b|bar ?stools?|(?:a|the|this|that) pub\b|tavern|saloon|lounge|bartender|barkeep|barman|barmaid|speakeasy|jukebox|on the rocks|last call|clubhouse)\b/i],
+    ['bar', /\b(?:(?:a|the|this|that|his|her|their)(?: (?!iron|metal|steel|chocolate|soap|candy|crow)\w+){0,2} bar\b|bar (?:restroom|bathroom|toilets?)|bar ?stools?|(?:a|the|this|that) pub\b|tavern|saloon|lounge|bartender|barkeep|barman|barmaid|speakeasy|jukebox|on the rocks|last call|clubhouse)\b/i],
     ['junkyard', /\b(?:junk ?yard|scrap ?yard|salvage yard|wrecked cars|scrap metal|rail ?yard|train ?yard|train tracks|trailer park|abandoned lot|the tracks)\b/i],
     ['motel', /\b(?:motel|motor ?inn|inn\b|hotel balcony|walkway outside)\b/i],
     ['roadside', /\b(?:parking (?:lot|garage)|car park|gas station|petrol station|roadside|bus stop|phone booth|laundromat|outside the (?:diner|bar|store|shop|motel)|the curb|kerb)\b/i],

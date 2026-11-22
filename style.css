@@ -250,7 +250,7 @@
 .mw-inv-item.is-stored{opacity:.55;border-style:dashed;background:transparent}
 .mw-inv-check{position:relative;flex:none;width:26px;height:26px;cursor:pointer}.mw-inv-check input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;width:26px;height:26px}
 .mw-inv-check span{display:block;width:26px;height:26px;border-radius:8px;border:1.5px solid #efd59c88;background:var(--mw-deep)}
-.mw-inv-check input:checked+span{background:var(--mw-moon);border-color:var(--mw-moon)}.mw-inv-check input:checked+span::after{content:'✓';display:block;text-align:center;line-height:23px;font-weight:700;color:var(--mw-night)}
+.mw-inv-check input:checked+span{background:var(--mw-moon);border-color:var(--mw-moon)}.mw-inv-check input:checked+span::after{content:'✦';display:block;text-align:center;line-height:23px;font-weight:700;color:var(--mw-night)}
 .mw-inv-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .mw-panel .mw-inv-fields input{background:transparent;border-color:transparent;padding:3px 6px}.mw-panel .mw-inv-fields input:focus{background:var(--mw-deep);border-color:var(--mw-line-2)}
 .mw-panel .mw-inv-fields .mw-inv-name{font-size:14px;font-weight:600}.mw-panel .mw-inv-fields .mw-inv-note{font-size:12px;color:var(--mw-muted)}
@@ -579,7 +579,6 @@
 .mw-overlap-tidy,.mw-overlap-all{flex:none;min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid #7a8cc488;background:#7a8cc422;color:inherit;cursor:pointer}
 .mw-overlap-all{width:100%;margin-top:2px}
 .mw-overlap-held{opacity:.65}
-.mw-dyn-pronouns{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;margin:10px 0 12px;padding:8px 10px;border-radius:12px;background:#ffffff0a}.mw-dyn-pron-title{flex-basis:100%;font-size:.8em;letter-spacing:.04em;text-transform:uppercase;opacity:.7}.mw-dyn-pronouns label{flex:1 1 0;min-width:0;display:grid;gap:3px;font-size:.86em}.mw-dyn-pronouns select{width:100%;min-width:0}
 .mw-scope-none{margin:-4px 0 8px;color:#e8b86a}
 /* The story moves moods */
 .mw-storymood{margin:10px 0;padding:10px 12px;border-radius:16px;background:#c9b8f010;border:1px solid #c9b8f033}
@@ -622,8 +621,6 @@
 .mw-panel .mw-dyn-driver.is-offer{border:1px dashed #efd59c88;background:none;color:#efd59c;cursor:pointer;min-height:30px}
 .mw-panel .mw-dyn-offer-x{min-width:30px;min-height:30px;padding:0;border:0;background:none;color:var(--mw-faint);font-size:15px}
 .mw-dyn-driver.is-off{border-style:dashed;color:#f0c2c8}
-.mw-dyn-pron-box{margin:10px 0 0}.mw-dyn-pron-box>summary{cursor:pointer;font-size:11.5px;color:#d7cfe8;list-style:none}.mw-dyn-pron-box>summary::-webkit-details-marker{display:none}
-.mw-dyn-pron-box>summary::before{content:'▸ ';color:#b5aacb}.mw-dyn-pron-box[open]>summary::before{content:'▾ '}.mw-dyn-pron-box summary small{color:#b5aacb;margin-left:4px}.mw-dyn-pron-box .mw-dyn-pronouns{margin-top:8px}
 
 
 /* Two-sided Mind meter: unhealthy to the left, off in the middle, healthy to the right */
@@ -1001,14 +998,17 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-panel .mw-step[disabled]{opacity:.35}
 .mw-stepped:has(.mw-stars-line) .mw-step{width:30px;height:30px;font-size:17px}
 /* A switch is a four-point star: a dim outline when off, lit gold (and turned a little) when on. */
-.mw-panel input[type=checkbox]{-webkit-appearance:none;appearance:none;width:24px;height:24px;margin:0;flex:none;border:0;border-radius:50%;cursor:pointer;
+.mw-panel input[type=checkbox]:not(#mw-no-tick){-webkit-appearance:none;appearance:none;width:24px;height:24px;margin:0;flex:none;border:0;border-radius:50%;cursor:pointer;
   background:center/20px 20px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5 14.2 9.8 22.5 12 14.2 14.2 12 22.5 9.8 14.2 1.5 12 9.8 9.8Z' fill='none' stroke='%237a72a0' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E");
   transition:transform .35s cubic-bezier(.3,1.6,.5,1),filter .3s,background-color .3s}
-.mw-panel input[type=checkbox]:checked{transform:rotate(45deg) scale(1.06);filter:drop-shadow(0 0 5px #e9cf8fcc);
+.mw-panel input[type=checkbox]:not(#mw-no-tick):checked{transform:rotate(45deg) scale(1.06);filter:drop-shadow(0 0 5px #e9cf8fcc);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 1.5 14.2 9.8 22.5 12 14.2 14.2 12 22.5 9.8 14.2 1.5 12 9.8 9.8Z' fill='%23f3dc9b' stroke='%23f3dc9b' stroke-width='1.2' stroke-linejoin='round'/%3E%3C/svg%3E")}
 .mw-panel input[type=checkbox]:focus-visible{outline:2px solid #e9cf8f88;outline-offset:2px}
 .mw-panel input[type=checkbox]:disabled{opacity:.4;cursor:default}
 @media (prefers-reduced-motion:reduce){.mw-panel input[type=checkbox],.mw-panel .mw-step{transition:none}}
+/* SillyTavern draws its own tick inside every checkbox (::before, with an id-strength selector). The star is the tick here, so hide it. */
+.mw-panel input[type=checkbox]:not(#mw-no-tick)::before,.mw-panel input[type=checkbox]:not(#mw-no-tick)::after{content:none!important;display:none!important;clip-path:none!important;background:none!important;transform:none!important}
+.mw-panel input[type=checkbox]:not(#mw-no-tick),.mw-panel input[type=checkbox]:not(#mw-no-tick):checked{border:0;box-shadow:none;background-color:transparent;outline-offset:2px}
 /* Pills for short choices: one tap picks, the picked one glows. */
 .mw-pills{display:flex;gap:3px;padding:3px;border-radius:999px;background:#00000038;box-shadow:inset 0 0 0 1px #ffffff14;min-width:0;flex:1}
 .mw-panel .mw-pills>button{flex:1 1 0;min-width:0;min-height:34px;padding:4px 6px;border:0;border-radius:999px;background:none;color:var(--mw-muted,#a59cc6);font:500 12.5px/1.15 var(--mw-round);transition:background .25s,color .25s,box-shadow .25s;overflow-wrap:anywhere}

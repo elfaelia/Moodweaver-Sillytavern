@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.89.0
+- Gender on the profile (Info › Facts for the character, You for you): Auto, Man, Woman or Non-binary. It sets the pronouns every line uses, which period lines apply, the Body row and the women-only sounds. Non-binary sends "they/them". The Pronouns box left Bonds; this replaces it.
+- Cleaner writing, 8 new rows: No forced jokes (tone from your story, not the jokey source), People not their famous traits, No punchline endings, People get it wrong, Ordinary moments too, No parroting, Let them stay hard, Leave it unresolved.
+- Writing style, 9 gritty rows: Junkie clock, Written high, Comedowns, Body keeps score, Nihilist one-liners, Dissociated, Bar-stool voice, From inside the scene, No redemption arc.
+- 12 gritty American authors: Robert Stone, Craig Clevenger, Will Christopher Baer, Tao Lin, Dan Fante, James Frey, Joshua Mohr, Sam Pink, Richard Hell, David Foster Wallace (Infinite Jest), Don Carpenter, Andrew Vachss (360 authors).
+
+## 1.88.5
+- Star switches no longer show a tick inside. SillyTavern draws its own tick in every checkbox; the panel now hides it, so the lit star is the tick. The Carrying box shows a star too.
+- Fewer repeated names in dynamic, meter, link and period lines. When both people share a pronoun, or one is "They / names", a repeat becomes he/she/they only where it can mean one person (the other name hasn't come up since). "They" gets its verb to agree ("they are", "they keep") and keeps the name where it can't. "likes Kenny and acts…" can now be "likes him and acts…"; "can't bear Ellie" → "can't bear her"; "that Kenny wants" → "that he wants".
+- tests/pronouns.mjs also checks they/they.
+
+## 1.88.4: sex sounds only when sex is actually happening
+
+- **No more moaning and thumping when someone is only imagining it.** Sex sounds (the bed and furniture, wet, skin, her voice and breathing, fingers, spanking, the whip) used to follow the scene's heat, so a character fantasising in a diner set them all off. Now they need sex happening in the last two messages, read sentence by sentence: anything imagined, pictured, daydreamed, wished, wanted, remembered, thought about or hypothetical ("would", "could", "in his head") doesn't count.
+- **Public places hold back harder.** In a bar, diner, café, restaurant, campus, lobby, street, beach, hospital and the like, it takes at least two sentences of plain, happening sex before any of it plays, and warmer sounds (wet, fingers, grinding) stay off there unless sex is really happening.
+- One-off slaps and whip cracks follow the same rule.
+- When no furniture is named, the room they're in picks it: a bedroom, dorm or motel room is the bed, a house the couch, a back room the desk.
+- "The busy bar" or "the bar restroom" now count as a bar.
+
 ## 1.88.3: breathing from your own recordings, in waves
 
 - **Breathing is now your recordings, not made-up noise.** Your two breathy panting clips are cut into 20 single breaths (only the breathy parts, not the moans), each played a touch faster or slower and louder or softer so it never repeats exactly.

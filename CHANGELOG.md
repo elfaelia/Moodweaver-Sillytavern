@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.90.2
+- To find why the iPhone sticks on "Initializing…": for the first minute after the page opens, Moodweaver writes a startup log to the PC (data/default-user/user/files/moodweaver-startup-iphone.txt, or -computer), with each step's time, the size of its saved settings, any page errors from any extension, and whether the loading screen is still up at 2, 5, 10, 20 and 40 seconds. Open it on the PC at http://127.0.0.1:8000/user/files/moodweaver-startup-iphone.txt.
+- Add ?mwoff to the end of the address (192.168.1.11:8000/?mwoff) to open SillyTavern with Moodweaver switched off on that device only, for that visit.
+- Nothing else changed.
+
 ## 1.90.1: lighter start on phones
 - After 1.90.0, SillyTavern on an iPhone stuck on "Initializing…" (the laptop was fine). The 1,084 built-in songs are now stored as one JSON string, which Safari reads much faster and with far less memory than the big block of code it was before. They also merge in 8 seconds after SillyTavern has loaded, never while it's loading, in small steps so the page never freezes.
 

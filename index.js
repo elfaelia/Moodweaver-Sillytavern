@@ -12,6 +12,11 @@ import { sheetSwipe } from './panel/skills-tab.js';
 import { hasWeave, stripWeave } from './engine/weave.js';
 import { afterReply, initMusic, musicLine, onMusicChange } from './app/music.js';
 import { musicFold } from './panel/music-tab.js';
+import { bootNote, startBootLog } from './app/bootlog.js';
+
+startBootLog();
+// Open SillyTavern with ?mwoff on the end of the address to start it with Moodweaver switched off on that device.
+const SAFE_OFF = /[?&]mwoff\b/i.test(location.search);
 
 globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type) => {
     // Weave lines never reach the model, and neither do old boards (the newest is summarised in the note).
@@ -43,8 +48,11 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
     renderPreview();
 };
 function setup() {
+    if (SAFE_OFF) { bootNote('?mwoff in the address: Moodweaver stays off on this device'); return; }
     const existing = document.getElementById('moodweaver-panel');
     if (existing) { if (existing.dataset.source !== SELF) warnDuplicate(existing); return; }
+    bootNote('setup started');
+    try { const s = ctx().extensionSettings?.moodweaver; bootNote(`settings: ${Math.round(JSON.stringify(s ?? {}).length / 1024)} KB, music ${Math.round(JSON.stringify(s?.music ?? {}).length / 1024)} KB, ${Object.keys(s?.music?.songs ?? {}).length} songs; chat ${ctx().chat?.length ?? 0} messages`); } catch (err) { bootNote(`settings size: ${err}`); }
     settings();
     ui.panel = document.createElement('dialog'); ui.panel.id = 'moodweaver-panel'; ui.panel.className = 'mw-panel'; ui.panel.tabIndex = -1;
     ui.panel.setAttribute('aria-label', 'Moodweaver character moods'); ui.panel.dataset.version = VERSION; ui.panel.dataset.source = SELF; document.body.append(ui.panel);
@@ -87,7 +95,9 @@ function setup() {
     run.afterBoard = () => void afterReply().catch(err => console.warn('[Moodweaver] music', err));
     run.musicLine = musicLine;
     onMusicChange(() => { if (ui.panel?.open && ui.tab === 'music' && !ui.settingsOpen) render(true); });
-    try { initMusic(); } catch (err) { console.warn('[Moodweaver] music could not start', err); }
+    bootNote('panel built; starting music');
+    try { initMusic(); } catch (err) { console.warn('[Moodweaver] music could not start', err); bootNote(`music could not start: ${err}`); }
+    bootNote('music started; hooking SillyTavern events');
     const c = ctx();
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
         cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';
@@ -109,7 +119,10 @@ function setup() {
     for (const event of ['CONNECTION_PROFILE_CREATED', 'CONNECTION_PROFILE_DELETED', 'CONNECTION_PROFILE_UPDATED']) {
         if (c.eventTypes[event]) c.eventSource.on(c.eventTypes[event], () => { if (ui.panel.open) render(true); });
     }
-    render(); void syncPromptNow();
+    bootNote('first draw');
+    render(); bootNote('drawn; building the note');
+    void syncPromptNow().then(() => bootNote('note built: setup finished'), err => bootNote(`note failed: ${err}`));
+    if (c.eventTypes.APP_READY) c.eventSource.on(c.eventTypes.APP_READY, () => bootNote('SillyTavern says it is ready'));
 }
 // jQuery ready also works when installed after APP_READY has fired.
 if (typeof jQuery === 'function') jQuery(setup); else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup, { once: true }); else setup();

@@ -106,6 +106,8 @@ export const HEAT = [
 ];
 // Facts that mean a sex scene is happening (In the bedroom). Restraints are left out on purpose:
 // in a captivity story they mean something else.
+// Public places (place facts): erotic music there needs plain sex in the story itself (1.91.1).
+export const PUBLIC_PLACES = ['public', 'party', 'bar_club', 'jazz_club', 'dance_hall', 'shopping_mall', 'fancy_restaurant', 'late_night_diner', 'internet_cafe', 'high_school', 'lecture_hall', 'police_station', 'movie_theatre', 'country_club', 'train', 'art_gallery', 'bookshop', 'laundromat', 'hospital_ward', 'funeral', 'temple'];
 export const SEX_FACTS = ['bedroom_wet', 'bedroom_hard', 'edged', 'undressed', 'straddling', 'denied', 'first_time', 'being_watched_in_bed', 'wearing_plug'];
 
 export const ENERGY = [

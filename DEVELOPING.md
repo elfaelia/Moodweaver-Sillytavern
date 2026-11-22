@@ -92,4 +92,104 @@ Each data file starts with a comment saying what each field is. In short:
 - **A dynamic:** add a row to `DYNAMICS` in `data/catalogue/dynamics.js`, in one of the `DYNAMIC_GROUPS`. Every row whose test passes is scored (`dynamicOf` in `engine/bond.js`): earlier rows score a little higher, and `dynamicLean` adds weight for groups that fit both people's moods (`FAMILY_LEAN`, `MOOD_LEAN`), the ties set (`TIE_LEAN`), a mood clash (the seventh field of each `CLASHES` row) and words from the last two messages that match the row's name and keys. Pace scales the lean. The second dynamic (`under`) is the same scoring on the settled meters, from a different group, and only changes when two readings a couple of replies apart agree. Order still matters, so put specific ones above general ones. The header lists every meter the test can read. Before adding one, check it can actually win: a row whose test sits entirely inside an earlier row's never shows (1.52's 108 new rows were each placed so it shows for a fair share of its own meter range, without crowding out the older ones). Mind defaults: Openness starts at 20, so a test like `op <= 25` is true for everyone who has the meter on.
 - **How a mood moves the meters:** `engine/mood-meters.js`. `FAMILY` gives each mood family a default nudge (happy warms Friendship, cruel raises Urge to hurt and Control); `NUDGES` names moods that move something else, and a mood named there uses only its own rows (`{}` for none). Nudges are free: they read feelings the reply already reported, and a meter the line moved itself is left alone. Desire-family moods also warm the Desire card's arousal when the line gave it no step. To see coverage, `nudgedMoods()` returns every mood that moves something.
   `MORE_NUDGES` (1.78) adds on top of whatever a mood already moves, without replacing its family default. Use it to feed a meter that few feelings reach: every Bonds meter should be fed by roughly 8 or more feelings and appear in roughly 8 or more dynamics, so newer meters weigh the same as old ones (the count is in `Checking a change`).
-- **A skill:** add a row to a group in `data/catalogue/skills.js`. `words` call for it in the scene and also count as practice, so keep them to things someone does with the skill; broad words ("read", "hair", "drink") would level it every reply. Wo
+- **A skill:** add a row to a group in `data/catalogue/skills.js`. `words` call for it in the scene and also count as practice, so keep them to things someone does with the skill; broad words ("read", "hair", "drink") would level it every reply. Words are weighed (`termsFor`): a phrase 3, a word of 4+ letters 2, else 1, divided by how many skills share it, and a quarter for everyday words (`COMMON`); a skill is called at a pull of 1 (`callStrength`). After changing words run `node tests/skill-words.mjs`, and add a passage for a new skill. Never put a comma inside a term: `termsOf` splits on commas, so "yes, sir" would become "yes" and "sir". An optional `bad` lists ways a minus level can show; `skillLines` offers two (picked by the reply number) as examples only. To retire one, add it to `SKILL_MERGED`. The Skills tab shows only the skills someone has; "＋ Add skills" (`ui.browsing`) opens the whole catalogue. Levels run −10 to +10 (`SKILL_MIN`, `SKILL_LEVELS` in `engine/skills.js`; saved chats from before 1.76 have their minus levels doubled once by `widenSkills`, marked by `state.skillScale`). The Skills tab (`panel/skills-tab.js`) is a list of rows (`data-skill-row` first, so scroll memory anchors on the row and not the chip); tapping one sets `ui.skillSheet` and draws a sticky sheet at the end of the view (swiped down to close by `sheetSwipe`, wired in `main.js`) with an SVG dial (`orbit`), − and ＋ and jumps, all `data-skill-to` with an exact `data-v` (0 takes the skill off). Every other slider in the panel is shown as moons by `moonify` in `panel/render.js`: the range input stays, hidden, and `tapRangeMoon` sets it and fires its events, so new sliders need no extra work; tapping the current one takes the skill off. Since 1.82 the moons sit in a `.mw-stepped` row with − and + (`data-range-step`, `stepRangeMoon` moves to the next stop in `moonStops`). The same pass turns short selects (2–5 options, short labels) into pills (`pillify`, `tapPill`; the select stays hidden and gets the change event; add `data-pills` to a select to keep it a dropdown) and folds long `.mw-fine`/`.mw-explainer`/`.mw-music-note` paragraphs (70+ characters) to one ⓘ line (`foldNotes`, `toggleNote`, remembered in `ui.openNotes`). Checkboxes are drawn as stars by CSS only. Psychology or Psychiatry at 6+, while in play, lets someone see the other person's Mind settings (`insightLines` in `engine/skills.js`, fed by `mindOf` in `app/note.js`): only when the scene touches one of them, or about one reply in three, and what they do with it is left to who they are. Growth (`SKILL_PACE`, `growSkills` in `engine/skills.js`) runs once per message in `applyReply` (`app/replies.js`) and is recorded with the reply, so a swipe takes it back.
+
+Only options that are switched on are sent to Claude, so a bigger catalogue costs nothing in tokens on its own.
+
+## Music
+
+Songs from the player's own Spotify playlists, picked by plain code. Five files:
+
+- `data/catalogue/music.js`: the Moments (kinds of scene) and how each is spotted (moods at 41+, setting facts, dynamic groups, an optional test on the snapshot), Heat, Energy, `FAMILY_ENERGY`, `SEX_FACTS`, and `POINTS` (what each match is worth). Add a moment here and the sheet, the panel chips and the picker all pick it up.
+- `engine/music.js`: tags (`cleanTags`, `mergeTags`: a song's own tags on top of its playlists'), the scene snapshot (`snapshot`), scoring (`scoreSong`, `rank`, `pick`, `lineup`) and when to cut a song (`shiftOf`). Pure, so it runs in Node.
+- `engine/sheet.js` and `engine/xlsx.js`: the song sheet. `sheetFile` writes an .xlsx with dropdowns (list validations pointing at the Lists tab); `readSheet` reads ours, a CSV of it, or an exportify.net CSV. `xlsx.js` is a small zip writer and reader (DecompressionStream for compressed files) with no outside libraries.
+- `app/spotify.js`: sign-in (PKCE with its own SHA-256, because http on a home network has no `crypto.subtle`), the paste-the-address way back for addresses Spotify won't return to, refresh, and the Web API calls (playlists use `/playlists/{id}/items`, Spotify's 2026 name, with `/tracks` as a fallback).
+- **Place recordings (1.88):** `LOOPS` in `app/ambience.js` maps a bed name to `[files, gain]`; files are 40 s seamless loops in `sounds/amb-*.mp3` (mono, 24 kHz, 40 kbps, equal-power crossfaded end-to-start, RMS -24 dB). `build()` plays a LOOPS bed with `loop()` instead of a synth. `NIGHT_BEDS` swaps a bed for its night take. `EROTIC_BEDS` decides which switch (`m.ambSex` or `m.ambPlaces`, Music › Ambience › What plays) a bed answers to. Harness check: `amb188.mjs`.
+- **Loop versions and venue music (1.88.1):** a `LOOPS` entry's third value shapes it live (`'wall'` lowpass, `'far'` band-limited and quieter, `'hall'` a generated 2.2 s convolver echo). Venue music: `engine/venues.js` (`VENUES` with place facts, words, fitting genres and search genres; `venueNow`, `artistIn`, `searchesFor`), `sp.searchTracks` in `app/spotify.js` (pages of 10), and `venueHere`/`venueLineup`/`venuePlay` in `app/music.js`. A venue is kept on `mus.radio` with `venue`, `artist` and `key`, so the in-story line to Claude works unchanged. Searched tracks' names live in `mus.extra`. Setting `m.venues`. Harness: `venue188.mjs` (mocked search).
+- `app/ambience.js`: the ambience, made with Web Audio. Most beds are synthesised; since 1.83 the sex beds play cuts of recordings in `sounds/` (mono mp3s, `GRAINS` lists each file's cuts as [start, end, gain]; `grain()` picks a random cut, never the same twice running, and shapes rate, filters and length per bed). `strokes()` keeps time; `setBeds(beds, level, energy, nudge)` sets `targetRate` from the scene's energy plus `paceNudge` (pace words in the newest message, `PACE_WORDS`) and `strokeRate` glides toward it. `wet` and `skin` (slaps) are separate layers. 1.85 added her second batch: `fingers`, `rub`, `spank`, `whip` (gated by `MORE_WORDS`) and `voice` (sex, and you or the character is a she); `hits()` plays sparse sounds sooner as the pace rises; `one()` picks between recordings of the same thing. `sounds/` cuts were made by onset detection, normalised by median cut peak (rhythmic) or RMS (voices, rubbing). Beds are builders in `build`; `ambienceBeds` in `app/music.js` picks at most `MAX_BEDS` (7) from place facts, word lists (`PLACE_WORDS`, `WEATHER_WORDS`, `LAYER_WORDS`, `LOVE_WORDS`, `MORE_WORDS`, `VENT_PLACES`) and the scene (`heat`, `mode`, `energy`, which sets `strokeRate`). `oneShots` plays `SHOT_WORDS` hits from a new reply once (`afterReply`, never on swipes or edits). Ambience runs apart from the music since 1.83: `ambienceAfterReply` runs first in `afterReply` (no Spotify needed) and `toggleAmbience` / `mus.ambPaused` pause it on its own. Measure new sounds' loudness against rain before shipping; everything sits under one Ambience switch.
+- `app/music.js`: the library and tags (kept in extension settings under `moodweaver.music`, so every device shares them), `sceneNow` (moods of whoever Follow points at, facts, the board's Present, time and Horny, the dynamic), `afterReply` (run from `boardChanged` through `run.afterBoard`), `songEnding` (a timer a few seconds before the end of each song that re-picks the next one if the planned one no longer fits), feedback, import and export. `musicLine` is the optional feel line, added to the notes in `app/note.js` through `run.musicLine`.
+
+Tags are ids, never labels, so renaming a label in the catalogue keeps saved tags. Character tags are names as typed (compared without case), plus `{{char}}`, `{{user}}` and `Any`.
+
+## The note in two halves
+
+With `splitNote` on (the default), `composePrompt` in `engine/prompt.js` returns `{ prompt, fixed }`. `guide(...)` pushes a paragraph to the guide (`fx`) when split, or to the note as before. The guide goes in with `GUIDE_KEY` at position 0, above the chat with the system role, so it sits in the cached prefix. The notes go with `PROMPT_KEY` at depth, as before. `boardPromptLines` puts its template and rules in `out.fixed`, and `weavePrompt` puts its per-reply parts (step sizes, feelings that ran high, the current dynamic) in `lines.live`.
+
+Keep the guide's text the same from reply to reply. A change there invalidates the cache for the whole chat behind it. So its conditions follow what's set up (`setUp`: every option switched on, not filtered by the scene), never values that move each reply. Anything meant to change the scene stays in the notes.
+
+`syncPrompt()` from a panel tap only schedules a preview rebuild (`NOTE_SETTLE_MS`). `syncPromptNow()` builds straight away, for a chat being opened or a reply arriving. `syncPrompt(true)` builds the note for a generation.
+
+## Echoes
+
+`engine/echoes.js`. `aftermathLines` reads the last two applied records (`chatMetadata.moodweaver.applied`). A feeling of a `WAKE` kind that was at 61+ and dropped by 30 or more gives one line. `contagionLine` reads the hidden line's `seems` and scores the character's empathy (`WARM`, `COLD`, selective empathy, closeness) before letting one `CATCHING` feeling rub off. Both go in the notes, late.
+
+## Stress, opinions, secrets, wants from the meters (1.79)
+
+All four are pure modules read back from the chat each time, so swipes take their share with them and nothing new is stored but hand taps.
+
+- `engine/stress.js`: `computeStress(entries, st, from)` walks one entry per reply (`stress` from the hidden line, feelings that rose and aren't aimed at anyone, needs, release). `stressRate` (FASTER/SLOWER traits), `COPING` and `BREAKS` pick how they cope and break. `app/replies.js` `stressNow` feeds it; a secret step adds strain (`secretStrain`). `state.stressFrom` is the "Let it go" point.
+- `engine/opinions.js`: `computeOpinions` adds up aimed feelings ("angry at his wife", via `aimed`) per person, fading 0.985 a reply, matched to the Family box (`familyPeople`, `KIN`). `opinionLines` only for people the scene names.
+- `engine/secrets.js`: `secretList(st)` reads `st.secrets` (one a line, key = hash of the text). The hidden line's `secrets` field is parsed by `secretStep` ("affair suspected" → words + state) and matched to either person's list by `matchSecret`. `secretStates` takes the newer of the story's step and the hand tap (`st.secretSet`). `secretNudges` moves control, Secrecy, Shame and Knows about you inside `bondList`, only where the line didn't. `secretLines` writes the note lines.
+- `engine/auto-wants.js`: `METER_WANTS` per meter (a `-` key for the low side). `autoWants` picks two from the meters at 61+, drops one the hidden line marked done (`REST` messages) or that a hand-written want already covers. `autoWantsNow` in `app/replies.js`; `app/note.js` adds them to the wants sent.
+
+## How the dynamic changes (1.79.1)
+
+`computeBond` in `engine/bond.js`. The **main** dynamic reads `axesNow`: the settled meters plus a pull from the last `pace.window` replies (`SCENE_GAIN`, capped at `SCENE_PULL`), with the cards' feelings and ties (`dynamicLean`) weighted by `ctxLean.weight`. It switches once a new one has led two replies running (Volatile at once). The **one underneath** reads the settled meters only, with the lean at a quarter of that, and is the one that led most of the last `UNDER_WINDOW` replies; it's hidden while it's the same as the main one. A story or reader call lasts `STORY_HOLD` replies. `tests/dynamics.mjs` plays long chats through it: run it after changing any of these numbers or adding dynamics.
+
+## Pace
+
+One pace per character and chat, kept as `bond.pace` (`PACE` in `engine/bond.js`: Slow burn, Steady, Quick, Volatile) and set from the Moods card's Speed (`data-pace`). Feelings (`scenePace` in `app/note.js`, which reads `MOOD_PACE`), the meters, mood nudges (scaled by the pace's `lean`) and desire all follow it, and the hidden line asks for steps that size. Traits then adjust it per character (`TEMPERS`). How firmly the relationship sliders hold the meters is `bond.ties` (`TIES` in `engine/bond.js`: light, balanced, strong). Two speeds stay separate on purpose: needs (time passing) and skill growth (Skills tab), which is learning, not mood.
+
+## Profile, core traits and learning
+
+Age, height and interests (`cleanAge`, `cleanHeight`, `cleanInterests` in `engine/turns.js`) feed `turnSigns` (`older`, `younger`, `taller`, `shorter`, and interest words) and `compareProfiles`, which writes the "Between them" line. Up to `CORE_MAX` (3) traits sit in `state.core` and go first in the note as "Core of who they are". The other traits go through `traitFocus` in `engine/prompt.js` (setting `traitFocus`): `TRAIT_FOCUS` (3) in full, picked by `traitTouched` (the scene names them) then a rotation seeded by the reply number and weighted by strength; the rest go as one line of labels. Trait strength is sent with `depthWord` (a touch … deeply), never the feelings' tier words. The hidden line's `noticed` field names the player's turn-ons the character picked up on; `knowledgeNow` in `app/replies.js` counts those against the chat, so one notice makes a turn-on suspected and a second makes it known, and deleting replies takes it back.
+
+## Renaming or merging an option
+
+Don't change an `id`. To retire one, add it to `MERGED_MOODS` in `data/catalogue/merged.js` with the id it folds into, and its saved values move over the next time a chat loads.
+
+## Checking a change
+
+`node tests/dynamics.mjs` checks the main dynamic still follows scenes and the one underneath stays slower.
+
+The `engine/` and `data/` files load in plain Node, which makes the note easy to test without SillyTavern:
+
+```js
+import { budgetPrompt } from './engine/prompt.js';
+import { freshState } from './engine/state.js';
+const st = freshState({}); st.moods.defiant = 70; st.loadout = ['defiant'];
+console.log((await budgetPrompt(st, 'Damien', 2000, async t => t.length / 4)).prompt);
+```
+
+Swiping between tabs is `onPanelSwipe` in `panel/events.js`, fed by the touch handlers in `main.js`: it needs a third of the panel's width (at least 90px), a mostly level path (the largest vertical drift is under 35% of the sideways distance), under 0.7 s, and no scrolling during the touch. `settings().swipeTabs === false` turns it off.
+
+Wet, soaked and dripping can mean water or arousal. `TWINS` in `engine/board.js` maps each to both facts; `factId(name, hot)` and `factsIn(text, hot)` read four words either side: water words (shower, rain, towel, hair…) win, then arousal words, then `hot`. `app/replies.js` passes `hot` from `heated()`: a desire-family mood at 41+ on that person, or one named in the latest hidden line.
+
+The ▦ Song counts drawer (`countsCard` in `panel/music-tab.js`) counts `usableSongs` with `fitsMode` for scene kinds and plain tag tests for the rest; it reads nothing new and stores nothing.
+
+Period lines are data only (`data/catalogue/period.js`); the picking is `periodLines` in `engine/period.js`, which returns every line that applies with `sent` marked (the Period tab's "Lines about … now"). Bed lines read `bedTop` from `app/note.js`: their moods first (taking charge against giving way), then the Control meter, then a top or bottom bed role, then whoever holds power, so the lines follow who is actually leading in the scene.
+
+Lines that name both people go through `pronounize` (`engine/pronouns.js`), which turns later mentions into he/she only where the grammar is certain and otherwise keeps the name. After adding or changing dynamics, meter lines, combos, links or skill combos, run `node tests/pronouns.mjs` (add `--show` to see every line it changed); it renders them all for every pronoun pair and fails on grammar that can only be wrong. Write those lines with names, never with he/she/they for one person.
+
+To see how evenly the Bonds meters are fed (1.78 brought every one to roughly 8 or more feelings and 8 or more dynamics), count them in Node:
+
+```js
+import { nudgedMoods } from './engine/mood-meters.js';
+import { MORE_METERS } from './engine/meters.js';
+import { readFileSync } from 'node:fs';
+const fed = {}; for (const n of nudgedMoods().values()) for (const [k, v] of Object.entries(n)) if (v > 0) fed[k] = (fed[k] ?? 0) + 1;
+const src = readFileSync('data/catalogue/dynamics.js', 'utf8');
+console.log(MORE_METERS.map(([k]) => `${k} ${fed[k] ?? 0}/${(src.match(new RegExp(`d\\.${k}\\b`, 'g')) ?? []).length}`).join('  '));
+```
+
+1.51's word lists were checked by mapping every word the old version knew through both versions and reviewing each one that changed. 1.50 was checked against 1.49.6 with a browser harness that drives the panel through the same random walks on both versions and compares every note, saved chat and setting. It lives outside this folder.
+
+## Ideas for later
+
+- **Many more built-in options.** More moods, relationships, bonds and dynamics in every section, with the meter-driven dynamics and the automatic moods at the front. Since only switched-on options are sent, the lists can grow without the note growing.
+- **Not resending everything.** Find ways for automatic moods and dynamics to steer replies without the whole active list being reprinted in every note.
+- **Your own options, done properly.** 1.50 removed them because they didn't behave like the built-in ones: they had no meter tests, no scaled wording, no "how it shows", and the scene reader couldn't weigh them the same way. A future version could bring them back only if a custom option gets the same machinery: a dynamic you write with a meter test, a mood with its own on-the-page wording, and so on.
+- **Faster drawing of big lists.** Since 1.51, browsing everything leaves folded groups empty until they're opened (`fillLazy` in `panel/render.js`); since 1.52 the Bonds tab's list of dynamics does the same. A person's own list still draws every row up front.
+
+## Plain ASCII code files
+Every .js file must be plain ASCII: write characters like ’ “ ✦ as \u escapes. In 1.90 iPhone Safari misread a curly quote in `data/catalogue/story.js` ("Invalid character '\ufffd'"), Moodweaver's files failed to load, and SillyTavern hung on "Initializing…". `node tests/ascii.mjs` checks; `node tests/ascii.mjs --fix` rewrites them. Run it before every release (song-tags.js included).

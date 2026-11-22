@@ -3,7 +3,7 @@
 import moodSection from '../data/catalogue/mood.js';
 import stateSection from '../data/catalogue/state.js';
 import { DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
-import { COMBOS, HEARD_IN, HIGHS, ROMANCE_MOODS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
+import { COMBOS, HEARD_IN, PUBLIC_PLACES, HIGHS, ROMANCE_MOODS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
 import { BEATS as BEAT_LIST, readScene } from './scene-words.js';
 
 // ---- The names the sheet and the panel use ----
@@ -152,7 +152,7 @@ export function mergeTags(own, ...fromPlaylists) {
 //   everyone: [{ names: [name, token\u2026], moods }] for everyone in the scene; a song tagged for one of them matches
 //   that person's own moods, even when the music follows someone else (heat counts both of you, whoever the music follows)
 //   texts: [{ text, weight }] the newest reply and your last message, read for what is actually happening }
-const LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), ROM = new Set(ROMANCE_MOODS), ROM_MO = new Set(['romance', 'longing', 'slow_dance']), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
+const PUB = new Set(PUBLIC_PLACES), LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), ROM = new Set(ROMANCE_MOODS), ROM_MO = new Set(['romance', 'longing', 'slow_dance']), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
 export function snapshot(input = {}) {
     const moodVal = {};
     for (const p of input.people ?? []) for (const [id, v] of Object.entries(p.moods ?? {})) {
@@ -180,6 +180,18 @@ export function snapshot(input = {}) {
     const words = readScene(input.texts ?? []);
     // Slow burn starts early: one desire feeling at 31+, or two that add up to 55+, either of you.
     let heat = SEX_FACTS.some(id => facts.has(id)) || (horny >= 81 && desire >= 61) || words.on.has('sex') ? 'sex' : desire >= 31 || desireSum >= 55 || horny >= 41 || words.on.has('intimate') ? 'slow' : '';
+    // 1.91.1: feelings alone don't make a scene Erotic. Desire or the horny meter can run high all day (a man who sleeps
+    // around wants someone most of the time), so heat from moods or meters only counts when the story itself has some
+    // touch, kissing or undressing in it. Out in public (a bar, a booth, a crowd) it takes plain foreplay or sex words,
+    // and an argument there is never Erotic unless sex is plainly happening.
+    if (heat) {
+        const told = words.on.has('sex') || words.on.has('intimate'), fromFacts = SEX_FACTS.some(id => facts.has(id));
+        const inPublic = [...places].some(id => PUB.has(id)) || words.score.public >= 2;
+        const row = words.score.row >= 1 || fams[0] === 'angry';
+        if (!told && !fromFacts && words.score.intimate + words.score.sex < 1) heat = '';
+        else if (inPublic && !told) heat = '';
+        else if (inPublic && row && !words.on.has('sex')) heat = '';
+    }
     // Sweet or intimate? What pulls towards bed against what's sweet, playful or wholesome. Sweet wins a tie.
     const heatPull = words.score.intimate + desire / 20 + Math.max(0, horny - 20) / 25;
     const sweetPull = words.score.sweet + words.score.confess + words.score.flirt * 0.5 + sweetMood / 20;
@@ -371,48 +383,4 @@ export function rank(songs, snap, opts = {}) {
     // A song the story just echoed (and that fits the scene) joins the front-runners: half a point behind the best,
     // so it's a real chance, not a certainty.
     const best = list.find(x => !x.cue)?.score;
-    if (best !== undefined && list.some(x => x.cue)) { for (const x of list) if (x.cue) x.score = Math.max(x.score, Math.round((best - 0.5) * 10) / 10); list.sort((a, b) => b.score - a.score); }
-    return list;
-}
-// One pick from the songs within a point of the best, more often the higher ones. rng is Math.random unless a test passes its own.
-export function pick(ranked, rng = Math.random) {
-    if (!ranked.length) return null;
-    const best = ranked[0].score, near = ranked.filter(x => x.score >= best - 1).slice(0, 12);
-    const weights = near.map(x => x.score - (best - 1) + 0.5), total = weights.reduce((a, b) => a + b, 0);
-    let r = rng() * total;
-    for (let i = 0; i < near.length; i++) { r -= weights[i]; if (r <= 0) return near[i]; }
-    return near.at(-1);
-}
-// The pick, then the best of the rest, so Spotify keeps playing fitting songs by itself.
-export function lineup(ranked, first, size = LINEUP) {
-    if (!first) return [];
-    // Songs for the same kind of scene and close behind the pick first, so Spotify never wanders off on its own.
-    const out = [first.uri, ...ranked.filter(x => x.uri !== first.uri && (x.fits || !first.fits) && x.score >= Math.max(first.score - 3, GOOD_ENOUGH)).slice(0, size - 1).map(x => x.uri)];
-    // Never let the music run dry: fill up with the rest of this kind of scene's songs, best first, then go round
-    // them again (a repeat beats silence). Only when no song at all fits this kind do the next best others fill in.
-    const kind = ranked.filter(x => x.fits || !first.fits).map(x => x.uri);
-    for (const u of kind) { if (out.length >= size) break; if (!out.includes(u)) out.push(u); }
-    if (out.length < size && kind.length) for (let i = 0; out.length < size && i < size * 2; i++) { const u = kind[i % kind.length]; if (u !== out.at(-1)) out.push(u); }
-    for (const x of ranked) { if (out.length >= size) break; if (!out.includes(x.uri)) out.push(x.uri); }
-    return out;
-}
-export { GOOD_ENOUGH };
-
-// ---- When the music changes ----
-// A real shift between two snapshots. Mood families only count once they've held for two replies, which
-// app/music.js handles by passing the family it has seen twice (famHeld).
-export function shiftOf(before, now, famHeld = now.fams[0]) {
-    if (!before) return { big: true, any: true, why: 'start' };
-    const same = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
-    if (before.who.join('|') !== now.who.join('|')) return { big: true, any: true, why: 'someone else' };
-    if (before.mode !== now.mode) return { big: true, any: true, why: 'scene kind', mode: true };
-    if (!same(before.places, now.places)) return { big: true, any: true, why: 'new place' };
-    if (!same(before.moments, now.moments)) return { big: true, any: true, why: 'new moment' };
-    if (before.heat !== now.heat) return { big: true, any: true, why: 'heat' };
-    if (Math.abs(before.energy - now.energy) >= 2) return { big: true, any: true, why: 'energy' };
-    // Story (film score): a cue holds through the scene; only a new scene (place, kind, people, heat) changes it.
-    if (now.story) return { big: false, any: before.fams[0] !== now.fams[0], why: before.fams[0] !== now.fams[0] ? 'small' : '' };
-    if (famHeld && before.fams[0] !== famHeld) return { big: true, any: true, why: 'feeling' };
-    if (before.energy !== now.energy || before.fams[0] !== now.fams[0] || before.dyn !== now.dyn) return { big: false, any: true, why: 'small' };
-    return { big: false, any: false, why: '' };
-}
+  

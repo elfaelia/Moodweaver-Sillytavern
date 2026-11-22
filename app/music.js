@@ -132,7 +132,7 @@ export function usableSongs(m = music()) {
     const on = new Set(Object.entries(m.playlists).filter(([, p]) => p.on || litNames.has(norm(p.name))).map(([id]) => id));
     // A tagged song whose playlists are all gone (deleted, renamed away, or never loaded) still counts, like a sheet song,
     // as long as the playlist it came from (by name) is lit.
-    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).some(id => m.playlists[id]) && (!s.pln || litNames.has(norm(s.pln)))))
+    return Object.entries(m.songs).filter(([uri, s]) => (s.pl ?? []).some(id => on.has(id)) || (hasTags(m.tags[uri]) && !(s.pl ?? []).some(id => m.playlists[id]) && (!s.pln || [].concat(s.pln).some(n => litNames.has(norm(n))))))
         .map(([uri, s]) => ({ uri, song: s, g: s.g ?? [], learn: m.learn[uri], tags: mergeTags(cleanTags(m.tags[uri] ?? {}), ...(s.pl ?? []).filter(id => on.has(id)).map(id => m.ptags[id] && cleanTags(m.ptags[id]))) }));
 }
 // ---- Lyric cues ----
@@ -190,6 +190,9 @@ function ranked(snap, m = music(), exclude = []) {
         const end = eraEnd(), year = new Map(songs.map(s => [s.uri, s.tags.yr]));
         const period = list.filter(x => year.get(x.uri) && (!end || year.get(x.uri) <= end));
         mus.radio.empty = !period.length; if (period.length) list = period;
+        // 1.89: songs you marked Heard in › Radio (or Car stereo, in a car) come first.
+        const want = /car/.test(mus.radio.kind ?? '') ? ['car', 'radio'] : ['radio'], heard = new Set(songs.filter(s => s.tags.dg?.some(d => want.includes(d))).map(s => s.uri));
+        if (heard.size) list = [...list.filter(x => heard.has(x.uri)), ...list.filter(x => !heard.has(x.uri))];
     }
     // What the cues did, for the Now playing card: heard, and whether the song fits this scene.
     mus.heard = [...mus.cues].sort((a, b) => (b[1].strength ?? 1) - (a[1].strength ?? 1) || (a[1].back ?? 0) - (b[1].back ?? 0)).map(([uri, c]) => ({ uri, cue: c.cue, name: m.songs[uri]?.n ?? '', resting: Date.now() - (m.cueAt[uri] ?? 0) <= CUE_REST, restLeft: Math.max(0, CUE_REST - (Date.now() - (m.cueAt[uri] ?? 0))), fits: Boolean(list.find(x => x.uri === uri)?.cue) }));
@@ -215,7 +218,10 @@ function venueHere(snap, m = music()) {
 async function venueLineup(m, v, exclude = []) {
     const end = eraEnd(), recent = new Set([...m.recent.slice(-20), ...exclude]), shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(x => x[1]);
     const inEra = yr => !end || !yr || yr <= end;
-    const own = usableSongs(m).filter(s => !recent.has(s.uri) && inEra(s.tags?.yr) && (v.artist ? artistMatch(s.a ?? m.songs[s.uri]?.a, v.artist) : fitsVenue(s.g, v.id))).map(s => s.uri);
+    // 1.89: songs you marked Heard in for this kind of place lead, then songs whose genres fit it.
+    const pool = usableSongs(m).filter(s => !recent.has(s.uri) && inEra(s.tags?.yr));
+    const heardHere = v.artist ? [] : pool.filter(s => s.tags?.dg?.includes(v.id)).map(s => s.uri);
+    const own = [...heardHere, ...pool.filter(s => !heardHere.includes(s.uri) && (v.artist ? artistMatch(s.a ?? m.songs[s.uri]?.a, v.artist) : fitsVenue(s.g, v.id))).map(s => s.uri)];
     const key = `${v.id}|${v.artist}|${end}`; mus.venueCache ??= new Map(); mus.extra ??= new Map();
     let found = mus.venueCache.get(key);
     if (!found || found.filter(t => !recent.has(t.uri)).length < 6) {
@@ -228,9 +234,11 @@ async function venueLineup(m, v, exclude = []) {
         mus.venueCache.set(key, found);
     }
     for (const t of found) mus.extra.set(t.uri, t);
-    const searched = shuffle(found.filter(t => !recent.has(t.uri)).map(t => t.uri)), mine = shuffle(own);
+    const searched = shuffle(found.filter(t => !recent.has(t.uri)).map(t => t.uri)), mine = [...shuffle(heardHere), ...shuffle(own.slice(heardHere.length))];
     // Mostly your songs when you have plenty, with search mixed in so it never runs dry.
-    const out = []; while ((mine.length || searched.length) && out.length < 15) { if (mine.length) out.push(mine.shift()); if (searched.length && (out.length % 3 === 2 || !mine.length || v.artist)) out.push(searched.shift()); }
+    // With plenty of your own Heard in songs for this place, search only fills in when they run out.
+    const plenty = heardHere.length >= 8;
+    const out = []; while ((mine.length || searched.length) && out.length < 15) { if (mine.length) out.push(mine.shift()); if (searched.length && (!mine.length || v.artist || (!plenty && out.length % 3 === 2))) out.push(searched.shift()); }
     return [...new Set(out)].slice(0, 15);
 }
 async function venuePlay(m, snap, exclude = []) {
@@ -665,8 +673,9 @@ export async function applyBundle(force = false) {
     for (const [uri, x] of Object.entries(B.songs)) {
         if (m.removed[uri]) continue;
         if (!m.songs[uri]) { m.songs[uri] = { n: x.n, a: x.a, al: x.al ?? '', ms: x.ms ?? 0, pl: [], ...(x.g?.length ? { g: x.g } : {}) }; added++; }
-        if (x.pl) m.songs[uri].pln = x.pl;
-        const id = x.pl && plFor(x.pl); if (id && !m.songs[uri].pl?.includes(id)) m.songs[uri].pl = [...(m.songs[uri].pl ?? []), id];
+        // A song can be on more than one of your playlists (1.89: Easterman's and Kenny's).
+        const names = [].concat(x.pl ?? []); if (names.length) m.songs[uri].pln = names.length > 1 ? names : names[0];
+        for (const name of names) { const id = plFor(name); if (id && !m.songs[uri].pl?.includes(id)) m.songs[uri].pl = [...(m.songs[uri].pl ?? []), id]; }
         if (!m.tagEdited[uri]) {
             // Before 1.72.7 your own changes weren't marked, so anything that's clearly yours is kept on top: Never
             // during (✕ Not here), Favourite, Off, Theme and a peak you set.
@@ -734,7 +743,7 @@ export async function importSheet(file) {
 }
 export function setTag(uri, kind, value) {
     const m = music(), t = cleanTags(m.tags[uri] ?? emptyTags());
-    if (['f', 'p', 'mo', 'd', 'c', 'nv', 'cm', 'st'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
+    if (['f', 'p', 'mo', 'd', 'c', 'nv', 'cm', 'st', 'dg'].includes(kind)) t[kind] = t[kind].includes(value) ? t[kind].filter(x => x !== value) : [...t[kind], value];
     else if (kind === 'h') t.h = t.h === value ? '' : value;
     else if (kind === 'e') t.e = t.e === Number(value) ? 0 : Number(value);
     else if (['th', 'fav', 'off'].includes(kind)) t[kind] = !t[kind];

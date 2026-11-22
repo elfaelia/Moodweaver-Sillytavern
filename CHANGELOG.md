@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.90.0: Kenny's playlist and 13 kinds of scene
+- **13 kinds of scene instead of 7**, chosen from a dropdown ("This scene is…") with a one-line hint for each: Erotic (was Intimate), Romantic (new), Sweet, Tender, Danger, Action (new: chase, fight, job), Drama (new: row, betrayal, confrontation), Tense (new: a normal drug deal, a standoff, waiting), Street (new: hustling, cruising), High (new), Sorrow, Dark, Party.
+- **Erotic and Romantic are really split.** Songs that sound sexual are Erotic; love and longing songs that don't are Romantic and never play during sex. A love scene with no heat now reads as Romantic, not Erotic.
+- **Kinds of high**: stoned, rolling, tripping, wired, nodding, drunk, comedown, read from the story's words (a line of coke reads wired, "dope sick" reads comedown, not nodding).
+- **Heard in the room**: a new tag (sheet column "Heard in", ✎ Tags chips) for songs that play inside the scene: punk shows, clubs, house parties, bars, car stereos, radios. Those songs lead at that kind of place.
+- **🪦 SOLAD built in**: 853 songs for Kenny, 555 newly researched (lyrics, sound of that exact recording, film and TV use), each tagged {{char}} (Kenny), {{user}} (you) or both. Songs the research couldn't confirm online say "not web-verified" in their note.
+- **Easterman's songs re-sorted** into the new kinds: 80 made Romantic (heat removed), 51 kept Erotic, 27 both, plus new moments like standoff, nodding and drunk where they fit.
+
 ## 1.89.0
 - Gender on the profile (Info › Facts for the character, You for you): Auto, Man, Woman or Non-binary. It sets the pronouns every line uses, which period lines apply, the Body row and the women-only sounds. Non-binary sends "they/them". The Pronouns box left Bonds; this replaces it.
 - Cleaner writing, 8 new rows: No forced jokes (tone from your story, not the jokey source), People not their famous traits, No punchline endings, People get it wrong, Ordinary moments too, No parroting, Let them stay hard, Leave it unresolved.

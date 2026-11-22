@@ -2,8 +2,9 @@
 // sheet (xlsx or CSV, including exportify.net's CSV) back into tags. No SillyTavern here.
 import { BEATS, DYN_GROUPS, ENERGY, cleanPeak, cleanYear, peakText, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, MOOD_LIST, PLACES, cleanTags, emptyTags, cleanCueWords, cleanCues, labelOf, norm, split } from './music.js';
 import { buildXlsx, colName } from './xlsx.js';
+import { HEARD_IN } from '../data/catalogue/music.js';
 
-export const TAG_COLS = ['Feeling 1', 'Feeling 2', 'Exact moods', 'Place 1', 'Place 2', 'Moment', 'Dynamic', 'Meaning', 'Heat', 'Energy', 'Character', 'Theme', 'Never during', 'Favourite', 'Off', 'Cues', 'Cue words', 'Sting', 'Peak', 'Year', 'Notes'];
+export const TAG_COLS = ['Feeling 1', 'Feeling 2', 'Exact moods', 'Place 1', 'Place 2', 'Moment', 'Dynamic', 'Meaning', 'Heat', 'Energy', 'Character', 'Theme', 'Never during', 'Favourite', 'Off', 'Cues', 'Cue words', 'Sting', 'Peak', 'Year', 'Heard in', 'Notes'];
 // Sound (last column): the song's styles, like Spotify's genres (trip hop, dream pop). Exportify CSVs fill it in;
 // you can type your own. ✦ Fits teaches Moodweaver which sounds suit which kind of scene.
 export const SONG_COLS = ['Song', 'Artist', 'Album', 'From playlist', "Spotify ID (don't edit)", 'Length', ...TAG_COLS, 'Sound'];
@@ -24,7 +25,7 @@ export function tagsToCells(t = emptyTags()) {
     const join = (kind, list) => list.map(id => labelOf(kind, id)).join(', ');
     const never = t.nv.map(v => { const [k, id] = [v.slice(0, v.indexOf(':')), v.slice(v.indexOf(':') + 1)]; return labelOf(k, id); }).join(', ');
     return [labelOf('f', t.f[0] ?? '') || '', join('f', t.f.slice(1)), join('m', t.m), labelOf('p', t.p[0] ?? '') || '', join('p', t.p.slice(1)), join('mo', t.mo), join('d', t.d), join('cm', t.cm ?? []),
-        t.h ? labelOf('h', t.h) : '', t.e ? ENERGY.find(e => e.id === t.e)?.label ?? '' : '', t.c.join(', '), t.th ? 'Yes' : '', never, t.fav ? '★' : '', t.off ? 'Off' : '', (t.cue ?? []).join(', '), (t.cw ?? []).join(', '), (t.st ?? []).map(id => BEATS.find(b => b.id === id)?.label ?? id).join(', '), peakText(t.pk), t.yr || '', t.note ?? ''];
+        t.h ? labelOf('h', t.h) : '', t.e ? ENERGY.find(e => e.id === t.e)?.label ?? '' : '', t.c.join(', '), t.th ? 'Yes' : '', never, t.fav ? '★' : '', t.off ? 'Off' : '', (t.cue ?? []).join(', '), (t.cw ?? []).join(', '), (t.st ?? []).map(id => BEATS.find(b => b.id === id)?.label ?? id).join(', '), peakText(t.pk), t.yr || '', (t.dg ?? []).map(id => HEARD_IN.find(x => x.id === id)?.label ?? id).join(', '), t.note ?? ''];
 }
 const lookup = list => { const m = new Map(); for (const x of list) { m.set(norm(x.label), x.id); m.set(norm(x.id), x.id); } return m; };
 const MODE_ROWS = MODES.map(x => ({ id: x.id, label: `${x.label} scenes` }));
@@ -64,6 +65,7 @@ export function cellsToTags(row, idx, characters = [], unknown = new Set()) {
     t.cw = cleanCueWords(split(cellOf(row, idx, 'Cue words')));
     for (const v of split(cellOf(row, idx, 'Sting'))) { const b = BEATS.find(x => norm(x.label) === norm(v) || x.id === norm(v)); if (b) t.st.push(b.id); else unknown.add(v); }
     t.pk = cleanPeak(cellOf(row, idx, 'Peak')); t.yr = cleanYear(cellOf(row, idx, 'Year'));
+    for (const v of split(cellOf(row, idx, 'Heard in'))) { const h = HEARD_IN.find(x => norm(x.label) === norm(v) || x.id === norm(v)); if (h) t.dg.push(h.id); else unknown.add(v); }
     t.note = cellOf(row, idx, 'Notes');
     return cleanTags(t);
 }
@@ -79,11 +81,11 @@ export function sheetFile(lib, characters = []) {
     const charNames = [...new Set(['{{char}}', '{{user}}', 'Any', ...characters])];
     const lists = [['Feelings', FAMILIES.map(x => x.label)], ['Exact moods', MOOD_LIST.map(x => x.label)], ['Places', PLACES.map(x => x.label)], ['Moments', MOMENTS.map(x => x.label)],
         ['Dynamics', DYN_GROUPS.map(x => x.label)], ['Meanings', MEANINGS.map(x => x.label)], ['Heat', HEAT.map(x => x.label)], ['Energy', ENERGY.map(x => x.label)], ['Characters', charNames],
-        ['Never during', [...MODE_ROWS.map(x => x.label), ...FAMILIES.map(x => x.label), ...MOMENTS.map(x => x.label), ...HEAT.map(x => x.label)]], ['Yes', ['Yes']], ['Favourite', ['★']], ['Off', ['Off']], ['Stings', BEATS.map(b => b.label)], ['Playlists', pls.map(([, p]) => p.name)]];
+        ['Never during', [...MODE_ROWS.map(x => x.label), ...FAMILIES.map(x => x.label), ...MOMENTS.map(x => x.label), ...HEAT.map(x => x.label)]], ['Yes', ['Yes']], ['Favourite', ['★']], ['Off', ['Off']], ['Stings', BEATS.map(b => b.label)], ['Heard in', HEARD_IN.map(x => x.label)], ['Playlists', pls.map(([, p]) => p.name)]];
     const listCol = Object.fromEntries(lists.map(([name, vals], i) => [name, `Lists!$${colName(i)}$2:$${colName(i)}$${Math.max(2, vals.length + 1)}`]));
     const listRows = Array.from({ length: Math.max(...lists.map(([, v]) => v.length)) + 1 }, (_, r) => lists.map(([name, vals]) => r === 0 ? name : vals[r - 1] ?? ''));
-    const tagSource = { 'Feeling 1': 'Feelings', 'Feeling 2': 'Feelings', 'Exact moods': 'Exact moods', 'Place 1': 'Places', 'Place 2': 'Places', Moment: 'Moments', Dynamic: 'Dynamics', Meaning: 'Meanings', Heat: 'Heat', Energy: 'Energy', Character: 'Characters', Theme: 'Yes', 'Never during': 'Never during', Favourite: 'Favourite', Off: 'Off', Sting: 'Stings' };
-    const tagWidths = [22, 22, 28, 20, 20, 16, 26, 28, 11, 10, 14, 8, 20, 10, 6, 26, 30, 18, 7, 7, 28];
+    const tagSource = { 'Feeling 1': 'Feelings', 'Feeling 2': 'Feelings', 'Exact moods': 'Exact moods', 'Place 1': 'Places', 'Place 2': 'Places', Moment: 'Moments', Dynamic: 'Dynamics', Meaning: 'Meanings', Heat: 'Heat', Energy: 'Energy', Character: 'Characters', Theme: 'Yes', 'Never during': 'Never during', Favourite: 'Favourite', Off: 'Off', Sting: 'Stings', 'Heard in': 'Heard in' };
+    const tagWidths = [22, 22, 28, 20, 20, 16, 26, 28, 11, 10, 14, 8, 20, 10, 6, 26, 30, 18, 7, 7, 20, 28];
     const dropdowns = (first, rows) => TAG_COLS.map((name, i) => tagSource[name] ? { col: first + i, rows: [2, rows + 1], source: listCol[tagSource[name]] } : null).filter(Boolean);
     const headStyles = (auto, total) => Array.from({ length: total }, (_, i) => i < auto ? 1 : 2);
     const songRows = songs.map(([uri, s]) => [s.n ?? '', s.a ?? '', s.al ?? '', (s.pl ?? []).map(plName).filter(Boolean).join(', '), uri, minutes(s.ms), ...tagsToCells(cleanTags(lib.tags?.[uri] ?? {})), (s.g ?? []).join(', ')]);
@@ -100,6 +102,7 @@ export function sheetFile(lib, characters = []) {
         ['5b. Meaning: what the song is about when it is two feelings at once (Laughing through heartbreak, Tender menace). It only counts when someone feels both at once, and then it counts a lot.'],
         ['5c. Cues: short phrases, separated by commas, that nod to the song when the story says them (like a dog, salivat* for I Wanna Be Your Dog). A * means any ending. A cue gives the song a nudge for the next few replies, only when it fits the scene, and not again for 10 minutes after it has played. Cue words: single words or stems from the song’s lyrics and themes (dog*, leash*, collar*, salivat*); any two of them close together in a reply count the same way, so the narrator’s own wording works.'],
         ['5d. Sting: the big story beats this song can crash in on (Violence, Someone bursts in, Reveal, Love confession, First kiss, Death). When the newest reply has that beat, the song jumps in at once, if Stings are on for that character. Peak: where the song’s chorus or drop starts (1:05). When a scene is already at full tilt the song can start there. Blank: Moodweaver estimates it.'],
+        ['5f. Heard in: the song is something the characters can hear in the room (a punk show, a club, a house party, a bar, a car stereo, a radio). When the story is there, these songs play first, as if coming from the room.'],
         ['5e. Year: when this recording first came out (not a later reissue). The in-story radio only plays songs from the story’s own era, or earlier.'],
         ['5. Never during: the song is never played in that kind of scene. Theme: plays when that character arrives or has a big moment.'],
         ['6. In Google Sheets you can pick several values in one cell: select a column, Data › Data validation › Allow multiple selections.'],

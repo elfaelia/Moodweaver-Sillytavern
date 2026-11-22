@@ -38,23 +38,61 @@ export const MOMENTS = [
     // 1.69.2: the sweet side, so a shy confession or a giggly flirt isn't read as foreplay.
     { id: 'love_confession', label: 'Love confession', moods: ['giddy_in_love', 'openhearted', 'butterflies_kiss', 'sweet_on_them'], places: [], dyn: [] },
     { id: 'flirting', label: 'Flirting / teasing', moods: ['flirty', 'coy', 'teasing_them', 'tender_teasing', 'cheeky', 'shy_desire'], places: [], dyn: [] },
-    { id: 'sweet_moment', label: 'Sweet / wholesome', moods: ['smitten', 'giddy', 'playful', 'tickled', 'goofy', 'charmed', 'romantic', 'melting', 'cherishing', 'daydream_happy'], places: [], dyn: [] },
+    { id: 'sweet_moment', label: 'Sweet / wholesome', moods: ['smitten', 'giddy', 'playful', 'tickled', 'goofy', 'charmed', 'melting', 'daydream_happy'], places: [], dyn: [] },
+    // 1.89: romance apart from sex, the in-between and action scenes, and kinds of high.
+    { id: 'romance', label: 'Romance / in love', moods: ['romantic', 'lovesick', 'devoted', 'devotion_quiet', 'cherishing', 'butterflies_kiss'], places: [], dyn: [] },
+    { id: 'longing', label: 'Longing / yearning', moods: ['yearning', 'regretful_longing', 'heartsick', 'limerent', 'waiting_on_them'], places: [], dyn: [] },
+    { id: 'slow_dance', label: 'Slow dance', moods: [], places: [], dyn: [] },
+    { id: 'chase', label: 'Chase / getaway', moods: ['thrill_of_chase', 'adrenaline_high'], places: [], dyn: [], test: s => s.energy >= 4 },
+    { id: 'fight', label: 'Fight / brawl', moods: ['spoiling_for_fight', 'feral_energy'], places: [], dyn: [] },
+    { id: 'heist', label: 'Robbery / break-in / job', moods: [], places: [], dyn: [] },
+    { id: 'betrayal', label: 'Betrayal / lies coming out', moods: ['betrayed', 'cheated', 'caught_out', 'jilted'], places: [], dyn: [] },
+    { id: 'confrontation', label: 'Confrontation / ultimatum', moods: ['outraged', 'indignant', 'humiliated_rage', 'provoked', 'jealous_fury'], places: [], dyn: [] },
+    { id: 'deal', label: 'Deal / business', moods: ['businesslike', 'calculating_coldness'], places: ['dealers_flat', 'trap_house'], dyn: [] },
+    { id: 'standoff', label: 'Standoff / suspicion', moods: ['suspicious', 'paranoid', 'uneasy', 'eggshells', 'watchful_quiet', 'vigilant'], places: [], dyn: [] },
+    { id: 'waiting', label: 'Waiting for it', moods: ['dreading', 'waiting_for_bad_news', 'expectant'], places: [], dyn: [] },
+    { id: 'hustle', label: 'Street / hustle', moods: ['swaggering_flirt', 'in_their_element', 'cocky', 'unapologetic'], places: ['parking_lot', 'junkyard', 'late_night_diner', 'cheap_motel'], dyn: [] },
+    { id: 'stoned', label: 'Stoned / mellow', moods: ['chill', 'languid'], places: [], dyn: [], test: s => s.words.stoned >= 1 },
+    { id: 'rolling', label: 'Rolling (ecstasy, loved-up)', moods: [], places: [], dyn: [], test: s => s.words.rolling >= 1 },
+    { id: 'tripping', label: 'Tripping (acid, shrooms)', moods: [], places: [], dyn: [], test: s => s.words.tripping >= 1 },
+    { id: 'wired', label: 'Wired (speed, coke, tweaking)', moods: ['wired', 'jittery', 'revved_up', 'mind_racing'], places: [], dyn: [], test: s => s.words.wired >= 1 },
+    { id: 'nodding', label: 'Nodding (heroin, downers)', moods: [], places: [], dyn: [], test: s => s.words.nodding >= 1 },
+    { id: 'drunk', label: 'Drunk', moods: ['hazy_drunk', 'weepy_drunk', 'punch_drunk', 'drinking_to_forget'], places: [], dyn: [] },
+    { id: 'comedown', label: 'Comedown / withdrawal', moods: ['comedown', 'strung_out', 'adrenaline_crash'], places: [], dyn: [] },
 ];
+// Kinds of high (1.89): when one of these is on, the scene is High and the plain High / using moment steps back.
+export const HIGHS = ['stoned', 'rolling', 'tripping', 'wired', 'nodding', 'drunk', 'comedown'];
 
 // The kind of scene, which leads the song pick (engine/music.js modeOf). The first that matches wins, in this order,
 // except Intimate, which is on whenever there is heat. A song fits a kind through its Moment (or, with no Moment
 // tagged, its first two Feelings); Intimate songs need Heat, a Desire feeling or a Seduction/Afterglow moment.
 export const MODES = [
-    { id: 'intimate', label: 'Intimate', moments: ['seduction', 'afterglow'], families: ['desire'] },
-    { id: 'danger', label: 'Danger', moments: ['hunted', 'escape', 'violence', 'argument'], families: ['scared', 'angry'] },
-    { id: 'sorrow', label: 'Sorrow', moments: ['grief', 'breakdown', 'confession'], families: ['sad'] },
-    { id: 'sweet', label: 'Sweet', moments: ['love_confession', 'flirting', 'sweet_moment'], families: ['happy', 'closeness'] },
-    { id: 'tender', label: 'Tender', moments: ['afterglow', 'sleep', 'quiet', 'making_up', 'reunion'], families: ['closeness', 'calm', 'attachment'] },
-    { id: 'dark', label: 'Dark', moments: ['captivity', 'experiment', 'conditioning', 'sedated', 'stalking', 'worship'], families: ['cruel', 'cold', 'scared'] },
-    { id: 'party', label: 'Party', moments: ['party', 'high', 'driving', 'first_meeting'], families: ['happy', 'energy', 'bold'] },
+    { id: 'intimate', label: 'Erotic', hint: 'foreplay and sex: songs that sound sexual', moments: ['seduction', 'afterglow'], families: ['desire'] },
+    { id: 'danger', label: 'Danger', hint: 'real threat: hunted, a weapon out, it going wrong', moments: ['hunted', 'escape', 'violence'], families: ['scared'] },
+    { id: 'action', label: 'Action', hint: 'fast and physical: a chase, a fight, a getaway, a job', moments: ['chase', 'fight', 'heist'], families: [] },
+    { id: 'drama', label: 'Drama', hint: 'a loud row between people who matter, a betrayal coming out', moments: ['argument', 'betrayal', 'confrontation'], families: ['angry'] },
+    { id: 'sorrow', label: 'Sorrow', hint: 'grief, breaking down, a heavy confession', moments: ['grief', 'breakdown', 'confession'], families: ['sad'] },
+    { id: 'sweet', label: 'Sweet', hint: 'bright and giddy: flirting, teasing, a shy confession', moments: ['love_confession', 'flirting', 'sweet_moment'], families: ['happy', 'closeness'] },
+    { id: 'romantic', label: 'Romantic', hint: 'in love, longing, a real kiss, a slow dance: not sex', moments: ['romance', 'longing', 'slow_dance'], families: [] },
+    { id: 'tender', label: 'Tender', hint: 'quiet and soft: comfort, lying together, sleep, making up', moments: ['afterglow', 'sleep', 'quiet', 'making_up', 'reunion'], families: ['closeness', 'calm', 'attachment'] },
+    { id: 'dark', label: 'Dark', hint: 'captivity, experiments, conditioning, being watched', moments: ['captivity', 'experiment', 'conditioning', 'sedated', 'stalking', 'worship'], families: ['cruel', 'cold', 'scared'] },
+    { id: 'high', label: 'High', hint: 'on something: the kind of high picks the songs', moments: ['high', 'stoned', 'rolling', 'tripping', 'wired', 'nodding', 'drunk', 'comedown'], families: [] },
+    { id: 'tense', label: 'Tense', hint: 'uneasy but nothing has happened yet: a deal, a standoff, waiting', moments: ['deal', 'standoff', 'waiting'], families: [] },
+    { id: 'street', label: 'Street', hint: 'the everyday grit: hustling, cruising, hanging about, swagger', moments: ['hustle', 'driving', 'deal'], families: [] },
+    { id: 'party', label: 'Party', hint: 'a party, a club, letting loose', moments: ['party', 'first_meeting'], families: ['happy', 'energy', 'bold'] },
+];
+// Romance apart from sex (1.89): these moods make a scene Romantic when they outweigh the pull to bed.
+export const ROMANCE_MOODS = ['romantic', 'lovesick', 'devoted', 'devotion_quiet', 'cherishing', 'yearning', 'heartsick', 'limerent', 'butterflies_kiss', 'sweet_on_them', 'missing_them', 'regretful_longing'];
+// Where a song tagged Heard in (sheet column "Heard in") is coming from the room itself. Ids match engine/venues.js,
+// plus car (a car stereo) and radio (any radio, jukebox or record player in the story).
+export const HEARD_IN = [
+    { id: 'gig', label: 'Gig / punk show' }, { id: 'club', label: 'Club / rave' }, { id: 'party', label: 'House party' }, { id: 'cocktail', label: 'Bar' },
+    { id: 'jazz', label: 'Jazz club' }, { id: 'dance', label: 'Dance / ballroom' }, { id: 'car', label: 'Car stereo' }, { id: 'radio', label: 'Radio / record player' },
 ];
 // What the story's own words can switch on (engine/scene-words.js): word list → Moment.
-export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving', sweet: 'sweet_moment', confess: 'love_confession', flirt: 'flirting' };
+export const WORD_MOMENTS = { violence: 'violence', hunted: 'hunted', grief: 'grief', sleep: 'sleep', party: 'party', driving: 'driving', sweet: 'sweet_moment', confess: 'love_confession', flirt: 'flirting',
+    slowdance: 'slow_dance', chase: 'chase', fight: 'fight', heist: 'heist', betrayal: 'betrayal', row: 'confrontation', deal: 'deal', standoff: 'standoff', hustle: 'hustle',
+    stoned: 'stoned', rolling: 'rolling', tripping: 'tripping', wired: 'wired', nodding: 'nodding', drunk: 'drunk', comedown: 'comedown' };
 // Sweet or intimate? Light desire (a flirt, a shy want) counts half towards heat. Sweet moods and the story's sweet words
 // (a confession, giggling, holding hands, a kiss on the cheek) weigh against heat: when they outweigh it, the scene is
 // Sweet, not Intimate, unless it's plainly a sex scene or you set it yourself.
@@ -76,7 +114,7 @@ export const ENERGY = [
 // How charged each mood family makes a scene, 1 to 5. The scene's energy is the average over its strongest moods.
 export const FAMILY_ENERGY = { happy: 3.5, bold: 3.5, closeness: 2.3, attachment: 3, cold: 2, sad: 1.6, scared: 4, angry: 4.5, cruel: 3.5, calm: 1.5, masks: 2.6, energy: 3.2, headspace: 3, desire: 3.4 };
 // Moments and places that push the energy up or down.
-export const ENERGY_PUSH = { hunted: 1.2, escape: 1, violence: 1.2, party: 0.8, sleep: -1.2, quiet: -0.6, grief: -0.5, afterglow: -0.6, sedated: -1, worship: -0.4, high: 0.5, dangerous: 0.6, stormy: 0.3, late_night: -0.3 };
+export const ENERGY_PUSH = { hunted: 1.2, escape: 1, violence: 1.2, party: 0.8, sleep: -1.2, quiet: -0.6, grief: -0.5, afterglow: -0.6, sedated: -1, worship: -0.4, high: 0.5, chase: 1.2, fight: 1, heist: 0.6, confrontation: 0.6, standoff: -0.2, waiting: -0.4, stoned: -0.8, nodding: -1.4, comedown: -0.8, wired: 1, rolling: 0.6, slow_dance: -0.8, longing: -0.4, dangerous: 0.6, stormy: 0.3, late_night: -0.3 };
 
 // How much each match is worth (the doc's table). Change these to make one kind of tag count more.
 export const POINTS = {

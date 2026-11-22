@@ -3,7 +3,7 @@
 import moodSection from '../data/catalogue/mood.js';
 import stateSection from '../data/catalogue/state.js';
 import { DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
-import { COMBOS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
+import { COMBOS, HEARD_IN, HIGHS, ROMANCE_MOODS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
 import { BEATS as BEAT_LIST, readScene } from './scene-words.js';
 
 // ---- The names the sheet and the panel use ----
@@ -15,7 +15,8 @@ export const PLACES = (stateSection.find(g => g.id === 'setting')?.rows ?? []).m
 const PLACE_IDS = new Set(PLACES.map(p => p.id));
 export const DYN_GROUPS = DYNAMIC_GROUPS.map(([id, label]) => ({ id, label }));
 export { MOMENTS, HEAT, ENERGY, MODES };
-const DYN_IDS = new Set(DYN_GROUPS.map(g => g.id));
+const DYN_IDS = new Set(DYN_GROUPS.map(g => g.id)), HEARD_IDS = new Set(HEARD_IN.map(x => x.id));
+export { HEARD_IN };
 
 // Names are compared without case, accents, quotes or extra spaces ("Dealer's flat" = "Dealer’s flat").
 export const norm = s => String(s ?? '').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[’‘`´]/g, "'").replace(/[“”]/g, '"').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -46,14 +47,14 @@ export function meaningsOf(moods = {}) {
 // One song's (or one playlist's) tags. Character names are kept as typed (compared without case);
 // {{char}} and {{user}} stand for whoever the main character and your persona are in the chat.
 // nv (Never during) holds 'f:<family>', 'mo:<moment>', 'h:<heat>' and 'k:<kind of scene>' (✗ Not here adds these).
-export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], st: [], pk: 0, yr: 0, note: '' });
+export const emptyTags = () => ({ f: [], m: [], p: [], mo: [], d: [], cm: [], h: '', e: 0, c: [], th: false, nv: [], fav: false, off: false, cue: [], cw: [], st: [], pk: 0, yr: 0, dg: [], note: '' });
 const ids = (list, ok) => [...new Set((Array.isArray(list) ? list : []).filter(x => typeof x === 'string' && ok(x)))];
 export function cleanTags(t = {}) {
     return {
         f: ids(t.f, x => Boolean(LABEL.f[x])), cm: ids(t.cm, x => MEANING_IDS.has(x)), m: ids(t.m, x => Boolean(MOOD_FAMILY[x])), p: ids(t.p, x => PLACE_IDS.has(x)), mo: ids(t.mo, x => Boolean(LABEL.mo[x])), d: ids(t.d, x => DYN_IDS.has(x)),
         h: LABEL.h[t.h] ? t.h : '', e: [1, 2, 3, 4, 5].includes(Number(t.e)) ? Number(t.e) : 0,
         c: [...new Set((Array.isArray(t.c) ? t.c : []).map(x => String(x).trim()).filter(Boolean).slice(0, 12))],
-        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), cw: cleanCueWords(t.cw), st: ids(t.st, x => BEAT_IDS.has(x)), pk: cleanPeak(t.pk), yr: cleanYear(t.yr), note: String(t.note ?? '').slice(0, 300),
+        th: t.th === true, nv: ids(t.nv, x => /^(f|mo|h|k):/.test(x)), fav: t.fav === true, off: t.off === true, cue: cleanCues(t.cue), cw: cleanCueWords(t.cw), st: ids(t.st, x => BEAT_IDS.has(x)), pk: cleanPeak(t.pk), yr: cleanYear(t.yr), dg: ids(t.dg, x => HEARD_IDS.has(x)), note: String(t.note ?? '').slice(0, 300),
     };
 }
 // ---- Stings, peaks and years ----
@@ -130,12 +131,12 @@ export function cueHits(songs, text) {
     }
     return out;
 }
-export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length || t.cw?.length || t.st?.length || t.pk || t.yr));
+export const hasTags = t => Boolean(t && (t.f?.length || t.cm?.length || t.m?.length || t.p?.length || t.mo?.length || t.d?.length || t.h || t.e || t.c?.length || t.th || t.nv?.length || t.fav || t.off || t.cue?.length || t.cw?.length || t.st?.length || t.pk || t.yr || t.dg?.length));
 // A song's own tags on top of its playlists': lists add up, a song's own Heat, Energy and Off win.
 export function mergeTags(own, ...fromPlaylists) {
     const all = [...fromPlaylists.filter(Boolean), own].filter(Boolean), out = emptyTags();
     for (const t of all) {
-        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue', 'cw', 'st']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
+        for (const k of ['f', 'm', 'p', 'mo', 'd', 'cm', 'c', 'nv', 'cue', 'cw', 'st', 'dg']) out[k] = [...new Set([...out[k], ...(t[k] ?? [])])];
         if (t.h) out.h = t.h; if (t.e) out.e = t.e; if (t.pk) out.pk = t.pk; if (t.yr) out.yr = t.yr; if (t.th) out.th = true; if (t.fav) out.fav = true; if (t.off) out.off = true;
     }
     return out;
@@ -151,7 +152,7 @@ export function mergeTags(own, ...fromPlaylists) {
 //   everyone: [{ names: [name, token…], moods }] for everyone in the scene; a song tagged for one of them matches
 //   that person's own moods, even when the music follows someone else (heat counts both of you, whoever the music follows)
 //   texts: [{ text, weight }] the newest reply and your last message, read for what is actually happening }
-const LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
+const LIGHT = new Set(LIGHT_DESIRE), SWEET = new Set(SWEET_MOODS), ROM = new Set(ROMANCE_MOODS), ROM_MO = new Set(['romance', 'longing', 'slow_dance']), GRIM = new Set(['captivity', 'experiment', 'hunted', 'violence', 'conditioning', 'stalking', 'grief', 'breakdown']);
 export function snapshot(input = {}) {
     const moodVal = {};
     for (const p of input.people ?? []) for (const [id, v] of Object.entries(p.moods ?? {})) {
@@ -184,11 +185,17 @@ export function snapshot(input = {}) {
     const sweetPull = words.score.sweet + words.score.confess + words.score.flirt * 0.5 + sweetMood / 20;
     const sweet = sweetPull >= 2 && (words.on.has('sweet') || words.on.has('confess') || sweetMood >= 41 || words.score.flirt >= 2);
     if (heat === 'slow' && sweet && sweetPull >= heatPull) heat = '';
+    // 1.89: Romantic or erotic? Love, longing, a slow dance or an earnest kiss against the pull to bed. Romance wins a
+    // tie too, but never once the story is plainly sex.
+    const romMood = Math.max(0, ...all.filter(([id]) => ROM.has(id)).map(([, v]) => v));
+    const romPull = words.score.romantic + words.score.slowdance + words.score.confess * 0.5 + romMood / 20;
+    const romantic = romPull >= 2 && (words.on.has('romantic') || words.on.has('slowdance') || romMood >= 41);
+    if (heat === 'slow' && romantic && romPull >= heatPull && words.score.sex < 1) heat = '';
     // You can say what kind of scene this is in the Music tab; Intimate then means at least a slow burn.
     if (input.force === 'intimate' && !heat) heat = 'slow';
     if (input.force && input.force !== 'intimate' && heat === 'slow') heat = '';
     const snap = { moodVal, top: top.map(([id]) => id), fams, places, facts, night, heat, dyn: input.dyn || '', under: input.under || '', meters: input.meters ?? {}, replies: input.replies ?? 99,
-        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, mode: '', sweet: sweet && !heat, pull: { heat: Math.round(heatPull * 10) / 10, sweet: Math.round(sweetPull * 10) / 10 } };
+        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, mode: '', sweet: sweet && !heat, romantic: romantic && !heat, pull: { heat: Math.round(heatPull * 10) / 10, sweet: Math.round(sweetPull * 10) / 10, rom: Math.round(romPull * 10) / 10 } };
     const moments = new Set();
     for (const mo of MOMENTS) {
         const hit = mo.moods.some(id => (moodVal[id] ?? 0) >= 41) || mo.places.some(id => places.has(id)) || (mo.dyn.length && (mo.dyn.includes(snap.dyn) || mo.dyn.includes(snap.under)));
@@ -217,10 +224,16 @@ export function snapshot(input = {}) {
 // scene really reads sweet (words or sweet moods, see snapshot), and never while cruelty or fear leads the moods.
 export function modeOf(snap) {
     if (snap.heat) return 'intimate';
+    const has = list => list.some(mo => snap.moments.has(mo)), lead = snap.fams[0];
+    // Action beats Danger when it's a fight, chase or job and fear isn't what leads.
+    if (has(['chase', 'fight', 'heist']) && lead !== 'scared' && !snap.moments.has('hunted')) return 'action';
     for (const mode of MODES) {
         if (mode.id === 'intimate') continue;
-        if (mode.id === 'sweet') { if (snap.sweet && !['cruel', 'scared', 'angry'].includes(snap.fams[0])) return 'sweet'; continue; }
-        if (mode.moments.some(mo => snap.moments.has(mo))) return mode.id;
+        if (mode.id === 'sweet') { if (snap.sweet && !['cruel', 'scared', 'angry'].includes(lead) && (!snap.romantic || snap.pull.sweet >= snap.pull.rom)) return 'sweet'; continue; }
+        if (mode.id === 'romantic') { if (snap.romantic && !['cruel', 'scared', 'angry'].includes(lead)) return 'romantic'; continue; }
+        // A deal is Tense when there's unease in it (fear in the moods, a hand near a gun), else it's Street.
+        if (mode.id === 'tense') { if (has(['standoff', 'waiting']) || (snap.moments.has('deal') && (snap.fams.slice(0, 3).includes('scared') || (snap.words.standoff ?? 0) >= 1))) return 'tense'; continue; }
+        if (has(mode.moments)) return mode.id;
     }
     return '';
 }
@@ -229,10 +242,19 @@ const MODE_BY_ID = Object.fromEntries(MODES.map(m => [m.id, m]));
 export function fitsMode(tags, mode, snap = null) {
     const m = MODE_BY_ID[mode]; if (!m) return true;
     if (mode === 'intimate') {
+        // 1.89: a love song with no heat and nothing sexual about it is Romantic, not Erotic.
+        if (!tags.h && tags.mo.some(x => ROM_MO.has(x)) && !tags.mo.includes('seduction') && tags.f[0] !== 'desire') return false;
         if (tags.h || tags.f.includes('desire') || tags.mo.includes('seduction') || tags.m.some(id => MOOD_FAMILY[id] === 'desire')) return true;
         // A song whose only tie to intimacy is Afterglow (a hushed piano piece for lying together after) fits the
         // afterglow, not foreplay or sex while the heat is still building.
         return tags.mo.includes('afterglow') && (!snap || snap.moments?.has('afterglow') || !snap.heat);
+    }
+    // Romantic: its moments (Romance, Longing, Slow dance), or an older sheet's love song with no heat.
+    if (mode === 'romantic') {
+        if (tags.h === 'sex') return false;
+        if (tags.mo.some(x => m.moments.includes(x))) return true;
+        if (tags.h || tags.mo.some(x => GRIM.has(x))) return false;
+        return tags.d.includes('romance') && ['closeness', 'attachment'].includes(tags.f[0]);
     }
     // Sweet: its moments, or a romance song with no heat and a warm feeling (so older sheets work too).
     if (mode === 'sweet') {

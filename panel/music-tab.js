@@ -5,7 +5,7 @@ import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
-import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, fitsMode, hasTags, labelOf, norm, peakText } from '../engine/music.js';
+import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEARD_IN, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, fitsMode, hasTags, labelOf, norm, peakText } from '../engine/music.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { moodTone } from '../engine/tone.js';
 import { getState, getUserState } from '../app/chat.js';
@@ -65,10 +65,12 @@ const ICONS = {
 const icon = k => `<svg class="mw-music-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 // "This scene is…": what kind of scene Moodweaver thinks it is, and a tap to tell it (holds for 6 replies).
 function kindRow(snap) {
-    const now = mus.forced?.mode ?? '', seen = snap?.mode ?? '';
-    const chipFor = (id, label) => `<button type="button" class="mw-mchip" data-music="kind" data-v="${id}" aria-pressed="${id ? now === id : !now}">${esc(label)}${!now && id && id === seen ? ' ·' : ''}</button>`;
-    return `<div class="mw-music-kind"><small>${now ? `This scene is ${esc(MODES.find(x => x.id === now)?.label ?? now)} for ${mus.forced.left} more ${mus.forced.left === 1 ? 'reply' : 'replies'}` : `This scene reads as ${seen ? esc(MODES.find(x => x.id === seen)?.label ?? seen) : 'nothing in particular'} · tap to set it yourself`}</small>
-        <div class="mw-mchips">${chipFor('', 'Auto')}${MODES.map(x => chipFor(x.id, x.label)).join('')}</div></div>`;
+    const now = mus.forced?.mode ?? '', seen = snap?.mode ?? '', label = id => MODES.find(x => x.id === id)?.label ?? id, shown = now || seen;
+    // 1.89: a dropdown (13 kinds of scene): one tap opens it, one tap picks. Auto lets Moodweaver read the scene.
+    const opt = (id, text) => `<option value="${id}"${id === now ? ' selected' : ''}>${esc(text)}</option>`;
+    return `<div class="mw-music-kind"><small>${now ? `This scene is ${esc(label(now))} for ${mus.forced.left} more ${mus.forced.left === 1 ? 'reply' : 'replies'}` : `This scene reads as ${seen ? esc(label(seen)) : 'nothing in particular'}`}</small>
+        <select class="mw-music-kindpick" data-music-field="kind" data-pills aria-label="What kind of scene this is">${opt('', `Auto${!now && seen ? ` (reads as ${label(seen)})` : ''}`)}${MODES.map(x => opt(x.id, `${x.label}: ${x.hint}`)).join('')}</select>
+        ${shown ? `<p class="mw-fine mw-music-kindhint">${esc(label(shown))}: ${esc(MODES.find(x => x.id === shown)?.hint ?? '')}</p>` : ''}</div>`;
 }
 // What the extras are doing right now: the in-story radio, a sting that just hit, and the ambience.
 function extrasLines(m) {
@@ -182,6 +184,7 @@ function tagEditor(m, uri) {
         ${group('dynamic', 'Dynamic', t.d.map(id => labelOf('d', id)), DYN_GROUPS.map(x => tag('d', x.id, x.label, t.d.includes(x.id))).join(''))}
         ${group('heat', 'Energy and heat', [t.e ? `energy ${t.e}` : '', t.h ? labelOf('h', t.h) : ''].filter(Boolean), ENERGY.map(x => tag('e', x.id, x.label, t.e === x.id)).join('') + HEAT.map(x => tag('h', x.id, x.label, t.h === x.id)).join(''))}
         ${group('place', 'Place', t.p.map(id => labelOf('p', id)), PLACES.map(x => tag('p', x.id, x.label, t.p.includes(x.id))).join(''))}
+        ${group('heard', 'Heard in the room', (t.dg ?? []).map(id => HEARD_IN.find(x => x.id === id)?.label ?? id), `<p class="mw-fine">Where the characters could hear this song playing (a punk show, a club, a house party, a car stereo). There it plays first, as if from the room.</p>${HEARD_IN.map(x => tag('dg', x.id, x.label, (t.dg ?? []).includes(x.id))).join('')}`)}
         ${group('never', 'Never during', t.nv.map(v => neverAll.find(([k]) => k === v)?.[1] ?? v), neverAll.map(([v, l]) => tag('nv', v, l, t.nv.includes(v))).join(''))}
         ${group('moods', 'Exact moods', t.m.map(id => labelOf('m', id)), `<label class="mw-music-note">Names separated by commas, as in the sheet<input type="text" data-music-field="moods" data-uri="${esc(uri)}" value="${esc(t.m.map(id => labelOf('m', id)).join(', '))}"></label>`)}
         ${group('cues', 'Cues', [...t.cue, ...t.cw], `<label class="mw-music-note">Phrases: each one alone nods to this song when the story says it (like a dog). Separate with commas.<input type="text" data-music-field="cues" data-uri="${esc(uri)}" value="${esc(t.cue.join(', '))}" autocapitalize="off" spellcheck="false"></label><label class="mw-music-note">Theme words: any two of these close together count (dog*, leash*, collar*, salivat*). A * means any ending.<input type="text" data-music-field="cuewords" data-uri="${esc(uri)}" value="${esc(t.cw.join(', '))}" autocapitalize="off" spellcheck="false"></label><p class="mw-fine">When the story cues this song and it fits the scene, it almost always plays next (always on ↻ Re-roll), then rests for 10 minutes.</p>`)}
@@ -346,6 +349,7 @@ export async function musicChange(e, redraw) {
     else if (f === 'cuewords') { setTag(el.dataset.uri, 'cw', el.value); redraw(); }
     else if (f === 'peak') { setTag(el.dataset.uri, 'pk', el.value); redraw(); }
     else if (f === 'year') { setTag(el.dataset.uri, 'yr', el.value); redraw(); }
+    else if (f === 'kind') { forceMode(el.value || ''); redraw(); }
     else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
     else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
     return true;

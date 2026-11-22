@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.88.3: breathing from your own recordings, in waves
+
+- **Breathing is now your recordings, not made-up noise.** Your two breathy panting clips are cut into 20 single breaths (only the breathy parts, not the moans), each played a touch faster or slower and louder or softer so it never repeats exactly.
+- **It comes in waves, not constantly.** A run of 3 to 7 breaths swells in and fades out, quicker when the scene is fast, then it goes quiet. When the story mentions panting, gasping or breathing hard, the runs come every 8 to 20 seconds while the mention is in the last two messages. In sex without a mention, a run only now and then (every 25 to 55 seconds).
+- **Female breathing only:** it plays only when you or the character is a she, like her moans.
+
+## 1.88.2: no more whooshing and crackle on top of the bar
+
+- **The breathing layer was the whoosh.** It was made from puffs of filtered noise and played in any scene with a little heat, so a flirty bar scene got a constant rhythmic whoosh over the voices. It now plays only in sex, or when the last two messages say someone is panting, gasping or breathing hard, and it's much softer and rounder.
+- **Rain indoors** is now a soft, muffled wash on the windows instead of a hissing downpour with crackly drops on top of the room. Outdoors it's unchanged.
+- **Radio crackle** only plays for a real radio, record player or gramophone, never for a band, a DJ or venue music (1.88.1's venues could switch it on in a bar).
+- Two other noise layers fired too easily and are tighter now: live-wire buzz needed only the word "electric" (now an electric chair, shock, current or fence), and facility vents fired on any "corridor".
+
 ## 1.88.1: venues play their own music from Spotify, and the place recordings used far more widely
 
 - **Venue music (in-story, from your Spotify).** A club, a jazz bar, a cocktail bar, a dance (prom, sock hop, ballroom), a party or a gig now switches the music by itself from film score to what the characters can hear there, and Claude is told what's playing so they can react to it. It all plays through your Spotify like the rest of the music:

@@ -20,11 +20,13 @@ export const PLACE_BEDS = {
     in_a_car: 'car', drive_in: 'car', crypt: 'drip',
 };
 // By night some places sound different: an empty campus, the woods around a camp, the city after dark.
+// Places that are outdoors (rain falls on them, not on the windows).
+export const OUTDOOR_BEDS = new Set(['wind', 'waves', 'fire', 'forest', 'meadow', 'suburb', 'suburbnight', 'campus', 'campusnight', 'campnight', 'cliff', 'junkyard', 'roadside', 'motel', 'carnival', 'darkcity', 'city', 'clubout', 'fairfar', 'yardfar', 'car', 'train']);
 export const NIGHT_BEDS = { suburb: 'suburbnight', meadow: 'suburbnight', campus: 'campusnight', forest: 'campnight', fire: 'campnight', city: 'darkcity', roadside: 'motel' };
-export const BED_LABELS = { bar: 'a bar', barbusy: 'a busy bar', cafe: 'a café', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
+export const BED_LABELS = { breathlow: 'her breathing now and then', rainin: 'rain on the windows', bar: 'a bar', barbusy: 'a busy bar', cafe: 'a café', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
     rain: 'rain', storm: 'a storm', monitor: 'a ward’s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'the sea', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
-    wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'breathing', heart: 'a heartbeat', vent: 'a facility’s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
+    wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'her breathing', heart: 'a heartbeat', vent: 'a facility’s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
     fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt', voice: 'her moans and whimpers',
     bed: 'a creaking bed', chair: 'a squeaking office chair', desk: 'a rattling desk', wall: 'thuds against the wall', springs: 'a rocking car', couch: 'a creaking couch', floor: 'creaking floorboards' };
 // During sex (1.80): what they're on, from the last 3 messages, else the place. Newest message wins. These beds
@@ -61,9 +63,11 @@ export const MORE_WORDS = {
     wet: /\b(?:wet(?:ness)?|slick|soaked|dripping|slippery|squelch(?:es|ing)?|messy|lube|spit|saliva)\b/i,
     skin: /\b(?:slap(?:s|ping|ped)? of (?:skin|flesh|hips|thighs)|skin (?:slapping|slaps) (?:against|on)|pound(?:s|ing|ed)|rough(?:er|ly)?|hard(?:er)? and fast(?:er)?|thrust(?:s|ing|ed)? (?:hard|harder|faster|deep))\b/i,
     heart: /\b(?:heart (?:pounding|hammering|racing|thudding|thundering|slamming)|pulse (?:racing|pounding|hammering)|(?:pounding|hammering|racing) heart|heartbeat (?:loud|in (?:his|her|their) ears))\b/i,
-    buzz: /\b(?:electri(?:c|city|cal|fied)|live wires?|wires? (?:spark|hiss|crackle)|transformer|electrodes?|shock machine|electroshock|ect|tesla|power (?:hum|surge)|arc(?:s|ing)?)\b/i,
+    buzz: /\b(?:electric (?:chair|shock|current|fence|hum)|electricity (?:crackles|hums|surges)|live wires?|wires? (?:spark|hiss|crackle)|transformer|electrodes?|shock machine|electroshock|tesla coil|power (?:hum|surge)|sparks? (?:arc|fly from the))\b/i,
+    // 1.88.2: breathing you can hear, for the breath layer outside sex.
+    breath: /\b(?:pant(?:s|ing|ed)?|gasp(?:s|ing|ed)?|breathless|out of breath|heavy breathing|breath(?:ing)? (?:hitches|hitched|catches|caught|quickens|quickened|ragged|shudders|stutters|comes (?:fast|short|ragged))|ragged breath\w*|hot breath|breathing hard)\b/i,
     alarm: /\b(?:alarms?|siren(?:s)?|klaxon|lockdown|alert (?:blares|sounds|wails)|the bell (?:rings|shrills))\b/i,
-    vent: /\b(?:facility|compound|lab(?:oratory)?|ventilation|air vents?|corridors?|containment|observation (?:room|window)|test chamber)\b/i,
+    vent: /\b(?:facility|compound|laboratory|the lab\b|ventilation|air vents?|containment|observation (?:room|window)|test chamber)\b/i,
 };
 export const VENT_PLACES = new Set(['facility', 'observation_room', 'records_room', 'glass_cage', 'padded_cell', 'boiler_room', 'garage_lab', 'fallout_shelter', 'asylum_ward', 'interrogation_room']);
 // One-off sounds for what just happened in the newest reply: played once, a moment apart.
@@ -158,7 +162,7 @@ export const LOOPS = {
     yardfar: [['amb-junkyard', 'amb-junkyard-2'], 0.5, 'far'], schoolhall: [['amb-cafeteria-2', 'amb-campus-2'], 0.55, 'hall'],
 };
 // What counts as erotic (1.88), for the switch that keeps it quiet: the furniture, bodies, acts and voices of sex.
-export const EROTIC_BEDS = new Set(['bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'breath', 'fingers', 'rub', 'spank', 'whip', 'voice']);
+export const EROTIC_BEDS = new Set(['bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'breath', 'breathlow', 'fingers', 'rub', 'spank', 'whip', 'voice']);
 
 let ac = null, master = null, noise = null;
 const layers = new Map(); // name -> { gain, stop() }
@@ -314,6 +318,9 @@ export const GRAINS = {
     'whip-1': [[0.773,1.008,1.04],[1.696,1.851,1.86],[1.851,2.749,0.89],[3.168,4.345,0.82],[4.345,4.674,0.96],[5.463,5.707,1.52]],
     'whip-2': [[1.237,2.105,2.15],[2.105,2.769,0.87],[3.532,4.051,0.74],[4.535,5.702,1.85],[5.702,5.88,1.0]],
     'rub': [[0.2,2.4,1.13],[1.1,3.3,1.04],[2.0,4.2,0.96],[2.9,5.1,0.9],[3.8,6.0,0.86],[4.7,6.9,0.92],[5.6,7.8,1.1],[6.5,8.36,1.16]],
+    // 1.88.3: her breathy panting clips, cut into single breaths (unvoiced parts only).
+    'breath-1': [[0.109,0.747,0.64],[1.851,2.488,1.13],[3.128,3.579,2.06],[4.544,5.228,0.47],[5.52,5.948,2.08],[6.518,7.155,0.63],[7.4,7.852,1.06],[9.49,9.988,1.37],[10.582,11.265,0.47],[11.348,11.823,0.95],[12.091,12.728,0.41],[12.904,13.285,1.13]],
+    'breath-2': [[1.41,1.838,1.1],[2.501,2.86,1.43],[4.08,4.485,0.4],[5.102,5.483,0.42],[5.891,6.343,0.48],[6.425,6.807,1.0],[8.91,9.268,1.0],[12.044,12.403,1.09]],
     'moan': [[0,0.34,0.4],[0.254,0.619,2.41],[0.693,1.462,0.4],[1.382,1.946,1.06],[1.886,2.44,0.41],[2.444,3.033,1.52],[3.058,3.692,0.4],[3.672,3.991,2.5],[4.041,4.58,0.41],[4.584,5.049,1.68],[5.068,5.578,0.48],[5.527,5.887,2.14],[5.872,6.421,0.48],[6.4,7.084,1.44],[7.149,7.773,0.4],[7.722,8.137,1.67],[8.226,8.87,0.4],[8.88,9.374,1.11],[9.658,10.267,0.4],[10.217,10.521,2.33],[10.631,11.085,0.4],[11.12,11.439,1.72],[11.309,11.684,2.5],[12.003,12.477,1.0],[12.985,13.395,0.71]],
     'whimper': [[0.085,0.873,0.65],[0.983,1.427,2.5],[1.826,2.554,1.16],[3.098,3.822,2.01],[4.525,5.298,0.51],[5.482,6.052,1.89],[6.48,7.219,0.61],[7.373,7.942,1.03],[8.381,9.309,0.4],[9.453,10.097,1.39],[10.541,11.374,0.44],[11.329,11.868,0.97],[12.062,12.821,0.42],[12.866,13.355,1.35]],
 };
@@ -371,6 +378,22 @@ function loop(out, name, stops) {
     stops.push(() => { alive = false; for (const n of [src, lfo]) { try { n?.stop(); } catch { /* fine */ } try { n?.disconnect(); } catch { /* fine */ } } });
 }
 
+// A run of 3-7 breaths from the recordings, quicker as the pace rises, swelling in and fading out; then rest min-max s.
+function breathRuns(out, stops, min, max) {
+    ['breath-1', 'breath-2'].forEach(sample); let alive = true, t = 0;
+    const run = () => {
+        if (!alive || !ac) return;
+        const n = 3 + Math.floor(Math.random() * 5); let at = ac.currentTime + 0.1;
+        for (let i = 0; i < n; i++) {
+            const swell = Math.sin(Math.PI * (i + 0.5) / n), name = Math.random() < 0.6 ? 'breath-1' : 'breath-2';
+            grain(out, name, at, { vol: 0.25 + 0.55 * swell, len: 1.1, jitter: 0.04 });
+            at += Math.max(0.45, 1.25 / Math.max(0.7, strokeRate)) * (0.85 + Math.random() * 0.3);
+        }
+        t = setTimeout(run, ((at - ac.currentTime) + min + Math.random() * (max - min)) * 1000);
+    };
+    t = setTimeout(run, 800 + Math.random() * 2500); stops.push(() => { alive = false; clearTimeout(t); });
+}
+
 // ---- The beds ----
 function build(name) {
     const out = gainOf(0); out.connect(master);
@@ -379,6 +402,8 @@ function build(name) {
     if (LOOPS[name]) { loop(out, name, stops); return { gain: out, stop() { stops.forEach(f => f()); try { out.disconnect(); } catch { /* fine */ } } }; }
     const B = {
         rain() { chain(keep(src()), filter('highpass', 500), filter('lowpass', 7000), gainOf(0.22), out); stops.push(every(0.05, 0.4, at => burst(out, at, 0.03, 0.05, 3500))); },
+        // Rain heard from inside (1.88.2): no hiss or close drops, just a soft muffled wash on the windows.
+        rainin() { const g = gainOf(0.1); chain(keep(src()), filter('lowpass', 700), filter('highpass', 120), g, out); keep(wobble(g.gain, 0.1, 0.025, 0.07)); },
         storm() { chain(keep(src()), filter('highpass', 300), filter('lowpass', 5000), gainOf(0.3), out);
             const rumble = gainOf(0); chain(keep(src()), filter('lowpass', 90), rumble, out);
             stops.push(every(14, 35, at => { rumble.gain.setValueAtTime(0, at); rumble.gain.linearRampToValueAtTime(1.6, at + 0.6); rumble.gain.exponentialRampToValueAtTime(0.01, at + 6); })); },
@@ -461,12 +486,10 @@ function build(name) {
         voice() { ['moan', 'whimper'].forEach(sample); stops.push(hits(1.8, 5, at => {
             if (Math.random() < 0.2) return; // a breath's silence now and then
             grain(out, fast() || Math.random() < 0.4 ? 'moan' : 'whimper', at, { vol: 0.8 + (fast() ? 0.2 : 0), len: 2.6, jitter: 0.02 }); })); },
-        breath() { let t = 0, alive = true, inhale = true;
-            const go = () => { if (!alive || !ac) return; const at = ac.currentTime + 0.05, len = Math.max(0.35, (inhale ? 0.55 : 0.75) / Math.max(0.6, strokeRate * 0.75));
-                const s = ac.createBufferSource(), f = filter('bandpass', inhale ? 1500 : 900, 0.9), g = ac.createGain(); s.buffer = noiseBuffer();
-                g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(inhale ? 0.35 : 0.5, at + len * 0.4); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
-                s.connect(f).connect(g).connect(out); s.start(at, Math.random() * 2, len + 0.05); inhale = !inhale; t = setTimeout(go, (len + (inhale ? 0.15 : 0.05)) * 1000); };
-            t = setTimeout(go, 300); stops.push(() => { alive = false; clearTimeout(t); }); },
+        // Breathing (1.88.3, from her recordings): runs of a few breaths that swell in and fade out, then quiet. 'breath'
+        // when the story mentions it (runs come closer together), 'breathlow' in sex otherwise (now and then).
+        breath() { breathRuns(out, stops, 8, 20); },
+        breathlow() { breathRuns(out, stops, 25, 55); },
         heart() { let t = 0, alive = true;
             const go = () => { if (!alive || !ac) return; const at = ac.currentTime + 0.05; ping(out, 62, at, 0.12, 0.45, 40); ping(out, 55, at + 0.18, 0.1, 0.3, 38); t = setTimeout(go, 1000 / (1 + strokeRate * 0.55)); };
             t = setTimeout(go, 300); stops.push(() => { alive = false; clearTimeout(t); }); },

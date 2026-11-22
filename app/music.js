@@ -285,7 +285,11 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     // and her voice in sex when you or the character is a she.
     if (snap?.heat) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
     if (snap?.heat === 'sex' && [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she')) beds.push('voice');
-    if (snap?.heat) beds.push('breath');
+    // Breathing (1.88.2): in sex, or when the last 2 messages say someone is panting or gasping. Not just for any warmth:
+    // under a bar's voices it was a constant whoosh.
+    // 1.88.3: her own recordings, so only when you or the character is a she, in runs that swell and fade.
+    const she = [playerName(), ctx().name2].some(n => n && pronounOf(n) === 'she');
+    if (she && said(amb.MORE_WORDS.breath)) beds.push('breath'); else if (she && snap?.heat === 'sex') beds.push('breathlow');
     if ((snap?.mode === 'danger' && (snap?.energy ?? 3) >= 4) || said(amb.MORE_WORDS.heart)) beds.push('heart');
     // Weather: the board's facts, else rain or a storm in the last 6 messages (until someone says it stopped).
     const stop = texts.findIndex(t => amb.WEATHER_STOP.test(t)), sky = newestHit(amb.WEATHER_WORDS, texts);
@@ -295,11 +299,14 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     const where = [...places].map(p => amb.PLACE_BEDS[p]).find(Boolean) ?? newestHit(amb.PLACE_WORDS, texts.slice(0, 4))?.[0];
     const place = snap?.night && amb.NIGHT_BEDS[where] && !(where === 'fire' && !OUTSIDE.has([...places].find(p => amb.PLACE_BEDS[p] === 'fire') ?? 'campfire')) ? amb.NIGHT_BEDS[where] : where;
     if (place) beds.push(place);
+    // Indoors, rain is a soft wash on the windows rather than a downpour on top of the room (1.88.2).
+    if (place && !amb.OUTDOOR_BEDS.has(place) && beds.includes('rain')) beds.splice(beds.indexOf('rain'), 1, 'rainin');
     // A facility under it all (a facility place, or the last 4 messages put them in one), live wires, an alarm.
     if ([...places].some(p => amb.VENT_PLACES.has(p)) || texts.slice(0, 4).some(t => amb.MORE_WORDS.vent.test(t))) beds.push('vent');
     if (texts.slice(0, 3).some(t => amb.MORE_WORDS.buzz.test(t))) beds.push('buzz');
     if (said(amb.MORE_WORDS.alarm)) beds.push('alarm');
-    if (radioOn(m)) beds.push('crackle');
+    // Crackle only for a real radio or record (1.88.2), never a band, a DJ or a venue.
+    if (radioOn(m) && !mus.radio.venue && /radio|record|phonograph|gramophone|wireless|transistor/.test(mus.radio.kind ?? '')) beds.push('crackle');
     // Layers on top: a camera (a darkroom, a studio or a camera in the last 3 messages), a clock,
     // birds by day, crickets at night outdoors.
     const near = texts.slice(0, 3), has = id => amb.LAYER_WORDS.find(([k]) => k === id)[1];

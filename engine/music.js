@@ -4,13 +4,14 @@ import moodSection from '../data/catalogue/mood.js';
 import stateSection from '../data/catalogue/state.js';
 import { DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
 import { COMBOS, HEARD_IN, PUBLIC_PLACES, HIGHS, ROMANCE_MOODS, ENERGY, ENERGY_PUSH, FAMILY_ENERGY, GOOD_ENOUGH, HEAT, LIGHT_DESIRE, LINEUP, MODES, MOMENTS, POINTS, SEX_FACTS, SWEET_MOODS, WORD_MOMENTS } from '../data/catalogue/music.js';
-import { BEATS as BEAT_LIST, readScene } from './scene-words.js';
+import { BEATS as BEAT_LIST, readScene, wordsFor } from './scene-words.js';
 
 // ---- The names the sheet and the panel use ----
 const FAMILY_ROWS = moodSection.filter(g => g.kind === 'mood');
 export const FAMILIES = FAMILY_ROWS.map(g => ({ id: g.id, label: g.name }));
 export const MOOD_LIST = FAMILY_ROWS.flatMap(g => g.rows.map(r => ({ id: r.id, label: r.label, family: g.id })));
 const MOOD_FAMILY = Object.fromEntries(MOOD_LIST.map(m => [m.id, m.family]));
+const FACT_LABEL = Object.fromEntries(stateSection.flatMap(g => g.rows ?? []).map(r => [r.id, r.label]));
 export const PLACES = (stateSection.find(g => g.id === 'setting')?.rows ?? []).map(r => ({ id: r.id, label: r.label }));
 const PLACE_IDS = new Set(PLACES.map(p => p.id));
 export const DYN_GROUPS = DYNAMIC_GROUPS.map(([id, label]) => ({ id, label }));
@@ -188,10 +189,19 @@ export function snapshot(input = {}) {
         const told = words.on.has('sex') || words.on.has('intimate'), fromFacts = SEX_FACTS.some(id => facts.has(id));
         const inPublic = [...places].some(id => PUB.has(id)) || words.score.public >= 2;
         const row = words.score.row >= 1 || fams[0] === 'angry';
-        if (!told && !fromFacts && words.score.intimate + words.score.sex < 1) heat = '';
+        // 1.91.3: a public row is never Erotic, whatever the facts say (a spilt drink once put Wet (aroused) on).
+        // A sex fact alone only counts away from a row and out of public view.
+        const storyHeat = words.score.intimate + words.score.sex >= 1;
+        if (inPublic && row && !words.on.has('sex')) heat = '';
+        else if (!told && !storyHeat && !(fromFacts && !row)) heat = '';
         else if (inPublic && !told) heat = '';
-        else if (inPublic && row && !words.on.has('sex')) heat = '';
     }
+    // Why it reads as heat, for the Music tab (1.91.3): the story's words, any sex fact, then the feelings.
+    const heatWhy = heat ? {
+        words: wordsFor(input.texts ?? [], ['sex', 'intimate']),
+        facts: SEX_FACTS.filter(id => facts.has(id)).map(id => FACT_LABEL[id] ?? id),
+        feel: [desire >= 31 ? 'desire' : '', horny >= 41 ? `horny ${Math.round(horny)}` : ''].filter(Boolean),
+    } : null;
     // Sweet or intimate? What pulls towards bed against what's sweet, playful or wholesome. Sweet wins a tie.
     const heatPull = words.score.intimate + desire / 20 + Math.max(0, horny - 20) / 25;
     const sweetPull = words.score.sweet + words.score.confess + words.score.flirt * 0.5 + sweetMood / 20;
@@ -207,7 +217,7 @@ export function snapshot(input = {}) {
     if (input.force === 'intimate' && !heat) heat = 'slow';
     if (input.force && input.force !== 'intimate' && heat === 'slow') heat = '';
     const snap = { moodVal, top: top.map(([id]) => id), fams, places, facts, night, heat, dyn: input.dyn || '', under: input.under || '', meters: input.meters ?? {}, replies: input.replies ?? 99,
-        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, mode: '', sweet: sweet && !heat, romantic: romantic && !heat, pull: { heat: Math.round(heatPull * 10) / 10, sweet: Math.round(sweetPull * 10) / 10, rom: Math.round(romPull * 10) / 10 } };
+        story: false, who: [...new Set((input.who ?? []).map(norm).filter(Boolean))], moodBy: moodsBy(input.everyone), appear: (input.appear ?? []).map(norm), energy: Math.max(1, Math.min(5, Math.round(energy))), moments: new Set(), words: words.score, heatWhy, mode: '', sweet: sweet && !heat, romantic: romantic && !heat, pull: { heat: Math.round(heatPull * 10) / 10, sweet: Math.round(sweetPull * 10) / 10, rom: Math.round(romPull * 10) / 10 } };
     const moments = new Set();
     for (const mo of MOMENTS) {
         const hit = mo.moods.some(id => (moodVal[id] ?? 0) >= 41) || mo.places.some(id => places.has(id)) || (mo.dyn.length && (mo.dyn.includes(snap.dyn) || mo.dyn.includes(snap.under)));
@@ -372,15 +382,4 @@ export function scoreSong(tags, snap, opts = {}) {
     if (opts.learn) {
         const keys = learnKeys(snap); let l = 0;
         for (const k of keys) l += opts.learn[k] ?? 0;
-        if (l) add(Math.max(POINTS.notHereMin, Math.min(POINTS.fitsMax, l)), l > 0 ? 'you said it fits' : '');
-    }
-    return { score: Math.round(score * 10) / 10, why, cue: cueOn };
-}
-// songs: [{ uri, tags (merged), learn }] \u2192 best first, unplayable ones left out.
-export function rank(songs, snap, opts = {}) {
-    const sound = opts.sound?.[snap.mode || 'any'];
-    const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode, snap), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
-    // A song the story just echoed (and that fits the scene) joins the front-runners: half a point behind the best,
-    // so it's a real chance, not a certainty.
-    const best = list.find(x => !x.cue)?.score;
-  
+        if (l) add(Math.max(POINTS.notHereMin, 

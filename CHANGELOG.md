@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.91.4: a glance isn't heat
+- The other half of the spilt-drink mix-up: "wet" is read as arousal when the person is heated, and a single desire feeling named in the latest reply counted as heated at any level. Kenny's "Checking them out 15" was enough.
+- Now light wants (checking them out, flirty, coy, teasing and the like) never count as heated, and a stronger desire feeling named in the reply only counts once it is at 21 or more. A desire feeling at 41 or more still counts as before.
+
+## 1.91.3: a spilt drink can't make a bar argument Erotic
+- The bar argument still read as Erotic. The cause: a drink spilt on her coat ("a wet spot", "soaks through"). When a reply's hidden line or the board says someone is "wet" with no other words around it, and that person is feeling heated, Moodweaver turns on the fact Wet (aroused). That fact alone made the scene Erotic, and the bar wasn't noticed as public because no place fact was on.
+- A public argument is now never Erotic, whatever facts are on, unless sex is plainly happening in the story. A sex fact on its own only counts away from an argument.
+- "Wet" next to a drink, a spill, a glass, a napkin, a jacket, jeans and so on now means wet from water.
+- The bar is noticed from the story's words too (jukebox, high-top, bar stools, pool table, last call, bouncer), and more argument wording counts ("his voice came out bigger", heads turning, "brings it down", "keep your voice down", "dickhead").
+- When Auto reads a scene as Erotic, the Music tab now says why under the dropdown: the exact words, any sex fact (with where to turn it off), and the feelings.
+
 ## 1.91.2: sitting in a lap is sweet, not erotic
 - Sitting on someone's lap (sits in, curls up in, plops into, pulled into his lap) now counts toward Sweet instead of foreplay. Cute lap scenes read as Sweet.
 - A lap scene only turns Erotic with real sexual cues alongside it: grinding, a hard or deep kiss, hands roaming under clothes, moaning, arousal words. A lap dance or grinding in a lap still counts as foreplay.
@@ -222,14 +233,4 @@ The first half of the UI overhaul, on every page at once. Each page's own piece 
 
 ## 1.81.0: more sounds, one Ambience switch, size facts in the background
 
-- **Many more sounds, all reacting to the scene.** New layers that come and go with the story, at most four at once (during sex the bodies come first, then the weather and the place):
-  - **Skin on skin** during sex when it gets rough or fast (the words "pounding", "harder and faster", "the slap of skin", or the scene's energy running high), in time with the furniture.
-  - **Breathing** in any heat, foreplay or sex, quicker as it gets more intense.
-  - **A heartbeat** when a dangerous scene runs high, or when the story says a heart is pounding or racing.
-  - **A facility**: vents, a low hum, distant doors and an odd beep, for a facility, observation room, cell, lab, boiler room, interrogation room or shelter (the place fact, or the last four messages naming one).
-  - **Live wires**: an electrical buzz with sparks, when wires, electrodes or a shock machine are in the last three messages.
-  - **A distant alarm** when an alarm, siren or lockdown is in the last two messages.
-  - The hospital monitor now beeps faster when the scene is tense.
-- **One-off sounds for big moments.** When a new reply has a slap or a spanking, a door slamming, a zap or a jolt of current, a gunshot, breaking glass, a metal door or chains clanging, a crack of thunder, a flatline, a defibrillator charging and firing, or a drill, it plays once over everything, a moment after the reply arrives (up to three, one after the other). Never on a swipe, an edit or your own message, and only while Ambience is on and the music isn't paused by you.
-
-- **Ambience is one thing now.** Camera clicks and Bed and furniture sounds were their own rows under Ambience, while every other sound came with it. They're folded in: with Ambience on, every sound pla
+- **Many more sounds, all reacting to the scene.** New layers that come and go with the story, at most four at on

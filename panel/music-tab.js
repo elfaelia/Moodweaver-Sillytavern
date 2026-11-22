@@ -64,13 +64,19 @@ const ICONS = {
 };
 const icon = k => `<svg class="mw-music-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[k]}</svg>`;
 // "This scene is\u2026": what kind of scene Moodweaver thinks it is, and a tap to tell it (holds for 6 replies).
+// 1.91.3: why Auto reads a scene as Erotic, so a wrong read can be traced: the words, a sex fact, the feelings.
+function heatWhyLine(snap) {
+    const w = snap?.heatWhy; if (!w) return '';
+    const bits = [w.words.length ? `the words ${w.words.map(x => `\u201c${x}\u201d`).join(', ')}` : '', w.facts.length ? `the fact ${w.facts.join(', ')} (Info)` : '', w.feel.length ? `feelings (${w.feel.join(', ')})` : ''].filter(Boolean);
+    return bits.length ? `<p class="mw-fine mw-music-kindhint">Why: ${esc(bits.join('; '))}. Wrong? Pick the right kind above, or turn the fact off in Info.</p>` : '';
+}
 function kindRow(snap) {
     const now = mus.forced?.mode ?? '', seen = snap?.mode ?? '', label = id => MODES.find(x => x.id === id)?.label ?? id, shown = now || seen;
     // 1.89: a dropdown (13 kinds of scene): one tap opens it, one tap picks. Auto lets Moodweaver read the scene.
     const opt = (id, text) => `<option value="${id}"${id === now ? ' selected' : ''}>${esc(text)}</option>`;
     return `<div class="mw-music-kind"><small>${now ? `This scene is ${esc(label(now))} for ${mus.forced.left} more ${mus.forced.left === 1 ? 'reply' : 'replies'}` : `This scene reads as ${seen ? esc(label(seen)) : 'nothing in particular'}`}</small>
         <select class="mw-music-kindpick" data-music-field="kind" data-pills aria-label="What kind of scene this is">${opt('', `Auto${!now && seen ? ` (reads as ${label(seen)})` : ''}`)}${MODES.map(x => opt(x.id, `${x.label}: ${x.hint}`)).join('')}</select>
-        ${shown ? `<p class="mw-fine mw-music-kindhint">${esc(label(shown))}: ${esc(MODES.find(x => x.id === shown)?.hint ?? '')}</p>` : ''}</div>`;
+        ${shown ? `<p class="mw-fine mw-music-kindhint">${esc(label(shown))}: ${esc(MODES.find(x => x.id === shown)?.hint ?? '')}</p>` : ''}${!now && seen === 'intimate' ? heatWhyLine(snap) : ''}</div>`;
 }
 // What the extras are doing right now: the in-story radio, a sting that just hit, and the ambience.
 function extrasLines(m) {
@@ -279,88 +285,4 @@ function ambienceLine(m) {
 export function musicView() {
     const m = music();
     if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}${ambienceLine(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
-    const t = tones(), lead = m.follow === 'user' ? t.user : t.char;
-    return `<div class="mw-music">${nowCard(m, lead)}${ambienceLine(m)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${countsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
-}
-
-// ---- Taps ----
-// Returns true when the tap was the Music tab's. redraw: the panel's render.
-export async function musicClick(e, redraw) {
-    const el = e.target.closest('[data-music]'); if (!el || !ui.panel?.contains(el)) return false;
-    if (el.tagName === 'A') return true;
-    unlockSound(); // browsers only allow the ambience after a tap
-    const m = music(), a = el.dataset.music, save = () => ctx().saveSettingsDebounced();
-    if (a === 'finish') { await finishSignIn(ui.panel.querySelector('[data-music-field="paste"]')?.value ?? ''); redraw(); }
-    else if (a === 'toggle-on') await setOn(!m.on);
-    else if (a === 'play') await togglePlay();
-    else if (a === 'next') await nextBest();
-    else if (a === 'reroll') { const p = reRoll(); redraw(); await p; }
-    else if (a === 'lock') toggleLock();
-    else if (a === 'kind') forceMode(el.dataset.v || '');
-    else if (a === 'fits') await feedback(true);
-    else if (a === 'nothere') await feedback(false);
-    else if (a === 'edit-now') { ui.musicSong = mus.now?.uri ?? ''; ui.musicOpen = { ...(ui.musicOpen ?? {}), songs: true }; redraw(); toEditor(); }
-    else if (a === 'edit') { ui.musicSong = ui.musicSong === el.dataset.uri ? '' : el.dataset.uri; redraw(); toEditor(); }
-    else if (a === 'close-edit') { ui.musicSong = ''; redraw(); }
-    else if (a === 'edit-now-row') { ui.musicSong = mus.now?.uri ?? ''; redraw(); toEditor(); }
-    else if (a === 'tag') setTag(el.dataset.uri, el.dataset.k, el.dataset.v);
-    else if (a === 'playlist') { togglePlaylist(el.dataset.id); redraw(); }
-    else if (a === 'plall') { ui.musicPlAll = !ui.musicPlAll; redraw(); }
-    else if (a === 'load') await loadPlaylists();
-    else if (a === 'export') exportSheet();
-    else if (a === 'set') { m[el.dataset.k] = ['hold', 'tellFor'].includes(el.dataset.k) ? Number(el.dataset.v) : el.dataset.v; save(); redraw(); }
-    else if (a === 'group') { ui.musicGroup = ui.musicGroup === el.dataset.v || (!ui.musicGroup && el.dataset.v === 'feeling') ? 'none' : el.dataset.v; redraw(); }
-    else if (a === 'allnames') { ui.musicAllNames = !ui.musicAllNames; redraw(); }
-    else if (a === 'flag') { m[el.dataset.k] = !m[el.dataset.k]; save(); redraw(); }
-    else if (a === 'devices') { await sync(); try { const { devices } = await import('../app/spotify.js'); mus.devices = await devices(m); } catch (err) { mus.error = err.message; } redraw(); }
-    else if (a === 'device') { m.device = el.dataset.id; m.deviceName = mus.devices.find(d => d.id === el.dataset.id)?.name ?? ''; save(); if (m.on) await start(); redraw(); }
-    else if (a === 'signout') signOut();
-    else if (a === 'extra') setExtra(el.dataset.k, el.dataset.v);
-    else if (a === 'amb-pause') toggleAmbience();
-    else if (a === 'amb-more') { ui.musicOpen = { ...(ui.musicOpen ?? {}), amb: !ui.musicOpen?.amb }; redraw(); }
-    else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
-    else if (a === 'amblevel') setAmbLevel(el.dataset.v);
-    else if (a === 'ambkind') toggleAmbKind(el.dataset.v);
-    else if (a === 'venues') toggleVenues();
-    else if (a === 'sound') redraw();
-    else if (a === 'playit') { await playChosen(el.dataset.uri); redraw(); }
-    else if (a === 'seekbar') { const r = el.querySelector('.mw-music-track').getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); await seekTo(f * (mus.now?.ms ?? 0)); redraw(); }
-    else if (a === 'back15') { await seekBy(-15); redraw(); }
-    else if (a === 'fwd15') { await seekBy(15); redraw(); }
-    else if (a === 'markpeak') { markPeak(); redraw(); }
-    else if (a === 'notes') { ui.musicNotes = !ui.musicNotes; redraw(); }
-    else if (a === 'remove-ask') { ui.musicRemove = el.dataset.uri; redraw(); }
-    else if (a === 'remove-cancel') { ui.musicRemove = null; redraw(); }
-    else if (a === 'remove') { const uri = el.dataset.uri; ui.musicRemove = null; await removeSong(uri); if (!m.songs[uri] && ui.musicSong === uri) ui.musicSong = null; redraw(); }
-    else if (a === 'untagged') {
-        ui.musicUntagged = untaggedText(); redraw();
-        const box = ui.panel?.querySelector('.mw-music-copy');
-        if (box) { box.focus(); box.select(); box.setSelectionRange(0, box.value.length); try { if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(box.value); else document.execCommand('copy'); } catch { /* the text stays selected to copy by hand */ } }
-    }
-    return true;
-}
-export async function musicChange(e, redraw) {
-    const el = e.target.closest('[data-music-field]'); if (!el) return false;
-    const m = music(), f = el.dataset.musicField;
-    if (f === 'clientId') { if (m.clientId === el.value.trim()) return true; m.clientId = el.value.trim(); m.pending = null; ctx().saveSettingsDebounced(); redraw(); }
-    else if (f === 'import' && el.files?.[0]) { await importSheet(el.files[0]); el.value = ''; redraw(); }
-    else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
-    else if (f === 'cues') { setTag(el.dataset.uri, 'cue', el.value); redraw(); }
-    else if (f === 'cuewords') { setTag(el.dataset.uri, 'cw', el.value); redraw(); }
-    else if (f === 'peak') { setTag(el.dataset.uri, 'pk', el.value); redraw(); }
-    else if (f === 'year') { setTag(el.dataset.uri, 'yr', el.value); redraw(); }
-    else if (f === 'kind') { forceMode(el.value || ''); redraw(); }
-    else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
-    else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
-    return true;
-}
-export function musicInput(e, redraw) {
-    const el = e.target.closest('[data-music-field="search"],[data-music-field="plsearch"]'); if (!el) return false;
-    const f = el.dataset.musicField; if (f === 'search') ui.musicSearch = el.value; else ui.musicPlSearch = el.value;
-    clearTimeout(ui.musicSearchTimer); ui.musicSearchTimer = setTimeout(() => { redraw(); const box = ui.panel?.querySelector(`[data-music-field="${f}"]`); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } }, 400);
-    return true;
-}
-export function musicFold(e) {
-    const d = e.target; if (!d?.matches?.('[data-music-fold]')) return;
-    ui.musicOpen = { ...(ui.musicOpen ?? {}), [d.dataset.musicFold]: d.open };
-}
+    const 

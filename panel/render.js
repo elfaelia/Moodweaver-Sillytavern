@@ -162,6 +162,9 @@ export function fillLazy(scope) {
 // One-sided sliders get a new moon (off) and eight phases; ones that go below zero get four moons each side of
 // a middle new moon. Tapping the moon it's already at goes back to off (or the middle).
 const MOON_AT = [5, 15, 30, 50, 70, 85, 95, 100], MOON_FROM = [1, 11, 21, 41, 61, 81, 91, 100];
+// The Bonds tab's smaller meters (1.91.6): five stars, one per word, so no two stars read the same (1-20, 21-40 \u2026 81-100).
+const FIVE_AT = [10, 30, 50, 70, 90], FIVE_FROM = [1, 21, 41, 61, 81];
+const moonScale = el => el?.closest?.('.mw-more-meter') ? [FIVE_AT, FIVE_FROM] : [MOON_AT, MOON_FROM];
 const POLE_AT = [30, 50, 70, 95], POLE_FROM = [1, 35, 60, 85];
 export function moonify(root) {
     for (const input of root?.querySelectorAll?.('input[type="range"]:not([data-moons])') ?? []) {
@@ -222,8 +225,8 @@ export function tapPill(button) {
 function moonStops(input) {
     const min = Number(input.min) || 0, v = Number(input.value) || 0;
     if (min < 0) { const at = POLE_FROM.reduce((k, f, i) => Math.abs(v) >= f ? i : k, -1); return { stops: [...POLE_AT.map(t => -t).reverse(), 0, ...POLE_AT], i: at < 0 ? 4 : 4 + (v < 0 ? -1 : 1) * (at + 1) }; }
-    const at = MOON_FROM.reduce((k, f, i) => v >= f ? i : k, -1);
-    return { stops: [min, ...MOON_AT.map(t => Math.max(min, t))], i: at < 0 || v <= min ? 0 : at + 1 };
+    const [AT, FROM] = moonScale(input), at = FROM.reduce((k, f, i) => v >= f ? i : k, -1);
+    return { stops: [min, ...AT.map(t => Math.max(min, t))], i: at < 0 || v <= min ? 0 : at + 1 };
 }
 const inputOf = el => el.closest('.mw-stepped')?.previousElementSibling;
 function setRange(input, to) {
@@ -246,8 +249,8 @@ function drawMoons(input, box) {
         const half = s => POLE_AT.map((to, i) => btn(s * to, side === s && at >= i, side === s && at === i, s < 0 ? 'mw-pole-dark' : 'mw-pole-light', `${Math.round((i + 1) / 4 * 100)}%`));
         box.innerHTML = `${half(-1).reverse().join('')}${btn(0, false, at < 0, 'is-new')}${half(1).join('')}`;
     } else {
-        const at = MOON_FROM.reduce((k, f, i) => v >= f ? i : k, -1);
-        box.innerHTML = `${btn(min, false, at < 0 || v <= min, 'is-new')}${MOON_AT.map((to, i) => btn(Math.max(min, to), at >= i && v > min, at === i && v > min, '', `${Math.round((i + 1) / 8 * 100)}%`)).join('')}`;
+        const [AT, FROM] = moonScale(input), at = FROM.reduce((k, f, i) => v >= f ? i : k, -1);
+        box.innerHTML = `${btn(min, false, at < 0 || v <= min, 'is-new')}${AT.map((to, i) => btn(Math.max(min, to), at >= i && v > min, at === i && v > min, '', `${Math.round((i + 1) / AT.length * 100)}%`)).join('')}`;
     }
     if (box.classList.contains('mw-stars')) box.insertAdjacentHTML('afterbegin', starLines(box));
 }
@@ -260,7 +263,7 @@ function starLines(box) {
     if (now < 0 || now === start) return '<svg class="mw-star-lines" aria-hidden="true"></svg>';
     const [a, b] = now > start ? [start, now] : [now, start], pt = i => `${(i + 0.5) * 100},${arc ? 32 - STAR_RISE[i] : 15}`;
     const pts = Array.from({ length: b - a + 1 }, (_, k) => pt(a + k)).join(' ');
-    return `<svg class="mw-star-lines${now < start ? ' is-cool' : ''}" viewBox="0 0 900 ${arc ? 44 : 30}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" vector-effect="non-scaling-stroke"/></svg>`;
+    return `<svg class="mw-star-lines${now < start ? ' is-cool' : ''}" viewBox="0 0 ${stars.length * 100} ${arc ? 44 : 30}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" vector-effect="non-scaling-stroke"/></svg>`;
 }
 // A tap on one of those moons: set the slider, fire its events, redraw the moons (a re-render may replace them anyway).
 export function tapRangeMoon(button) {

@@ -164,7 +164,7 @@ export async function searchTracks(store, q, pages = 3) {
         const page = await call(store, 'GET', '/search', { query: { q, type: 'track', limit: 10, offset: start + i * 10 } }).catch(err => { if (err.code === 'slow') throw err; return null; });
         const items = page?.tracks?.items ?? []; out.push(...items); if (items.length < 10) break;
     }
-    return out.filter(t => t?.uri?.startsWith('spotify:track:') && !t.is_local).map(t => ({ uri: t.uri, n: t.name ?? '', a: (t.artists ?? []).map(a => a.name).join(', '), ms: t.duration_ms ?? 0, yr: Number(String(t.album?.release_date ?? '').slice(0, 4)) || 0 }));
+    return out.filter(t => t?.uri?.startsWith('spotify:track:') && !t.is_local).map(t => ({ uri: t.uri, n: t.name ?? '', a: (t.artists ?? []).map(a => a.name).join(', '), ms: t.duration_ms ?? 0, yr: Number(String(t.album?.release_date ?? '').slice(0, 4)) || 0, pop: t.popularity ?? 0 }));
 }
 
 // ---- Playback ----

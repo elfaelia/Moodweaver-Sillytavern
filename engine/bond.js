@@ -17,13 +17,14 @@ const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 // hooked on whom; + means the player is hooked on the character). Control was "power" in 1.34.
 export const METERS = ['f', 'r', 't', 'p', 'l'];
 
-const FRIEND_LEVELS = [[80, 'Best friends'], [50, 'Good friends'], [20, 'Friends'], [-19, 'Acquaintances'], [-59, 'Disliked'], [-100, 'Enemies']];
-const ROMANCE_LEVELS = [[80, 'Soulmates'], [55, 'In love'], [30, 'Sweethearts'], [10, 'A spark'], [-19, 'No spark'], [-59, 'Turned off'], [-100, 'Repulsed']];
-const TRUST_LEVELS = [[75, 'Complete'], [40, 'Trusting'], [10, 'Cautious'], [-19, 'Unsure'], [-54, 'Wary'], [-100, 'None']];
+// 1.91.6: one word per star (four each side of the middle), so no two stars read the same.
+const FRIEND_LEVELS = [[85, 'Best friends'], [60, 'Close friends'], [35, 'Good friends'], [1, 'Friendly'], [0, 'Acquaintances'], [-34, 'Cool toward them'], [-59, 'Disliked'], [-84, 'Hostile'], [-100, 'Enemies']];
+const ROMANCE_LEVELS = [[85, 'Soulmates'], [60, 'In love'], [35, 'Sweethearts'], [1, 'A spark'], [0, 'No spark'], [-34, 'Not interested'], [-59, 'Put off'], [-84, 'Turned off'], [-100, 'Repulsed']];
+const TRUST_LEVELS = [[85, 'Complete'], [60, 'Trusting'], [35, 'Mostly trusts'], [1, 'Cautious'], [0, 'Unsure'], [-34, 'Doubtful'], [-59, 'Wary'], [-84, 'Suspicious'], [-100, 'None']];
 const levelOf = (levels, v) => levels.find(([min]) => v >= min)?.[1] ?? levels.at(-1)[1];
 // Control and pull are balances, so their words name who has them.
-const controlWord = (v, n, u) => v >= 60 ? `${n} holds it` : v >= 20 ? `${n} has the edge` : v > -20 ? 'Even' : v > -60 ? `${u} has the edge` : `${u} holds it`;
-const pullWord = (v, n, u) => v >= 60 ? `${u} is hooked on ${n}` : v >= 20 ? `${u} needs ${n} more` : v > -20 ? 'Even' : v > -60 ? `${n} needs ${u} more` : `${u} has ${n} hooked`;
+const controlWord = (v, n, u) => { const a = Math.abs(v), who = v > 0 ? n : u; return a < 10 ? 'Even' : a >= 85 ? `${who} holds all of it` : a >= 60 ? `${who} holds it` : a >= 35 ? `${who} has the upper hand` : `${who} has the edge`; };
+const pullWord = (v, n, u) => { const a = Math.abs(v), [x, y] = v > 0 ? [u, n] : [n, u]; return a < 10 ? 'Even' : a >= 85 ? `${x} can\u2019t do without ${y}` : a >= 60 ? `${x} is hooked on ${y}` : a >= 35 ? `${x} needs ${y} more` : `${x} leans toward ${y}`; };
 
 // Your relationship sliders count as well as the meters, so "intense: obsessed" and a low
 // romance meter can't send Claude two different stories. Same four axes, -100..100.
@@ -278,6 +279,9 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const flips = key => steps.slice(-8).map(([, s]) => Math.sign(s[key] ?? 0)).filter(Boolean).reduce((n, sign, i, all) => n + (i && sign !== all[i - 1] ? 1 : 0), 0);
     const swing = Math.max(flips('p'), flips('l')) >= 2;
     const pace = paceOf(bond), more = computeMore(bond.more, all, pace.cap).values;
+    // Shared past never reads as "no history" when you've tied them as childhood friends, family or best friends (1.91.6).
+    const pastTies = axes?.lean?.ties, pastFloor = !pastTies ? 0 : ['childhood_friends', 'siblings', 'step_siblings', 'family', 'sees_as_family', 'chosen_family', 'estranged_friends', 'estranged_family'].some(id => pastTies.has(id)) ? 61 : pastTies.has('best_friends') ? 41 : 0;
+    if (more.hi !== undefined && pastFloor && cleanMore(bond.more).pins.hi === null) more.hi = Math.max(more.hi, pastFloor);
     // The named dynamic leans on the last few replies, so a turn in the scene shows up fast.
     const recentSteps = all.slice(-pace.window), sum = get => recentSteps.reduce((t, x) => t + clamp(get(x.s) ?? 0, -pace.cap, pace.cap), 0);
     const trend = Object.fromEntries(METERS.map(k => [k, sum(s => s?.[k])]));
@@ -297,8 +301,15 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // The secondary dynamic: read from where the meters have settled (no pull from the last few replies, and the
     // feelings of the moment count for little). It's read on its own, not as "whatever the main one isn't", so
     // it doesn't flip each time the main one does. It's what runs under the scene.
-    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}) };
-    const underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
+    // fall: how far friendship, romance and loyalty actually dropped over the slow window (1.91.6). Rows about a bond
+    // thinning out (Fading out, Drifting apart) need it, so low meters early in a chat never read as two people drifting.
+    const slow = all.slice(-(UNDER_WINDOW[bond.pace] ?? UNDER_WINDOW.steady)), fall = Math.max(0, -slow.reduce((t, x) => t + (Number(x.s?.f) || 0) + (Number(x.s?.r) || 0) + (Number(x.s?.m?.ly) || 0), 0));
+    axesNow.fall = fall;
+    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall };
+    let underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
+    // Underneath colours the main dynamic; it doesn't contradict it. A distant one under a close one needs a real
+    // drop or actual ill will (friendship below zero), or the next best fit is used.
+    if (underRaw?.group === 'distance' && meters.group !== 'distance' && fall < 5 && (settled.f ?? 0) >= 0) underRaw = dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }, 'distance');
     // The story's call lasts STORY_HOLD replies; after that the meters and the scene take over again until the
     // story names a new one, so one old call can't hold the dynamic for the rest of the chat.
     const call0 = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, call = call0 && call0.ago < (STORY_HOLD[bond.pace] ?? STORY_HOLD.steady) ? call0 : null;

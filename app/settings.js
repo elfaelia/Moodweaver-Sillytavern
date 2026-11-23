@@ -63,6 +63,9 @@ export function settings() {
         // Who-they-are facts (looks, style, voice, job, past) only when the scene touches them, so the card isn't repeated.
         factsWhenRelevant: saved.factsWhenRelevant !== false,
         turnsWhenRelevant: saved.turnsWhenRelevant !== false,
+        turnsSend: ['all', 'fit', 'heat'].includes(saved.turnsSend) ? saved.turnsSend : saved.turnsWhenRelevant === false ? 'all' : 'fit',
+        turnsStrong: saved.turnsStrong === true,
+        turnsEvery: [0, 2, 3, 4, 5, 6, 8, 10].includes(Number(saved.turnsEvery)) ? Number(saved.turnsEvery) : 6,
         traitFocus: saved.traitFocus !== false,
         // The note in two halves: a guide that stays the same (cacheable) and what's true right now (last).
         splitNote: saved.splitNote !== false,

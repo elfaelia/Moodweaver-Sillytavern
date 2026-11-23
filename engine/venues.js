@@ -17,6 +17,10 @@ export const VENUES = [
         genres: ['pop', 'dance', 'hip hop', 'rap', 'indie', 'rock', 'electro', 'punk'], search: ['pop', 'dance', 'hip hop', 'indie rock', 'electro'] },
     { id: 'gig', label: 'the band on stage', places: [], words: /\b(?:concert|gig\b|the show\b|mosh pit|crowd surf\w*|on stage|the stage\b|the band (?:plays|played|kicks|launches|tears)|front row|encore|soundcheck)\b/i,
         genres: ['rock', 'punk', 'indie', 'alternative', 'metal', 'grunge'], search: ['rock', 'punk', 'alternative rock', 'indie rock'] },
+    // 1.95: the in-story radio and a jukebox use the same line-up (your songs that fit, then Spotify search), but are
+    // never found by place: the story switches them on (engine/scene-words.js radioIn).
+    { id: 'radio', label: 'the radio', places: [], words: /(?!)/, genres: ['pop', 'rock', 'soul', 'indie', 'r&b', 'country', 'funk', 'motown', 'singer-songwriter'], search: ['pop', 'rock', 'soul', 'indie rock', 'classic rock'] },
+    { id: 'jukebox', label: 'the jukebox', places: [], words: /(?!)/, genres: ['rock', 'classic rock', 'country', 'soul', 'blues', 'pop', 'punk', 'grunge', 'motown'], search: ['classic rock', 'rock', 'soul', 'country', 'pop'] },
 ];
 export const VENUE_BY_ID = Object.fromEntries(VENUES.map(v => [v.id, v]));
 const LEFT = /\b(?:(?:leave|left|leaving|walk(?:s|ed)? out of|step(?:s|ped)? out of|outside) the (?:club|bar|party|venue|concert|gig|show|dance)|the (?:music|band|show|set|concert) (?:stops|stopped|ends|ended|is over)|last song)\b/i;
@@ -57,3 +61,4 @@ export function searchesFor(venue, artist = '', eraEnd = 0) {
 // The same artist, loosely: "the Descendents" and "Descendents", any of a track's artists.
 const bare = x => String(x ?? '').toLowerCase().replace(/^the\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
 export const artistMatch = (artists, name) => { const n = bare(name); return Boolean(n) && String(artists ?? '').split(/,\s*/).some(a => bare(a) === n); };
+

@@ -107,12 +107,51 @@ export function beatsIn(text) { const t = plainStory(text); return BEATS.filter(
 
 // ---- In-story radio: something in the scene is playing music the characters can hear ----
 // on: a radio, jukebox or record player switched on or playing. off: switched off, smashed, the music stops.
-const RADIO_ON = /\b(?:radio|jukebox|record player|phonograph|gramophone|turntable|hi-fi|hifi|stereo|wireless|transistor|car radio|the needle (?:drops|settles)|drops? the needle|puts? (?:a|on a|the) record|record (?:spins|plays|crackles|skips)|on the record|band (?:plays|is playing|strikes up)|music (?:drifts|plays|crackles|spills) from)/i;
-const RADIO_OFF = /\b(?:(?:turns?|switch(?:es)?|clicks?|shuts?|snaps?) (?:off |)(?:the )?(?:radio|jukebox|record player|music|stereo)(?: off)?|(?:radio|record|music|jukebox) (?:dies|cuts out|stops|goes quiet|falls silent)|lifts? the needle|unplugs? the)/i;
+// 1.95: a device has to be on or playing, not just there ("the couple by the jukebox" isn't music).
+const RADIO_ON = /\b(?:(?:plays?|played|playing|blasts?|blasted|blasting|puts? on|put on|queues? up|queued up|pulls? up|pulled up)\b(?:(?!\b(?:game|games|video|videos|solitaire|chess|wordle|tetris|with|photos?|pictures?|map|maps|texts?|messages?|email)\b)[^.!?\n]){1,70}\b(?:on|from|off|through) (?:his|her|their|my|your|kenny's|someone's|a|the) (?:phone|cell|iphone|ipod|walkman|discman|laptop|speaker|bluetooth speaker|earbuds|headphones|airpods)\b|(?:turns?|turned|turning|switch(?:es|ed|ing)?|flicks?|flicked|clicks?|clicked|cranks?|cranked|puts?|putting) (?:on )?(?:the |a |an |his |her |their |my |old |car )*(?:radio|jukebox|record player|phonograph|gramophone|turntable|hi-?fi|stereo|wireless|transistor|speakers?|boombox|tape deck|cassette player|record)(?: on| up)?\b(?<!(?:the|a|an|his|her|their|my|old|car) record)|(?:the |a |an |his |her |their |my |old |car )*(?:radio|jukebox|record player|phonograph|gramophone|turntable|hi-?fi|stereo|wireless|transistor|speakers?|boombox|tape deck|cassette player|record) (?:plays|playing|played|is playing|was playing|blares|blaring|blared|hums|crackles|crackling|crackled|spins|spinning|kicks in|kicked in|comes on|came on|comes to life|starts|started|switches on|clicks on|drones|thumps|thumping|pumps|pumping|spills|spilling|warbles|warbling)|(?:drops?|dropped|feeds?|fed|slides?|slid|puts?) (?:a |another |some )?(?:quarter|coin|nickel|dime|dollar|change)s? (?:in|into) the jukebox|punch(?:es|ed)? (?:in|up) (?:a |another )?(?:song|number|track|record)|on the (?:radio|jukebox|stereo|speakers|record player|turntable)\b|(?:along )?to the (?:radio|jukebox|stereo|record player)\b|puts? on (?:a|an|some|the|his|her|their|an old) (?:[A-Z][\w'.&-]* ){0,4}(?:record|album|tape|cassette|cd|vinyl|lp)\b|from the (?:radio|jukebox|stereo|speakers|record player|turntable)\b|over the (?:speakers|radio|stereo)|the needle (?:drops|settles)|drops? the needle|puts? (?:a|on a|the) record|record (?:spins|plays|crackles|skips)|on the record|band (?:plays|is playing|strikes up)|music (?:drifts|plays|crackles|spills) from|(?:phone|iphone|ipod|walkman|discman|laptop|bluetooth speaker|speaker|airpods|earbuds|headphones) (?:plays|playing|is playing|blares|blaring|starts playing|buzzes with music|leaks music)|(?:pops?|popped|puts?|stuffs?|stuffed|slips?|slipped|shoves?|shoved) (?:in |on )?(?:his |her |their |my |one )?(?:earbuds?|headphones|airpods|earphones)(?: in| on)?|(?:earbuds?|headphones|airpods|earphones) (?:in|on)\b(?=[^.]{0,40}\b(?:music|song|playing|volume|listen))|(?:music|a song|songs) (?:in|through) (?:his|her|their|my) (?:earbuds|headphones|airpods|earphones)|(?:the )?car (?:stereo|speakers) (?:plays|playing|blares|blaring|thumps|thumping|pumps|crackles)|(?:turns?|turned|cranks?|cranked) up the (?:car stereo|stereo|volume|music)|plugs? (?:in )?(?:his|her|their|my) phone(?: into the (?:aux|car))?|(?:the )?aux cord|(?:the |a |live )?(?:band|quartet|trio|orchestra|singer|guitarist|pianist|fiddler|busker|street musician) (?:plays|playing|is playing|was playing|starts|started|kicks into|launches into|tears into|strikes up|strums|strumming|sings|is singing|croons|belts)|live music|a live band|on stage,? (?:the )?(?:band|singer)|the (?:set|gig|show) (?:starts|kicks off|begins)|(?:the |a )?dj (?:drops|plays|spins|mixes|cues|is playing|puts on)|(?:drops|dropped) the beat|the beat drops|karaoke|takes? the mic\b|grabs? the mic\b|(?:gets?|got) up (?:on stage )?to sing|busker|buskers|street musician)/i;
+const RADIO_OFF = /\b(?:karaoke(?:'s| is| was) (?:over|done|finished)|(?:phone|battery|speaker) (?:dies|died|is dead|goes dead|cuts out)|(?:turns?|switch(?:es)?|clicks?|shuts?|snaps?) (?:off |)(?:the )?(?:radio|jukebox|record player|music|stereo)(?: off)?|(?:radio|record|music|jukebox) (?:dies|cuts out|stops|goes quiet|falls silent)|lifts? the needle|unplugs? the|(?:takes?|took|pulls?|pulled|yanks?|yanked|tugs?|tugged) (?:out |off )?(?:his |her |their |my |one )?(?:earbuds?|headphones|airpods|earphones)(?: out| off)?|(?:pauses?|paused|stops?|stopped|kills?|killed) the (?:music|song|playlist|track)|(?:band|set|show|gig|karaoke|singer) (?:stops|ends|ended|finishes|finished|wraps up|is over|takes a break)|(?:dead|died|dies) (?:phone|battery))/i;
 export const radioIn = text => { const t = plainStory(text); return RADIO_OFF.test(t) ? 'off' : RADIO_ON.test(t) ? 'on' : ''; };
 // What the radio is, for the line to Claude ("a jukebox"), from the same words.
+// 1.95: a song or artist the story names: hummed, sung, whistled, played, put on, on the radio. Returns
+// { title, artist, phrase, device } or null. phrase is the story's own words, for the Now card's Why line.
+const MUSIC_VERB = '(?:hum(?:s|med|ming)?|sing(?:s|ing)?|sang|sung|whistl(?:es|ed|ing)|croon(?:s|ed|ing)?|belt(?:s|ed|ing)? out|play(?:s|ed|ing)?|puts? on|put on|blast(?:s|ed|ing)?|queue(?:s|d)? up|cue(?:s|d)? up|picks?|picked|punch(?:es|ed)? in|request(?:s|ed)?|hums? along to|sing(?:s|ing)? along to|sang along to)';
+const CAP = "(?:[A-Z][\\w'\u2019&.!-]*|\\d+)(?: (?:[A-Z][\\w'\u2019&.!-]*|of|the|and|&|de|la|\\d+)){0,4}";
+const QUOTED = '[\u201c"\u2018\']([^\u201d"\u2019\'\\n]{2,60})[\u201d"\u2019\']';
+const NOT_ARTIST = /^(?:The|A|An|He|She|They|It|His|Her|Their|This|That|Something|Some|Along|Softly|Quietly|Under|Again|Then|Now|Old|New|Every|Another|God|Jesus|Christ|Mom|Dad|Ma|Pa)$/;
+const SONG_RES = [
+    // "Title" by Artist
+    [new RegExp(QUOTED + ' by (?:the )?(' + CAP + ')'), m => ({ title: m[1], artist: m[2] })],
+    // Artist's "Title"
+    [new RegExp('(' + CAP + ')\u2019s ' + QUOTED), m => ({ artist: m[1], title: m[2] })],
+    [new RegExp("(" + CAP + ")'s " + QUOTED), m => ({ artist: m[1], title: m[2] })],
+    // hums "Title" / "Title" comes on / "Title" on the jukebox
+    [new RegExp('\\b' + MUSIC_VERB + ' (?:a few bars of |the opening of |the chorus of |a bit of |along to )?' + QUOTED), m => ({ title: m[1] })],
+    [new RegExp(QUOTED + ' (?:comes on|came on|starts playing|is playing|was playing|plays|blares|crackles|kicks in|on the (?:radio|jukebox|stereo|speakers))'), m => ({ title: m[1] })],
+    // a cover of Creep / launches into Wonderwall (a live band or a singer)
+    [new RegExp('\\b(?:a cover of|covers?|covering|(?:launches|launched|kicks|kicked|tears|tore|breaks|broke) into) (?:the |a )?(' + CAP + ')'), m => ({ title: m[1] })],
+    // a Taylor Swift song / some Taylor Swift
+    [new RegExp('\\b(?:a|an|some|old|that|this|the new|another) (' + CAP + ') (?:song|tune|track|number|record|album|single|ballad|hit|cover)'), m => ({ artist: m[1] })],
+    // humming Taylor Swift / puts on the Ramones
+    [new RegExp('\\b' + MUSIC_VERB + ' (?:some |a little |a bit of |along to |old |early |the )?(' + CAP + ')'), m => ({ artist: m[1] })],
+    // a song by Artist
+    [new RegExp('\\b(?:song|tune|track|number|record|album) by (?:the )?(' + CAP + ')'), m => ({ artist: m[1] })],
+];
+export function songMention(text, people = []) {
+    const t = plainStory(text), skip = new Set(people.map(p => String(p).toLowerCase()));
+    for (const [re, get] of SONG_RES) {
+        const m = t.match(re); if (!m) continue;
+        const x = get(m), artist = String(x.artist ?? '').replace(/^the\s+/i, '').replace(/[.!?,;:]+$/, '').trim(), title = String(x.title ?? '').trim().replace(/(?:[\s.!?,;:]+|\s+(?:and|of|the|&|a|while|as))+$/i, '').trim();
+        if (artist && (NOT_ARTIST.test(artist.split(' ')[0]) && artist.split(' ').length === 1 || skip.has(artist.toLowerCase()) || skip.has(artist.split(' ')[0].toLowerCase()))) continue;
+        if (!artist && (!title || title.split(' ').length > 9)) continue;
+        // A quoted line of dialogue right after "sings" is a song only if it is short.
+        const start = Math.max(0, m.index - 40), phrase = t.slice(m.index, m.index + m[0].length).trim();
+        void start;
+        return { title, artist, phrase: phrase.length > 70 ? phrase.slice(0, 67) + '...' : phrase, device: radioIn(t) === 'on', kind: radioIn(t) === 'on' ? radioKind(t) : '' };
+    }
+    return null;
+}
 export function radioKind(text) {
     const t = plainStory(text).toLowerCase();
-    for (const [k, label] of [['jukebox', 'a jukebox'], ['record player', 'a record player'], ['phonograph', 'a phonograph'], ['gramophone', 'a gramophone'], ['turntable', 'a record player'], ['car radio', 'the car radio'], ['transistor', 'a transistor radio'], ['band', 'a band'], ['record', 'a record player'], ['stereo', 'a stereo'], ['radio', 'a radio'], ['wireless', 'a wireless']]) if (t.includes(k)) return label;
+    for (const [k, label] of [['karaoke', 'karaoke'], ['busker', 'a busker'], ['street musician', 'a street musician'], ['dj ', 'the DJ'], ['earbud', 'earbuds'], ['airpods', 'earbuds'], ['headphones', 'headphones'], ['aux', 'the car stereo'], ['car stereo', 'the car stereo'], ['bluetooth', 'a speaker'], ['phone', 'a phone'], ['live band', 'a live band'], ['singer', 'a singer'], ['pianist', 'a pianist'], ['guitarist', 'a guitarist'], ['orchestra', 'an orchestra'], ['quartet', 'a band'], ['trio', 'a band'], ['jukebox', 'a jukebox'], ['record player', 'a record player'], ['phonograph', 'a phonograph'], ['gramophone', 'a gramophone'], ['turntable', 'a record player'], ['car radio', 'the car radio'], ['transistor', 'a transistor radio'], ['band', 'a band'], ['record', 'a record player'], ['stereo', 'a stereo'], ['radio', 'a radio'], ['wireless', 'a wireless']]) if (t.includes(k)) return label;
     return 'a radio';
 }

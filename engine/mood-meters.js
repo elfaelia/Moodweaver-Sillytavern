@@ -140,9 +140,10 @@ const MORE_NUDGES = [
     [['sentimental', 'bittersweet', 'reunited', 'homesick', 'old_grief'], { hi: 1 }],
     [['protection_giving', 'ride_or_die_energy', 'whatever_it_takes', 'cant_lose_another', 'keeping_vigil', 'making_it_count', 'terrified_of_losing'], { sc: 1 }],
     // the 1.78 meters
-    [['never_said_it', 'heartsick', 'lovesick', 'regretful_longing', 'rejected', 'unwanted'], { os: 2 }],
-    [['yearning', 'afraid_to_be_replaced', 'insecure', 'left_behind', 'pretending_not_to_care', 'masking_warmth'], { os: 1 }],
-    [['new_relationship_energy', 'feels_safe'], { os: -2 }], [['reunited', 'trusting'], { os: -1 }],
+    // Thinks it's mutual (1.91.6, was One-sided): longing and rejection pull it down, feeling safe and wanted lifts it.
+    [['never_said_it', 'heartsick', 'lovesick', 'regretful_longing', 'rejected', 'unwanted'], { os: -2 }],
+    [['yearning', 'afraid_to_be_replaced', 'insecure', 'left_behind', 'pretending_not_to_care', 'masking_warmth'], { os: -1 }],
+    [['new_relationship_energy', 'feels_safe'], { os: 2 }], [['reunited', 'trusting'], { os: 1 }],
     [['playfully_pervy', 'leering'], { cr: 2 }],
     [['hazy_drunk', 'party_brain', 'shameless', 'mean_jokes', 'degrading', 'checking_out', 'primal', 'naughty_fun', 'punch_drunk'], { cr: 1 }],
     [['reverent_desire', 'worshipful'], { cr: -2 }], [['cherishing', 'soft'], { cr: -1 }],

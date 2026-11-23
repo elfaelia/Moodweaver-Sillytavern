@@ -60,7 +60,7 @@ export function personCard(ch, state, live) {
 // the section. Swiping sideways walks through the tabs in this order. Body holds the live board (Needs) and
 // Facts; on your own character Needs becomes You and your facts live there. Wants can be hidden in Settings.
 const TABS = [['mood', '\u2726', 'Moods', '#c9b8f0'], ['rel', '\u2665', 'Bonds', '#ef9fbe'], ['turn', '\u21cb', 'Turn-ons', '#e7a6c4'], ['intimacy', '\u2698', 'Intimacy', '#d49bc9'], ['music', '\u266b', 'Music', '#9fd3c9'],
-    ['needs', '\u25d4', 'Needs', '#9fd3b4'], ['state', '\u2302', 'Facts', '#9fc6c0'], ['trait', '\u2742', 'Traits', '#e3c38f'], ['psyche', '\u262f', 'Mind', '#b8a6e0'], ['skills', '\u272a', 'Skills', '#9fc0e8'], ['period', '\u2766', 'Period', '#d9b98c'], ['wants', '\u2606', 'Wants', '#e5ca7f']];
+    ['needs', '\u25d4', 'Needs', '#9fd3b4'], ['state', '\u2302', 'Facts', '#9fc6c0'], ['trait', '\u2742', 'Traits', '#e3c38f'], ['psyche', '\u262f\ufe0e', 'Mind', '#b8a6e0'], ['skills', '\u272a', 'Skills', '#9fc0e8'], ['period', '\u2766', 'Period', '#d9b98c'], ['wants', '\u2606', 'Wants', '#e5ca7f']];
 // Music has its own place in the middle of the dock; Settings \u203a Panel can hide it (songs keep playing).
 export const DOCK = [['heart', '\u263e', 'Mood', ['mood']], ['between', '\u2665', 'Relations', ['rel', 'turn', 'intimacy']], ['music', '\u266b', 'Music', ['music']], ['body', '\u25c8', 'Info', ['needs', 'state']], ['self', '\u2742', 'Self', ['trait', 'psyche', 'skills', 'period', 'wants']], ['story', '\u2726', 'Story', []]];
 export const dockOf = tab => DOCK.find(([, , , tabs]) => tabs.includes(tab))?.[0] ?? 'heart';
@@ -70,7 +70,8 @@ export const tabsFor = who => TABS.filter(([k]) => !(k === 'wants' && settings()
 // The chips for the open section (none when it holds a single tab).
 export function tabBar(counts) {
     const tabs = tabsFor(ui.who).filter(([k]) => dockOf(k) === dockOf(ui.tab));
-    return tabs.length < 2 ? '' : `<nav class="mw-tabbar" role="tablist" aria-label="Section">${tabs.map(([k, icon, label, color]) =>
+    // Three or more tabs stack each icon over its label, so the row always fits a phone without scrolling sideways.
+    return tabs.length < 2 ? '' : `<nav class="mw-tabbar${tabs.length >= 3 ? ' mw-tabbar-many' : ''}" role="tablist" aria-label="Section">${tabs.map(([k, icon, label, color]) =>
         `<button type="button" role="tab" data-tab="${k}" aria-selected="${ui.tab === k}" aria-pressed="${ui.tab === k}" style="--mw-tab:${color}"><span class="mw-tab-icon">${icon}</span><span class="mw-tab-label">${label}</span>${counts[k] ? `<i>${counts[k]}</i>` : ''}</button>`).join('')}</nav>`;
 }
 export function dockBar(counts) {

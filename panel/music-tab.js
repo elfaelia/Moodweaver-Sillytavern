@@ -1,11 +1,12 @@
 // The \u266b Music tab: sign in to Spotify, what's playing and why, your playlists, the song sheet and song tags.
 // Everything is a tap: chips and big buttons, no sliders or dragging.
-import { toggleStoryOnly, EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, toggleAmbKind, toggleVenues, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
+import { setMix, toggleStoryOnly, EXTRAS, ambienceBeds, toggleAmbience, markPeak, nowAt, playChosen, removeSong, untaggedText, seekBy, seekTo, characterNames, eraEnd, exportSheet, extraChars, extraOn, feedback, finishSignIn, followName, forceMode, importSheet, loadPlaylists, mus, music, nextBest, radioOn, reRoll, setAmbLevel, toggleAmbKind, toggleVenues, setExtra, setOn, setTag, signOut, start, sync, thisCharName, toggleExtraFor, toggleLock, togglePlay, togglePlaylist, unlockSound, usableSongs } from '../app/music.js';
 import { BED_LABELS, needsTap } from '../app/ambience.js';
 import { canEdit, canReturn, prepareSignIn, redirectFor, signedIn } from '../app/spotify.js';
 import { ctx, ui } from '../app/state.js';
 import { CHANGE_CHOICES, HOLD_CHOICES, THEME_CHOICES } from '../data/catalogue/music.js';
 import { BEATS, DYN_GROUPS, ENERGY, FAMILIES, HEARD_IN, HEAT, MEANINGS, MODES, MOMENTS, PLACES, cleanTags, describe, emptyTags, fitsMode, hasTags, labelOf, norm, peakText } from '../engine/music.js';
+import { VENUE_BY_ID } from '../engine/venues.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { moodTone } from '../engine/tone.js';
 import { getState, getUserState } from '../app/chat.js';
@@ -131,6 +132,8 @@ function nowCard(m, tone) {
         ${n ? `<div class="mw-music-verdict">${fitsButton()}<button type="button" data-music="nothere">\u2715 Not here</button><button type="button" data-music="edit-now">\u270e Tags</button><button type="button" data-music="notes" aria-pressed="${Boolean(ui.musicNotes)}" aria-label="Why this song">\u24d8</button></div>${mus.fitsMark?.uri === mus.now?.uri ? `<p class="mw-music-noted">\u2713 Saved: this song fits ${mus.fitsMark.scene ? `${esc(mus.fitsMark.scene.toLowerCase())} scenes` : 'scenes'} like this one.</p>` : ''}` : ''}
         ${whyBlock(m, heardLine, why, snap)}
         ${kindRow(snap)}
+        <div class="mw-mchips">${chip('data-music="storyonly"', Boolean(m.storyOnly), `${m.storyOnly ? '\u2713' : '+'} In-story music only`, 'Play only music the characters can hear; pause the rest of the time')}</div>
+        ${m.storyOnly ? `<p class="mw-fine">${radioOn(m) ? `Playing in the story: ${esc(mus.radio?.venue ? (VENUE_BY_ID[mus.radio.venue]?.label ?? 'music in the room') : mus.radio?.kind ?? 'music')}${Number.isFinite(mus.radio?.left) ? ` (stops after ${mus.radio.left} more ${mus.radio.left === 1 ? 'reply' : 'replies'} unless the story keeps it on)` : ''}.` : (mus.named && mus.named.uri === mus.now?.uri && mus.now?.playing) ? `Playing because of \u201c${esc(mus.named.phrase)}\u201d; it pauses when the song ends.` : 'Nothing is playing in the story, so the music is paused.'}</p>` : ''}
         ${mus.loading ? `<p class="mw-music-note">${esc(mus.loading)}</p>` : ''}
     </section>`;
 }
@@ -261,7 +264,7 @@ function extraRow(m, x) {
         const level = x.id === 'amb' && mode !== 'off' ? `<p class="mw-music-label">How loud</p><div class="mw-mchips">${[[1, 'Soft'], [2, 'Medium'], [3, 'Loud']].map(([v, l]) => chip(`data-music="amblevel" data-v="${v}"`, Number(m.ambLevel) === v, l)).join('')}</div>
             <p class="mw-music-label">What plays</p><div class="mw-mchips">${chip('data-music="ambkind" data-v="places"', m.ambPlaces !== false, `${m.ambPlaces !== false ? '\u2713' : '+'} Everyday sounds`)}${chip('data-music="ambkind" data-v="sex"', m.ambSex !== false, `${m.ambSex !== false ? '\u2713' : '+'} Erotic sounds`)}</div>
             <p class="mw-fine">Everyday: places, weather, a heartbeat in danger, doors, gunshots. Erotic: the bed and furniture, bodies, breath, fingers, spanking, the whip and her voice. Tap one to switch it off.</p>` : '';
-        const venues = x.id === 'radio' && mode !== 'off' ? `<div class="mw-mchips">${chip('data-music="venues"', m.venues !== false, `${m.venues !== false ? '\u2713' : '+'} Venues play their own music`)}${chip('data-music="storyonly"', Boolean(m.storyOnly), `${m.storyOnly ? '\u2713' : '+'} In-story music only`)}</div><p class="mw-fine">In-story music only: songs play only when the characters can hear them (a radio, jukebox, record player, or a bar, club or gig\u2019s own music). The rest of the time Spotify is paused instead of scoring the scene. Ambience carries on.</p>` : '';
+        const venues = x.id === 'radio' && mode !== 'off' ? `<div class="mw-mchips">${chip('data-music="venues"', m.venues !== false, `${m.venues !== false ? '\u2713' : '+'} Venues play their own music`)}${chip('data-music="storyonly"', Boolean(m.storyOnly), `${m.storyOnly ? '\u2713' : '+'} In-story music only`)}</div><p class="mw-music-label">Mix for the radio, jukebox and venues</p><div class="mw-mchips">${[['mine', 'Mostly my songs'], ['half', 'Half and half'], ['search', 'Mostly Spotify search']].map(([v, l]) => chip(`data-music="mix" data-v="${v}"`, (m.mix ?? 'mine') === v, l)).join('')}</div><p class="mw-fine">Your songs that fit come first and Spotify search mixes in to keep it fresh. A song the story names always plays first.</p><p class="mw-fine">In-story music only: songs play only when the characters can hear them (a radio, jukebox, record player, or a bar, club or gig\u2019s own music). The rest of the time Spotify is paused instead of scoring the scene. Ambience carries on.</p>` : '';
         return `<div class="mw-music-extra${x.under ? ' is-under' : ''}"><p class="mw-music-label">${esc(x.label)}${extraOn(x.id, m) ? ' <span class="mw-music-lit">\u00b7 on here</span>' : ''}</p><p class="mw-fine">${esc(x.note)}</p>
             <div class="mw-mchips">${MODE_LABELS.map(([v, l]) => chip(`data-music="extra" data-k="${x.id}" data-v="${v}"`, mode === v, l)).join('')}</div>${some}${level}${venues}</div>`;
     }
@@ -279,4 +282,96 @@ function ambienceLine(m) {
     const sub = !on ? ((m.extras.amb ?? 'off') === 'off' ? 'Off' : 'Off for this character') : paused ? 'Paused' : needsTap() && beds.length ? 'Tap anywhere to start it' : beds.length ? esc(beds.map(b => BED_LABELS[b] ?? b).join(' \u00b7 ')) : 'Quiet: nothing in the scene to hear yet';
     return `<div class="mw-amb-line${on && !paused && beds.length ? ' is-live' : ''}"><span class="mw-amb-orb" aria-hidden="true">\u2601</span><span class="mw-amb-text"><b>Ambience</b><small>${sub}</small></span>
         ${on ? `<button type="button" class="mw-amb-btn" data-music="amb-pause" aria-pressed="${!paused}" aria-label="${paused ? 'Play the ambience' : 'Pause the ambience'}">${paused ? '\u25b6' : '\u275a\u275a'}</button>` : ''}
-        <button type="button" class="mw-amb-btn mw-amb-more" data-music="amb-more" aria-expanded="${Boolean(open)}" aria-lab
+        <button type="button" class="mw-amb-btn mw-amb-more" data-music="amb-more" aria-expanded="${Boolean(open)}" aria-label="Ambience settings">${open ? '\u2303' : '\u2304'}</button></div>
+        ${open ? `<div class="mw-amb-body">${extraRow(m, EXTRAS.find(x => x.id === 'amb'))}</div>` : ''}`;
+}
+export function musicView() {
+    const m = music();
+    if (!signedIn(m)) return `<div class="mw-music">${setupCard(m)}${ambienceLine(m)}<div class="mw-music-drawers">${sheetCard(m)}</div></div>`;
+    const t = tones(), lead = m.follow === 'user' ? t.user : t.char;
+    return `<div class="mw-music">${nowCard(m, lead)}${ambienceLine(m)}${followCard(m, t)}<div class="mw-music-drawers">${playlistCard(m)}${songsCard(m)}${countsCard(m)}${sheetCard(m)}${extrasCard(m)}${settingsCard(m)}</div></div>`;
+}
+
+// ---- Taps ----
+// Returns true when the tap was the Music tab's. redraw: the panel's render.
+export async function musicClick(e, redraw) {
+    const el = e.target.closest('[data-music]'); if (!el || !ui.panel?.contains(el)) return false;
+    if (el.tagName === 'A') return true;
+    unlockSound(); // browsers only allow the ambience after a tap
+    const m = music(), a = el.dataset.music, save = () => ctx().saveSettingsDebounced();
+    if (a === 'finish') { await finishSignIn(ui.panel.querySelector('[data-music-field="paste"]')?.value ?? ''); redraw(); }
+    else if (a === 'toggle-on') await setOn(!m.on);
+    else if (a === 'play') await togglePlay();
+    else if (a === 'next') await nextBest();
+    else if (a === 'reroll') { const p = reRoll(); redraw(); await p; }
+    else if (a === 'lock') toggleLock();
+    else if (a === 'kind') forceMode(el.dataset.v || '');
+    else if (a === 'fits') await feedback(true);
+    else if (a === 'nothere') await feedback(false);
+    else if (a === 'edit-now') { ui.musicSong = mus.now?.uri ?? ''; ui.musicOpen = { ...(ui.musicOpen ?? {}), songs: true }; redraw(); toEditor(); }
+    else if (a === 'edit') { ui.musicSong = ui.musicSong === el.dataset.uri ? '' : el.dataset.uri; redraw(); toEditor(); }
+    else if (a === 'close-edit') { ui.musicSong = ''; redraw(); }
+    else if (a === 'edit-now-row') { ui.musicSong = mus.now?.uri ?? ''; redraw(); toEditor(); }
+    else if (a === 'tag') setTag(el.dataset.uri, el.dataset.k, el.dataset.v);
+    else if (a === 'playlist') { togglePlaylist(el.dataset.id); redraw(); }
+    else if (a === 'plall') { ui.musicPlAll = !ui.musicPlAll; redraw(); }
+    else if (a === 'load') await loadPlaylists();
+    else if (a === 'export') exportSheet();
+    else if (a === 'set') { m[el.dataset.k] = ['hold', 'tellFor'].includes(el.dataset.k) ? Number(el.dataset.v) : el.dataset.v; save(); redraw(); }
+    else if (a === 'group') { ui.musicGroup = ui.musicGroup === el.dataset.v || (!ui.musicGroup && el.dataset.v === 'feeling') ? 'none' : el.dataset.v; redraw(); }
+    else if (a === 'allnames') { ui.musicAllNames = !ui.musicAllNames; redraw(); }
+    else if (a === 'flag') { m[el.dataset.k] = !m[el.dataset.k]; save(); redraw(); }
+    else if (a === 'devices') { await sync(); try { const { devices } = await import('../app/spotify.js'); mus.devices = await devices(m); } catch (err) { mus.error = err.message; } redraw(); }
+    else if (a === 'device') { m.device = el.dataset.id; m.deviceName = mus.devices.find(d => d.id === el.dataset.id)?.name ?? ''; save(); if (m.on) await start(); redraw(); }
+    else if (a === 'signout') signOut();
+    else if (a === 'extra') setExtra(el.dataset.k, el.dataset.v);
+    else if (a === 'amb-pause') toggleAmbience();
+    else if (a === 'amb-more') { ui.musicOpen = { ...(ui.musicOpen ?? {}), amb: !ui.musicOpen?.amb }; redraw(); }
+    else if (a === 'extrachar') toggleExtraFor(el.dataset.k, el.dataset.v ?? '');
+    else if (a === 'amblevel') setAmbLevel(el.dataset.v);
+    else if (a === 'ambkind') toggleAmbKind(el.dataset.v);
+    else if (a === 'venues') toggleVenues();
+    else if (a === 'storyonly') toggleStoryOnly();
+    else if (a === 'mix') setMix(el.dataset.v);
+    else if (a === 'sound') redraw();
+    else if (a === 'playit') { await playChosen(el.dataset.uri); redraw(); }
+    else if (a === 'seekbar') { const r = el.querySelector('.mw-music-track').getBoundingClientRect(), f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); await seekTo(f * (mus.now?.ms ?? 0)); redraw(); }
+    else if (a === 'back15') { await seekBy(-15); redraw(); }
+    else if (a === 'fwd15') { await seekBy(15); redraw(); }
+    else if (a === 'markpeak') { markPeak(); redraw(); }
+    else if (a === 'notes') { ui.musicNotes = !ui.musicNotes; redraw(); }
+    else if (a === 'remove-ask') { ui.musicRemove = el.dataset.uri; redraw(); }
+    else if (a === 'remove-cancel') { ui.musicRemove = null; redraw(); }
+    else if (a === 'remove') { const uri = el.dataset.uri; ui.musicRemove = null; await removeSong(uri); if (!m.songs[uri] && ui.musicSong === uri) ui.musicSong = null; redraw(); }
+    else if (a === 'untagged') {
+        ui.musicUntagged = untaggedText(); redraw();
+        const box = ui.panel?.querySelector('.mw-music-copy');
+        if (box) { box.focus(); box.select(); box.setSelectionRange(0, box.value.length); try { if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(box.value); else document.execCommand('copy'); } catch { /* the text stays selected to copy by hand */ } }
+    }
+    return true;
+}
+export async function musicChange(e, redraw) {
+    const el = e.target.closest('[data-music-field]'); if (!el) return false;
+    const m = music(), f = el.dataset.musicField;
+    if (f === 'clientId') { if (m.clientId === el.value.trim()) return true; m.clientId = el.value.trim(); m.pending = null; ctx().saveSettingsDebounced(); redraw(); }
+    else if (f === 'import' && el.files?.[0]) { await importSheet(el.files[0]); el.value = ''; redraw(); }
+    else if (f === 'moods') setTag(el.dataset.uri, 'm', el.value);
+    else if (f === 'cues') { setTag(el.dataset.uri, 'cue', el.value); redraw(); }
+    else if (f === 'cuewords') { setTag(el.dataset.uri, 'cw', el.value); redraw(); }
+    else if (f === 'peak') { setTag(el.dataset.uri, 'pk', el.value); redraw(); }
+    else if (f === 'year') { setTag(el.dataset.uri, 'yr', el.value); redraw(); }
+    else if (f === 'kind') { forceMode(el.value || ''); redraw(); }
+    else if (f === 'search') { ui.musicSearch = el.value; redraw(); }
+    else if (f === 'plsearch') { ui.musicPlSearch = el.value; redraw(); }
+    return true;
+}
+export function musicInput(e, redraw) {
+    const el = e.target.closest('[data-music-field="search"],[data-music-field="plsearch"]'); if (!el) return false;
+    const f = el.dataset.musicField; if (f === 'search') ui.musicSearch = el.value; else ui.musicPlSearch = el.value;
+    clearTimeout(ui.musicSearchTimer); ui.musicSearchTimer = setTimeout(() => { redraw(); const box = ui.panel?.querySelector(`[data-music-field="${f}"]`); if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); } }, 400);
+    return true;
+}
+export function musicFold(e) {
+    const d = e.target; if (!d?.matches?.('[data-music-fold]')) return;
+    ui.musicOpen = { ...(ui.musicOpen ?? {}), [d.dataset.musicFold]: d.open };
+}

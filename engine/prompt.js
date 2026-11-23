@@ -36,6 +36,12 @@ let SHOWS = 'all';
 // names first, then the rest in turn, stronger ones more often) and the others go as one line of names, so traits
 // stay part of who someone is without crowding out this reply's feelings and dynamic. Off sends every trait in full.
 let TRAITS = { focus: true, scene: '', seed: 0 };
+// How turn-ons are sent (Settings \u203a What is sent \u203a Turn-ons), the same for everyone (character, player, cast):
+// mode 'fit': in an intimate scene, when the scene's words touch one, when the other person shows one, when it lit last
+// reply, and every `every` replies a random two as a reminder; 'heat': only in an intimate scene; 'all': every reply.
+// strong: only turn-ons and turn-offs at 60 and up (the third and fourth moon) are ever sent.
+let TURNS = { mode: 'fit', strong: false, every: 6, seed: 0, intimate: false, scene: '' };
+export const TURN_HEAT_MIN = 60;
 const TRAIT_FOCUS = 3;
 const isTrait = m => sectionOf(m) === 'trait' && !isAuthor(m);
 // How deep a trait runs, in words that don't say how much of the reply it fills (feelings and the dynamic decide that).
@@ -234,7 +240,18 @@ const STATUS_WORD = { '+': 'moved closer last reply', '-': 'blocked last reply',
 // Whether the scene's words touch a turn-on: its name or one of its extra words (whole words, endings allowed).
 const touchesTurn = (id, scene) => { const t = TURN_BY_ID[id], text = String(scene ?? '').toLowerCase(); if (!t || !text) return false;
     return `${t.noun} ${t.keys ?? ''}`.toLowerCase().split(/[^a-z']+/).filter(w => w.length >= 4).some(w => new RegExp(`\\b${w.slice(0, Math.max(4, w.length - 2))}`).test(text)); };
-const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+const livePrefs = state => Object.entries(state?.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id] && (!TURNS.strong || Math.abs(v) >= TURN_HEAT_MIN) && (TURNS.mode !== 'heat' || TURNS.intimate)).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]));
+// The reminder pick: a random two of someone's turn-ons, new each reminder reply (seeded by the reply number, so the
+// same reply always picks the same two).
+const turnRoll = (id, salt) => { let h = 2166136261; for (const c of `${TURNS.seed}:${salt}:${id}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const reminderDue = () => TURNS.every > 0 && (TURNS.seed < 3 || TURNS.seed % TURNS.every === 0);
+// Which of someone's turn-ons go this reply. signs: Map(turn id \u2192 { is }) of what the other person shows; lit: Set lit last reply.
+function sentPrefs(state, signsMap = null, lit = null, salt = '') {
+    const prefs = livePrefs(state);
+    if (TURNS.mode !== 'fit' || TURNS.intimate) return prefs;
+    const due = reminderDue() ? new Set([...prefs].sort((a, b) => turnRoll(a[0], salt) - turnRoll(b[0], salt)).slice(0, 2).map(([id]) => id)) : new Set();
+    return prefs.filter(([id]) => due.has(id) || touchesTurn(id, TURNS.scene) || signsMap?.get(id)?.is?.length || lit?.has(id));
+}
 // Turn-ons, wants, their own rows and inventory, for one person. Kinds pick which of their own rows belong here.
 // lit (main character only): { turns: Set, free: [{ text, off }], wants: Map(id \u2192 status), done: Set }.
 // signs: { map: Map(turn id \u2192 { is, not }) from engine/turns.js turnSigns, who: the other person's name }.
@@ -252,14 +269,13 @@ function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit =
         // 1.86: what the character knows stays known, but each one is only sent when it fits the moment: in an
         // intimate scene, when the scene's words touch it, when the other person shows it, or (the two strongest)
         // one reply in six as a reminder. Saves tokens on long lists without anyone forgetting anything.
-        const g = know.gate, strongest = new Set(prefs.slice(0, 2).map(([id]) => id));
-        const fits = ([id]) => !g?.on || g.intimate || touchesTurn(id, g.scene) || signs?.map?.get(id)?.is?.length || (g.refresh && strongest.has(id));
-        const rows = prefs.filter(fits).map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
+        const sent = new Set(sentPrefs(state, signs?.map, null, 'player').map(([id]) => id));
+        const rows = prefs.filter(([id]) => sent.has(id)).map(row), pick = modes => rows.filter(([m]) => modes.includes(m)).map(([, line]) => line);
         const known = pick(['known']), suspected = pick(['suspected']), unknown = pick(['scene', 'private']);
         if (known.length) out.push(`Turn-ons and turn-offs ${know.observer} knows about:`, ...known);
         if (suspected.length) out.push(`Turn-ons and turn-offs ${know.observer} suspects:`, ...suspected);
         if (unknown.length) out.push(`Turn-ons and turn-offs ${know.observer} doesn't know about:`, ...unknown);
-    } else if (prefs.length) out.push('Turn-ons and turn-offs:', ...prefs.map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${signNote(id, signs)}${lit?.turns?.has(id) ? ' (lit last reply)' : lit?.craving?.has(id) ? ` (craving: not lit for ${lit.craving.get(id)} replies)` : ''}`));
+    } else if (prefs.length && sentPrefs(state, signs?.map, lit?.turns, 'char').length) out.push('Turn-ons and turn-offs:', ...sentPrefs(state, signs?.map, lit?.turns, 'char').map(([id, v]) => `- ${tierWord(Math.abs(v))} turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].prompt ?? TURN_BY_ID[id].noun)}${signNote(id, signs)}${lit?.turns?.has(id) ? ' (lit last reply)' : lit?.craving?.has(id) ? ` (craving: not lit for ${lit.craving.get(id)} replies)` : ''}`));
     const free = person ? (lit?.free ?? []) : [];
     if (free.length) out.push(`Also set off last reply: ${free.map(x => `${pt(x.text)}${x.off ? ' (turn-off)' : ''}`).join(', ')}`);
     const wants = person ? liveWants(state, lit?.done) : [];
@@ -304,6 +320,8 @@ function composePrompt(state, name, extras = {}) {
         // reply. Now only when the scene draws attention to size, or one reply in five as a reminder.
         size: SIZE_SCENE.test(scene) || seed < 2 || seed % 5 === 0,
         intimate: PRIVATE_SCENE.test(scene) || [state, player?.state, ...(extras.cast ?? []).filter(p => p.inScene).map(p => p.state)].some(st => st?.enabled && aroused(st)) };
+    TURNS = { mode: ['all', 'fit', 'heat'].includes(extras.turnsSend) ? extras.turnsSend : extras.turnsWhenRelevant === false ? 'all' : 'fit', strong: extras.turnsStrong === true,
+        every: Number.isFinite(Number(extras.turnsEvery)) ? Math.max(0, Math.round(Number(extras.turnsEvery))) : 6, seed, intimate: gate.intimate, scene };
     const shown = st => m => mindOn(st, scene)(m) && factOn(st, scene, gate)(m);
     const mine = live(state).filter(m => m.kind !== 'story').filter(shown(state));
     const theirs = live(player?.state).filter(m => m.kind !== 'story').filter(shown(player?.state));
@@ -320,8 +338,8 @@ function composePrompt(state, name, extras = {}) {
     const lit = extras.lit ?? null;
     const signs = extras.signs ?? null, signed = Boolean(signs?.char?.size || signs?.user?.size);
     const mineExtra = extraLines(state, undefined, '', lit, null, { map: signs?.char, who: u }), storyExtra = extraLines(storyState, ['story']);
-    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n, gate: { on: extras.turnsWhenRelevant !== false, scene, refresh: gate.refresh, intimate: gate.intimate } }, { map: signs?.user, who: n });
-    const prefKnown = mode => livePrefs(player?.state).some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
+    const theirsExtra = extraLines(player?.state, ['mood', 'trait', 'state'], u, null, { knowledge: player?.knowledge ?? {}, observer: n, gate: {} }, { map: signs?.user, who: n });
+    const prefKnown = mode => sentPrefs(player?.state, signs?.user, null, 'player').some(([id]) => knowledgeEntry(player?.knowledge?.[`turn:${id}`]).mode === mode);
     const castSets = cast.map(person => [person.state, live(person.state).filter(m => m.kind !== 'story').filter(shown(person.state)), String(person.name).trim().slice(0, 80)]);
     const boardLines = Array.isArray(extras.board) ? extras.board : [];
     // The meters sit with the rest of what the character feels about the player; the weave line request goes last.
@@ -379,7 +397,7 @@ function composePrompt(state, name, extras = {}) {
     const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh), ...famLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
     const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
     if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length) {
-        const prefs = livePrefs(player.state).length, wants = liveWants(player.state).length;
+        const prefs = sentPrefs(player.state, signs?.user, null, 'player').length, wants = liveWants(player.state).length;
         const playerRule = `The player writes what ${u} says, chooses and thinks; what happens to ${u}'s body and circumstances follows the story. ${n} acts on the rows above at their strength: if they suspect ${u} is angry, they push or try to work out why; if they think ${u} is lying, they test it, even if they're wrong. Private rows stay hidden until the player shows them, and knowing a feeling isn't reading a mind. ${n} reacts as themselves and doesn't catch ${u}'s feelings.`;
         if (split) fx.push('', `In ${u}'s block (written_by="player"): ${playerRule.replace('the rows above', 'its rows')}`);
         out.push('', `<player_character name="${pa(U)}" written_by="player">`, `Everything in this block is about ${u}, not ${n}: looks, marks and facts here belong to ${u} alone.`,
@@ -388,7 +406,7 @@ function composePrompt(state, name, extras = {}) {
             ...personaLines(player.state, theirs, N, player.knowledge, U, { ...people, subject: U }), ...theirsExtra,
             ...(condition.length ? [`${u}'s body right now, from earlier replies: ${condition.map(pt).join(', ')}. It stays until the story heals or changes it.`] : []),
             ...(split ? [] : ['', playerRule]),
-            ...(prefs ? [turnOnsLine(n, u, { known: prefKnown('known'), suspected: prefKnown('suspected'), unknown: livePrefs(player.state).some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) })] : []),
+            ...(prefs ? [turnOnsLine(n, u, { known: prefKnown('known'), suspected: prefKnown('suspected'), unknown: sentPrefs(player.state, signs?.user, null, 'player').some(([id]) => !['known', 'suspected'].includes(knowledgeEntry(player.knowledge?.[`turn:${id}`]).mode)) })] : []),
             ...(wants ? [`Now and then, give ${u} openings toward their wants and goals and let the scene brush up against their fears. ${n} doesn't know them unless ${u} has shown them.`] : []),
             `</player_character>`);
     }
@@ -525,7 +543,7 @@ function composePrompt(state, name, extras = {}) {
         if (!st?.enabled) continue;
         const high = [
             ...liveWants(st).filter(w => w.value >= 81).map(w => `${w.kind}: ${pt(w.text)} (${tierWord(w.value)})`),
-            ...livePrefs(st).filter(([, v]) => Math.abs(v) >= 81).map(([id, v]) => `turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].noun ?? TURN_BY_ID[id].prompt)} (${tierWord(Math.abs(v))})`),
+            ...sentPrefs(st, st === state ? signs?.char : st === player?.state ? signs?.user : null, st === state ? lit?.turns : null, st === player?.state ? 'player' : 'char').filter(([, v]) => Math.abs(v) >= 81).map(([id, v]) => `turn-${v > 0 ? 'on' : 'off'}: ${pt(TURN_BY_ID[id].noun ?? TURN_BY_ID[id].prompt)} (${tierWord(Math.abs(v))})`),
             ...(st === storyState ? [] : activePersonalities(st).filter(p => p.strength >= 81).map(p => `${personalityCue(p).split(':')[0]} (${tierWord(p.strength)})`)),
         ];
         if (!high.length) continue;
@@ -562,11 +580,11 @@ function composePrompt(state, name, extras = {}) {
 // time (ONE_OF in catalogue/story.js); if an old chat has two on, the strongest wins. Second person goes with any
 // narrator. The full wording goes with the guide; a one-line reminder goes last, next to the prose rules, because
 // earlier replies in another point of view pull hard and the end of the note carries the most weight.
-const NARRATORS = ['pov_close_third', 'pov_close_third_coloured', 'pov_first', 'pov_omniscient', 'pov_outside'], TENSES = ['present_tense', 'pov_past_tense'];
+const NARRATORS = ['pov_close_third', 'pov_close_third_coloured', 'pov_first', 'pov_omniscient', 'pov_outside'], TENSES = ['present_tense', 'pov_past_tense'], GAZES = ['gaze_artful', 'gaze_leering'];
 export function viewpointLines(views, n, u, moods = {}) {
     const on = id => views.some(m => m.id === id), pick = ids => ids.filter(on).sort((a, b) => (moods[b] ?? 0) - (moods[a] ?? 0))[0] ?? '';
-    const narrator = pick(NARRATORS), tense = pick(TENSES), you = on('second_person');
-    if (!narrator && !tense && !you) return { guide: [], last: '' };
+    const narrator = pick(NARRATORS), tense = pick(TENSES), you = on('second_person'), gaze = pick(GAZES);
+    if (!narrator && !tense && !you && !gaze) return { guide: [], last: '' };
     const them = you ? `${u} (written as "you")` : u;
     const youLine = you ? `The narration calls ${u} "you": you feel the cold, ${n} looks at you. ${narrator === 'pov_first' ? `${n} stays "I", and everyone else is` : `${n} and everyone else are`} called by name or pronoun.`
         : ['pov_first', 'pov_close_third', 'pov_close_third_coloured'].includes(narrator) ? `${u} is called by name or pronoun, never "you".` : '';
@@ -577,14 +595,22 @@ export function viewpointLines(views, n, u, moods = {}) {
         pov_omniscient: `Narrate in omniscient third person: a narrator outside everyone, who can move between the people in the scene, show what one of them can't see, and know more than any of them. Change whose thoughts are shown only at a paragraph break, so it's always clear whose head the reader is in. ${u}'s thoughts and feelings are the player's to write, so the narrator shows ${u} from outside and goes inside everyone else freely.`,
         pov_outside: `Narrate in third person from outside, like a camera in the room: only what could be seen and heard reaches the page, and nobody's thoughts or feelings are named, ${n}'s included. Inner life shows only through action, faces, voices, silences and what people do with their hands, so the reader reads people the way the characters have to.`,
     };
+    // A male gaze goes with any narrator. It's whose eye the narration looks through, so with a narrator outside
+    // everyone it's the narration's own eye. No sample words: Opus repeats any it's given.
+    const inside = ['pov_close_third', 'pov_close_third_coloured', 'pov_first'].includes(narrator) || !narrator;
+    const eye = inside ? `${n}'s eye` : `The narration's eye, ${n}'s whenever the scene is with ${n},`;
+    const GAZE = {
+        gaze_artful: `Male gaze, artful. ${eye} looks at ${u}, and at anyone else ${n} wants, the way a painter or a cameraman would. It lingers, frames and comes back: how the light falls on them, the shape and lines of their body, how their clothes sit and move, how they hold themselves, the small habits they don't know they have, all in close, exact physical detail held a beat longer than the scene strictly needs. The looking is slow, admiring and sensual, and it is the point: the person is studied as something beautiful, and what the eye keeps returning to says as much about ${n} as about them. Keep it precise and specific to this body in this light, never generic praise, and never crude. Set one or two of these lingering looks into each reply, woven into the action and talk, so the scene keeps moving.`,
+        gaze_leering: `Male gaze, leering. ${eye} is a leering man's. It goes to ${u}'s body before the face, and to anyone else ${n} fancies the same way, sizes them up in crude, appraising, possessive terms, picks out what they might rather keep covered, and keeps sliding back to it while the talk is about something else. The descriptions are frankly sexual and objectifying, coarse rather than pretty, and the appetite shows in what gets picked out and how long it's held. It happens in everyday scenes and arguments too, not only in heated ones, and it colours the narration without pushing the plot toward sex. The narration keeps normal, correct grammar; the crudeness is in the choice of words and what is looked at, in plain coarse words from ${n}'s own time and kind of life, never trendy slang. The leer belongs to ${n}, so the narration never judges, excuses or softens it, and never turns it into romance. Keep it to the looking and the thoughts behind it: what ${u} does and feels stays the player's to write.`,
+    };
     const TENSE = {
         present_tense: `Write the narration in present tense: she turns, he says, the door opens. Keep to it through the whole reply, action and sex included. Drop into past tense only for what happened before this scene (a memory, backstory), then come straight back to present. Dialogue uses whatever tense people would naturally speak in.`,
         pov_past_tense: `Write the narration in simple past tense: she turned, he said, the door opened. Keep to it through the whole reply. Use "had" only briefly to step back to something earlier, then return to simple past. Dialogue uses whatever tense people would naturally speak in.`,
     };
     const guide = [`Point of view and tense, set by the player for this chat. They hold in every sentence of every reply, inside any author's voice or style.`,
-        ...[NARRATE[narrator], youLine, TENSE[tense]].filter(Boolean)];
+        ...[NARRATE[narrator], youLine, TENSE[tense], GAZE[gaze]].filter(Boolean)];
     const NAME = { pov_close_third: `close third person, staying with ${n}`, pov_close_third_coloured: `close third person, staying with ${n}, in plain grammar with ${n}'s attitude showing through a touch or two a paragraph`, pov_first: `first person as ${n}`, pov_omniscient: 'omniscient third person', pov_outside: 'third person from outside, nobody\'s thoughts' };
-    const parts = [NAME[narrator], you ? `${u} as "you"` : '', tense === 'present_tense' ? 'present tense' : tense ? 'past tense' : ''].filter(Boolean);
+    const parts = [NAME[narrator], you ? `${u} as "you"` : '', tense === 'present_tense' ? 'present tense' : tense ? 'past tense' : '', gaze === 'gaze_artful' ? `an artful male gaze on ${u}` : gaze ? `a leering male gaze on ${u}` : ''].filter(Boolean);
     const last = `Point of view: ${parts.join(', ')}. Earlier replies may use a different one; write this reply in the one set here, from the first sentence to the last.`;
     return { guide, last };
 }

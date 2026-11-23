@@ -103,6 +103,16 @@ const AGE_GAP = 2, HEIGHT_GAP = 5;
 // Ages, heights and interests come from each state's profile.
 // Returns Map(turn id \u2192 { v, is: [labels], not: [labels] }) for the person's turn-ons and turn-offs that
 // the other person shows. For turn-offs, `not` is the opposite showing instead, which counts in their favour.
+// Opposites attract: pairs of traits that are each other's opposite. "contrast" in a turn-on's signs counts when the
+// other person has one side of a pair and this person the other.
+export const CONTRASTS = [['introverted', 'extroverted'], ['wallflower', 'life_of_party'], ['sunshine', 'cynical'], ['sunshine', 'jaded'], ['sunshine', 'brooding_hero'],
+    ['innocent', 'corrupted'], ['sheltered', 'feral'], ['good_girl', 'bad_boy'], ['good_girl', 'wild_child'], ['boy_next_door', 'bad_boy'], ['girl_next_door', 'bad_boy'],
+    ['uptight', 'hedonistic'], ['uptight', 'chaotic_energy'], ['disciplined', 'impulsive'], ['methodical', 'reckless'], ['logical', 'intuitive'], ['idealistic', 'cynical'],
+    ['hopeless_romantic', 'cynical'], ['soft_hearted', 'cold_blooded'], ['soft_hearted', 'callous'], ['puritanical', 'slutty'], ['traditional', 'rebellious'],
+    ['traditional', 'anti_authoritarian'], ['dutiful', 'rebellious'], ['devout', 'nihilistic'], ['skeptical', 'superstitious'], ['bookish', 'party_animal'],
+    ['frugal', 'spendthrift'], ['classy', 'trashy'], ['polite', 'crude'], ['gentlemanly', 'crude'], ['sim_neat', 'sim_slob'], ['ice_queen', 'sunshine'],
+    ['princess', 'feral'], ['mature', 'immature'], ['people_pleaser', 'blunt'], ['workaholic', 'lazy'], ['uptight', 'lovable_degenerate'], ['sensitive', 'insensitive'],
+    ['respectability_obsessed', 'trashy'], ['lawful_good', 'chaotic_neutral'], ['sim_loner', 'sim_friendly'], ['sim_no_humour', 'sim_good_humour']];
 const NO_SIGNS = { is: [], not: [] }, STOP = new Set(['with', 'about', 'other', 'people', 'things', 'their', 'being', 'someone', 'the', 'and', 'her', 'his', 'for', 'old', 'new', 'small', 'little']);
 export function turnSigns(self, other) {
     const prefs = self?.state?.prefs ?? {}, st = other?.state;
@@ -114,6 +124,9 @@ export function turnSigns(self, other) {
         if (x === 'older' || x === 'younger') return (x === 'older' ? gap >= AGE_GAP : gap <= -AGE_GAP) ? `${x} (${b})` : '';
         if (x === 'taller' || x === 'shorter') return (x === 'taller' ? tall >= HEIGHT_GAP : tall <= -HEIGHT_GAP) ? `${x} (${cleanHeight(st.height)})` : '';
         if (x.startsWith('skill:')) { const s = SKILL_BY_ID[x.slice(6)]; return s && (skills[s.id] ?? 0) >= 5 ? `${s.label.toLowerCase()} ${skills[s.id]}/10` : ''; }
+        if (x === 'contrast') { const has = (who, id) => (who?.moods?.[id] ?? 0) > 0 && BY_ID[id];
+            const hit = CONTRASTS.flatMap(([p, q]) => [[p, q], [q, p]]).filter(([mine, theirs]) => has(self.state, mine) && has(st, theirs));
+            return hit.slice(0, 2).map(([mine, theirs]) => `${BY_ID[theirs].label.toLowerCase()} to their ${BY_ID[mine].label.toLowerCase()}`).join(', '); }
         if (x.startsWith('tie:')) { const t = RELATIONSHIP_BY_ID[x.slice(4)]; return t && (ties[t.id] ?? 0) > 0 ? t.label.toLowerCase() : ''; }
         const m = BY_ID[x], v = moods[x] ?? 0;
         return m && (analysed(m) ? v >= 41 : v > 0) ? m.label.toLowerCase() : '';

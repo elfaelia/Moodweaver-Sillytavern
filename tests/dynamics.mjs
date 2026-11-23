@@ -36,5 +36,18 @@ for (const pace of ['slow', 'steady', 'quick']) {
     const b = computeBond(bond, 99, 'E', 'L', null, list);
     check(b.source === 'meters', `an old story call wears off (now from ${b.source}: ${b.dynamic.name})`);
 }
+{
+    // 1.91.6: a close old friendship early in a chat (low meters, no drop) never has "Fading out" or "Drifting apart"
+    // underneath; a real drop over the last dozen replies still can.
+    const ON2 = ['hi', 'ly', 'op'];
+    const bond = cleanBond({ on: true, extra: true, pace: 'steady', more: { on: ON2, val: { hi: 70 } } });
+    const warm = Array.from({ length: 6 }, (_, i) => ({ pos: i, key: `w${i}`, s: { f: 2, r: 0, t: 1, p: 0, l: 0, m: { ly: 1 }, thinks: [], sparks: [] } }));
+    const lean = dynamicLean([{ affectionate: 65, feels_safe: 65 }], { childhood_friends: 70 }, '', '');
+    const early = computeBond(bond, 7, 'Kenny', 'Ellie', { f: 0, r: 0, t: 0, p: 0, l: 0, lean }, warm);
+    check(!['Fading out', 'Drifting apart'].includes(early.under?.name ?? early.underRaw?.name), `early friendship isn't read as fading (main ${early.dynamic.name}, under ${early.under?.name ?? 'none'})`);
+    const cool = Array.from({ length: 14 }, (_, i) => ({ pos: i, key: `c${i}`, s: { f: i < 4 ? 6 : -3, r: 0, t: 0, p: 0, l: 0, m: { ly: i < 4 ? 2 : -2, op: -3 }, thinks: [], sparks: [] } }));
+    const later = computeBond(bond, 15, 'Kenny', 'Ellie', { f: 0, r: 0, t: 0, p: 0, l: 0, lean: null }, cool);
+    check(later.scene.fall >= 8, `a real drop is measured (fall ${later.scene.fall}, under ${later.underRaw?.name ?? 'none'})`);
+}
 console.log(fails ? `${fails} failed` : 'All passed.');
 process.exitCode = fails ? 1 : 0;

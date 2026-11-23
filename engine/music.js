@@ -376,4 +376,89 @@ export function scoreSong(tags, snap, opts = {}) {
     for (const id of moods) add(POINTS.mood, labelOf('m', id));
     if (snap.fams[0] && tags.f.includes(snap.fams[0])) add(POINTS.family1, moods.length ? '' : labelOf('f', snap.fams[0]));
     if (snap.fams[1] && tags.f.includes(snap.fams[1])) add(POINTS.family2);
-    const place = tags.p.find(id => snap.places.has(id)); if (place) add(POINTS.place, labelOf('p', plac
+    const place = tags.p.find(id => snap.places.has(id)); if (place) add(POINTS.place, labelOf('p', place));
+    // Meaning: both halves felt at once, by the person the song is about when it names one.
+    const meaning = tags.cm.find(id => here.length ? here.some(c => meaningsOf(snap.moodBy[c]).has(id)) || (mine && snap.meanings.has(id)) : snap.meanings.has(id));
+    if (meaning) add(POINTS.meaning, labelOf('cm', meaning));
+    const moment = tags.mo.find(id => snap.moments.has(id)); if (moment) add(POINTS.moment, labelOf('mo', moment));
+    const dynW = snap.story ? POINTS.dynamic * 2 : POINTS.dynamic;
+    if (snap.dyn && tags.d.includes(snap.dyn)) add(dynW, labelOf('d', snap.dyn)); else if (snap.under && tags.d.includes(snap.under)) add(dynW / 2);
+    // Story: a song about the two of them (tagged for both) carries a scene between them, like a love theme.
+    if (snap.story && here.length + (mine ? 1 : 0) >= 2) add(POINTS.both, 'the two of them');
+    if (tags.h && tags.h === snap.heat) add(POINTS.heat, labelOf('h', tags.h)); else if (tags.h && snap.heat) add(POINTS.heatNear); else if (tags.h === 'slow') add(POINTS.slowOutside);
+    if (tags.e) { const d = Math.abs(tags.e - snap.energy); add(d === 0 ? POINTS.energySame : d === 1 ? POINTS.energyNear : POINTS.energyFar * (d - 1)); }
+    if (tags.fav) add(POINTS.favourite);
+    if (opts.recent?.has(opts.uri)) add(POINTS.recent);
+    // Lyric cue: the story just said one of this song's phrases. A nudge, never a takeover, and only when the song
+    // also fits this kind of scene (app/music.js keeps the cooldown).
+    const cued = opts.cued?.get?.(opts.uri);
+    const cueOn = Boolean(cued && (!snap.mode || fitsMode(tags, snap.mode, snap))); if (cueOn) add(POINTS.cue, `\u201c${cued}\u201d`);
+    if (tags.th && mine === true && opts.themeOn !== 'off') {
+        const appears = snap.appear.some(a => chars.includes(a)), big = (snap.moodVal[snap.top[0]] ?? 0) >= 81;
+        if (appears || (opts.themeOn === 'always' ? true : big)) add(POINTS.theme, 'theme');
+    }
+    // Sounds like the songs you said fit this kind of scene (Spotify's genres: trip hop, dream pop\u2026).
+    if (opts.sound && opts.g?.length) {
+        const best = Math.max(...opts.g.map(g => opts.sound[norm(g)] ?? 0)), worst = Math.min(...opts.g.map(g => opts.sound[norm(g)] ?? 0));
+        const s = best > 0 ? Math.min(POINTS.soundMax, best * POINTS.sound) : Math.max(-POINTS.soundMax, worst * POINTS.sound);
+        if (s) add(s, s > 0 ? `sounds like ${opts.g.find(g => (opts.sound[norm(g)] ?? 0) === best)}` : '');
+    }
+    if (opts.learn) {
+        const keys = learnKeys(snap); let l = 0;
+        for (const k of keys) l += opts.learn[k] ?? 0;
+        if (l) add(Math.max(POINTS.notHereMin, Math.min(POINTS.fitsMax, l)), l > 0 ? 'you said it fits' : '');
+    }
+    return { score: Math.round(score * 10) / 10, why, cue: cueOn };
+}
+// songs: [{ uri, tags (merged), learn }] \u2192 best first, unplayable ones left out.
+export function rank(songs, snap, opts = {}) {
+    const sound = opts.sound?.[snap.mode || 'any'];
+    const list = songs.map(s => ({ uri: s.uri, fits: fitsMode(s.tags, snap.mode, snap), ...scoreSong(s.tags, snap, { ...opts, uri: s.uri, learn: s.learn, g: s.g, sound }) })).filter(x => x.score > -Infinity).sort((a, b) => b.score - a.score);
+    // A song the story just echoed (and that fits the scene) joins the front-runners: half a point behind the best,
+    // so it's a real chance, not a certainty.
+    const best = list.find(x => !x.cue)?.score;
+    if (best !== undefined && list.some(x => x.cue)) { for (const x of list) if (x.cue) x.score = Math.max(x.score, Math.round((best - 0.5) * 10) / 10); list.sort((a, b) => b.score - a.score); }
+    return list;
+}
+// One pick from the songs within a point of the best, more often the higher ones. rng is Math.random unless a test passes its own.
+export function pick(ranked, rng = Math.random) {
+    if (!ranked.length) return null;
+    const best = ranked[0].score, near = ranked.filter(x => x.score >= best - 1).slice(0, 12);
+    const weights = near.map(x => x.score - (best - 1) + 0.5), total = weights.reduce((a, b) => a + b, 0);
+    let r = rng() * total;
+    for (let i = 0; i < near.length; i++) { r -= weights[i]; if (r <= 0) return near[i]; }
+    return near.at(-1);
+}
+// The pick, then the best of the rest, so Spotify keeps playing fitting songs by itself.
+export function lineup(ranked, first, size = LINEUP) {
+    if (!first) return [];
+    // Songs for the same kind of scene and close behind the pick first, so Spotify never wanders off on its own.
+    const out = [first.uri, ...ranked.filter(x => x.uri !== first.uri && (x.fits || !first.fits) && x.score >= Math.max(first.score - 3, GOOD_ENOUGH)).slice(0, size - 1).map(x => x.uri)];
+    // Never let the music run dry: fill up with the rest of this kind of scene's songs, best first, then go round
+    // them again (a repeat beats silence). Only when no song at all fits this kind do the next best others fill in.
+    const kind = ranked.filter(x => x.fits || !first.fits).map(x => x.uri);
+    for (const u of kind) { if (out.length >= size) break; if (!out.includes(u)) out.push(u); }
+    if (out.length < size && kind.length) for (let i = 0; out.length < size && i < size * 2; i++) { const u = kind[i % kind.length]; if (u !== out.at(-1)) out.push(u); }
+    for (const x of ranked) { if (out.length >= size) break; if (!out.includes(x.uri)) out.push(x.uri); }
+    return out;
+}
+export { GOOD_ENOUGH };
+
+// ---- When the music changes ----
+// A real shift between two snapshots. Mood families only count once they've held for two replies, which
+// app/music.js handles by passing the family it has seen twice (famHeld).
+export function shiftOf(before, now, famHeld = now.fams[0]) {
+    if (!before) return { big: true, any: true, why: 'start' };
+    const same = (a, b) => a.size === b.size && [...a].every(x => b.has(x));
+    if (before.who.join('|') !== now.who.join('|')) return { big: true, any: true, why: 'someone else' };
+    if (before.mode !== now.mode) return { big: true, any: true, why: 'scene kind', mode: true };
+    if (!same(before.places, now.places)) return { big: true, any: true, why: 'new place' };
+    if (!same(before.moments, now.moments)) return { big: true, any: true, why: 'new moment' };
+    if (before.heat !== now.heat) return { big: true, any: true, why: 'heat' };
+    if (Math.abs(before.energy - now.energy) >= 2) return { big: true, any: true, why: 'energy' };
+    // Story (film score): a cue holds through the scene; only a new scene (place, kind, people, heat) changes it.
+    if (now.story) return { big: false, any: before.fams[0] !== now.fams[0], why: before.fams[0] !== now.fams[0] ? 'small' : '' };
+    if (famHeld && before.fams[0] !== famHeld) return { big: true, any: true, why: 'feeling' };
+    if (before.energy !== now.energy || before.fams[0] !== now.fams[0] || before.dyn !== now.dyn) return { big: false, any: true, why: 'small' };
+    return { big: false, any: false, why: '' };
+}

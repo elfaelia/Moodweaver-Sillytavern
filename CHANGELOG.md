@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.97.3
+- Taken out again: the 1.97.2 ask to list the player's message in thinking, and the closing "it answers everything in the player's newest message". They risked replies that answer the message point by point. The note's first line now only says the reply picks up from the player's newest message as written and carries on from it without retelling it, and that earlier replies are settled.
+- New: Settings › What is sent › Where the notes go. After your message (as before); Before your message, writing rules after (moods, facts and the rest before it; point of view, prose rules, pattern breaker and the hidden-line reminder after it); Before your message, only the hidden-line reminder after. The note goes at depth 1 for the "before" choices and the reminder at depth 0, so the hidden line keeps coming back. The preview shows where your message falls.
+
+## 1.97.2
+- The fresh note (sent right after your newest message, in the same turn) now opens by saying the reply answers that message: everything you did, said, asked or noticed happens as written and gets its answer, nothing skipped or changed. Opus is asked to start its thinking by listing those things in a few words each (Anthropic's "ground it first" advice for long prompts), and to treat earlier replies as settled (Anthropic's advice for Opus 5.5 in chat, so its thinking stays on the newest turn).
+- The note's last line points back at your message too, just before the hidden-line reminder, so your message is named at both ends of the note.
+- Trimmed: the "check the whole draft in your thinking" and "plan how to do them well" asks are gone (Anthropic advises against telling Opus 5.5 to think more in chat), the prose-rules lead-in no longer says the rules matter more than any story beat, and the point-of-view, voice, weave and dark-story lines are shorter. Dark rows are named once, in the "On the page" line, not also in "Turned up highest", and the follow-through line no longer repeats the fiction frame the guide already gives.
+
 ## 1.97.1
 - The loading strip no longer fills with "Script error. (:0)". Since 1.90.4 it listened to every error on the whole SillyTavern page and stayed listening after loading, so errors from scripts that aren't Moodweaver's (a browser add-on, another extension, a script from another site, which Safari reports only as a bare "Script error." with no file) showed up under Moodweaver's name. It now shows only errors from Moodweaver's own files.
 - The panel's typing, tap, key and change handlers report any slip of their own by name ("typing: ...") in the strip, so a real Moodweaver error is never hidden, and one slip never stops the next tap.

@@ -41,10 +41,12 @@ export const KEY = 'moodweaver';
 export const PROMPT_KEY = 'moodweaver-state';
 // The guide half of a split note (Settings \u203a What is sent): sent in the prompt, above the chat, where it can be cached.
 export const GUIDE_KEY = 'moodweaver-guide';
+// The short reminder that follows the player's message when the notes go before it.
+export const TAIL_KEY = 'moodweaver-reminder';
 // Takes both halves of the note out, for a paused panel, a quiet generation or an error.
-export const clearNotes = c => { c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); c.setExtensionPrompt(GUIDE_KEY, '', 0, 0, false, 0); };
+export const clearNotes = c => { c.setExtensionPrompt(PROMPT_KEY, '', 1, 0, false, 1); c.setExtensionPrompt(GUIDE_KEY, '', 0, 0, false, 0); c.setExtensionPrompt(TAIL_KEY, '', 1, 0, false, 1); };
 export const ctx = () => SillyTavern.getContext();
-export const VERSION = '1.97.1';
+export const VERSION = '1.97.3';
 // Which folder this copy runs from, so a second installed copy can be spotted and named.
 export const SELF = new URL('../index.js', import.meta.url).href;
 export const folderOf = url => { try { return decodeURIComponent(new URL(url).pathname.split('/').slice(-2, -1)[0] || '?'); } catch { return '?'; } };

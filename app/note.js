@@ -6,7 +6,7 @@ import { stressLines } from '../engine/stress.js';
 import { opinionLines } from '../engine/opinions.js';
 import { secretLines } from '../engine/secrets.js';
 import { settings } from './settings.js';
-import { GUIDE_KEY, KEY, PROMPT_KEY, clearNotes, ctx, run, tintLauncher } from './state.js';
+import { GUIDE_KEY, KEY, PROMPT_KEY, TAIL_KEY, clearNotes, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta, feelingId } from '../engine/board.js';
 import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
@@ -114,14 +114,17 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
             ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
             ...(sec ? secretLines({ ...sec, n, u, scene: skillScene0.scene }) : [])].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes, order: settings().noteOrder });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // Music \u203a "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
         if (musicLine) { result.prompt = result.prompt ? `${result.prompt}\n${musicLine}` : musicLine; result.tokens = (result.tokens ?? 0) + Math.ceil(musicLine.length / 4); }
-        // In-chat, user role. Depth 0 puts the note after the latest chat message.
-        // Preset instructions outside chat history can still follow it.
-        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, settings().depth, false, 1);
+        // In-chat, user role. Depth 0 puts the note after the latest chat message, depth 1 just before it, where the
+        // player's message is read last (Settings \u203a What is sent \u203a Where the notes go); a short reminder then
+        // follows it at depth 0. Preset instructions outside chat history can still come after both.
+        const before = settings().noteOrder === 'before' || settings().noteOrder === 'rules';
+        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, before ? 1 : settings().depth, false, 1);
+        c.setExtensionPrompt(TAIL_KEY, before ? result.tail ?? '' : '', 1, 0, false, 1);
         // The guide sits in the prompt above the chat (system role), so it stays the same text reply after reply and
         // can be cached along with everything before it.
         c.setExtensionPrompt(GUIDE_KEY, result.fixed ?? '', 0, 0, false, 0);

@@ -45,7 +45,7 @@ export function renderPreview() {
             <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first \u00b7 ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply \u00b7 target ${info.target ?? '\u2014'}${guide ? ' (for the fresh part)' : ''} \u00b7 ${info.selectedIds?.length || 0} settings in play</p>`;
     }
     const preview = ui.panel.querySelector('[data-preview]');
-    if (preview) preview.textContent = info.prompt ? `${info.fixed ? `${info.fixed}\n\n` : ''}${info.prompt}` : 'No mood directions are being sent.';
+    if (preview) preview.textContent = info.prompt ? `${info.fixed ? `${info.fixed}\n\n` : ''}${info.prompt}${info.tail ? `\n\n[your message goes here]\n\n${info.tail}` : ''}` : 'No mood directions are being sent.';
     const audit = ui.panel.querySelector('[data-audit]');
     if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role \u00b7 depth ${settings().depth}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
     const last = ui.panel.querySelector('[data-last-prompt]');

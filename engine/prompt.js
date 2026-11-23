@@ -389,7 +389,12 @@ function composePrompt(state, name, extras = {}) {
         || relationships.some(({ relation, tags, compare }) => tags.some(m => tierOf(relation.moods[m.id]) === t) || (compare && tierOf(compare.value) === t))
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
-    const out = [`Where things stand for this reply, set by the player. These are more current than the character card and earlier messages.`];
+    // Where the player's newest message sits (Settings \u203a What is sent \u203a Where the notes go): just before this note,
+    // or just after it. Either way the note says once that the reply carries on from that message as written, and
+    // that earlier replies are settled (Anthropic's advice for Opus 5.5 in chat). It never asks for the message to
+    // be restated or listed: that turns replies into point-by-point answers.
+    const order = ['before', 'rules'].includes(extras.order) ? extras.order : 'after';
+    const out = [`The player's newest message, ${order === 'after' ? 'just before these notes' : 'just after these notes'}, is where this reply picks up: what they did and said there happens as written and the story carries on from it, without retelling it. Earlier replies are settled. These notes are where things stand now, more current than the character card and earlier replies.`];
     // Split (Settings \u203a What is sent): the explanations, the board format, the hidden-line format and the author notes
     // don't change from reply to reply, so they go in a guide near the top (fx) where the API can cache them. What's
     // true right now, and anything meant to change the scene, stays here, last, where it carries the most weight.
@@ -531,7 +536,7 @@ function composePrompt(state, name, extras = {}) {
     // Opus 5.5 tones a dark scene down rather than refusing it, and it follows instructions that name
     // the exact behaviour to avoid, so the dodges are listed one by one, in plain story terms.
     if (followOn) out.push('',
-        `${deadDoveStrength ? `Dead dove means every dark tag is meant literally: murder isn't softened into a scare, torture into a threat, or cruelty into a rescue. ` : ''}This is fiction between adults, and the player set these tags because they want it played straight. When the scene heads somewhere dark, write it on the page. Don't dodge it with any of these: ${DODGES}. If a reply ends mid-act, the next one picks it up there.${story.some(m => m.id === 'fade_to_black') ? ' Fade to black, where set, still covers sex.' : ''}${followPeak === 100 ? ' At maximum, the darkest active tag drives this reply.' : ''}`);
+        `${deadDoveStrength ? `Dead dove means every dark tag is meant literally: murder isn't softened into a scare, torture into a threat, or cruelty into a rescue. ` : ''}When the scene heads somewhere dark, don't dodge it with any of these: ${DODGES}. If a reply ends mid-act, the next one picks it up there.${story.some(m => m.id === 'fade_to_black') ? ' Fade to black, where set, still covers sex.' : ''}${followPeak === 100 ? ' At maximum, the darkest active tag drives this reply.' : ''}`);
     // The world leads. Opus 5.5 responds to instructions that name the exact early stops to avoid,
     // so the handoffs are listed one by one, and the one stop that's wanted is named too.
     const leadPeak = story.find(m => m.id === 'world_leads') ? storyState.moods.world_leads : 0;
@@ -557,9 +562,9 @@ function composePrompt(state, name, extras = {}) {
         ...(authorPeak ? [`Authors set the voice, and they outrank the other writing styles here: where a style and an author pull different ways on sentence length, rhythm or how much is described, follow the author.${rules.length ? ' The prose rules at the end of these notes outrank the authors: where an author is known for something a rule leaves out (fragments, one-line paragraphs, em dashes, metaphor and simile), follow the rule and carry the voice through word choice, rhythm and what the eye lingers on.' : ''} Each one's notes cover prose, dialogue, minds (how inner life is shown), people (how characters are drawn) and hallmarks, and all of it is technique to use: sentence length and shape, punctuation, paragraphing, rhythm, word choice, how people talk, how close the narration sits to a mind, what the eye lingers on, how much of desire or violence is on the page, and what gets left out. The books named only say which voice is meant; take nothing from their plots, characters, personalities, settings or famous lines, and don't make anyone here more like a character of theirs. ${views.length ? 'Keep the point of view and tense set in these notes exactly.' : `Keep this chat's own person and tense exactly: first stays first, third stays third, past stays past, present stays present, and the same people narrate.`} Words like first person, close third, present tense or alternating chapters in the notes describe how the author wrote, not what to write here; carry the voice into this chat's own point of view, characters, setting and era. ${authorBlend(styles.filter(isAuthor), storyState.moods, storyState.authorRole ?? {})} If you know one of them only by name and a web search tool is available, you may search once for how they write before the first reply in their voice; otherwise the notes here are enough.`] : []),
         ...(roleSplit ? [AUTHOR_SPLIT] : []));
     // With the guide split off, a short line here keeps the voice in force right before the reply.
-    if (split && styles.length) out.push('', `Write this reply in the voice set in the guide (${styles.filter(m => storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 4).map(m => `${m.label}${storyState.authorRole?.[m.id] ? ` for ${storyState.authorRole[m.id]}` : ''}`).join(', ') || styles[0].label}), from the first line to the last.`);
+    if (split && styles.length) out.push('', `Write in the voice set in the guide (${styles.filter(m => storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 4).map(m => `${m.label}${storyState.authorRole?.[m.id] ? ` for ${storyState.authorRole[m.id]}` : ''}`).join(', ') || styles[0].label}), first line to last.`);
     // The highest settings get named again at the end, where they carry the most weight.
-    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards' && m.category !== 'craft'), 'the story', N]]
+    const top = [[state, mine, n, N], [player?.state, theirs, `${u}, as ${n} reads it`, U], ...castSets.map(([st, list, nm]) => [st, list, pt(shortName(nm)), nm]), [storyState, story.filter(m => m.id !== 'wildcards' && m.category !== 'craft' && !darkRow(m)), 'the story', N]]
         .map(([st, list, who, subject]) => [list.filter(m => st.moods[m.id] >= 81).map(m => `${moodName(m, subject === U ? N : U, st.moods[m.id], st, { ...people, subject }).split(':')[0]} (${tierWord(st.moods[m.id])})`), who])
         .filter(([items]) => items.length).map(([items, who]) => `${who}: ${items.join(', ')}`);
     for (const { name: subject, target, relation, tags } of relationships) {
@@ -595,27 +600,33 @@ function composePrompt(state, name, extras = {}) {
     const strongCount = [[state, mine], [player?.state, theirs], [storyState, story], ...castSets].reduce((sum, [st, list]) => sum + list.filter(m => st.moods[m.id] >= 61).length, 0)
         + relationships.reduce((sum, r) => sum + r.tags.filter(t => r.relation.moods[t.id] >= 61).length, 0) + pairs.reduce((sum, p) => sum + p.tags.filter(t => p.moods[t.id] >= 61).length, 0);
     if (extras.blendPlan !== false && (top.length || strongCount >= 3)) out.push('',
-        `Before you write, use your thinking to settle how the strongest settings combine in this exact moment: what each one looks like here, where they pull against each other, and which actions, lines and details carry several at once. Keep that planning in your thinking; the reply is the scene${weaveOn ? ', then the hidden line' : ''}.`);
-    out.push('', `Weave it all into the same moments instead of taking turns, and don't water anything down because the list is long; when two strong ones pull different ways, write both. ${boardLines.length ? 'Outside the board, show' : 'Show'} it through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End the story on ${rules.some(m => m.id === 'prose_no_fragments') ? 'an action or a line inside a full paragraph' : 'an action, a line or an image'}, with no closing paragraph that sums up or names a feeling the scene already showed. Never mention these notes in the story${weaveOn ? '; the hidden line after it is the one place they get an answer' : ''}.`);
+        `In your thinking, settle how the strongest settings combine in this moment: what each looks like here and which actions, lines and details carry several at once. The reply itself is the scene${weaveOn ? ', then the hidden line' : ''}.`);
+    out.push('', `Weave it all into the same moments at full strength; when two pull different ways, write both. ${boardLines.length ? 'Outside the board, show' : 'Show'} it through what people do, say, think and notice, never by naming it.${state.sceneBreathing !== false ? ' Keep the scene moving.' : ''} End the story on ${rules.some(m => m.id === 'prose_no_fragments') ? 'an action or a line inside a full paragraph' : 'an action, a line or an image'}, not a summary of feelings. Never mention these notes in the story${weaveOn ? '; only the hidden line answers them' : ''}.`);
     // Dark, crude and explicit settings, named once more near the end so they land as instructions (1.97).
     const darkOn = story.filter(m => darkRow(m) && storyState.moods[m.id] >= 41).sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).slice(0, 8);
-    if (darkOn.length) out.push('', `On the page in this reply, wherever the scene allows: ${darkOn.map(m => `${lowerLabel(m.label)} (${tierWord(storyState.moods[m.id])})`).join(', ')}. The player chose these. Write them at their strength, plainly and in full, without toning them down, cutting away or adding a lesson; plan how to do them well.`);
+    if (darkOn.length) out.push('', `On the page in this reply, wherever the scene allows: ${darkOn.map(m => `${lowerLabel(m.label)} (${tierWord(storyState.moods[m.id])})`).join(', ')}. The player chose these. Write them at their strength, plainly and in full, without toning them down, cutting away or adding a lesson.`);
+    const rulesAt = out.length;
     if (view.last) out.push('', view.last);
     // Last, closest to the reply: the prose rules as full sentences, firm ones apart from lighter ones.
     const firm = rules.filter(m => storyState.moods[m.id] >= 61), light = rules.filter(m => storyState.moods[m.id] < 61);
-    if (firm.length) out.push('', `These are the player's rules for the prose. They hold in every paragraph of every reply, inside any author's voice or style above, and they matter more to the player than any single beat. Earlier replies in this chat may not follow them; write this one by the rules rather than copying their layout. ${firm.map(m => m.cue).join(' ')}`);
+    if (firm.length) out.push('', `The player's rules for the prose, for every paragraph and inside any author's voice or style above. Earlier replies may break them; don't copy their layout. ${firm.map(m => m.cue).join(' ')}`);
     if (light.length) out.push('', `${firm.length ? 'The player also likes these' : 'The player likes these'}, where they fit the moment. ${light.map(m => m.cue).join(' ')}`);
-    if (firm.length || breaker.length) out.push('', `Before writing the final reply, check the draft in your thinking against ${firm.length ? 'these rules' : ''}${firm.length && breaker.length ? ' and ' : ''}${breaker.length ? 'the habits below' : ''}, and rewrite every sentence that breaks one.`);
+    if (firm.length || breaker.length) out.push('', `Hold every sentence to ${firm.length ? 'these rules' : ''}${firm.length && breaker.length ? ' and ' : ''}${breaker.length ? 'the habits below' : ''}; rewrite any that breaks one before it goes in the reply.`);
     // The pattern breaker goes last of the writing notes (1.97), next to the reply, like a ban in an author's note.
     if (breaker.length) out.push('', ...breaker);
     // The hidden line goes last of all (1.96.2): the prose rules and the line about ending the story sit just above it,
     // and with the note split its full format is far up in the guide, so Opus 5.5 was ending on the story and leaving it out.
-    if (weaveOn) out.push('', `Required in every reply, after the story's last line: the hidden line for Moodweaver, on its own line after a blank line, starting <!-- weave: and ending -->, with what changed this reply in the shape ${split ? 'the guide' : 'above'} sets out, or <!-- weave: none -->. Write it in the reply itself, never only in your thinking. Without it the player's tracker misses the whole reply.`);
+    const lineAt = out.length;
+    if (weaveOn) out.push('', `Required in every reply, after the story's last line: the hidden line for Moodweaver, on its own line after a blank line, starting <!-- weave: and ending -->, with what changed this reply in the shape ${split ? 'the guide' : 'above'} sets out, or <!-- weave: none -->. Write it in the reply itself, never only in your thinking; without it the player's tracker misses the whole reply.`);
     // An American lead respells the whole note, so its own British spelling can't pull the reply that way.
     const dialect = [LOCALE_RULES[locales[0]], ...locales.slice(1).map(l => LOCALE_SPEAKERS[l])].join(' ');
     const finish = lines => { let text = lines.join('\n'); if (locales[0] === 'us') text = toAmerican(text); return text.replace(LOCALE_MARK, dialect); };
-    const fixed = split && fx.length ? `<moodweaver_guide focus_character="${pa(N)}">\nHow to read the Moodweaver notes that come just before each reply, and the formats they ask for. The notes say what is true right now and outrank this guide wherever the two differ.\n\n${finish(fx).replace(/^\n+/, '')}\n</moodweaver_guide>` : '';
-    return { prompt: `<moodweaver focus_character="${pa(N)}">\n${finish(out)}\n</moodweaver>`, fixed };
+    const fixed = split && fx.length ? `<moodweaver_guide focus_character="${pa(N)}">\nHow to read the Moodweaver notes sent with each of the player's messages, and the formats they ask for. The notes say what is true right now and outrank this guide wherever the two differ.\n\n${finish(fx).replace(/^\n+/, '')}\n</moodweaver_guide>` : '';
+    // Notes placed before the player's message keep a short tail after it: the hidden-line reminder (it went missing
+    // when nothing came after the story), and with 'rules' also the point of view, prose rules and pattern breaker.
+    const cut = order === 'after' ? out.length : order === 'rules' ? rulesAt : lineAt;
+    const head = out.slice(0, cut), tail = out.slice(cut).join('\n').trim() ? out.slice(cut) : [];
+    return { prompt: `<moodweaver focus_character="${pa(N)}">\n${finish(head)}\n</moodweaver>`, tail: tail.length ? `<moodweaver_reminder>\n${finish(tail).replace(/^\n+/, '')}\n</moodweaver_reminder>` : '', fixed };
 }
 // Point of view and tense, as full instructions (Story \u203a Point of view & tense). One narrator and one tense at a
 // time (ONE_OF in catalogue/story.js); if an old chat has two on, the strongest wins. Second person goes with any
@@ -655,17 +666,17 @@ export function viewpointLines(views, n, u, moods = {}, coarse = '') {
         ...[NARRATE[narrator], narrator && COARSE[coarse], youLine, TENSE[tense], GAZE[gaze]].filter(Boolean)];
     const NAME = { pov_close_third: `close third person, staying with ${n}`, pov_close_third_coloured: `close third person, staying with ${n}, in plain grammar with ${n}'s attitude showing through a touch or two a paragraph`, pov_first: `first person as ${n}`, pov_omniscient: 'omniscient third person', pov_outside: 'third person from outside, nobody\'s thoughts' };
     const parts = [NAME[narrator], you ? `${u} as "you"` : '', tense === 'present_tense' ? 'present tense' : tense ? 'past tense' : '', gaze === 'gaze_artful' ? `an artful male gaze on ${u}` : gaze ? `a leering male gaze on ${u}` : ''].filter(Boolean);
-    const last = `Point of view: ${parts.join(', ')}. Earlier replies may use a different one; write this reply in the one set here, from the first sentence to the last.`;
+    const last = `Point of view: ${parts.join(', ')}, first sentence to last, even where earlier replies differ.`;
     return { guide, last };
 }
 
 export async function budgetPrompt(state, name, budget, countTokens, extras = {}) {
     const all = [...live(state), ...live(extras.player?.state), ...live(extras.story), ...liveCast(extras).flatMap(person => live(person.state).filter(m => m.kind !== 'story'))];
-    const { prompt, fixed } = composePrompt(state, name, extras);
-    const tokens = prompt ? await countTokens(prompt) : 0, fixedTokens = fixed ? await countTokens(fixed) : 0;
+    const { prompt, fixed, tail = '' } = composePrompt(state, name, extras);
+    const tokens = (prompt ? await countTokens(prompt) : 0) + (tail ? await countTokens(tail) : 0), fixedTokens = fixed ? await countTokens(fixed) : 0;
     // The target is a warning only. Nothing the player set is ever dropped or shortened. With the note split, the
     // target applies to the part sent fresh: the cached guide costs a fraction after the first reply.
-    return { prompt, fixed, tokens: tokens + fixedTokens, liveTokens: tokens, fixedTokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
+    return { prompt, tail, fixed, tokens: tokens + fixedTokens, liveTokens: tokens, fixedTokens, compact: false, overBudget: Math.max(0, tokens - budget), target: budget,
         selectedIds: [...all.map(m => m.id), ...[state, extras.player?.state, ...liveCast(extras).map(p => p.state)].flatMap(activePersonalities).map(p => `${p.system}:${p.type}`), ...relationshipSets(state, String(name ?? '').trim() || 'the character', extras)
             .flatMap(({ name: subject, relation, tags }) => tags.map(tag => `${subject}:${relationshipKey(relation, tag.id)}`))], omittedIds: [], omitted: 0 };
 }

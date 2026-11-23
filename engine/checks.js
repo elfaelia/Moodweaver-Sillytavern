@@ -24,7 +24,7 @@ const how = level => ({ 3: ', best of 3', 2: ', best of 2', '-2': ', worst of 2'
 // attacker skills \u2192 the skills that resist them, and how each outcome reads. {a} attacker, {d} defender.
 const CONTESTS = [
     { att: ['lying', 'con_artistry', 'masking_emotions', 'manipulation', 'gaslighting', 'disguise', 'forgery', 'faking_it', 'playing_victim', 'love_bombing', 'appearances'], def: ['reading_people', 'psychology', 'psychiatry', 'intuition', 'interrogation'],
-        moods: ['lying', 'compulsive_liar', 'two_faced', 'manipulative', 'manipulator', 'secretive', 'scheming', 'gaslighting', 'masking'],
+        moods: ['lying', 'compulsive_liar', 'two_faced', 'manipulative', 'manipulator', 'secretive', 'scheming', 'gaslighting', 'poker_face', 'masking_amusement', 'masking_warmth', 'masking_coldness', 'masking_emotive', 'masking_less_emotive', 'hiding_arousal', 'hiding_fear', 'hidden_heart', 'guarded'],
         verb: 'deceives', win: '{d} believes it', lose: '{d} sees through it, or senses something is off', what: 'deceiving' },
     { att: ['stealth', 'hiding', 'stalking', 'pickpocketing', 'sleight_of_hand', 'drugging'], def: ['surveillance', 'intuition', 'reading_people'],
         verb: 'sneaks or palms something', win: '{d} doesn\u2019t notice', lose: '{d} notices', what: 'sneaking past' },
@@ -39,6 +39,24 @@ const CONTESTS = [
     { att: ['bratting'], def: ['brat_taming', 'domination', 'emotional_maturity'],
         verb: 'pushes the buttons of', win: '{d} rises to it, and the provocation gets the reaction it wanted', lose: '{d} stays amused and in control', what: 'provoking' },
 ];
+// Who is doing what (1.96.4). The scene's words call a skill for everyone who has it, so when one person is masking,
+// "reading people" lit up for them too. In a contest, the one doing it is the one in a matching mood (masking,
+// lying, poker-faced), or else the only one whose attacking skill the scene calls while the other's defending
+// skill is called. The doer's defending skills for that contest and the other person's attacking skills come off
+// their lit lists, unless both are doing it. Changes the lit lists in place. people: [{ lit, moods }].
+export function sideLit(people = []) {
+    const [p, q] = people; if (!p || !q) return people;
+    for (const c of CONTESTS) {
+        const has = (x, ids) => (x.lit ?? []).some(s => ids.includes(s.id)), moody = x => Boolean(c.moods?.some(id => (x.moods?.[id] ?? 0) >= 41));
+        let doers = [p, q].filter(moody);
+        if (!doers.length) doers = [p, q].filter(x => has(x, c.att) && !has(x === p ? q : p, c.att) && has(x === p ? q : p, c.def));
+        if (doers.length !== 1) continue;
+        const [doer] = doers, other = doer === p ? q : p;
+        doer.lit = (doer.lit ?? []).filter(s => !c.def.includes(s.id) || c.att.includes(s.id));
+        other.lit = (other.lit ?? []).filter(s => !c.att.includes(s.id) || c.def.includes(s.id));
+    }
+    return people;
+}
 const DC = 12;
 const tier = (roll, total, dc) => roll === 1 ? 'botch' : roll === 20 ? 'crit' : total >= dc + 8 ? 'great' : total >= dc ? 'pass' : total <= dc - 8 ? 'bad' : 'fail';
 // Each tier has a few ways to say it, picked by the roll, so the same outcome isn't worded the same way every reply.

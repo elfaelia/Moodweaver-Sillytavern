@@ -26,7 +26,7 @@ import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
 import { pronounize } from '../engine/pronouns.js';
 import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
-import { checkLines } from '../engine/checks.js';
+import { checkLines, sideLit } from '../engine/checks.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
 import { aftermathLines, contagionLine } from '../engine/echoes.js';
 
@@ -39,7 +39,7 @@ export function syncPrompt(forGeneration = false, chat = null, type = '') {
     previewTimer = setTimeout(() => { previewTimer = null; void buildNote(false); }, NOTE_SETTLE_MS);
     return Promise.resolve();
 }
-const NOTE_SETTLE_MS = 300;
+const NOTE_SETTLE_MS = 1200;
 // Straight away, for a chat being opened or a reply that just arrived (not a tap in the panel).
 export function syncPromptNow() { clearTimeout(previewTimer); previewTimer = null; return buildNote(false); }
 async function buildNote(forGeneration = false, chat = null, type = '') {
@@ -93,6 +93,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
         // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
+        sideLit(skillFolk);
         const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
         run.rolls = { avatar: ch.avatar, list: dice.rolls };
         const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length), ...dice.lines];
@@ -285,6 +286,16 @@ function skillPeople(ch, state, mine) {
 // What's happening, as tokens a skill's `when` can match: feel:<mood category> and mind for anyone in the scene
 // at mild or above, cat:<fact category> and fact:<id> for facts and settings, dyn:<group> for the dynamic, and
 // seems / power when the newest hidden line read the player's feelings or a shift in control.
+// The Skills tab's lit list for one person, with the character and you sorted out by who is doing what (sideLit).
+export function panelLit(ch, state, who = '') {
+    const { scene, used } = skillScene(ch, liveChat()), cx = panelSkillContext(ch), lit = st => litSkills(st, scene, used, 5, cx);
+    if (!['char', 'user'].includes(who)) return lit(state);
+    const his = who === 'char' ? state : getState(ch), mine = who === 'user' ? state : getUserState();
+    if (!his?.enabled || !mine?.enabled) return lit(state);
+    const folk = [{ lit: lit(his), moods: his.moods ?? {} }, { lit: lit(mine), moods: mine.moods ?? {} }];
+    sideLit(folk);
+    return folk[who === 'char' ? 0 : 1].lit;
+}
 // The same, for the Skills tab: from the saved states and the dynamic the last note worked out.
 export const panelSkillContext = (ch, history = liveChat()) => skillContext(ch, history, [getState(ch), getUserState(), getStoryState(ch), ...getCast(ch).filter(p => p.inScene).map(p => p.state)], { dynamic: { group: lastDynamic.get(ch?.avatar) ?? '' } });
 function skillContext(ch, history, states, bd) {

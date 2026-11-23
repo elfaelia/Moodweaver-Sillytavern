@@ -4,7 +4,7 @@ import { getCast, getKnowledge, getPair, getState, getStoryState, getUserState, 
 import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
-import { knowledgeEntry } from '../engine/state.js';
+import { knowledgeEntry, listAuto, pruneAuto } from '../engine/state.js';
 import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, setMeter, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { LIGHT_DESIRE } from '../data/catalogue/music.js';
@@ -280,7 +280,7 @@ function moveRoles(ch, names) {
         const [kind, id] = ROLE_HOMES[name], raise = (moods, label) => { moods[id] = Math.max(moods[id] ?? 0, 70); out.push(`${fillDynamic(name, shortName(ch.name), shortName(playerName()))} \u2192 ${label}`); };
         if (kind === 'rel') { const rel = userRelation(st, true); rel.moods ??= {}; raise(rel.moods, `${RELATIONSHIP_BY_ID[id].label} (${shortName(ch.name)}\u2019s side)`); }
         else if (kind === 'shared') { const pair = getPair(`char:${ch.avatar}`, 'user', true); if (pair) { pair.moods ??= {}; raise(pair.moods, `${SHARED_BY_ID[id].label} (both ways)`); } }
-        else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); if (Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id); }
+        else { raise(st.moods, `${BY_ID[id].label} (${({ trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy' })[sectionOf(BY_ID[id])] ?? 'Moods'})`); listAuto(st, id); }
     }
     for (const [k, list] of Object.entries(settings().dynamicPools ?? {})) settings().dynamicPools[k] = (list ?? []).filter(name => !ROLE_HOMES[name]);
     return out;
@@ -326,7 +326,9 @@ function heated(st, names = []) {
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
-    const prefs = getState(ch)?.prefs ?? {}, sparkPull = sparkRomance(prefs), yourPrefs = getUserState()?.prefs ?? {};
+    // Read once, not per message (1.96.4): getState rebuilds its catalogue view every call, and this loop runs over the whole chat.
+    const hisSt = getState(ch), yourSt = getUserState();
+    const prefs = hisSt?.prefs ?? {}, sparkPull = sparkRomance(prefs), yourPrefs = yourSt?.prefs ?? {};
     let youBefore = [];
     const secret = nudge ? secretSteps(ch, chat) : [];
     (chat ?? []).forEach((m, pos) => {
@@ -343,7 +345,7 @@ export function bondList(ch, chat = liveChat()) {
         }
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
-        const you = w.you ? w.you.map(x => factId(x, heated(getUserState(), w.seems), true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(getState(ch), w.moods.map(y => y.name)))), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
+        const you = w.you ? w.you.map(x => factId(x, heated(yourSt, w.seems), true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(hisSt, w.moods.map(y => y.name)))), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
         const newYou = you.filter(id => !youBefore.includes(id)); youBefore = you;
         // His own lit turn-ons, and yours he saw land, warm his desire a little when the line gave it no step.
         const lit = (w.sparked ?? []).filter(sp => !sp.off).length + (w.noticed ?? []).filter(x => (yourPrefs[sparkTarget(x, yourPrefs).id] ?? 0) > 0).length;
@@ -716,7 +718,8 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         if (board && settings().boardMemories && board.remember !== undefined) rec.mem = remember(writer, rec.k, board.remember);
         facts(st.moodAuto !== false);
     }
-    for (const id of Object.keys(rec.m)) if (st.moods[id] > 0 && Array.isArray(st.loadout) && !st.loadout.includes(id)) st.loadout.push(id);
+    for (const id of Object.keys(rec.m)) if (st.moods[id] > 0) listAuto(st, id);
+    pruneAuto(st);
     if (rec.mem) notes.push('remembered a moment');
     // Your facts: what the hidden line's "you" list names comes on (and what it put on and then leaves off comes
     // off), then they run their course on the same clock. The list keeps the ones it names going.

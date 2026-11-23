@@ -2,7 +2,7 @@
 import { stripBond } from './bond.js';
 import { BY_ID, FEELINGS, MOODS, analysed, isStanding } from '../data/catalogue.js';
 import { CATEGORY_NAME } from './prompt.js';
-import { BODY_CATEGORIES, WANT_KINDS, cleanScope } from './state.js';
+import { BODY_CATEGORIES, WANT_KINDS, cleanScope, listAuto, pruneAuto } from './state.js';
 import { clamp, text } from './util.js';
 
 // ---- Scene reader ----
@@ -44,8 +44,9 @@ export function applyAnalysis(state, result, scope = state.readScope) {
         const old = state.moods[m.id] || 0;
         if (Object.hasOwn(result.moods, m.id)) state.moods[m.id] = step(old, result.moods[m.id]);
         else if (!isStanding(m)) state.moods[m.id] = Math.max(0, old - (state.decay ?? 5));
-        if (state.moods[m.id] > 0 && Array.isArray(state.loadout) && !state.loadout.includes(m.id)) state.loadout.push(m.id);
+        if (state.moods[m.id] > 0) listAuto(state, m.id);
     }
+    pruneAuto(state);
     if (scope.wants) {
         for (const w of result.wants ?? []) {
             const item = state.wants.find(x => x.id === w.id); if (!item) continue;

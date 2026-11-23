@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.96.4: quicker panel, tidy lists, skills sorted and on the right side, Skincare
+- The mood list no longer grows forever. Every feeling or fact the story ever put on used to stay on the character's list at zero, so a long chat built up hundreds of rows, and every tap redrew them all. Now ones the story puts on leave the list again when they're back at zero (ones you add or tap yourself stay). Once per chat, old ones at zero that aren't pinned are tidied off; anything taken off is one tap away in Browse all.
+- Taps are quicker: the bond history no longer re-reads both cards for every message in the chat on each redraw, and the note's preview is rebuilt a little after you stop tapping (1.2 s instead of 0.3 s), so it doesn't land on your next tap. The note sent with a reply is always built fresh, so nothing is lost.
+- Skills: the ones in play this reply come first, on the chips and in each group, then the rest by level.
+- Skills go to the person actually using them. When one of you is masking or lying (a masking, lying or poker-faced mood, or the scene calling only their side), the other one's reading people, psychology, intuition and the like are theirs, not the masker's, and the masker's masking is theirs alone. If both are doing it, both keep it. Same on the Skills tab and in the note.
+- New skill: Skincare (Style & taste).
+
 ## 1.96.3: dice that really roll, steadier for experts
 - Every new reply, swipe and regenerate now rolls fresh dice. Before, the dice were tied to the reply number on purpose, so swiping gave exactly the same roll and the same failure every time. A continue still keeps the reply's dice.
 - Skill steadies the dice. From level 4 a person rolls twice and keeps the better; from 8, three times. From -4 they keep the worse of two, and from -8 the worst of three. So the better someone is, the more often they succeed and the less luck matters. A plain check at 7 now succeeds about 96% of the time and almost never goes badly. The note to the model shows "best of 2" and so on next to each roll.

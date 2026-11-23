@@ -6,7 +6,7 @@ import { KEY, ctx, run, ui } from './state.js';
 import { castDefaults, castFor, castName, newCastId } from '../engine/cast.js';
 import { MOODS } from '../data/catalogue.js';
 import { escapeHtml as esc } from '../engine/util.js';
-import { extendCatalogue, freshState, isExtended, knowledgeEntry, migrateCatalogue } from '../engine/state.js';
+import { extendCatalogue, freshState, isExtended, knowledgeEntry, migrateCatalogue, tidyList } from '../engine/state.js';
 import { renderStatus } from '../panel/render.js';
 import { SHARED_IDS, activeSharedTags, cloneRelationships } from '../engine/relationships.js';
 import { TURN_BY_ID } from '../engine/turns.js';
@@ -153,6 +153,7 @@ export function getState(ch = target()) {
     const state = c.chatMetadata[KEY].characters[key] ??= freshState(settings().baselines[key]);
     // Before 1.50 the story could add its own feelings; this tracked which ones it added.
     if (c.chatMetadata[KEY].weave?.[key]?.auto) delete c.chatMetadata[KEY].weave[key].auto;
+    tidyList(state);
     return movePairFacts(extendCatalogue(state), '{{user}}');
 }
 // The player's own character is shared by every character in the chat, so it lives once per chat.

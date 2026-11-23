@@ -218,6 +218,30 @@ function cleanLoadout(list, state) {
         ...Object.keys(state?.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)];
     return [...new Set(base.map(String).filter(valid))];
 }
+// Feelings and facts the story puts on (the hidden line, the reader) join the card's list while they're on, and
+// leave it again once they're back at zero (1.96.4). Before, every one that ever came on stayed listed for good,
+// so a long chat built up hundreds of rows at zero and the panel slowed down. Ones you add or tap yourself stay.
+export function listAuto(state, id) {
+    if (!Array.isArray(state.loadout) || state.loadout.includes(id)) return;
+    state.loadout.push(id); state.autoList = [...new Set([...(state.autoList ?? []), id])];
+}
+export function pruneAuto(state) {
+    if (!state.autoList?.length) return;
+    const gone = new Set(state.autoList.filter(id => !((state.moods?.[id] ?? 0) > 0) && !state.pins?.[id]));
+    if (!gone.size) return;
+    state.loadout = (state.loadout ?? []).filter(id => !gone.has(id)); state.autoList = state.autoList.filter(id => !gone.has(id));
+}
+// Once per character card (1.96.4): older chats kept every feeling and fact that ever came on. Ones now at zero
+// that were set at some point (an explicit 0) and aren't pinned come off the list. Ones added from Browse all and
+// never set have no value at all, so they stay.
+// Turn-ons are left alone. Anything taken off is one tap away again in Browse all.
+export function tidyList(state, keep = []) {
+    if (state.listTidy >= 1964 || !Array.isArray(state.loadout)) return false;
+    const hold = new Set(keep), before = state.loadout.length;
+    state.loadout = state.loadout.filter(id => id.startsWith('turn:') || hold.has(id) || state.pins?.[id] || (state.moods?.[id] ?? 0) > 0 || !Object.hasOwn(state.moods ?? {}, id));
+    state.listTidy = 1964;
+    return state.loadout.length !== before;
+}
 export function freshState(base = {}) {
     base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [],
         relationships: (base.relationships ?? []).map(r => ({ ...r, moods: { ...r.moods } })) });

@@ -1,12 +1,11 @@
 // The Skills tab.
 import { subjectName } from '../app/chat.js';
-import { panelSkillContext, skillScene } from '../app/note.js';
-import { liveChat } from '../app/replies.js';
+import { panelLit } from '../app/note.js';
 import { settings } from '../app/settings.js';
 import { run, ui } from '../app/state.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { fillLazy, searchText } from './render.js';
-import { SKILL_BY_ID, SKILL_GROUPS, SKILL_PACE, cleanPins, cleanSkillPace, cleanSkills, litSkills, skillProgress, skillWord, skillsOf } from '../engine/skills.js';
+import { SKILL_BY_ID, SKILL_GROUPS, SKILL_PACE, cleanPins, cleanSkillPace, cleanSkills, skillProgress, skillWord, skillsOf } from '../engine/skills.js';
 
 // The last rolls (\u2699 Settings \u203a Panel \u203a Show the dice rolls), for the main character's chat.
 function diceBox() {
@@ -34,7 +33,9 @@ function orbit(v) {
 }
 export function skillsView(state, ch) {
     const whose = esc(subjectName()), set = cleanSkills(state.skills), pins = cleanPins(state.skillPins), pace = cleanSkillPace(state.skillPace);
-    const { scene, used } = skillScene(ch, liveChat()), going = litSkills(state, scene, used, 5, panelSkillContext(ch)), lit = new Map(going.map(x => [x.id, x.why]));
+    const going = panelLit(ch, state, ui.who), lit = new Map(going.map(x => [x.id, x.why]));
+    // Skills in play this reply come first, then the rest by level (1.96.4).
+    const first = list => [...list].sort((a, b) => Number(lit.has(b.id)) - Number(lit.has(a.id)) || (set[b.id] ?? 0) - (set[a.id] ?? 0));
     const why = { used: 'Used in the last reply', scene: 'The scene calls for it', context: 'Fits what\u2019s happening' };
     const word = v => v ? skillWord(v) : 'not theirs';
     const row = s => { const value = set[s.id] ?? 0;
@@ -54,11 +55,11 @@ export function skillsView(state, ch) {
         <div class="mw-sk-jumps">${[-10, -5, 0, 5, 10].map(j => `<button type="button" data-skill-to="${s.id}" data-v="${j}" aria-pressed="${value === j}" class="${tone(j)}">${j ? signed(j) : 'Off'}</button>`).join('')}</div>
         <p class="mw-sk-fine">${value ? `${prog ? `${prog[0]} of ${prog[1]} uses to reach ${signed(value === -1 ? 1 : value + 1)}. ` : ''}${pinned ? 'Pinned: it stays at this level.' : 'It grows and slips slowly with use.'}` : `${whose} doesn\u2019t have this. \uff0b makes them good at it, \u2212 bad at it.`}</p>
         <div class="mw-sk-sheet-foot">${value ? `<button type="button" class="mw-sk-pin" data-skill-pin="${s.id}" aria-pressed="${pinned}">${pinned ? '\u25c6 Pinned' : '\u25c7 Pin'}</button>` : ''}<button type="button" class="mw-primary mw-sk-done" data-skill-close>Done</button></div></section>`; };
-    const chips = skillsOf(state).map(x => `<button type="button" data-skill-open="${x.id}" class="mw-chip ${lit.has(x.id) ? 'is-lit' : ''}" style="--mw-accent:${x.level < 0 ? 'var(--mw-rose)' : 'var(--mw-moon)'}" title="${lit.has(x.id) ? `${why[lit.get(x.id)]}. ` : ''}Change ${esc(x.label)}"><span>${lit.has(x.id) ? '\u2727 ' : ''}${x.pinned ? '\u25c6 ' : ''}${esc(x.label)}</span><b>${signed(x.level)}</b></button>`).join('');
+    const chips = first(skillsOf(state)).map(x => `<button type="button" data-skill-open="${x.id}" class="mw-chip ${lit.has(x.id) ? 'is-lit' : ''}" style="--mw-accent:${x.level < 0 ? 'var(--mw-rose)' : 'var(--mw-moon)'}" title="${lit.has(x.id) ? `${why[lit.get(x.id)]}. ` : ''}Change ${esc(x.label)}"><span>${lit.has(x.id) ? '\u2727 ' : ''}${x.pinned ? '\u25c6 ' : ''}${esc(x.label)}</span><b>${signed(x.level)}</b></button>`).join('');
     // Their own list shows only the skills they have, open. "\uff0b Add skills" opens the whole catalogue, folded
     // by group and drawn when a group is opened (fillLazy), like the long lists on other tabs.
     const browsing = ui.browsing;
-    const groups = SKILL_GROUPS.map(g => { const mine = g.rows.filter(r => set[r.id]), on = mine.length, key = `skills-${g.name}`, open = ui.openGroups?.[`details[data-skill-group="${CSS.escape(g.name)}"]`];
+    const groups = SKILL_GROUPS.map(g => { const mine = first(g.rows.filter(r => set[r.id])), on = mine.length, key = `skills-${g.name}`, open = ui.openGroups?.[`details[data-skill-group="${CSS.escape(g.name)}"]`];
         if (!browsing) return on ? `<div class="mw-skill-mine" data-skill-group="${esc(g.name)}"><h5 class="mw-sk-group"><span>${g.icon}</span> ${esc(g.name)}</h5>${mine.map(row).join('')}</div>` : '';
         ui.lazyBodies.set(key, () => g.rows.map(row).join(''));
         return `<details data-skill-group="${esc(g.name)}" style="--mw-accent:${g.color}"><summary><span class="mw-category-icon">${g.icon}</span><span>${esc(g.name)}</span><small>${on ? `${on} of ${g.rows.length}` : g.rows.length}</small></summary><div class="mw-category-body mw-sk-list" ${open ? '' : `data-lazy="${esc(key)}"`}>${open ? g.rows.map(row).join('') : ''}</div></details>`; }).join('');

@@ -3,6 +3,8 @@
 // replies long, after the meters have filled. The main dynamic must follow the scenes, the one underneath must
 // change less often than the main one (it's hidden while it's the same as the main one, so those replies don't count), and an old story call must not hold the dynamic for good.
 import { cleanBond, computeBond, dynamicLean } from '../engine/bond.js';
+import { NEEDS_SEX } from '../data/catalogue/dynamics.js';
+import { sexHappened } from '../engine/scene-words.js';
 
 const ON = ['ob', 'po', 'je', 'pr', 'rs', 'vo', 'ca', 'de', 'gu', 'lu', 'ts', 'pa'];
 const PH = {
@@ -48,6 +50,17 @@ for (const pace of ['slow', 'steady', 'quick']) {
     const cool = Array.from({ length: 14 }, (_, i) => ({ pos: i, key: `c${i}`, s: { f: i < 4 ? 6 : -3, r: 0, t: 0, p: 0, l: 0, m: { ly: i < 4 ? 2 : -2, op: -3 }, thinks: [], sparks: [] } }));
     const later = computeBond(bond, 15, 'Kenny', 'Ellie', { f: 0, r: 0, t: 0, p: 0, l: 0, lean: null }, cool);
     check(later.scene.fall >= 8, `a real drop is measured (fall ${later.scene.fall}, under ${later.underRaw?.name ?? 'none'})`);
+}
+{
+    // 1.96: dynamics that assume the two have already slept together need evidence (a tie or sex earlier in the chat).
+    const bond = cleanBond({ on: true, extra: true, pace: 'steady', mode: 'story', more: { on: ['ca', 'gu', 'lu', 'hi'] } });
+    const list = Array.from({ length: 12 }, (_, i) => ({ pos: i, key: `s${i}`, s: { f: 3, r: 4, t: 1, p: 0, l: 1, m: { ca: 6, gu: 4, lu: 6 }, thinks: [], sparks: [], dy: i === 11 ? 'Comfort in bed' : '' } }));
+    const lean = dynamicLean([{ guilty: 65, affectionate: 65, aroused: 65 }], {}, '', '');
+    const not = computeBond(bond, 13, 'Kenny', 'Ellie', { f: 0, r: 0, t: 0, p: 0, l: 0, lean, slept: false }, list);
+    check(!NEEDS_SEX.has(not.dynamic.name) && !NEEDS_SEX.has(not.under?.name ?? ''), `no sex-history dynamic before they've slept together (main ${not.dynamic.name})`);
+    const yes = computeBond(bond, 13, 'Kenny', 'Ellie', { f: 0, r: 0, t: 0, p: 0, l: 0, lean, slept: true }, list);
+    check(yes.dynamic.name === 'Comfort in bed', `the story's call stands once they have (main ${yes.dynamic.name})`);
+    check(sexHappened('He thrust into her slowly. She came apart around him, his cock buried deep inside her.') && !sexHappened('She imagined him inside her. Someday he would fuck her.') && !sexHappened('A skirt, fishnets, one knee-high slipped to the ankle. Her lips were wet.'), 'sex in the chat is read only when it plainly happened');
 }
 console.log(fails ? `${fails} failed` : 'All passed.');
 process.exitCode = fails ? 1 : 0;

@@ -3,8 +3,8 @@
 // this reply, it fails: he sees through it"), so success and failure come from the dice and the levels, not
 // from what the story would like. Contests pit one person's skill against the other's (a lie against reading
 // people, sneaking against watching, a hold against slipping free); everything else is a plain check against 12.
-// The roll is seeded by the reply number, so a swipe gets the same roll (no rerolling a bad result) and the next
-// reply rolls fresh. When the player's character loses a reading check, the narration has to hide the truth
+// The seed is new for every reply, swipe and regenerate (a random salt from main.js, 1.96.3), so a re-roll really
+// rolls again; it holds while one reply is written and through a continue. When the player's character loses a reading check, the narration has to hide the truth
 // from the player too. Pure functions.
 const d20 = (seed, key) => {
     let h = 2166136261 ^ seed;
@@ -12,6 +12,15 @@ const d20 = (seed, key) => {
     h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
     return (Math.abs(h) % 20) + 1;
 };
+// Skill steadies the dice (1.96.3): from level 4 a person rolls twice and keeps the better, from 8 three times; from
+// -4 they keep the worse of two, from -8 the worst of three. So the better someone is, the more often they succeed
+// and the less luck matters (a natural 1 almost never comes up for an expert); the worse, the more it goes wrong.
+const DICE = level => level >= 8 ? 3 : level >= 4 ? 2 : level <= -8 ? -3 : level <= -4 ? -2 : 1;
+const roll = (seed, key, level) => {
+    const n = DICE(level), all = Array.from({ length: Math.abs(n) }, (_, i) => d20(seed, i ? `${key}#${i}` : key));
+    return n < 0 ? Math.min(...all) : Math.max(...all);
+};
+const how = level => ({ 3: ', best of 3', 2: ', best of 2', '-2': ', worst of 2', '-3': ', worst of 3' })[DICE(level)] ?? '';
 // attacker skills \u2192 the skills that resist them, and how each outcome reads. {a} attacker, {d} defender.
 const CONTESTS = [
     { att: ['lying', 'con_artistry', 'masking_emotions', 'manipulation', 'gaslighting', 'disguise', 'forgery', 'faking_it', 'playing_victim', 'love_bombing', 'appearances'], def: ['reading_people', 'psychology', 'psychiatry', 'intuition', 'interrogation'],
@@ -56,18 +65,18 @@ export function checkLines(people = [], seed = 0, { max = 3, player = '' } = {})
         if (!sk) continue;
         const dk = best(d.all ?? [], c.def) ?? { id: c.def[0], prompt: c.def[0].replace(/_/g, ' '), level: 0 };
         if (!(sk.level || dk.level)) continue;
-        const ra = d20(seed, `${a.name}:${sk.id}`), rd = d20(seed, `${d.name}:${dk.id}`);
+        const ra = roll(seed, `${a.name}:${sk.id}`, sk.level), rd = roll(seed, `${d.name}:${dk.id}`, dk.level);
         const ta = ra + sk.level, td = rd + dk.level, win = ra === 20 || (ra !== 1 && ta > td);
         used.add(`${a.name}:${sk.id}`);
         rolls.push({ kind: 'contest', a: a.name, d: d.name, skill: sk.prompt ?? sk.id, level: sk.level, roll: ra, total: ta, dskill: dk.prompt ?? dk.id, dlevel: dk.level, droll: rd, dtotal: td, win, what: c.what,
             hide: win && d.name === player && c.what === 'deceiving',
-            text: `If ${a.name} ${c.verb} ${d.name} this reply: ${a.name} rolls ${ta} (${ra}${sk.level < 0 ? '' : '+'}${sk.level} ${sk.prompt ?? sk.id}) against ${d.name}'s ${td} (${rd}${dk.level < 0 ? '' : '+'}${dk.level} ${dk.prompt ?? dk.id}), so ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.` });
+            text: `If ${a.name} ${c.verb} ${d.name} this reply: ${a.name} rolls ${ta} (${ra}${sk.level < 0 ? '' : '+'}${sk.level} ${sk.prompt ?? sk.id}${how(sk.level)}) against ${d.name}'s ${td} (${rd}${dk.level < 0 ? '' : '+'}${dk.level} ${dk.prompt ?? dk.id}${how(dk.level)}), so ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.` });
     }
     for (const person of people.slice(0, 2)) for (const sk of person.lit ?? []) {
         if (used.has(`${person.name}:${sk.id}`) || rolls.some(r => r.a === person.name && r.skill === sk.prompt)) continue;
-        const r = d20(seed, `${person.name}:${sk.id}`), total = r + sk.level, t = tier(r, total, DC);
+        const r = roll(seed, `${person.name}:${sk.id}`, sk.level), total = r + sk.level, t = tier(r, total, DC);
         rolls.push({ kind: 'check', a: person.name, skill: sk.prompt, level: sk.level, roll: r, total, tier: t,
-            text: `If ${person.name} tries ${sk.prompt} this reply, it ${PLAIN[t][r % PLAIN[t].length]} (rolled ${total}: ${r}${sk.level < 0 ? '' : '+'}${sk.level}, needs ${DC}).` });
+            text: `If ${person.name} tries ${sk.prompt} this reply, it ${PLAIN[t][r % PLAIN[t].length]} (rolled ${total}: ${r}${sk.level < 0 ? '' : '+'}${sk.level}${how(sk.level)}, needs ${DC}).` });
     }
     // Contests first (they're the ones between the two of you), then the plain checks, worst and best rolls first.
     const order = rolls.sort((x, y) => (x.kind === 'contest' ? 0 : 1) - (y.kind === 'contest' ? 0 : 1) || Math.abs(y.total - DC) - Math.abs(x.total - DC)).slice(0, max);

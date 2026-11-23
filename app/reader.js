@@ -9,6 +9,7 @@ import { METERS, computeBond, dynamicRows, paceOf, setMeter } from '../engine/bo
 import { bondReadMessages, parseBondRead } from '../engine/bondread.js';
 import { analysisMessages, applyAnalysis, fingerprint, parseAnalysis, sceneData } from '../engine/reader.js';
 import { cleanScope } from '../engine/state.js';
+import { NEEDS_SEX } from '../data/catalogue/dynamics.js';
 import { shortName } from '../engine/util.js';
 import { fill as fillDynamic } from '../engine/dynamics.js';
 import { MORE_METERS, cleanMore, setMore } from '../engine/meters.js';
@@ -81,9 +82,9 @@ export async function readBond(ch = target()) {
     const c = ctx(), bond = bondData(ch), profile = readerProfile();
     if (run.suspended || !ch || !bond.on || run.pending) return;
     if (!profile) { run.status = 'Pick a reader connection under \u2727 Scene reader (Moods tab) first.'; renderStatus(); return; }
-    const n = shortName(ch.name), u = shortName(playerName()), list = bondList(ch), now = computeBond(bond, Infinity, n, u, bondAxes(ch), list);
+    const n = shortName(ch.name), u = shortName(playerName()), list = bondList(ch), axes = bondAxes(ch), now = computeBond(bond, Infinity, n, u, axes, list);
     const on = cleanMore(bond.more).on, meters = on.map(k => { const m = MORE_METERS.find(x => x[0] === k); return { key: k, word: m[4], two: m[2] }; });
-    const names = (bond.pool.length ? dynamicRows().filter(r => bond.pool.includes(r[0])) : dynamicRows()).map(r => fillDynamic(r[0], n, u));
+    const names = (bond.pool.length ? dynamicRows().filter(r => bond.pool.includes(r[0])) : dynamicRows()).filter(r => axes.slept || !NEEDS_SEX.has(r[0])).map(r => fillDynamic(r[0], n, u));
     const data = sceneData(c.chat, ch, getState(ch), settings(), { sceneStart: sceneStart() });
     const current = { friendship: now.friend, romance: now.romance, ...(bond.extra ? { trust: now.trust, control: now.control, pull: now.pull } : {}), dynamic: now.dynamic.name,
         ...Object.fromEntries(meters.map(m => [m.word, now.more[m.key]])) };

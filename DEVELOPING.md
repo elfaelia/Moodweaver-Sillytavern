@@ -144,6 +144,10 @@ One pace per character and chat, kept as `bond.pace` (`PACE` in `engine/bond.js`
 
 Age, height and interests (`cleanAge`, `cleanHeight`, `cleanInterests` in `engine/turns.js`) feed `turnSigns` (`older`, `younger`, `taller`, `shorter`, and interest words) and `compareProfiles`, which writes the "Between them" line. Up to `CORE_MAX` (3) traits sit in `state.core` and go first in the note as "Core of who they are". The other traits go through `traitFocus` in `engine/prompt.js` (setting `traitFocus`): `TRAIT_FOCUS` (3) in full, picked by `traitTouched` (the scene names them) then a rotation seeded by the reply number and weighted by strength; the rest go as one line of labels. Trait strength is sent with `depthWord` (a touch … deeply), never the feelings' tier words. The hidden line's `noticed` field names the player's turn-ons the character picked up on; `knowledgeNow` in `app/replies.js` counts those against the chat, so one notice makes a turn-on suspected and a second makes it known, and deleting replies takes it back.
 
+## Dynamics that assume sex (1.96)
+
+`NEEDS_SEX` in `data/catalogue/dynamics.js` lists dynamics that take for granted the two have slept together. `bondAxes` (`app/replies.js`) sets `slept` from a tie in `SLEPT_TIES` or `sexHappened` (`engine/scene-words.js`) on any message in the chat; `computeBond` passes it on as `d.sx`, and `dynamicOf`, the story's call and the scene reader's list leave those rows out without it. Add any new dynamic whose wording assumes sex to the set.
+
 ## Meter words and stars (1.91.6)
 
 Each meter's level words are `DEF[k][5]` in `engine/meters.js`, read top-down by `moreWord`. The extra meters show five stars (`FIVE_AT` in `panel/render.js`, words from 1, 21, 41, 61, 81) and need six words: one for 0 and one per star. Two-sided meters keep nine stops and need nine words. `node tests/meter-words.mjs` fails if two stars share a word. "Thinks it's mutual" (`os`) starts at one-sided and climbs to mutual; saves older than `ver: 2` are turned once by `cleanMore`, and dynamics test it with `d.os <= N`. Meters whose low end is the point (`LOW_SAYS`) send their low line when strong.

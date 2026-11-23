@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.96.3: dice that really roll, steadier for experts
+- Every new reply, swipe and regenerate now rolls fresh dice. Before, the dice were tied to the reply number on purpose, so swiping gave exactly the same roll and the same failure every time. A continue still keeps the reply's dice.
+- Skill steadies the dice. From level 4 a person rolls twice and keeps the better; from 8, three times. From -4 they keep the worse of two, and from -8 the worst of three. So the better someone is, the more often they succeed and the less luck matters. A plain check at 7 now succeeds about 96% of the time and almost never goes badly. The note to the model shows "best of 2" and so on next to each roll.
+- Contests stay fair between equals: reading people at 7 against masking at 7 is about even, and the side with the higher level wins more, more reliably.
+
+## 1.96.2: the hidden line comes back
+- The request for the hidden line now comes last of all in the note, right before the reply, as a firm line: after the story's last line, on its own line after a blank line, every reply, or `none` when nothing changed. It used to sit far up in the cached guide, while the last things before the reply told the model to end on an action or image and never mention the notes, so Opus 5.5 often ended on the story and left the line out.
+- "End on an action" now says end the *story* on one, and "never mention these notes" says in the story, so neither clashes with the hidden line.
+- If the model wrote the hidden line in its thinking instead of the reply, Moodweaver now finds it there, adds it to the reply and reads it, with no button tap.
+- The line is read even when the model drops the colon after weave.
+
+## 1.96.1: a phone on a speaker counts, and music you start yourself isn't paused
+- Why the Pixies didn't count: the reply said "He hits shuffle. The Flip crackles once... and then the Pixies come up out of it... He turns it up two notches." None of those were words Moodweaver knew. It only knew "plays", "puts on", "turns on the radio" and the like, and it didn't know a Flip is a speaker. So it thought nothing was playing, and paused everything.
+- New signs that music is on: hitting shuffle or play, "on shuffle", a speaker (Flip, JBL, Sonos, Bluetooth speaker, boombox, soundbar) crackling, playing, thumping or coming to life, and turning it up a notch or two.
+- A band or artist "coming up", "coming on" or "coming through" ("the Pixies come up out of it", "Nirvana comes on") is now a named artist, but only when music is on in that reply, so "Clyde comes in" is never read as a band.
+- Songs films made famous: when the story names the artist and the film ("the Pixies... after she made him watch Fight Club"), that exact song plays (Where Is My Mind?). "Hums the song from Fight Club" works too. About 25 well-known film songs are listed (Pulp Fiction, Reservoir Dogs, Donnie Darko, The Graduate, Say Anything, The Breakfast Club, Dirty Dancing, Top Gun, Trainspotting, Perks of Being a Wallflower, Easy Rider, Ghost, Wayne's World, Garden State, The Royal Tenenbaums, Lost in Translation, Apocalypse Now, Goodfellas, American Psycho, Drive).
+- Music you start yourself in Spotify (the app, the lock screen, a headphone tap) after Moodweaver paused it is no longer paused again a few seconds later. It plays on like \u25b6 does, until the next reply. Then the story decides again: if music is on in the story it keeps playing, and if nothing is, it pauses.
+- The Now card names a speaker as "a speaker" and shuffle as "a playlist on shuffle".
+
+## 1.96.0: no bedroom dynamics before they've been to bed
+- 18 dynamics take for granted that the two have already slept together (Comfort in bed, Easy in bed, Afterglow lovers, Fight and bed, Friends with benefits, Learned their body, Teacher in bed, Past lovers now strangers and the like). They now only come up once there's real evidence: a tie that means it (lovers, married, exes, an affair, a secret relationship, friends with benefits, a one-night stand, long-term partners) or a message earlier in the chat where sex plainly happened (two or more sentences of it, none imagined, wished or remembered).
+- This holds for the meters, the story's own call in Story mode and the scene reader. A dynamic you pick yourself with I pick always stays.
+
 ## 1.95.2: phones, earbuds, car stereos, live bands, DJs and karaoke count as in-story music
 - In-story music is no longer only radios, jukeboxes and record players. Music that is playing counts from: a phone or laptop ("plays a song off her phone", "his phone is playing"), earbuds or headphones ("pops her earbuds in", "music in his headphones"), a car stereo, aux cord or Bluetooth speaker ("plugs his phone into the aux", "turns up the stereo"), live music (a band, singer, quartet or pianist playing, "the band launches into", "the set starts"), a busker or street musician, a DJ ("the DJ drops", "the beat drops"), and karaoke ("grabs the mic", "gets up to sing").
 - Each one needs a real sign that it's on. Checking a phone, headphones round someone's neck, a stage with nobody on it, or a DJ booth in the corner don't count.

@@ -67,7 +67,7 @@ export function setExtra(id, mode) { const m = music(); m.extras[id] = mode; sav
 export const storyOnly = (m = music()) => Boolean(m.storyOnly) && extraOn('radio', m);
 const QUIET_NOTE = 'In-story music only: nothing is playing in the story right now, so the music is paused. It comes back when a radio, jukebox, record player or a venue\u2019s music does.';
 async function hush(m) {
-    mus.hushed = true;
+    mus.hushed = true; mus.hushedAt = Date.now();
     if (mus.now?.playing) { try { const d = await deviceFor(m); mus.wasPlaying = false; await sp.pause(m, d.id); mus.now.playing = false; } catch (err) { say(err.message, true); return; } }
     say(QUIET_NOTE); changed();
 }
@@ -589,6 +589,9 @@ export async function sync() {
     // 1.95.1 In-story music only: nothing plays unless the story has music on (a radio, jukebox or venue), a song the
     // story named is still playing, or you started it yourself (\u25b6 or a song's play button). Anything else (Spotify's
     // own autoplay after a line-up, a leftover queue) is paused.
+    // 1.96.1: music that starts again after Moodweaver paused it was started by you (in Spotify, Control Centre, a
+    // headphone tap): Spotify never resumes a paused player by itself. It counts like \u25b6 and plays until the next reply.
+    if (storyOnly(m) && p.is_playing && ((mus.hushed && Date.now() - (mus.hushedAt ?? 0) > 8000) || mus.userPaused)) { mus.hushed = false; mus.userPaused = false; mus.manual = true; }
     if (storyOnly(m) && !radioOn(m) && p.is_playing && !mus.manual && !(mus.named && mus.named.uri === uri) && !(mus.chosen && mus.chosen === uri)) { void hush(m); return; }
     if (p.is_playing && m.on && left > 0) mus.timer = setTimeout(() => void songEnding(), Math.max(1000, left - 3500));
     changed();

@@ -41,6 +41,8 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
     const settled = reconcile(type);
     if (settled.changed) { if (settled.notes.length) run.status = settled.notes.join(' '); void persist(); }
     startGenerating();
+    // Fresh dice for every new reply, swipe and regenerate (1.96.3); a continue finishes the same reply, so it keeps them.
+    if (type !== 'continue') run.diceSalt = Math.floor(Math.random() * 0x7fffffff);
     const ch = target(true), state = getState(ch);
     if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
     await syncPrompt(true, chat, type);

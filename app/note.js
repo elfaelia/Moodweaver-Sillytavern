@@ -93,7 +93,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
         // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
-        const dice = settings().diceOn !== false ? checkLines(skillFolk, history.length, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
+        const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
         run.rolls = { avatar: ch.avatar, list: dice.rolls };
         const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length), ...dice.lines];
         // Pattern breaker: the character's last five replies, read here, no extra request.

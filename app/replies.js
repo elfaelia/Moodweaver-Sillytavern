@@ -8,6 +8,7 @@ import { knowledgeEntry } from '../engine/state.js';
 import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, setMeter, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { LIGHT_DESIRE } from '../data/catalogue/music.js';
+import { sexHappened } from '../engine/scene-words.js';
 import { BY_ID, INTIMACY_CATEGORIES, MOODS, OPPOSITE_OF, analysed, sectionOf } from '../data/catalogue.js';
 import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
@@ -413,7 +414,17 @@ export function bondAxes(ch, bond = null) {
     // 1.86: feelings that became meters still lift the dynamics that fit them, read from the side meters.
     const b = bond ?? bondData(ch), fromMeters = b?.on ? meterTies({ more: computeMore(b.more, bondList(ch), paceOf(b).cap).values }) : {};
     const lean = dynamicLean([st?.moods, myMoods], { ...fromMeters, ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
-    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean };
+    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean, slept: sleptTogether({ ...shared, ...his, ...yours }) };
+}
+// 1.96: whether the two have slept together yet, for the dynamics that assume it (NEEDS_SEX): a tie that means it, or
+// a message earlier in this chat where sex plainly happened. Checked once per chat length.
+const SLEPT_TIES = ['lovers', 'married', 'exes', 'affair', 'secret_relationship', 'friends_with_benefits', 'one_night_stand', 'long_term_partners'];
+let sleptMemo = { key: '', yes: false };
+function sleptTogether(ties) {
+    if (SLEPT_TIES.some(id => (ties?.[id] ?? 0) > 0)) return true;
+    const chat = ctx().chat ?? [], key = `${ctx().chatId ?? ''}:${chat.length}`;
+    if (sleptMemo.key !== key) sleptMemo = { key, yes: chat.some(m => m && !m.is_system && typeof m.mes === 'string' && sexHappened(m.mes)) };
+    return sleptMemo.yes;
 }
 // Why each mood or fact is where it is, from the replies still in the chat: raised by the story, brought by a
 // fact, wearing off, fading. who: 'char' or 'user' (yours only change when a fact runs its course). Anything you

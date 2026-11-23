@@ -7,7 +7,7 @@ import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
 import { cleanMore, computeMore, moreLines, MORE_METERS } from './meters.js';
 import { pronounize } from './pronouns.js';
-import { DYNAMICS, DYNAMIC_GROUPS } from '../data/catalogue/dynamics.js';
+import { DYNAMICS, DYNAMIC_GROUPS, NEEDS_SEX } from '../data/catalogue/dynamics.js';
 import { matchDynamic, fill } from './dynamics.js';
 import { MOODS } from '../data/catalogue.js';
 const MOOD_CATEGORY = new Map(MOODS.map(m => [m.id, m.category]));
@@ -168,7 +168,7 @@ function dynamicOf(d, n = 'one', u = 'the other', fixed = '', pool = [], lean = 
     let best = null, bestScore = -Infinity;
     rows.forEach((row, i) => {
         const [name, test, , group, , covers] = row;
-        if (!test || (skip && group === skip && name !== 'Strangers') || !test(d)) return;
+        if (!test || (skip && group === skip && name !== 'Strangers') || (NEEDS_SEX.has(name) && !d.sx) || !test(d)) return;
         // Strangers is the fallback when nothing else fits: the scene never lifts it over a row that does.
         const ctx = name === 'Strangers' ? null : lean;
         const score = (picked.has(name) ? PICK_WEIGHT : 0) + (1 - i / len) + (ctx?.groups?.[group] ?? 0) * LEAN_WEIGHT * (ctx?.weight ?? 1)
@@ -192,8 +192,8 @@ function storyCall(bond, all = []) {
     return text ? { text, at, by: 'story', ago: all.length - 1 - at } : null;
 }
 // What the story said, as a catalogue dynamic. With picks, only those count.
-function resolveCall(text, n, u, pool = []) {
-    const rows = dynamicRows(), picked = pool.length ? rows.filter(r => pool.includes(r[0])) : rows;
+function resolveCall(text, n, u, pool = [], slept = true) {
+    const rows = dynamicRows().filter(r => slept || !NEEDS_SEX.has(r[0])), picked = pool.length ? rows.filter(r => pool.includes(r[0])) : rows;
     const row = matchDynamic(text, picked, n, u);
     if (row) return asDynamic(row, n, u);
     return pool.length ? null : freeDynamic(text, n, u);
@@ -295,7 +295,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + pull(t)), def?.[2] ? -100 : 0, 100)];
     }));
     const ds = bond.desire?.on ? computeDesire(bond, all).a : undefined;
-    const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}) };
+    const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}), sx: axes?.slept === true };
     // The main dynamic is the scene's: what's on the cards right now weighs about as much as how specific a row is.
     const ctxLean = axes?.lean ? { ...axes.lean, weight: 2 * (0.6 + 0.4 * pace.lean) } : null, meters = dynamicOf(axesNow, n, u, '', bond.pool, ctxLean);
     // The secondary dynamic: read from where the meters have settled (no pull from the last few replies, and the
@@ -305,7 +305,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // thinning out (Fading out, Drifting apart) need it, so low meters early in a chat never read as two people drifting.
     const slow = all.slice(-(UNDER_WINDOW[bond.pace] ?? UNDER_WINDOW.steady)), fall = Math.max(0, -slow.reduce((t, x) => t + (Number(x.s?.f) || 0) + (Number(x.s?.r) || 0) + (Number(x.s?.m?.ly) || 0), 0));
     axesNow.fall = fall;
-    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall };
+    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall, sx: axes?.slept === true };
     let underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
     // Underneath colours the main dynamic; it doesn't contradict it. A distant one under a close one needs a real
     // drop or actual ill will (friendship below zero), or the next best fit is used.
@@ -313,7 +313,8 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // The story's call lasts STORY_HOLD replies; after that the meters and the scene take over again until the
     // story names a new one, so one old call can't hold the dynamic for the rest of the chat.
     const call0 = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, call = call0 && call0.ago < (STORY_HOLD[bond.pace] ?? STORY_HOLD.steady) ? call0 : null;
-    const called = call ? resolveCall(call.text, n, u, bond.pool) : null;
+    // A story call for a dynamic that assumes they've slept together, before they have, doesn't count (1.96).
+    const slept = axes?.slept === true, called = call && (slept || !NEEDS_SEX.has(matchDynamic(call.text, dynamicRows(), n, u)?.[0])) ? resolveCall(call.text, n, u, bond.pool, slept) : null;
     // No flicker. A dynamic read from the meters takes over once it has won two replies running; until
     // then the last one holds and the card says what it's moving toward. Volatile switches straight away.
     let shown = meters;

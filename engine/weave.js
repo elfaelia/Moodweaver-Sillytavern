@@ -5,9 +5,9 @@ import { secretStep } from './secrets.js';
 // memories all update from the reply it was already writing. No tool call, no extra request.
 //   <!-- weave: moods desperate -10, relieved +20 | needs hunger low | toward obsessed +5 | friendship +1 | romance +2 | trust -3 | power +2 | thinks: stubborn, his | sparked: her defiance | remember: none -->
 // Older chats wrote <!-- bond: \u2026 --> (1.33.0); both are read, and both are stripped from the prompt.
-const LINE = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/i;
-const LINES = /<!--\s*(?:weave|bond)\s*:([\s\S]*?)-->/gi;
-const LINE_ALL = /[ \t]*<!--\s*(?:weave|bond)\s*:[\s\S]*?-->[ \t]*\n?/gi;
+const LINE = /<!--\s*(?:weave|bond)\b\s*:?([\s\S]*?)-->/i;
+const LINES = /<!--\s*(?:weave|bond)\b\s*:?([\s\S]*?)-->/gi;
+const LINE_ALL = /[ \t]*<!--\s*(?:weave|bond)\b\s*:?[\s\S]*?-->[ \t]*\n?/gi;
 export const hasWeave = text => typeof text === 'string' && LINE.test(text);
 export const stripWeave = text => String(text ?? '').replace(LINE_ALL, '').replace(/\s+$/, '');
 // Every weave line in a reply, in order. A continued reply can end up with two: the first

@@ -18,6 +18,12 @@
 // dynamicOf), so the same meters can read differently in different scenes.
 // In the wording, n is the character's name and u is yours. Use names, never pronouns.
 const heat = d => d.lu ?? d.ds;
+// 1.96: dynamics that take for granted the two have already slept together. They only come up (from the meters, the
+// story or the scene reader) once there's real evidence: a tie that means it (lovers, married, exes, an affair,
+// friends with benefits and the like) or sex that actually happened earlier in this chat. A player's own pick stays.
+export const NEEDS_SEX = new Set(['Games in the dark', 'Easy in bed', 'Rough and tender', 'Insatiable', 'Comfort in bed', 'Learned their body',
+    'Worship of the body', 'Afterglow lovers', 'Claiming in bed', 'Friends with benefits', 'Ashamed of wanting', 'Just bodies', 'Worship in bed',
+    'Fight and bed', 'One line further', 'Teacher in bed', 'Past lovers, now strangers', 'Two against the world']);
 
 // [id, name, icon, colour] for the picker.
 export const DYNAMIC_GROUPS = [

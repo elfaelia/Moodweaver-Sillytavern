@@ -13,7 +13,7 @@ import { hasWeave } from '../engine/weave.js';
 const CHIP = 'mw-fillin';
 // Opus 5.5 takes instructions literally: one job, the exact shape, and nothing else to write.
 const ASK = '[Moodweaver, out of character: your last reply above ended without its hidden line. Write that line now, for that reply only, exactly as the Moodweaver notes describe: one line starting <!-- weave: and ending -->, with only what that reply changed. Write nothing else: no story, no comments, no explanation.]';
-const FOUND = /<!--\s*(?:weave|bond)\s*:[\s\S]*?-->/i;
+const FOUND = /<!--\s*(?:weave|bond)\b\s*:?[\s\S]*?-->/i;
 
 // Who wrote the newest message, when it's a character's reply that should have had a line.
 function missing() {
@@ -52,6 +52,8 @@ function drawChip() {
     clearChips();
     if (run.suspended || settings().fillInChip === false || writingNow() || document.body?.dataset?.generating === 'true') return;
     const gap = missing(); if (!gap) return;
+    // A thinking model sometimes writes the line in its thinking instead of the reply (1.96.2): take it from there.
+    if (rescue(gap.i, gap.m)) return;
     const block = document.querySelector(`#chat .mes[mesid="${gap.i}"] .mes_block`); if (!block) return;
     const box = document.createElement('div');
     box.className = CHIP;
@@ -59,6 +61,25 @@ function drawChip() {
     box.innerHTML = `<button type="button" class="mw-fillin-btn">\u25c6 ${failed ? 'Try again' : 'Add the hidden line'}</button><small>${failed ? 'The model answered without a hidden line last time. Tap to try again.' : 'This reply came without Moodweaver\u2019s hidden line, so nothing in it has moved their feelings yet.'}</small>`;
     box.querySelector('button').addEventListener('click', () => void fillIn(gap.i, box));
     block.append(box);
+}
+
+// The line from the reply's thinking, added to the end of the reply and read like an edit. True when it was found.
+function rescue(index, m) {
+    const line = lineFrom(m.extra?.reasoning);
+    if (!line) return false;
+    void attach(index, m, line, 'Hidden line found in the model\u2019s thinking and added to the reply.');
+    return true;
+}
+async function attach(index, m, line, note) {
+    const c = ctx();
+    m.mes = `${m.mes.replace(/\s+$/, '')}\n\n${line}`;
+    if (Array.isArray(m.swipes) && Number.isInteger(m.swipe_id) && typeof m.swipes[m.swipe_id] === 'string') m.swipes[m.swipe_id] = m.mes;
+    c.updateMessageBlock?.(index, m);
+    await c.saveChatConditional?.();
+    // Read like an edited reply: the line moves feelings, meters and the rest straight away.
+    await c.eventSource.emit(c.eventTypes.MESSAGE_EDITED, index);
+    clearChips();
+    globalThis.toastr?.success(note, 'Moodweaver', { timeOut: 2500 });
 }
 
 export async function fillIn(index, box = null) {
@@ -85,12 +106,5 @@ export async function fillIn(index, box = null) {
         say('The model answered without a hidden line. Tap to try again.');
         return;
     }
-    m.mes = `${m.mes.replace(/\s+$/, '')}\n\n${line}`;
-    if (Array.isArray(m.swipes) && Number.isInteger(m.swipe_id) && typeof m.swipes[m.swipe_id] === 'string') m.swipes[m.swipe_id] = m.mes;
-    c.updateMessageBlock?.(index, m);
-    await c.saveChatConditional?.();
-    // Read like an edited reply: the line moves feelings, meters and the rest straight away.
-    await c.eventSource.emit(c.eventTypes.MESSAGE_EDITED, index);
-    clearChips();
-    globalThis.toastr?.success('Hidden line added to the last reply.', 'Moodweaver', { timeOut: 2500 });
+    await attach(index, m, line, 'Hidden line added to the last reply.');
 }

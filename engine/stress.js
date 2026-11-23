@@ -3,10 +3,9 @@
 // (drink, work, control, prayer, cruelty, withdrawal); past what they can hold, they break once, in character,
 // and come down from it. Everything is read back from the hidden lines still in the chat, oldest first, so
 // swiping or deleting a reply takes its stress with it. Data and pure functions; app/replies.js feeds them.
+import { clamp, pt } from './util.js';
 import { BY_ID } from '../data/catalogue.js';
 
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 
 // Levels: 0\u201333 nothing is sent, then three levels, each with its own word.
 export const STRESS_LEVELS = [[90, 3, 'at breaking point'], [67, 2, 'badly strained'], [34, 1, 'under strain'], [0, 0, 'steady']];

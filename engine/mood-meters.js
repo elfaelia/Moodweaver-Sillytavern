@@ -232,4 +232,3 @@ export function withFacts(step, his, yours, scale = 1) {
     return out;
 }
 // How many feelings move a meter (for DEVELOPING and the checks).
-export const nudgedMoods = () => BY_MOOD;

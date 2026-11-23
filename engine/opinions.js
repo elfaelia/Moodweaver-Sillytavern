@@ -3,10 +3,10 @@
 // someone ("angry +10 at his wife"), so it costs nothing extra to collect. Names are matched to the Family box,
 // so "his wife" and "Margaret" are the same person. A line goes to Claude only when the scene names them.
 // Read back from the chat each time, so swiping a reply takes its share with it. Data and pure functions.
+import { pt } from './util.js';
 import { BY_ID } from '../data/catalogue.js';
 import { KIN, familyLines } from './turns.js';
 
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const WARM = new Set(['happy', 'closeness', 'love', 'attachment', 'desire', 'calm']);
 const COLD = new Set(['angry', 'cruel', 'cold', 'sad', 'scared']);
 const FADE = 0.985, MIN = 8;

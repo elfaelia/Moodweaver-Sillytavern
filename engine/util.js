@@ -2,6 +2,8 @@
 
 
 export const clamp = (v, min = 0, max = 100) => Math.max(min, Math.min(max, Number.isFinite(Number(v)) ? Number(v) : min));
+// Text from the player or a card, made safe to sit inside the note's tags.
+export const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 export const escapeHtml = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const text = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 // Full name in headings, a short name everywhere else so the notes don't read like a form.

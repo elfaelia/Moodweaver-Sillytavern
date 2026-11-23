@@ -4,9 +4,9 @@
 //   Contagion: the player's feeling, as the hidden line read it, rubs off on the character, but only when the
 //     character has the empathy for it and nothing in the moment shuts it out. A cold or cruel character doesn't
 //     catch her fear at all; the dynamic and their own moods decide what they make of it instead.
+import { pt } from './util.js';
 import { BY_ID, sectionOf } from '../data/catalogue.js';
 
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const lower = m => m.label.split('/')[0].trim().toLowerCase();
 
 // What each kind of feeling leaves behind once it's gone. Kinds that leave nothing aren't listed.

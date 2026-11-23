@@ -1,3 +1,4 @@
+import { clamp } from './util.js';
 import { metersOf } from './meters.js';
 import { secretStep } from './secrets.js';
 // The weave line. One hidden HTML comment at the end of each reply carries what the roleplay
@@ -14,7 +15,6 @@ export const stripWeave = text => String(text ?? '').replace(LINE_ALL, '').repla
 // reply's line and the continuation's. Both count, so nothing the first part changed is lost.
 export const weaveLines = text => [...String(text ?? '').matchAll(LINES)].map(m => m[1].trim());
 
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 const NONE = /^(none|nothing|n\/?a|no change|no|-|\u2014|\[.*\])\.?$/i;
 const num = v => { const x = String(v ?? '').replace(/[\u2212\u2013]/g, '-').match(/[+-]?\s*\d+/); return x ? Math.round(Number(x[0].replace(/\s/g, ''))) : 0; };
 const unquote = s => String(s ?? '').trim().replace(/^["\u201c'\u2018]+|["\u201d'\u2019.]+$/g, '').trim();

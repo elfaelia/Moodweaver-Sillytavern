@@ -1,8 +1,8 @@
+import { clamp } from './util.js';
 import { pronounize } from './pronouns.js';
 // More Bonds meters, all off until you switch them on, and the dynamics they unlock. Each meter is
 // how the character is toward your persona, moved by the reply's hidden line like Friendship and Romance.
 // Data and small pure functions only; bond.js does the reading and the panel.
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 // key, label, two-sided (-100..100) or not (0..100), start, hidden-line word, words by value, what Claude
 // reads when it's strong (high, and low for two-sided ones), one-line panel description.

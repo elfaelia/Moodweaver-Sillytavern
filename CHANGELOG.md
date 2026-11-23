@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.97.0: writing settings that bite
+- A fiction frame now opens the cached guide: this is the player's adult fiction, the people in it aren't Claude and don't share its values, villains stay villains, and choices are judged by whether they're true to the person and the story, not by whether they're nice.
+- Dark, crude and explicit settings that are clear or stronger are named once more near the end of the note, as things to put on the page at their strength without toning down, cutting away or adding a lesson.
+- Vulgar is now vulgar in content, not just words: hard swearing, slurs from people who'd use them, obscene thoughts and talk, crude graphic sex and violence, bodies and fluids, and at intense and above obscenity on nearly every page. Close third (and every narrator) no longer keeps the narration clean while Vulgar is on, which was quietly cancelling it. New row: Swearing, for coarser words only.
+- Authors blend properly: each author gets a share from its strength and a job (sentence shape, what the eye lingers on, how people talk, inner life), separately for narration and dialogue when they're split, fused in every paragraph. A gentle nudge lets Claude search once for an author it only knows by name.
+- Cleaner writing: No AI tells, Unmannered (at most one short physical comparison a reply) and No similes rewritten to be concrete and countable; metaphor joins the things the prose rules override in an author. A last check asks Claude to test its draft against the rules and habits before the final reply.
+- Pattern breaker catches shapes, not just words: comparisons in every paragraph, short punchy paragraph endings, replies ending on dialogue or a question, lists of three, -ing openers, sentences all starting with he or she, every reply the same number of paragraphs. It now sits last of the writing notes, like an author's-note ban.
+- Tidy-up: one shared helper for safe note text and one for clamping, instead of copies in eleven files; an unused export removed.
+
 ## 1.96.4: quicker panel, tidy lists, skills sorted and on the right side, Skincare
 - The mood list no longer grows forever. Every feeling or fact the story ever put on used to stay on the character's list at zero, so a long chat built up hundreds of rows, and every tap redrew them all. Now ones the story puts on leave the list again when they're back at zero (ones you add or tap yourself stay). Once per chat, old ones at zero that aren't pinned are tidied off; anything taken off is one tap away in Browse all.
 - Taps are quicker: the bond history no longer re-reads both cards for every message in the chat on each redraw, and the note's preview is rebuilt a little after you stop tapping (1.2 s instead of 0.3 s), so it doesn't land on your next tap. The note sent with a reply is always built fresh, so nothing is lost.

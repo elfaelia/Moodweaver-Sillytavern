@@ -2,6 +2,7 @@
 // Moodweaver never changes its HTML (a chat regex styles it). It only reads the latest one back out of
 // the chat, shows it as a Sims-style needs panel, and sends the player's edits and the needs that
 // matter on to the next reply. No extra model calls: the board is already in the reply.
+import { pt } from './util.js';
 import { MOODS, BY_ID, SCALED_MOOD_CUES, MERGED_SEARCH_NAMES, analysed } from '../data/catalogue.js';
 import { RELATIONSHIP_TAGS } from './relationships.js';
 import { MOVED_WORDS } from '../data/catalogue/merged.js';
@@ -377,7 +378,6 @@ export function namedIn(present, name) {
 }
 
 // ---- Prompt ----
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 const HORNY_CUES = [[81, 'hard to think about anything else'], [61, 'pulling hard at what they say and do'], [21, 'on their mind and colouring how they look at people'], [1, 'barely on their mind'], [0, 'not on their mind at all']];
 // What the newest board said, as one line, for when old boards are kept out of the prompt.
 // Corrected fields are left to the correction block below, so nothing is said twice.

@@ -44,7 +44,7 @@ const tidy = s => s.replace(/\s+/g, ' ').trim();
 
 // texts: the character's last replies, oldest first (raw message text is fine). names: words to ignore
 // (character and player names). Returns [{ label, examples, n }], strongest first.
-export function findPatterns(texts, { names = [], max = 6 } = {}) {
+export function findPatterns(texts, { names = [], max = 8 } = {}) {
     const replies = (texts ?? []).map(proseOf).filter(t => t.length > 40).slice(-5);
     if (replies.length < 2) return [];
     const ignore = new Set(names.flatMap(n => words(String(n))));
@@ -96,14 +96,33 @@ export function findPatterns(texts, { names = [], max = 6 } = {}) {
     replies.forEach((t, r) => { for (const w of new Set(words(t))) if (w.length >= 7 && !plain(w) && !ignore.has(w)) count(vocab, w, w, r); });
     const worn = [...vocab.entries()].filter(([, e]) => e.replies.size >= Math.min(4, replies.length) && e.n >= 4).map(([w]) => w).slice(0, 6);
     if (worn.length >= 2) out.push({ label: 'the same distinctive words in nearly every reply', examples: worn, n: 3 });
+    // 7. Shapes of the writing itself (1.97), not just repeated words: the breaker missed a reply full of comparisons
+    // because no single phrase came back. Each needs to show in most of the last replies.
+    const many = k => replies.length >= 3 && k >= Math.min(4, replies.length);
+    const paras = replies.map(t => t.split(/\n\s*\n|\n/).map(x => x.trim()).filter(x => x.length > 20));
+    const sims = replies.map(t => [...t.matchAll(/\b(?:like (?:a|an|the|some|his|her|their)|as if|as though)\b[^.,;!?"]{0,24}/gi)].map(m => tidy(m[0])));
+    if (many(sims.filter(x => x.length >= 2).length)) out.push({ label: 'comparisons in nearly every paragraph (like a\u2026, as if\u2026); use one at most this reply, or none', examples: sims.flat().slice(0, 3), n: 6, quoted: false });
+    const shortEnds = paras.flat().filter(pg => { const last = sentences(pg).at(-1) ?? ''; return sentences(pg).length > 1 && words(last).length <= 6; }).length, allParas = paras.flat().filter(pg => sentences(pg).length > 1).length;
+    if (allParas >= 8 && shortEnds / allParas >= 0.5) out.push({ label: 'paragraphs ending on a short punchy sentence; end them mid-flow this reply', examples: [], n: 5 });
+    const endTalk = paras.filter(ps => /^"/.test(ps.at(-1) ?? '')).length, endAsk = replies.filter(t => /\?["\u201d]?\s*$/.test(t)).length;
+    if (many(endTalk)) out.push({ label: 'ending every reply on a line of dialogue; end this one on an action', examples: [], n: 4 });
+    if (endAsk >= 3) out.push({ label: 'ending replies on a question; end this one on an action or a statement', examples: [], n: 4 });
+    const triads = replies.map(t => (t.match(/\b[a-z]+, (?:[a-z]+ ){0,2}[a-z]+,? and [a-z]+\b/gi) ?? []).length);
+    if (many(triads.filter(k => k >= 2).length)) out.push({ label: 'lists of three (this, that, and the other); use pairs or single details this reply', examples: [], n: 4 });
+    const ingOpen = replies.map(t => sentences(t).filter(x => /^[A-Z][a-z]+ing\b[^,.]{0,40},/.test(x)).length);
+    if (many(ingOpen.filter(k => k >= 2).length)) out.push({ label: 'sentences opening on an -ing clause (Leaning in, he\u2026); open sentences on the subject or the action this reply', examples: [], n: 4 });
+    const pro = replies.flatMap(t => sentences(t).filter(x => !x.startsWith('"'))), proStart = pro.filter(x => /^(he|she|they|his|her|their)\b/i.test(x) || ignore.has(words(x)[0] ?? '')).length;
+    if (pro.length >= 20 && proStart / pro.length >= 0.45) out.push({ label: `most sentences starting with he, she or a name (${Math.round(100 * proStart / pro.length)}%); vary how sentences open`, examples: [], n: 5 });
+    const counts = paras.map(ps => ps.length), lastFour = counts.slice(-4);
+    if (lastFour.length >= 4 && lastFour.every(k => k === lastFour[0])) out.push({ label: `every reply ${lastFour[0]} paragraphs long; change the shape and length this reply`, examples: [], n: 3 });
     return out.sort((a, b) => b.n - a.n).slice(0, max);
 }
 
 // The prompt block. strength: the Pattern breaker slider (1\u2013100).
 export function patternLines(found, strength = 60) {
     if (!found?.length) return [];
-    const list = found.slice(0, strength >= 61 ? 6 : strength >= 21 ? 4 : 2);
-    return [`Pattern breaker: the last few replies keep reusing these shapes. Don\u2019t use them in this reply, not even with the words swapped, and don\u2019t swap in a lookalike:`,
+    const list = found.slice(0, strength >= 61 ? 8 : strength >= 21 ? 5 : 3);
+    return [`Pattern breaker. The last few replies fell into these habits; break every one of them in this reply:`,
         ...list.map(p => `- ${p.label}${p.examples.length ? `: ${p.quoted ? p.examples.join(', ') : p.examples.map(e => `\u201c${e}\u201d`).join(', ')}` : ''}`),
-        `Write those beats another way: a different sentence shape, a different kind of detail, or leave the beat out. Only these exact shapes are out: ordinary words and contractions (doesn't, can't, he's) stay as normal.${strength >= 81 ? ' Vary sentence length and paragraph openings across the whole reply too.' : ''}`];
+        `Breaking a habit means doing something different in its place, not the same move in new words or a near lookalike. Only these habits are out; ordinary words and contractions stay as normal.${strength >= 81 ? ' Vary sentence length, sentence openings and paragraph shape across the whole reply too.' : ''}`];
 }

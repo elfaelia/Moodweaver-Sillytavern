@@ -2,6 +2,7 @@
 // Power, a named dynamic and sparked turn-ons). The numbers arrive on the reply's hidden weave line
 // (weave.js). 1.36.0: the steps are read straight from the chat every time, one per reply that still
 // exists, so swipes, edits and deletions can't leave anything behind. No extra request is ever made.
+import { clamp, pt } from './util.js';
 import { stripWeave, traitKey } from './weave.js';
 import { TURN_BY_ID } from './turns.js';
 import { RELATIONSHIP_BY_ID } from './relationships.js';
@@ -12,7 +13,6 @@ import { matchDynamic, fill } from './dynamics.js';
 import { MOODS } from '../data/catalogue.js';
 const MOOD_CATEGORY = new Map(MOODS.map(m => [m.id, m.category]));
 export const stripBond = stripWeave;
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 // f friendship, r romance, t trust, p control (who really holds it; + is the character), l pull (who is
 // hooked on whom; + means the player is hooked on the character). Control was "power" in 1.34.
 export const METERS = ['f', 'r', 't', 'p', 'l'];
@@ -376,7 +376,6 @@ export function sparkTarget(text, prefs = {}, traits = []) {
     return { id: '', trait: bestMatch(text, items) };
 }
 
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 // Rows for the relationships block, under "[character] toward [player]". Words only: a number tells the
 // model less than "wary" does. The request for the hidden line is built in weave.js.
 export function bondStanding({ bond, chatLength, n, u, axes = null, list = null }) {

@@ -6,7 +6,7 @@
 // pace; a pinned one stays where it is. Pure functions; app/ does the reading.
 import { SKILL_COMBOS, SKILL_GROUPS, SKILL_MERGED } from '../data/catalogue/skills.js';
 import { pronounize } from './pronouns.js';
-import { sceneHas } from './util.js';
+import { pt, sceneHas } from './util.js';
 
 const norm = s => String(s ?? '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[\u2019\u2018]/g, "'");
 export { SKILL_GROUPS };
@@ -162,7 +162,6 @@ export function skillProgress(state, id) {
     if (!pace.per || !lv || lv >= 10 || cleanPins(state?.skillPins)[id]) return null;
     return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv)];
 }
-const pt = v => String(v ?? '').replace(/</g, '\u2039').replace(/>/g, '\u203a');
 // people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
 // levels only), then, only for what's lit: each skill's description, one combo line, and the rule.
 const roster = p => `${pt(p.name)}: ${p.all.map(x => `${pt(x.prompt)} ${x.level}`).join(', ')}`;

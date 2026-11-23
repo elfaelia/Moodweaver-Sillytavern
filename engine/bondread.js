@@ -1,7 +1,7 @@
 // "Re-read the scene" for Bonds. One request to the scene reader's connection, only when tapped:
 // where the character and your persona stand right now, judged from the latest messages, so meters and the
 // dynamic that went stale over a long scene catch up in one go. Pure functions; index.js sends and applies.
-const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+import { clamp } from './util.js';
 const num = (v, lo, hi) => Number.isFinite(Number(v)) ? clamp(Math.round(Number(v)), lo, hi) : null;
 
 // meters: [{ key, word, two }] for the optional meters that are on. names: dynamic names, filled in.

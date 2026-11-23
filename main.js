@@ -79,11 +79,13 @@ function setup() {
     ui.panel.addEventListener('pointerdown', () => { ui.pointerInPanel = true; }, { passive: true });
     for (const type of ['pointerup', 'pointercancel']) window.addEventListener(type, () => { if (ui.pointerInPanel) { ui.pointerInPanel = false; later(); } }, { passive: true });
     ui.panel.addEventListener('scroll', toggleTop, { passive: true });
-    ui.panel.addEventListener('input', onPanelInput);
-    ui.panel.addEventListener('keydown', onPanelKeydown);
-    ui.panel.addEventListener('change', onPanelChange);
+    // A slip in a handler shows in the loading strip with its name and message, and never stops the next tap.
+    const guard = (name, fn) => async e => { try { await fn(e); } catch (err) { console.error('[Moodweaver]', name, err); window.dispatchEvent(new CustomEvent('moodweaver-error', { detail: `${name}: ${err?.message ?? err}` })); } };
+    ui.panel.addEventListener('input', guard('typing', onPanelInput));
+    ui.panel.addEventListener('keydown', guard('key', onPanelKeydown));
+    ui.panel.addEventListener('change', guard('change', onPanelChange));
     ui.panel.addEventListener('click', tapGlow, true);
-    ui.panel.addEventListener('click', onPanelClick);
+    ui.panel.addEventListener('click', guard('tap', onPanelClick));
     let touch = null;
     // A swipe is remembered from its start: where, when, and how far the panel was scrolled (a scroll is not a swipe).
     ui.panel.addEventListener('touchstart', e => { const t = e.touches[0]; touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, target: e.target, at: Date.now(), top: ui.panel.scrollTop, left: ui.panel.scrollLeft, maxDy: 0 } : null; }, { passive: true });

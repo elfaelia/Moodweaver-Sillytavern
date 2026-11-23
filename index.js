@@ -16,8 +16,16 @@ function show() {
     box.textContent = ['\u25c6 Moodweaver loading', ...lines.slice(-14), now].filter(Boolean).join('\n');
 }
 const note = (text, bad = false) => { lines.push(`${secs()}s ${text}`); if (bad) loud = true; show(); };
-window.addEventListener('error', e => note(`ERROR ${e.message} (${String(e.filename ?? '').split('/').slice(-2).join('/')}:${e.lineno})`, true));
-window.addEventListener('unhandledrejection', e => note(`ERROR ${String(e.reason?.message ?? e.reason).slice(0, 200)}`, true));
+// Only Moodweaver's own errors belong in the strip. A page error from anywhere else (SillyTavern, another
+// extension, a Safari add-on) can't be fixed here, and one from another site's script reaches us only as a bare
+// "Script error." with no file, so those are left out. Promise failures carry no file at all, so they are
+// shown only while loading, before the rest of the page is busy.
+const HOME = new URL('./', import.meta.url).href;
+const ours = e => String(e.filename ?? '').startsWith(HOME);
+window.addEventListener('error', e => { if (ours(e)) note(`ERROR ${e.message} (${e.filename.slice(HOME.length)}:${e.lineno})`, true); });
+// The panel's own handlers report here by name (main.js), so even a muted error still says where it came from.
+window.addEventListener('moodweaver-error', e => note(`ERROR ${e.detail}`, true));
+window.addEventListener('unhandledrejection', e => { if (!done) note(`ERROR ${String(e.reason?.message ?? e.reason).slice(0, 200)}`, true); });
 // A heartbeat: if this line stops counting up, the page itself has frozen.
 const beat = setInterval(() => { if (!done) { show(); } }, 1000);
 let main = null;

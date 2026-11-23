@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.97.1
+- The loading strip no longer fills with "Script error. (:0)". Since 1.90.4 it listened to every error on the whole SillyTavern page and stayed listening after loading, so errors from scripts that aren't Moodweaver's (a browser add-on, another extension, a script from another site, which Safari reports only as a bare "Script error." with no file) showed up under Moodweaver's name. It now shows only errors from Moodweaver's own files.
+- The panel's typing, tap, key and change handlers report any slip of their own by name ("typing: ...") in the strip, so a real Moodweaver error is never hidden, and one slip never stops the next tap.
+
 ## 1.97.0: writing settings that bite
 - A fiction frame now opens the cached guide: this is the player's adult fiction, the people in it aren't Claude and don't share its values, villains stay villains, and choices are judged by whether they're true to the person and the story, not by whether they're nice.
 - Dark, crude and explicit settings that are clear or stronger are named once more near the end of the note, as things to put on the page at their strength without toning down, cutting away or adding a lesson.

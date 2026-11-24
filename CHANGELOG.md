@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.97.5
+- Accents without caricature. The setting's English rule (1960s America and the other regional eras) no longer lists the other country's words. Naming them planted them, and "only a character the card makes British talks that way" read as permission to give that one character the whole list. Now narration and everyone from the setting use its English; someone from another country sounds like a real person from there, with their accent and a few natural habits of speech, never a string of national slang, swearing or stereotypes; and the narration keeps the setting's words for everything, that person's clothes included. Second-era lines are one short sentence each.
+- Continuity first. The note's opening no longer says "earlier replies are settled" (1.97.3), which in a story read as leave to stop checking them. It now says what the story has already established still holds: where everyone is, what they know, wear and hold, what has happened, and what a body or object can physically do next.
+
 ## 1.97.4
 - Feelings that fade to a flicker leave on their own. After each reply (and each scene read), any feeling at Faint, 10 or under, goes to 0 and off the list, for the character and for you. Then, if more than 12 feelings are on, the weakest ones under Clear (41) make room, lowest first, so a new feeling coming in pushes out the faintest. This counts feelings you added yourself too; only pinned ones always stay. Traits, intimacy, Mind, facts and turn-ons aren't touched. Deleting or swiping the reply brings them back.
 

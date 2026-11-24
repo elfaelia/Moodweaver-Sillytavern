@@ -390,11 +390,12 @@ function composePrompt(state, name, extras = {}) {
         || pairs.some(p => p.tags.some(m => tierOf(p.moods[m.id]) === t) || p.memories.some(m => tierOf(m.value) === t))
         || [...extraValues(state), ...extraValues(player?.state), ...extraValues(storyState, ['story']), ...cast.flatMap(p => extraValues(p.state))].some(v => tierOf(v) === t));
     // Where the player's newest message sits (Settings \u203a What is sent \u203a Where the notes go): just before this note,
-    // or just after it. Either way the note says once that the reply carries on from that message as written, and
-    // that earlier replies are settled (Anthropic's advice for Opus 5.5 in chat). It never asks for the message to
-    // be restated or listed: that turns replies into point-by-point answers.
+    // or just after it. Either way the note says once that the reply carries on from that message as written and that
+    // what the story established still holds (continuity and physical sense; 1.97.3 said "earlier replies are settled",
+    // which in a story read as leave to stop checking them). It never asks for the message to be restated or listed:
+    // that turns replies into point-by-point answers.
     const order = ['before', 'rules'].includes(extras.order) ? extras.order : 'after';
-    const out = [`The player's newest message, ${order === 'after' ? 'just before these notes' : 'just after these notes'}, is where this reply picks up: what they did and said there happens as written and the story carries on from it, without retelling it. Earlier replies are settled. These notes are where things stand now, more current than the character card and earlier replies.`];
+    const out = [`The player's newest message, ${order === 'after' ? 'just before these notes' : 'just after these notes'}, is where this reply picks up: what they did and said there happens as written and the story carries on from it, without retelling it. What the story has already established still holds: where everyone is, what they know, wear and hold, what has happened, and what a body or object can physically do next. These notes are the player's settings for right now and outrank the character card where the two differ.`];
     // Split (Settings \u203a What is sent): the explanations, the board format, the hidden-line format and the author notes
     // don't change from reply to reply, so they go in a guide near the top (fx) where the API can cache them. What's
     // true right now, and anything meant to change the scene, stays here, last, where it carries the most weight.

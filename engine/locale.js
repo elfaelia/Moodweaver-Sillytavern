@@ -16,19 +16,23 @@ const REGIONAL_ERAS = [
 ];
 export const ERA_LOCALE = Object.fromEntries(REGIONAL_ERAS.map(([id, , , , after]) => [id, { locale: id.endsWith('america') ? 'us' : id.endsWith('scotland') ? 'scot' : 'uk', replaces: after }]));
 
-// Sent once, inside the period section. Opus 5.5 follows named patterns far better than a general
-// "write American": each line says what to use and names the opposite side's giveaways to leave out.
+// Sent once, inside the period section.
 const TECHNIQUE = 'Authors and styles in these notes shape technique, never accent, spelling or idiom.';
+// 1.97.5: no lists of the other side's words. Naming them planted them (Opus echoes listed words), and "only a
+// character the card makes British talks that way" read as leave to give that one character every word on the
+// list, so an English character came out as a caricature. Now: the setting's English for narration and everyone
+// raised there; a character from elsewhere sounds like a real person from there, lightly.
+const AWAY = 'Someone from another country sounds like a real person from there: their accent and a few habits of speech where they would naturally come out, never a string of national slang, swearing or stereotypes, and never more of it as a scene heats up. The narration keeps the setting\u2019s words for everything, including that person\u2019s clothes, food and things.';
 export const LOCALE_RULES = {
-    us: `Narration and dialogue are American English: color, realize, gray, center, toward; Mom, apartment, gas, elevator, sidewalk, trash, cookie, vacation, fall, the hospital. Leave out British giveaways: colour or realise spellings, Mum, flat, lift, pavement, rubbish, biscuit, holiday, \u201cin hospital\u201d, \u201cbloody\u201d, \u201cmate\u201d, \u201cbrilliant\u201d, \u201cfancy\u201d, \u201creckon\u201d, \u201cwhilst\u201d, \u201ccheers\u201d, and \u201cquite\u201d or \u201crather\u201d as intensifiers. Only a character the card makes British talks that way. ${TECHNIQUE}`,
-    uk: `Narration and dialogue are British English: colour, realise, grey, centre, travelled; Mum, flat, lift, pavement, rubbish, biscuit, holiday, autumn, in hospital. Leave out American giveaways: color or realize spellings, Mom, apartment, elevator, sidewalk, trash, cookie, vacation, fall for autumn, \u201cgotten\u201d, \u201cawesome\u201d, \u201cbuddy\u201d, \u201cy\u2019all\u201d. Only a character the card makes American talks that way. ${TECHNIQUE}`,
-    scot: `Narration uses British spelling and words: colour, realise, grey; Mum, flat, rubbish, holiday. Scottish characters sound Scottish where it fits the speaker: aye, wee, ken, lass, bairn, kirk, och, dinnae, cannae, outwith; broader for working folk, lighter for gentry and the educated. Use a few Scots words and turns of phrase, not phonetic spelling throughout. Leave out American giveaways: color, Mom, apartment, \u201cgotten\u201d, \u201cokay\u201d. ${TECHNIQUE}`,
+    us: `Narration and dialogue are American English in spelling, vocabulary and idiom (color, realize, Mom, apartment). ${AWAY} ${TECHNIQUE}`,
+    uk: `Narration and dialogue are British English in spelling, vocabulary and idiom (colour, realise, Mum, flat). ${AWAY} ${TECHNIQUE}`,
+    scot: `Narration is British English in spelling, vocabulary and idiom (colour, realise, Mum, flat). Scottish characters sound Scottish through a few Scots words and turns of phrase where that speaker would use them, broader for working folk and lighter for the educated, never phonetic spelling throughout. ${AWAY} ${TECHNIQUE}`,
 };
 // A second regional era only covers its own people; narration stays with the strongest.
 export const LOCALE_SPEAKERS = {
-    us: 'American characters still talk American (Mom, apartment, gas, okay).',
-    uk: 'British characters still talk British (Mum, flat, petrol, rather).',
-    scot: 'Scottish characters still sound Scottish (aye, wee, ken, dinnae).',
+    us: 'Americans in the story sound American, lightly.',
+    uk: 'British people in the story sound British, lightly.',
+    scot: 'Scots in the story sound Scottish, lightly.',
 };
 
 // When an American era leads, the note itself is respelled so its own wording doesn't pull the reply British.

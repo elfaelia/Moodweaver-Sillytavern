@@ -37,7 +37,8 @@ export function placeLauncher() {
     el.hidden = run.suspended || !launch.show;
     el.classList.toggle('is-small', Boolean(launch.small));
     el.innerHTML = `<span aria-hidden="true">\u25c6</span>${launch.small ? '' : ' Moods'}`;
-    if (el.hidden || launch.x == null || launch.y == null) { el.classList.remove('is-placed'); el.style.left = ''; el.style.top = ''; return; }
+    if (el.hidden || launch.x == null || launch.y == null) { el.classList.remove('is-placed'); el.style.left = ''; el.style.top = ''; el.style.setProperty('--mw-snap', '0px');
+        if (!el.hidden) { const t = el.getBoundingClientRect().top, off = t - Math.round(t); if (Math.abs(off) > 0.01) el.style.setProperty('--mw-snap', `${-off}px`); } return; }
     el.classList.add('is-placed');
     const b = launchBounds(el);
     moveLauncher(el, b.minX + (b.maxX - b.minX) * clamp(launch.x, 0, 1), b.minY + (b.maxY - b.minY) * clamp(launch.y, 0, 1));

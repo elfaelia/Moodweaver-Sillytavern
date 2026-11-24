@@ -107,14 +107,14 @@ const phrases = text => String(text ?? '').split(/[,;]| and (?=[a-z]+ing\b)|\u00
 // ---- Needs, read from the board's own words ----
 // 100 is fully met, 0 is desperate. Words only move a need when they clearly say so.
 const NEEDS = [
-    ['hunger', 'Hunger', 'stomach growling, distracted by food, shorter temper; eats whatever\u2019s at hand when they can'],
-    ['energy', 'Energy', 'heavy-lidded, yawning, slow and sloppy; wants to sit or lie down and dozes if left alone'],
-    ['bladder', 'Bladder', 'fidgeting, legs pressed together, distracted; cuts things short to find a toilet, or can\u2019t'],
-    ['hygiene', 'Hygiene', 'aware they smell and feel filthy; others notice; wants a wash'],
-    ['comfort', 'Comfort', 'keeps shifting against pain, cold, cramp or restraint, and it shortens their temper'],
-    ['social', 'Social', 'starved for company: talks to anyone, lingers and clings, or sulks at being left alone'],
-    ['fun', 'Fun', 'bored and restless: needles people, picks at things, goes looking for trouble'],
-    ['health', 'Health', 'hurt or sick: winces, slows down, the body won\u2019t do everything they want'],
+    ['hunger', 'Hunger', 'stomach growling, shorter temper, eats whatever\u2019s at hand'],
+    ['energy', 'Energy', 'heavy-lidded, slow and sloppy, dozes if left alone'],
+    ['bladder', 'Bladder', 'fidgeting, legs pressed together, cuts things short to find a toilet'],
+    ['hygiene', 'Hygiene', 'feels and smells filthy, and others notice'],
+    ['comfort', 'Comfort', 'shifting against pain, cold, cramp or restraint, temper shorter'],
+    ['social', 'Social', 'starved for company: clings, lingers, or sulks alone'],
+    ['fun', 'Fun', 'bored and restless, needles people, looks for trouble'],
+    ['health', 'Health', 'hurt or sick: winces, slows, the body won\u2019t do everything asked of it'],
 ].map(([id, label, cue]) => ({ id, label, cue }));
 const NEED_IDS = new Set(NEEDS.map(n => n.id));
 // p: read from Physical State only. s: from State only. ps: either.
@@ -404,10 +404,10 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     if (split) out.fixed = fixed;
     if (ended.length) out.push(`${n} no longer feels ${ended.join(', ')}: the player ended ${ended.length > 1 ? 'them' : 'it'}. Leave ${ended.length > 1 ? 'them' : 'it'} off the board's State and out of how ${n} acts, unless something new in this reply clearly brings ${ended.length > 1 ? 'them' : 'it'} back.`);
     const includeHorny = live?.meta?.includeHorny === true, toward = live?.meta?.includeToward === true;
-    if (send) fixed.push(`Info board: start every reply with this board, filled in for this moment. Keep the HTML exactly as shown. It's an impersonal snapshot, so don't quote, paraphrase or describe ${u}'s words anywhere in it. After the board, start the third-person limited scene with ${n}'s own answer, decision or physical action.`,
-        boardTemplate(char, user, includeHorny, { toward, remember }), includeHorny ? '' : 'Use only these board rows. Omit the old Horny row, including outside the board; don\u2019t move it into Physical State.');
+    if (send) fixed.push(`Info board: start every reply with this board, filled in for this moment, HTML exactly as shown and only these rows. It's an impersonal snapshot that never quotes or retells ${u}'s words. After it, the scene opens on ${n}'s own answer, decision or action.`,
+        boardTemplate(char, user, includeHorny, { toward, remember }));
     if (stripped && live?.found) { const record = boardContinuity(live, char, user, split); if (record) { out.push(record); if (split) fixed.push(`The last reply's board, when the notes give it: ${CONTINUITY_RULE}`); } }
-    fixed.push(`The board reports; it doesn't steer. State names ${n}'s strongest feelings right now, from these notes and what just happened in the scene, in a few words. Write it fresh each reply: a word from an earlier board stays only if this moment still shows it (a kiss shows desire, not the giddiness of an hour ago). Physical State lists ${n}'s active body settings (injured, wet, drunk and so on), the needs in the notes and what the scene has done to ${n} since.${send && toward ? ` Toward ${u} names ${n}'s strongest feelings about ${u} from the relationship notes and the scene.` : ''}${send && remember ? ` Remember stays none in most replies; fill it only for a confession, promise, betrayal, first time, secret learned or similar turning point.` : ''} Don't invent feelings or needs just to fill a row, and an older board doesn't override newer settings.${includeHorny ? ' Horny reports existing desire, including none; the row itself isn\u2019t a reason to increase it.' : ''}`);
+    fixed.push(`The board reports; it doesn't steer. State is ${n}'s strongest feelings this moment, fresh each reply; Physical State is ${n}'s body now.${send && toward ? ` Toward ${u} is ${n}'s strongest feelings about ${u}.` : ''}${send && remember ? ' Remember stays none except at a real turning point.' : ''} Nothing's invented to fill a row.${includeHorny ? ' Horny reports desire that\u2019s already there, including none.' : ''}`);
     if (!live) return out;
     const b = live.meta;
     const pins = [['date', 'Date'], ['time', 'Time'], ['location', 'Location'], ['activity', 'Activity'], ['charOutfit', `${char}\u2019s Outfit`], ['userOutfit', `${user}\u2019s Outfit`], ['horny', 'Horny']]
@@ -419,13 +419,12 @@ export function boardPromptLines({ send, live, char, user, n, u, stripped = fals
     const cut = [...b.mute.state, ...b.mute.physical].filter(p => [live.board?.state, live.board?.physical].some(line => String(line ?? '').toLowerCase().includes(p.toLowerCase())));
     if (cut.length) out.push(`The player cut these. Drop them from the board and the scene: ${pt(cut.join(', '))}.`);
     const needs = live.needs.filter(nd => nd.pinned || (nd.known && nd.value <= 35));
-    const needRule = `Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins. Keep them off the board unless it already shows them.`;
-    if (split) fixed.push(`${n}'s needs, when the notes list them: ${needRule}`);
-    if (needs.length || (includeHorny && live.hornyPinned)) out.push('', split ? `${n}'s needs right now:` : `${n}'s needs right now (keep them off the board unless it already shows them). Low ones nag and leak into mood and choices, and ${n} fixes them with whatever's at hand when the scene allows; a critical one takes over until it's dealt with or something worse wins:`,
-        ...needs.map(nd => `- ${nd.label.toLowerCase()} (${needWord(nd.value).toLowerCase()}): ${nd.value > 65 ? 'fully met, so it doesn\u2019t come up' : nd.value > 35 ? 'fine for now; it can show in small ways' : nd.cue}`),
-        ...(includeHorny && live.hornyPinned ? [`- horny (set by the player): ${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]}`] : []));
-    const rest = live.needs.filter(nd => nd.known && !nd.pinned && nd.value > 35);
-    if (rest.length) out.push(`Other needs: ${rest.map(nd => `${nd.label.toLowerCase()} ${needWord(nd.value).toLowerCase()}`).join(', ')}.`);
+    const needRule = `low ones nag at mood and choices until ${n} deals with them; a critical one takes over.`;
+    if (split) fixed.push(`${n}'s needs, when listed: ${needRule}`);
+    // 2.0 brief: one paragraph, each low or pinned need with how it shows; needs that are fine aren't sent.
+    const items = [...needs.map(nd => `${nd.label.toLowerCase()} ${needWord(nd.value).toLowerCase()} ${nd.value > 65 ? '' : nd.value > 35 ? '(can show in small ways)' : `(${nd.cue})`}`.trimEnd()),
+        ...(includeHorny && live.hornyPinned ? [`horny, set by the player (${HORNY_CUES.find(([min]) => live.hornyValue >= min)[1]})`] : [])];
+    if (items.length) out.push('', `${n}'s needs right now${split ? '' : `, where ${needRule.replace(/\.$/, '')}`}: ${items.join('; ')}.`);
     return out;
 }
 

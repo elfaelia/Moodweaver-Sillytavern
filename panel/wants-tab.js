@@ -45,7 +45,7 @@ export function wantsView(state, ch) {
     const react = ui.who === 'char' ? reactions(ch) : null, storyDone = react ? items.filter(w => !w.done && react.done.has(w.id)) : [];
     const intro = ui.who === 'user' ? `${esc(ch.name)} doesn\u2019t know these unless you show them.`
         : 'They light up when the story moves them closer, blocks them or touches a fear.';
-    return `<section class="mw-wants"><p class="mw-explainer">${intro}</p>
+    return `<section class="mw-wants"><div class="mw-summary mw-hero" data-chapter="wants"><i class="mw-hero-art" aria-hidden="true"></i><div class="mw-section-label">Wants</div><p class="mw-hero-empty">${intro}</p></div>
         ${storyDone.length ? `<div class="mw-want-card mw-want-story" style="--mw-accent:#8fd18a"><div class="mw-want-head"><span class="mw-want-icon">\u2713</span><div><b>The story says these came true</b><small>No longer sent. Swiping that reply brings them back.</small></div></div>
             ${storyDone.map(w => `<div class="mw-done-row"><span>${WANT_META[w.kind][0]} ${esc(w.text)}</span><button type="button" class="mw-list" data-want-done="${esc(w.id)}" title="Keep it done">\u2713</button><button type="button" class="mw-list" data-want-notyet="${esc(w.id)}" data-at="${react.doneAt.get(w.id) ?? -1}" title="Not yet: keep sending it">\u21ba</button></div>`).join('')}</div>` : ''}
         ${ui.who === 'char' ? autoCard(ch) : ''}

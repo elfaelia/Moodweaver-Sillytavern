@@ -63,13 +63,13 @@ export function skillsView(state, ch) {
         if (!browsing) return on ? `<div class="mw-skill-mine" data-skill-group="${esc(g.name)}"><h5 class="mw-sk-group"><span>${g.icon}</span> ${esc(g.name)}</h5>${mine.map(row).join('')}</div>` : '';
         ui.lazyBodies.set(key, () => g.rows.map(row).join(''));
         return `<details data-skill-group="${esc(g.name)}" style="--mw-accent:${g.color}"><summary><span class="mw-category-icon">${g.icon}</span><span>${esc(g.name)}</span><small>${on ? `${on} of ${g.rows.length}` : g.rows.length}</small></summary><div class="mw-category-body mw-sk-list" ${open ? '' : `data-lazy="${esc(key)}"`}>${open ? g.rows.map(row).join('') : ''}</div></details>`; }).join('');
-    return `<div class="mw-summary"><div class="mw-section-label">${chips ? 'Skills' : 'No skills yet'}<span>${skillsOf(state).length} set</span></div>
-        <div class="mw-chips">${chips || `<p>Nothing set. Tap \u201c\uff0b Add skills\u201d and pick what ${whose} can do.</p>`}</div>
+    return `<div class="mw-summary mw-hero" data-chapter="skills"><i class="mw-hero-art" aria-hidden="true"></i><div class="mw-section-label">Skills<span>${skillsOf(state).length} set</span></div>
+        <div class="mw-chips">${chips || `<p>Nothing set. Tap \uff0b Add and pick what ${whose} can do.</p>`}</div>
         ${diceBox()}
         <p class="mw-skill-now">${going.length ? `Going to Claude this reply: ${going.map(x => `${esc(x.label)} ${signed(x.level)}`).join(', ')}` : 'None this reply: skills go when the scene calls for them.'}</p></div>
-    <div class="mw-tools"><input type="search" class="mw-search" data-skill-search placeholder="${browsing ? 'Search all skills\u2026' : `Search ${whose}\u2019s skills\u2026`}" aria-label="Search skills">${browsing ? '<button data-action="browse-done" class="mw-primary">\u2713 Done</button>' : '<button data-action="browse" class="mw-primary">\uff0b Add skills</button>'}</div>
+    <div class="mw-tools"><input type="search" class="mw-search" data-skill-search placeholder="${browsing ? 'Search all\u2026' : 'Search\u2026'}" aria-label="Search skills">${browsing ? '<button data-action="browse-done" class="mw-primary">\u2713 Done</button>' : '<button data-action="browse" class="mw-primary">\uff0b Add skills</button>'}</div>
     <p class="mw-explainer">${browsing ? `Tap a skill to give it to ${whose}: +1 to +10 for good at it, \u22121 to \u221210 for bad at it.` : `Every skill runs from \u221210 (hopeless) through 0 to +10 (master). Tap one to change it. \u2727 means it\u2019s in play this reply; \u25c6 means it\u2019s pinned.`}</p>
-    <div class="mw-categories">${groups || `<p class="mw-explainer mw-empty-list">Nothing on ${whose}\u2019s list yet. Tap \u201c\uff0b Add skills\u201d.</p>`}</div>
+    <div class="mw-categories">${groups}</div>
     <p class="mw-fine" data-skill-empty hidden>No matching skills.</p>
     ${browsing ? '' : `<div class="mw-skill-opts"><label class="mw-field">Growth<select data-skill-pace aria-label="How fast skills grow and slip">${Object.entries(SKILL_PACE).map(([k, p]) => `<option value="${k}" ${pace === k ? 'selected' : ''}>${esc(p.label)}</option>`).join('')}</select></label>
         <label class="mw-field">Look back<select data-skill-lookback aria-label="How far back skills look">${[[1, 'Your message + the last reply'], [2, '+ the last 2 replies'], [3, '+ the last 3 replies']].map(([v, l]) => `<option value="${v}" ${settings().skillLookback === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>`}

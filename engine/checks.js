@@ -20,7 +20,6 @@ const roll = (seed, key, level) => {
     const n = DICE(level), all = Array.from({ length: Math.abs(n) }, (_, i) => d20(seed, i ? `${key}#${i}` : key));
     return n < 0 ? Math.min(...all) : Math.max(...all);
 };
-const how = level => ({ 3: ', best of 3', 2: ', best of 2', '-2': ', worst of 2', '-3': ', worst of 3' })[DICE(level)] ?? '';
 // attacker skills \u2192 the skills that resist them, and how each outcome reads. {a} attacker, {d} defender.
 const CONTESTS = [
     { att: ['lying', 'con_artistry', 'masking_emotions', 'manipulation', 'gaslighting', 'disguise', 'forgery', 'faking_it', 'playing_victim', 'love_bombing', 'appearances'], def: ['reading_people', 'psychology', 'psychiatry', 'intuition', 'interrogation'],
@@ -71,7 +70,7 @@ const PLAIN = {
 };
 const best = (all, ids) => all.filter(x => ids.includes(x.id)).sort((a, b) => b.level - a.level)[0];
 // people: [{ name, all: skillsOf(), lit: litSkills(), moods }]; two people at most are compared (the first two).
-// Returns { lines, rolls }: lines for the note, rolls for the panel.
+// Returns { by, rolls }: sentences for each doer's paragraph, rolls for the panel.
 export function checkLines(people = [], seed = 0, { max = 3, player = '' } = {}) {
     const rolls = [], used = new Set();
     const [p, q] = people;
@@ -88,19 +87,21 @@ export function checkLines(people = [], seed = 0, { max = 3, player = '' } = {})
         used.add(`${a.name}:${sk.id}`);
         rolls.push({ kind: 'contest', a: a.name, d: d.name, skill: sk.prompt ?? sk.id, level: sk.level, roll: ra, total: ta, dskill: dk.prompt ?? dk.id, dlevel: dk.level, droll: rd, dtotal: td, win, what: c.what,
             hide: win && d.name === player && c.what === 'deceiving',
-            text: `If ${a.name} ${c.verb} ${d.name} this reply: ${a.name} rolls ${ta} (${ra}${sk.level < 0 ? '' : '+'}${sk.level} ${sk.prompt ?? sk.id}${how(sk.level)}) against ${d.name}'s ${td} (${rd}${dk.level < 0 ? '' : '+'}${dk.level} ${dk.prompt ?? dk.id}${how(dk.level)}), so ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.` });
+            text: `If ${a.name} ${c.verb} ${d.name} (${sk.prompt ?? sk.id} against ${dk.prompt ?? dk.id}), ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.` });
     }
     for (const person of people.slice(0, 2)) for (const sk of person.lit ?? []) {
         if (used.has(`${person.name}:${sk.id}`) || rolls.some(r => r.a === person.name && r.skill === sk.prompt)) continue;
         const r = roll(seed, `${person.name}:${sk.id}`, sk.level), total = r + sk.level, t = tier(r, total, DC);
         rolls.push({ kind: 'check', a: person.name, skill: sk.prompt, level: sk.level, roll: r, total, tier: t,
-            text: `If ${person.name} tries ${sk.prompt} this reply, it ${PLAIN[t][r % PLAIN[t].length]} (rolled ${total}: ${r}${sk.level < 0 ? '' : '+'}${sk.level}${how(sk.level)}, needs ${DC}).` });
+            text: `If ${person.name} tries ${sk.prompt}, it ${PLAIN[t][r % PLAIN[t].length]}.` });
     }
     // Contests first (they're the ones between the two of you), then the plain checks, worst and best rolls first.
     const order = rolls.sort((x, y) => (x.kind === 'contest' ? 0 : 1) - (y.kind === 'contest' ? 0 : 1) || Math.abs(y.total - DC) - Math.abs(x.total - DC)).slice(0, max);
-    if (!order.length) return { lines: [], rolls: [] };
-    const lines = ['Dice for this reply (rolled before writing; only use one if that action happens, and play the result faithfully, a failure included). The dice say how well, not how: the details are yours, fresh each time and in character.', ...order.map(r => `- ${r.text}`)];
+    if (!order.length) return { by: {}, rolls: [] };
+    // 2.0 brief: no numbers in the note (they stay on the panel), each result in the doer's own paragraph.
+    const by = {};
+    for (const r of order) (by[r.a] ??= []).push(r.text);
     const fooled = order.find(r => r.hide);
-    if (fooled) lines.push(`- If ${fooled.a}'s deception does happen, the reader must be fooled along with ${player}: write it so it reads as true on the page, with no knowing narration, hints or tells pointed out. Let it surface later only through what happens.`);
-    return { lines, rolls: order };
+    if (fooled) by[fooled.a].push(`If that deception happens, the reader is fooled along with ${player}: it reads as true on the page, with no knowing narration or tells pointed out, and surfaces later only through what happens.`);
+    return { by, rolls: order };
 }

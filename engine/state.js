@@ -1,5 +1,6 @@
 // One person's saved moods, traits, wants and notes: a fresh state, cleaning saved values, and
 // moving values saved by older versions to where they live now.
+import { cleanDials, cleanTurns } from './dials.js';
 import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, analysed, isAuthor, sectionOf } from '../data/catalogue.js';
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
@@ -156,7 +157,7 @@ export function extendCatalogue(state) {
     // the scene calls for them, and one pace per chat is kept with the bond).
     delete state.custom; delete state.ownSkills; delete state.skillAlways; delete state.moodPace;
     state.skills = cleanSkills(widenSkills(state.skills, state.skillScale)); state.skillScale = SKILL_SCALE; state.skillPins = cleanPins(state.skillPins); state.skillXp = cleanXp(state.skillXp); state.skillPace = cleanSkillPace(state.skillPace);
-    state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs); state.petNames = cleanWords(state.petNames); state.sayings = cleanWords(state.sayings); state.family = cleanWords(state.family); state.stressFrom = Number.isFinite(state.stressFrom) ? state.stressFrom : -1; state.secrets = cleanSecrets(state.secrets); state.secretSet = cleanSecretSet(state.secretSet);
+    state.inventory = cleanInventory(state.inventory); state.age = cleanAge(state.age); state.height = cleanHeight(state.height); state.interests = cleanInterests(state.interests); state.favs = cleanFavs(state.favs); state.petNames = cleanWords(state.petNames); state.sayings = cleanWords(state.sayings); state.family = cleanWords(state.family, 1600); state.stressFrom = Number.isFinite(state.stressFrom) ? state.stressFrom : -1; state.secrets = cleanSecrets(state.secrets); state.secretSet = cleanSecretSet(state.secretSet);
     state.psyLean = cleanLean(state.psyLean); state.authorRole = cleanAuthorRole(state.authorRole);
     if (!Array.isArray(state.beliefs)) state.beliefs = (Array.isArray(state.core) ? state.core : []).filter(id => isBelief(BY_ID[id]));
     state.beliefs = cleanBeliefs(state.beliefs, state.moods); state.core = cleanCore(state.core, state.moods); state.factClock = cleanClock(state.factClock);
@@ -260,6 +261,8 @@ export function tidyList(state, keep = []) {
     return state.loadout.length !== before;
 }
 export function freshState(base = {}) {
+    // The story dials (engine/dials.js) replaced some Story rows: a chat that had them on starts on the matching step.
+    const dial = cleanTurns(base.dial, base.moods), dials = cleanDials(base.dials, base.moods);
     base = migrateCatalogue({ ...base, moods: { ...base.moods }, pins: { ...base.pins }, history: [],
         relationships: (base.relationships ?? []).map(r => ({ ...r, moods: { ...r.moods } })) });
     return {
@@ -270,7 +273,7 @@ export function freshState(base = {}) {
         personality: cleanPersonality(base.personality),
         enneagram: cleanEnneagram(base.enneagram),
         relationships: cloneRelationships(base.relationships),
-        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), petNames: cleanWords(base.petNames), sayings: cleanWords(base.sayings), family: cleanWords(base.family), stressFrom: Number.isFinite(base.stressFrom) ? base.stressFrom : -1, secrets: cleanSecrets(base.secrets), secretSet: cleanSecretSet(base.secretSet), core: cleanCore(base.core, base.moods ?? {}), beliefs: cleanBeliefs(base.beliefs, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
+        causes: cleanCauses(base.causes), shows: cleanShows(base.shows), prefs: cleanPrefs(base.prefs), inventory: cleanInventory(base.inventory), age: cleanAge(base.age), height: cleanHeight(base.height), interests: cleanInterests(base.interests), favs: cleanFavs(base.favs), petNames: cleanWords(base.petNames), sayings: cleanWords(base.sayings), family: cleanWords(base.family, 1600), stressFrom: Number.isFinite(base.stressFrom) ? base.stressFrom : -1, secrets: cleanSecrets(base.secrets), secretSet: cleanSecretSet(base.secretSet), core: cleanCore(base.core, base.moods ?? {}), beliefs: cleanBeliefs(base.beliefs, base.moods ?? {}), psyLean: cleanLean(base.psyLean), authorRole: cleanAuthorRole(base.authorRole),
         skills: cleanSkills(widenSkills(base.skills, base.skillScale)), skillScale: SKILL_SCALE, skillPins: cleanPins(base.skillPins), skillXp: cleanXp(base.skillXp), skillPace: cleanSkillPace(base.skillPace),
         wants: cleanWants(base.wants), readScope: cleanScope(base.readScope), follow: clamp(base.follow ?? 90, 10, 100),
         loadout: cleanLoadout(base.loadout, base),
@@ -278,6 +281,8 @@ export function freshState(base = {}) {
         decay: clamp(base.decay ?? 5, 0, 20), interval: clamp(base.interval ?? 1, 1, 10),
         // Feelings moved by the story's hidden line: on/off, fading on/off, and how fast.
         moodAuto: base.moodAuto !== false, moodFade: base.moodFade !== false, moodScope: base.moodScope === 'list' ? 'list' : 'any',
+        // The story's dial (2.0): how restless the story is, Calm 0 to Chaos 4. Only the story's own state uses it.
+        dial, dials,
         profile: String(base.profile ?? ''), lastFingerprint: '', lastUserCount: -1,
         reason: '', updatedAt: 0, history: [], revision: 0,
     };

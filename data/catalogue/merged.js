@@ -560,7 +560,7 @@ export const MERGED_SEARCH_NAMES = {
 };
 
 // Retired options. Saved values under these ids are dropped when a chat loads.
-export const REMOVED_MOODS = ["freckled","pierced","writer","model","nurse","detective","police","soldier","priest","bartender","golden_retriever","himbo","gentle_giant","ice_queen","femme_fatale","strangers","paranormal_romance","cosmic_horror","folk_horror","survival_horror","urban_fantasy","fairy_tale","sci_fi","cyberpunk","dystopian","war","bodyguard","found_family","redemption_arc","amnesia","haunting","prose_documentary","prose_epistolary","prose_vignettes","era_1890s","era_1890s_britain","era_1890s_scotland","era_1900s","era_1900s_britain","era_1900s_scotland","victorian_drama","victorian_fantasy","victorian_erotica"];
+export const REMOVED_MOODS = ["freckled","pierced","writer","model","nurse","detective","police","soldier","priest","bartender","golden_retriever","himbo","gentle_giant","ice_queen","femme_fatale","strangers","paranormal_romance","cosmic_horror","folk_horror","survival_horror","urban_fantasy","fairy_tale","sci_fi","cyberpunk","dystopian","war","bodyguard","found_family","redemption_arc","amnesia","haunting","prose_documentary","prose_epistolary","prose_vignettes","era_1890s","era_1890s_britain","era_1890s_scotland","era_1900s","era_1900s_britain","era_1900s_scotland","victorian_drama","victorian_fantasy","victorian_erotica","wildcards","real_stakes","player_not_safe","no_one_safe","death_on_the_table","world_leads","escalates_alone","costly_wins","no_unearned_hope","bad_ending"];
 
 // Plain words in a board or reply that point at an option that moved or was renamed.
 export const MOVED_WORDS = {

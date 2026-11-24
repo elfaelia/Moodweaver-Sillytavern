@@ -63,7 +63,7 @@ function poleMoons(m, state) {
 // What the panel says about a two-sided setting: what it is, then how its side plays out once one is chosen.
 const sideText = (m, state) => { const side = sideOf(m, state); return side ? `<p class="mw-side mw-side-${side}"><b>${SIDE_NAME[side]}:</b> ${esc(m[side])}</p>` : ''; };
 // An author's books, and (Settings \u203a Panel) how they write, under the row.
-const authorLines = m => m.books ? `<small class="mw-books">${esc(m.books.replaceAll("; ", " \u00b7 "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
+const authorLines = m => m.books ? `<small class="mw-books">${esc([m.era, m.origin].filter(Boolean).join(', '))}${m.era || m.origin ? ' \u00b7 ' : ''}${esc(m.books.replaceAll("; ", " \u00b7 "))}</small>${m.style && settings().authorStyle !== false ? `<p class="mw-style">${esc(m.style)}</p>` : ''}` : '';
 // Once an author is on: what they write. Whole voice (both), narration only, or dialogue only. Three wide buttons.
 const ROLE_CHOICES = [['', 'Both', 'Narration and dialogue'], ['narration', 'Narration', 'Everything outside the quotes'], ['dialogue', 'Dialogue', 'What people say aloud']];
 const roleButtons = (m, state) => !m.books || !(state.moods[m.id] > 0) ? '' : `<div class="mw-author-role" role="group" aria-label="What ${esc(m.label)} writes">${ROLE_CHOICES.map(([v, name, hint]) => {

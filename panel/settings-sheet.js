@@ -8,93 +8,89 @@ import { KEY, ctx, ui } from '../app/state.js';
 import { cleanBoardMeta } from '../engine/board.js';
 import { METERS, cleanBond, setMeter } from '../engine/bond.js';
 import { escapeHtml as esc } from '../engine/util.js';
+import { CATEGORIES } from '../data/catalogue.js';
 import { freshState } from '../engine/state.js';
 import { changeState, render } from './render.js';
 
+// 2.0: Settings as an observatory. A small sky at the top, then one card per subject, each folded to a line that
+// says what's inside. Switches sit on the right like every other switch in the panel; long explanations fold to an
+// \u24d8 line. The data-settings names stay the same, so the token pill and the Settings \u203a Panel links still land.
+const on = k => settings()[k] !== false, yes = k => settings()[k] === true;
+const sw = (attr, checked, title, note = '') => `<label class="mw-toggle mw-set-row"><input type="checkbox" ${attr} ${checked ? 'checked' : ''}><span><b>${title}</b>${note ? `<small>${note}</small>` : ''}</span></label>`;
+const choice = (key, title, options, note = '') => `<label class="mw-field mw-set-row mw-set-choice"><span><b>${title}</b>${note ? `<small>${note}</small>` : ''}</span><select data-setting-choice="${key}" aria-label="${title}">${options.map(([v, l]) => `<option value="${v}" ${String(settings()[key]) === String(v) ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+const card = (key, icon, color, title, sub, body, open = false) => `<details class="mw-advanced mw-set-card" data-settings="${key}" style="--mw-set:${color}"${open ? ' open' : ''}><summary><span class="mw-set-icon" aria-hidden="true">${icon}</span><span class="mw-set-title"><b>${title}</b><small>${sub}</small></span></summary><div class="mw-set-body">${body}</div></details>`;
 export function settingsView(state) {
     const whose = ui.who === 'user' ? playerName() : ui.who === 'story' ? 'the story' : subjectName();
+    const n = pinCounts(), words = n ? pinWords(n) : '';
+    const feelingsOn = ['aftermath', 'stress', 'opinions', 'secrets', 'factOpposites'].filter(on).length;
     return `<section class="mw-settings">
-        <div class="mw-settings-head"><button type="button" class="mw-back" data-action="settings-close">\u2039 Back</button><b>Settings</b><small>${esc(whose)}</small></div>
-        <details class="mw-advanced" data-settings="launcher"><summary>\u25c6 Moods button <small>this device</small></summary>${launchSettings()}</details>
-        <details class="mw-advanced" data-settings="panel"><summary>Panel</summary>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="whyOn" ${settings().whyOn !== false ? 'checked' : ''}> Show why: a faint line under moods and facts the story moved (raised by the story, from drunk, wearing off)</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="wantsTab" ${settings().wantsTab !== false ? 'checked' : ''}> Show the Wants tab</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="musicTab" ${settings().musicTab !== false ? 'checked' : ''}> Show Music on the dock (hidden, songs you switched on keep playing)</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="dockClose" ${settings().dockClose !== false ? 'checked' : ''}> Close button on the dock</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="swipeTabs" ${settings().swipeTabs !== false ? 'checked' : ''}> Swipe sideways to change tab</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceShow" ${settings().diceShow === true ? 'checked' : ''}> Show the dice rolls on the Skills tab (spoils some surprises)</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="chipRemove" ${settings().chipRemove !== false ? 'checked' : ''}> \u2715 on the chips at the top, to take a mood or trait off</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendsOn" ${settings().blendsOn !== false ? 'checked' : ''}> Author blends on the Story tab</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="authorStyle" ${settings().authorStyle !== false ? 'checked' : ''}> Show how each author writes</label>
-            <p class="mw-fine">Wants you already set still reach the story.</p></details>
-        <details class="mw-advanced" data-settings="sent" open><summary>What is sent to the model</summary>
-            
-            <label class="mw-toggle"><input type="checkbox" data-field="sceneBreathing" ${state.sceneBreathing !== false ? 'checked' : ''}> Tell it to keep scenes moving</label>
-            <label class="mw-field mw-shows-mode">How feelings show<select data-setting-choice="showsMode" aria-label="How feelings show">${[['all', 'Default wording + yours'], ['mine', 'Only what you wrote'], ['off', 'Off: names only']].map(([v, l]) => `<option value="${v}" ${settings().showsMode === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            
-            <label class="mw-field">When their moods clash<select data-setting-choice="moodClash" aria-label="When their moods clash">${[['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']].map(([v, l]) => `<option value="${v}" ${settings().moodClash === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <p class="mw-fine">When your moods and theirs don\u2019t match, the story may let it rub. Traits never clash.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="splitNote" ${settings().splitNote !== false ? 'checked' : ''}> Split the note so the unchanging part can be cached</label>
-            <p class="mw-fine">The explanations, the info board's layout, the hidden line's format and the author notes go once near the top of the prompt, where caching can reuse them every reply for much less. What's true right now (moods, facts, needs, the last board) and anything meant to change the scene still goes last, right before the reply, where it lands hardest. The top part only changes when you change settings, so it stays cached. Turn this off to send everything last in one block, as before.</p>
-            <label class="mw-field">Where the notes go<select data-setting-choice="noteOrder" aria-label="Where the notes go">${[['after', 'After your message'], ['rules', 'Before your message, writing rules after'], ['before', 'Before your message, only the hidden-line reminder after']].map(([v, l]) => `<option value="${v}" ${settings().noteOrder === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <p class="mw-fine">Whatever comes last before the reply gets the most attention. <b>After your message:</b> the notes come last, so settings and writing rules bite hardest, but a small detail in your message can get lost under them. <b>Before your message, writing rules after:</b> moods, facts and the rest come before your message; point of view, prose rules, the pattern breaker and the hidden-line reminder come after it. <b>Before your message, only the reminder after:</b> your message is almost the last thing read, with just the hidden-line reminder after it, so the line keeps coming back.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="fillInChip" ${settings().fillInChip !== false ? 'checked' : ''}> Offer to add a missing hidden line</label>
-            <p class="mw-fine">When a reply comes back without Moodweaver\u2019s hidden line, a \u25c6 Add the hidden line button shows under it in the chat. One tap asks your roleplay model for just that line (a short request through your normal connection) and adds it to the end of the reply, hidden as always, so the reply counts like any other. The story text isn\u2019t changed.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="factOpposites" ${settings().factOpposites !== false ? 'checked' : ''}> Opposite facts switch each other off</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="diceOn" ${settings().diceOn !== false ? 'checked' : ''}> Dice checks for skills in play (a d20 plus the skill level decides how attempts go)</label>
-            <p class="mw-fine">Putting on Hot takes off Cold, Hard takes off Soft, Drunk takes off Tipsy, and so on, whether you set it or the story does. Pinned facts stay.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="factsWhenRelevant" ${settings().factsWhenRelevant !== false ? 'checked' : ''}> Send who-they-are facts only when the scene touches them</label>
-            <label class="mw-field">Turn-ons sent<select data-setting-choice="turnsSend" aria-label="Turn-ons sent">${[['fit', 'When they fit the moment'], ['heat', 'Only in intimate scenes'], ['all', 'All of them, every reply']].map(([v, l]) => `<option value="${v}" ${settings().turnsSend === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <label class="mw-field">Turn-on reminder<select data-setting-choice="turnsEvery" aria-label="Turn-on reminder">${[[0, 'Off'], [2, 'Every 2 replies'], [3, 'Every 3 replies'], [4, 'Every 4 replies'], [5, 'Every 5 replies'], [6, 'Every 6 replies'], [8, 'Every 8 replies'], [10, 'Every 10 replies']].map(([v, l]) => `<option value="${v}" ${Number(settings().turnsEvery) === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="turnsStrong" ${settings().turnsStrong === true ? 'checked' : ''}> Strong turn-ons only (third and fourth moon)</label>
-            <p class="mw-fine">Turn-ons always stay on and saved; these only change when they go into the note, and they work the same for you, the character and anyone else in the scene. <b>When they fit the moment:</b> all of them in an intimate scene (sex, foreplay, a private heated moment, or someone feeling desire); otherwise only one the story touches, one the other person shows, one that lit last reply, and on reminder replies a random two. <b>Only in intimate scenes:</b> none at all outside one. <b>Turn-on reminder:</b> how often the random two go with When they fit. <b>Strong only:</b> turn-ons and turn-offs below the third moon are never sent.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="traitFocus" ${settings().traitFocus !== false ? 'checked' : ''}> Traits in focus: three in full each reply (the ones the scene touches first, the rest taking turns), the others as names in the background</label>
-            <p class="mw-fine">Looks, style, voice, job and past go when the scene brings them up, when they\u2019re set to overwhelming or maximum, and every few replies as a reminder. Age, height and what\u2019s happening right now always go. Saves tokens when your card already says the same.</p>
-            <label class="mw-field">Your feelings rubbing off<select data-setting-choice="contagion" aria-label="Your feelings rubbing off">${[['scene', 'When it fits who they are'], ['off', 'Off']].map(([v, l]) => `<option value="${v}" ${settings().contagion === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-            <p class="mw-fine">When the story reads a feeling in you (scared, sad, happy, wanting), a character with the empathy for it now and then feels a faint echo of it. Warm traits and caring moods make it likelier; cold-blooded, psychopathic, narcissistic or cruel ones stop it. Selective empathy only works if they're close to you.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="aftermath" ${settings().aftermath !== false ? 'checked' : ''}> Strong feelings leave an aftermath</label>
-            <p class="mw-fine">When fear, rage, grief, desire or cruelty at strong or above has just ended, it leaves a wake for a reply or two: shaking hands after terror, a short fuse after rage. Light feelings like amusement or boredom just stop.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="stress" ${settings().stress !== false ? 'checked' : ''}> Stress and breaking points</label>
-            <p class="mw-fine">Stress builds when the character acts against their starred beliefs or nature, or strain piles up (fear, guilt, empty needs), and eases with rest and comfort. Strained, they cope in character (drink, work, control, prayer\u2026); past what they can hold, they break once and come down from it. Shown on Info \u203a Needs. Adds one short line while strained and one field to the hidden line.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="opinions" ${settings().opinions !== false ? 'checked' : ''}> Feelings about other people build up</label>
-            <p class="mw-fine">Feelings the story aims at someone else ("angry at his wife") add up into how the character feels about them, matched to the Family box. Sent only when the scene names that person. Shown on the profile card.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="secrets" ${settings().secrets !== false ? 'checked' : ''}> Secrets and leverage</label>
-            <p class="mw-fine">Secrets written on a profile card move from hidden to suspected, known (a hook the other one holds) and out, by the story or by your tap. A hidden one is sent only when the scene comes close to it; suspected and known go every reply. Adds one field to the hidden line while any secret exists.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="blendPlan" ${settings().blendPlan ? 'checked' : ''}> Ask it to plan the blend while thinking</label>
-            <p class="mw-fine">Usually best off: Opus 5.5 plans on its own.</p>
-            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p><details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre>
-            <b class="mw-pre-label">Ready to send</b><pre data-preview></pre>
-            <b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details></details>
-        <details class="mw-advanced" data-settings="board"><summary>Info board</summary>
-            
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardSend" ${settings().boardSend ? 'checked' : ''}> Send the board prompt</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPresent" ${settings().boardPresent ? 'checked' : ''}> Present line moves the cast in and out</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="castAuto" ${settings().castAuto !== false ? 'checked' : ''}> The story moves the cast's feelings and facts</label>
-            <p class="mw-fine">Only for cast members in the scene: one feeling and one fact each a reply at most, and only when something changed. Anyone just talked about or thought of is left alone.</p>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardStrip" ${settings().boardStrip ? 'checked' : ''}> Keep old boards out of the prompt</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardWithWeave" ${settings().boardWithWeave ? 'checked' : ''}> Board words move feelings too, alongside the hidden line</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardPins" ${settings().boardPins ? 'checked' : ''}> Let me pin and correct things on the board</label>
-            <label class="mw-toggle"><input type="checkbox" data-setting-bool="boardMemories" ${settings().boardMemories ? 'checked' : ''}> Save turning points as memories</label>
-            
-            <p class="mw-fine">Old boards are left out of the prompt to save room. You still see them in the chat.</p>
-            <p class="mw-fine">If this is on, take the info board out of your preset.</p></details>
-        ${(() => { const n = pinCounts(), words = n ? pinWords(n) : ''; return `<details class="mw-advanced" data-settings="pins"><summary>Pins in this chat <small>${words ? 'some set' : 'none'}</small></summary>
-            <p class="mw-fine">${words ? `Right now: ${esc(words)}.` : 'Nothing is pinned in this chat.'} Unpinning everything covers everyone in this chat: ${esc(target()?.name ?? 'the character')}, ${esc(playerName())}, the cast and the story. Sliders and meters keep their values and can move again. Needs you set and board corrections go back to following the board. Saved defaults for new chats aren't changed.</p>
-            <div class="mw-actions"><button type="button" class="mw-danger" data-action="unpin-all"${words ? '' : ' disabled'}>Unpin everything</button></div></details>`; })()}
-        <details class="mw-advanced" data-settings="fresh"><summary>Clear everything <small>${esc(whose)}</small></summary>
-            <p class="mw-fine">Turns off every moodlet, trait, turn-on, fact, want, item and skill for ${esc(whose)} in this chat, and their relationships (their side, both-ways and memories). Pins come off. Bonds meters, the board and saved defaults stay.</p>
-            <label class="mw-toggle"><input type="checkbox" data-keep-types checked> Keep personality types</label>
-            <div class="mw-actions"><button type="button" class="mw-danger" data-action="clear-everything">Clear everything</button>${state.lastCleared ? '<button type="button" data-action="clear-undo">\u21ba Bring it back</button>' : ''}</div></details>
-        <details class="mw-advanced" data-settings="defaults"><summary>Defaults for new chats</summary>
-            <p class="mw-fine">A default is used for ${esc(whose)}\u2019s new chats.</p>
-            <div class="mw-actions"><button data-action="baseline">${ui.who === 'cast' ? 'Save the whole cast' : ui.who === 'user' ? 'Save persona default' : ui.who === 'story' ? 'Save story default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moodlets</button></div></details>
-        <details class="mw-advanced" data-settings="limits"><summary>Prompt & reader limits</summary>
-            <label>Token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"></label>
-            <label>Depth from the end <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"></label>
-            <p class="mw-fine">Depth 0 (after your latest message) works best.</p>
-            <label>Reader text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
-            <label title="Thinking models (Claude Opus 5.5 always thinks) spend part of this before writing the JSON. Around 4000 suits them.">Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="16000" step="100" value="${settings().outputTokens}"></label>
-            <p class="mw-fine">Text cap is in characters. Raise the reply cap if a thinking model runs out before it answers.</p></details>
+        <div class="mw-settings-head mw-set-hero"><i class="mw-set-sky" aria-hidden="true"></i><button type="button" class="mw-back" data-action="settings-close">\u2039 Back</button><div><b>Settings</b><small>Most of these are for every chat. Clearing and defaults are for ${esc(whose)}.</small></div></div>
+        ${card('sent', '\u25f7', '#efd59c', 'Tokens and the note', 'What goes to Claude each reply, and where', `
+            <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p>
+            ${choice('noteOrder', 'Where the notes go', [['after', 'After message'], ['rules', 'Rules after'], ['before', 'Before it']], 'Whatever comes last gets the most attention.')}
+            <p class="mw-fine"><b>After message:</b> the notes come last, so settings and writing rules bite hardest, but a small detail in your message can get lost under them. <b>Rules after:</b> moods, facts and the rest come before your message and only the point of view, writing rules and hidden-line reminder come after it. <b>Before it:</b> everything comes before your message except the hidden-line reminder.</p>
+            ${sw('data-setting-bool="splitNote"', on('splitNote'), 'Split the note for caching', 'The parts that never change go once near the top, where they cost much less.')}
+            ${sw('data-field="sceneBreathing"', state.sceneBreathing !== false, 'Keep scenes moving')}
+            ${sw('data-setting-bool="fillInChip"', on('fillInChip'), 'Offer to add a missing hidden line', 'A button under any reply that came back without it.')}
+            ${sw('data-setting-bool="blendPlan"', yes('blendPlan'), 'Plan the blend while thinking', 'Usually best off: Opus 5.5 plans on its own.')}
+            <details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre><b class="mw-pre-label">Ready to send</b><pre data-preview></pre><b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
+            <details class="mw-sent-full" data-settings="limits"><summary>Limits</summary>
+                <label class="mw-set-num">Token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"></label>
+                <label class="mw-set-num">Depth from the end <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"></label>
+                <label class="mw-set-num">Reader text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
+                <label class="mw-set-num">Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="16000" step="100" value="${settings().outputTokens}"></label>
+                <p class="mw-fine">Depth 0 (after your latest message) works best. The text cap is in characters; raise the reply cap if a thinking model runs out before it answers.</p></details>`)}
+        ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 5 extras on`, `
+            ${choice('showsMode', 'How feelings show', [['all', 'Default + yours'], ['mine', 'Only yours'], ['off', 'Names only']])}
+            ${choice('moodClash', 'When their moods clash', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'Your moods and theirs can rub. Traits never clash.')}
+            ${choice('contagion', 'Your feelings rubbing off', [['scene', 'When it fits'], ['off', 'Off']])}
+            <p class="mw-fine">When the story reads a feeling in you, a character with the empathy for it now and then feels a faint echo of it. Warm traits make it likelier; cold-blooded, psychopathic, narcissistic or cruel ones stop it.</p>
+            ${sw('data-setting-bool="aftermath"', on('aftermath'), 'Strong feelings leave an aftermath', 'Shaking hands after terror, a short fuse after rage.')}
+            ${sw('data-setting-bool="stress"', on('stress'), 'Stress and breaking points', 'Builds against their beliefs and nature, eases with rest.')}
+            ${sw('data-setting-bool="opinions"', on('opinions'), 'Feelings about other people build up', 'Sent only when the scene names that person.')}
+            ${sw('data-setting-bool="secrets"', on('secrets'), 'Secrets and leverage', 'Hidden, suspected, known, out.')}
+            ${sw('data-setting-bool="factOpposites"', on('factOpposites'), 'Opposite facts switch each other off', 'Hot takes off Cold, Drunk takes off Tipsy. Pinned ones stay.')}
+            ${sw('data-setting-bool="factsWhenRelevant"', on('factsWhenRelevant'), 'Who-they-are facts only when the scene touches them', 'Looks, style, voice, job and past. Saves tokens when the card already says it.')}
+            ${sw('data-setting-bool="traitFocus"', on('traitFocus'), 'Traits in focus', 'Three in full each reply, the rest as names in the background.')}
+            ${sw('data-setting-bool="diceOn"', on('diceOn'), 'Dice checks for skills in play')}
+            ${sw('data-setting-bool="arcOffers"', on('arcOffers'), 'Offer arcs the story starts', 'A chip on Scene when the story begins a slow burn, a corruption and so on.')}`)}
+        ${card('turns', '\u21cb', '#e7a6c4', 'Turn-ons', ({ fit: 'Sent when they fit the moment', heat: 'Sent only in intimate scenes', all: 'Sent every reply' })[settings().turnsSend] ?? '', `
+            ${choice('turnsSend', 'When they\u2019re sent', [['fit', 'When they fit'], ['heat', 'Intimate only'], ['all', 'Always']])}
+            <p class="mw-fine">Turn-ons always stay on and saved; this only changes when they go into the note. <b>When they fit:</b> all of them in an intimate scene, otherwise only ones the scene touches.</p>
+            ${choice('turnsEvery', 'A reminder every few replies', [[0, 'Off'], [2, '2'], [3, '3'], [4, '4'], [5, '5'], [6, '6'], [8, '8'], [10, '10']])}
+            ${sw('data-setting-bool="turnsStrong"', yes('turnsStrong'), 'Strong ones only', 'Third and fourth moon.')}`)}
+        ${card('board', '\u2601', '#9fc6c0', 'Info board', on('boardSend') ? 'Sent with each reply' : 'Not sent', `
+            ${sw('data-setting-bool="boardSend"', on('boardSend'), 'Send the board prompt', 'If this is on, take the info board out of your preset.')}
+            ${sw('data-setting-bool="boardPresent"', on('boardPresent'), 'Present line moves the cast in and out')}
+            ${sw('data-setting-bool="castAuto"', on('castAuto'), 'The story moves the cast\u2019s feelings and facts', 'Only for cast in the scene, one feeling and one fact at most.')}
+            ${sw('data-setting-bool="boardStrip"', on('boardStrip'), 'Keep old boards out of the prompt', 'You still see them in the chat.')}
+            ${sw('data-setting-bool="boardWithWeave"', on('boardWithWeave'), 'Board words move feelings too')}
+            ${sw('data-setting-bool="boardPins"', yes('boardPins'), 'Let me pin and correct the board', 'Also lets you set needs by hand.')}
+            ${sw('data-setting-bool="boardMemories"', yes('boardMemories'), 'Save turning points as memories')}`)}
+        ${card('panel', '\u2726', '#9fd3c9', 'The panel', 'What shows, and how it moves', `
+            ${sw('data-setting-bool="whyOn"', on('whyOn'), 'Show why', 'A faint line under moods and facts the story moved.')}
+            ${sw('data-setting-bool="wantsTab"', on('wantsTab'), 'Wants chapter', 'Wants you already set still reach the story.')}
+            ${sw('data-setting-bool="musicTab"', on('musicTab'), 'Music on the dock', 'Hidden, songs you switched on keep playing.')}
+            ${sw('data-setting-bool="dockClose"', on('dockClose'), 'Close button on the dock')}
+            ${sw('data-setting-bool="swipeTabs"', on('swipeTabs'), 'Swipe sideways between chapters')}
+            ${sw('data-setting-bool="diceShow"', yes('diceShow'), 'Show the dice rolls on Skills', 'Spoils some surprises.')}
+            ${sw('data-setting-bool="chipRemove"', on('chipRemove'), '\u2715 on chips to take them off')}
+            ${sw('data-setting-bool="blendsOn"', on('blendsOn'), 'Author blends on Story')}
+            ${sw('data-setting-bool="authorStyle"', on('authorStyle'), 'Show how each author writes')}
+            <p class="mw-seg-label">Story groups to show <small>tap one to hide it</small></p>
+            <div class="mw-group-picks">${CATEGORIES.filter(([, , , , , k]) => k === 'story').map(([id, name, icon]) => `<button type="button" class="mw-group-pick ${settings().hiddenGroups.includes(id) ? '' : 'is-on'}" data-group-hide="${id}" aria-pressed="${settings().hiddenGroups.includes(id) ? 'false' : 'true'}">${icon} ${esc(name)}</button>`).join('')}</div>
+            <p class="mw-fine">A hidden group leaves the Story page and search. Anything already on in it still reaches the story.</p>`)}
+        ${card('launcher', '\u25c6', '#efd59c', 'Moods button', 'On this device', launchSettings())}
+        <p class="mw-set-zone">For ${esc(whose)} in this chat</p>
+        ${card('pins', '\u25c7', '#e8936f', 'Pins', words ? esc(words) : 'Nothing pinned', `
+            <p class="mw-fine">Unpinning covers everyone in this chat: ${esc(target()?.name ?? 'the character')}, ${esc(playerName())}, the cast and the story. Values stay and can move again.</p>
+            <div class="mw-actions"><button type="button" class="mw-danger" data-action="unpin-all"${words ? '' : ' disabled'}>Unpin everything</button></div>`)}
+        ${card('defaults', '\u2302', '#9fc0e8', 'Defaults for new chats', `Used for ${esc(whose)}\u2019s new chats`, `
+            <div class="mw-actions"><button data-action="baseline">${ui.who === 'cast' ? 'Save the whole cast' : ui.who === 'user' ? 'Save persona default' : ui.who === 'story' ? 'Save story default' : 'Save character default'}</button><button data-action="reset">Clear unpinned moodlets</button></div>`)}
+        ${card('fresh', '\u2715', '#e26d7a', 'Clear everything', `Every mood, trait, fact and more for ${esc(whose)}`, `
+            <p class="mw-fine">Turns off every moodlet, trait, turn-on, fact, want, item and skill for ${esc(whose)} in this chat, and their relationships. Pins come off. Bonds meters, the board and saved defaults stay.</p>
+            ${sw('data-keep-types', true, 'Keep personality types')}
+            <div class="mw-actions"><button type="button" class="mw-danger" data-action="clear-everything">Clear everything</button>${state.lastCleared ? '<button type="button" data-action="clear-undo">\u21ba Bring it back</button>' : ''}</div>`)}
     </section>`;
 }
 // Every pin in this chat, for everyone in it. Values stay where they are; they just stop being

@@ -20,7 +20,7 @@ export const lowerLabel = label => label.replace(/\b([A-Z])(?=[a-z])/g, c => c.t
 export const CATEGORIES = SECTIONS.map(c => [c.id, c.name, c.icon, c.color, c.rows.map(r => r.note === undefined ? [r.id, r.label, r.cue] : [r.id, r.label, r.cue, r.note]), c.kind]);
 // "hazy_drunk +4, emboldened +2" \u2192 [['hazy_drunk', 4], ['emboldened', 2]].
 const feelsOf = text => String(text).split(',').map(p => p.trim().split(/\s+/)).filter(([id, n]) => id && Number(n)).map(([id, n]) => [id, Number(n)]);
-export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.private ? { private: true } : {}), ...(r.size ? { size: r.size } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
+export const MOODS = SECTIONS.flatMap(c => c.rows.map(r => ({ id: r.id, label: r.label, cue: r.cue, ...(r.note !== undefined ? { note: r.note } : {}), ...(r.books ? { books: r.books } : {}), ...(r.style ? { style: r.style } : {}), ...(r.era ? { era: r.era, origin: r.origin } : {}), ...(r.light ? { light: r.light, dark: r.dark } : {}), ...(r.words ? { words: wordsOf(r.words) } : {}), ...(r.lasts ? { lasts: r.lasts } : {}), ...(r.private ? { private: true } : {}), ...(r.size ? { size: r.size } : {}), ...(r.then ? { then: r.then } : {}), ...(r.feels ? { feels: feelsOf(r.feels) } : {}), category: c.id, color: c.color, kind: c.kind })));
 export const BY_ID = Object.fromEntries(MOODS.map(m => [m.id, m]));
 // For each fact, the facts it can't be on with (OPPOSITE_FACTS in catalogue/state.js), and the same for the
 // one-at-a-time story sets (ONE_OF in catalogue/story.js: one narrator, one tense).
@@ -49,7 +49,7 @@ export const analysed = m => m?.kind === 'mood' && !isStanding(m)
     && !['hates_user', 'hates_char', 'hates_other', 'comparing_people'].includes(m.id);
 export const FEELINGS = MOODS.filter(analysed);
 
-const AUTHOR_CATEGORIES = new Set(['authors_classic', 'authors_midcentury', 'authors']);
+const AUTHOR_CATEGORIES = new Set(['authors_classic', 'authors_midcentury', 'authors', 'authors_modern']);
 export const isAuthor = m => AUTHOR_CATEGORIES.has(m?.category);
 // How-it's-written settings: these shape the voice rather than what happens.
 export const STYLE_CATEGORIES = new Set(['craft', 'writing', 'smut_style', ...AUTHOR_CATEGORIES]);

@@ -385,7 +385,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
         `where it stands now: friendship: ${low(d.friend)}; romance: ${low(d.romance)}${bond.extra ? `; trust: ${low(d.trust)}; control: ${word(d.control)}; pull: ${word(d.pull)}` : ''}`,
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
         ...(bond.extra && d.under ? [`underneath it, slower to change, ${low(d.under.name)}: ${pt(d.under.cue)}. It colours the main dynamic rather than replacing it`] : []),
-        ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(t.text)).join(', ')}`] : []),
+        ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(String(t.text).replace(new RegExp(`^(?:${u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|she|he|they)\\s+(?:is|are)\\s+`, 'i'), ''))).join(', ')}`] : []),
         ...moreLines(bond.more, list ?? [], pt(n), pt(u), paceOf(bond).cap),
         ...desireLines(bond, list ?? [], pt(n), pt(u)),
     ];

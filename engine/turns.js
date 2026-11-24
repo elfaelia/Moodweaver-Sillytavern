@@ -68,25 +68,34 @@ export const FAVS = [
 export const cleanFavs = v => Object.fromEntries(FAVS.map(([k]) => [k, String(v?.[k] ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60)]).filter(([, t]) => t));
 export const favText = (st, scene = '', all = false) => FAVS.filter(([k, , , topic]) => st?.favs?.[k] && (all || topic.test(scene)))
     .map(([k, label]) => `${label.replace('Favourite ', '').toLowerCase()} ${st.favs[k]}`).join('; ');
-// Family (1.78): one person a line, "Mother: Ruth, strict, dead since 1951". Token-light: a line goes only when the
-// scene names that person or their relation (mom, mum, ma and mother all count), every line goes when it talks
-// about family in general, and all of them on the every-few-replies reminder (all).
+// Family (2.0): one box per person (role, name, about them), stored as lines "Role: Name, about them" so older chats
+// read the same. A person is sent only when the latest messages name their role (mom, mum and mother all count) or
+// their name; nothing goes on general family talk or as a reminder, so the card and scenario never pull them in.
 export const KIN = [['mother', 'mom', 'mum', 'mama', 'mommy', 'mummy', 'ma'], ['father', 'dad', 'daddy', 'papa', 'pa', 'pop', 'pops'], ['sister', 'sis'], ['brother', 'bro'],
     ['son'], ['daughter'], ['wife'], ['husband'], ['grandmother', 'grandma', 'granny', 'nan', 'nana', 'gran'], ['grandfather', 'grandpa', 'granddad', 'grandad', 'gramps'],
     ['aunt', 'auntie', 'aunty'], ['uncle'], ['cousin'], ['niece'], ['nephew'], ['stepmother', 'stepmom', 'stepmum'], ['stepfather', 'stepdad'], ['twin'],
     ['fianc\u00e9', 'fianc\u00e9e', 'fiance', 'fiancee'], ['in-laws', 'mother-in-law', 'father-in-law'], ['kids', 'children', 'baby', 'child']];
-const ANY_KIN = /\b(family|families|parents?|relatives?|siblings?|folks|in-laws|household|family name|bloodline|inheritance)\b/i;
-export const familyLines = st => cleanWords(st?.family, 400).split(/\n+/).map(x => x.trim()).filter(Boolean).slice(0, 10);
-export function familyText(st, scene = '', all = false) {
-    const lines = familyLines(st); if (!lines.length) return '';
+export const FAMILY_MAX = 12;
+export const familyMembers = st => (cleanWords(st?.family, 1600) ? cleanWords(st.family, 1600).split(/\n/) : []).slice(0, FAMILY_MAX).map(line => {
+    const [role, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
+    const parts = rest.split(','), first = parts[0].trim();
+    // An older free line ("Dad: drunk, violent") has no name: a lower-case start means it's all about them.
+    const named = /^[A-Z\u00c0-\u00de]/.test(first);
+    return { role: role.trim(), name: named ? first : '', info: (named ? parts.slice(1) : parts).join(',').trim() };
+});
+const flat = v => String(v ?? '').replace(/[\n:<>]/g, ' ').replace(/\s+/g, ' ').trim();
+export const familyString = list => list.slice(0, FAMILY_MAX).map(m => `${flat(m.role)}: ${flat(m.name).replace(/,/g, ' ')}${flat(m.info) ? `, ${flat(m.info)}` : ''}`).join('\n');
+const filled = m => m.role || m.name || m.info;
+export const familyLines = st => familyMembers(st).filter(filled).map(m => `${m.role || 'Family'}: ${[m.name, m.info].filter(Boolean).join(', ')}`);
+export function familyText(st, scene = '') {
     const t = ` ${String(scene ?? '').toLowerCase().replace(/[^a-z\u00e0-\u00ff' -]/g, ' ')} `;
-    if (all || ANY_KIN.test(scene)) return lines.join('; ');
-    return lines.filter(line => {
-        const [rel, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
-        const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(rel || line))).flat();
-        const names = ((rest || line).match(/\b[A-Z][a-z\u2019']{2,}\b/) ?? []).slice(0, 1); // the first capitalised word: their name
-        return [...kin, ...names.map(x => x.toLowerCase())].some(w => t.includes(` ${w} `) || t.includes(` ${w}'s `) || t.includes(` ${w}s `));
-    }).join('; ');
+    const said = w => w.length >= 2 && [` ${w} `, ` ${w}'s `, ` ${w}s `].some(x => t.includes(x));
+    return familyMembers(st).filter(filled).filter(m => {
+        const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(m.role))).flat();
+        const own = m.role.toLowerCase().split(/[^a-z\u00e0-\u00ff'-]+/).filter(w => w.length >= 3);
+        const names = m.name.toLowerCase().split(/[^a-z\u00e0-\u00ff'-]+/).filter(w => w.length >= 3);
+        return [...kin, ...own, ...names].some(said);
+    }).map(m => `${m.role || 'family'}${m.name ? ` (${m.name})` : ''}${m.info ? `: ${m.info}` : ''}`).join('; ');
 }
 export const profileText = st => { const parts = [cleanAge(st?.age), cleanHeight(st?.height)].filter(Boolean).join(', '), into = cleanInterests(st?.interests);
     return [parts, into ? `into ${into} (when the scene gives it room)` : ''].filter(Boolean).join('; '); };

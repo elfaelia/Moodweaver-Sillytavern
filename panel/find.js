@@ -10,12 +10,13 @@ import { fill } from '../engine/dynamics.js';
 import { PERIOD } from '../data/catalogue/period.js';
 import { escapeHtml as esc } from '../engine/util.js';
 import { ui } from '../app/state.js';
+import { settings } from '../app/settings.js';
 
 const PLACE = { mood: 'Moods', trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy', state: 'Facts', story: 'Story' };
 let index = null;
 function build() {
     const out = [];
-    for (const m of MOODS.filter(x => !x.size)) out.push({ label: m.label, cue: m.cue ?? '', where: PLACE[sectionOf(m)] ?? 'Moods', go: `m:${m.id}` });
+    for (const m of MOODS.filter(x => !x.size)) out.push({ label: m.label, cue: m.cue ?? '', where: PLACE[sectionOf(m)] ?? 'Moods', go: `m:${m.id}`, cat: m.category });
     for (const t of TURN_TAGS) out.push({ label: t.label ?? t.noun ?? t.id, cue: t.cue ?? '', where: 'Turn-ons', go: `turn:${t.id}` });
     for (const s of Object.values(SKILL_BY_ID)) out.push({ label: s.label, cue: s.cue ?? '', where: 'Skills', go: `skill:${s.id}` });
     for (const d of DYNAMICS) out.push({ label: fill(d[0], 'them', 'you'), cue: d[4] ?? '', where: 'Dynamics', go: `dyn:${d[0]}` });
@@ -32,7 +33,8 @@ export function findResults(q) {
     const term = q.trim().toLowerCase(); if (term.length < 2) return [];
     index ??= build();
     const score = e => e.low.startsWith(term) ? 3 : e.low.split(/\W+/).some(w => w.startsWith(term)) ? 2 : e.low.includes(term) ? 1.5 : e.cueLow.includes(term) ? 1 : 0;
-    return index.map(e => ({ ...e, score: score(e) })).filter(e => e.score).sort((a, b) => b.score - a.score || a.label.length - b.label.length).slice(0, 60);
+    const hidden = new Set(settings().hiddenGroups ?? []);
+    return index.filter(e => !e.cat || !hidden.has(e.cat)).map(e => ({ ...e, score: score(e) })).filter(e => e.score).sort((a, b) => b.score - a.score || a.label.length - b.label.length).slice(0, 60);
 }
 // Results come grouped by tab: the tab with the best match first, at most six a tab (the best ones), each with a
 // heading, so the same word under Story, Relationships and Period reads as three places rather than three repeats.

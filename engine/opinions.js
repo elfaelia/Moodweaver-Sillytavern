@@ -5,7 +5,7 @@
 // Read back from the chat each time, so swiping a reply takes its share with it. Data and pure functions.
 import { pt } from './util.js';
 import { BY_ID } from '../data/catalogue.js';
-import { KIN, familyLines } from './turns.js';
+import { KIN, familyMembers } from './turns.js';
 
 const WARM = new Set(['happy', 'closeness', 'love', 'attachment', 'desire', 'calm']);
 const COLD = new Set(['angry', 'cruel', 'cold', 'sad', 'scared']);
@@ -23,12 +23,8 @@ function who(about, family) {
     return { key: t, name: t.replace(/\b[a-z]/g, c => c.toUpperCase()), rel: '' };
 }
 export function familyPeople(st) {
-    return familyLines(st).map(line => {
-        const [rel, rest = ''] = line.includes(':') ? line.split(/:(.*)/s) : ['', line];
-        const name = ((rest || line).match(/\b[A-Z][a-z\u2019']{2,}\b/) ?? [''])[0];
-        const kin = KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(rel))).flat();
-        return { rel: rel.trim().toLowerCase(), name, kin };
-    });
+    return familyMembers(st).filter(m => m.role || m.name).map(m => ({ rel: m.role.toLowerCase(), name: m.name.split(/\s+/)[0] ?? '',
+        kin: KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(m.role))).flat() }));
 }
 // entries: one per reply, oldest first: [{ about, id, delta }] feelings that rose toward someone else.
 export function computeOpinions(entries = [], st = {}) {

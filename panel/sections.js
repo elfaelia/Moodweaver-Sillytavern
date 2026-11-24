@@ -6,9 +6,11 @@ import { readerProfile, readerRequest, readerSubject, roughTokens, sceneStart } 
 import { boardMeta, boardSend, bondData, bondList, chatSigns, knowledgeNow, opinionsNow, pronounsFor, secretsNow } from '../app/replies.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { settings } from '../app/settings.js';
+import { cardReadBlock } from '../app/card-read.js';
 import { KEY, ctx, run, ui } from '../app/state.js';
 import { cleanBoardMeta, latestBoard } from '../engine/board.js';
 import { computeBond } from '../engine/bond.js';
+import { DIALS, stepOf } from '../engine/dials.js';
 import { BY_ID, CATEGORIES, MERGED_SEARCH_NAMES, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
 import { KNOWLEDGE_MODES, activeMoods, cleanScope, knowledgeEntry } from '../engine/state.js';
 import { escapeHtml as esc, shortName } from '../engine/util.js';
@@ -18,7 +20,7 @@ import { courseNote, fmtTokens, inventoryView, row, tagLabel, turnRow } from './
 import { reactiveBlock } from './wants-tab.js';
 import { personalityView } from './personality-tab.js';
 import { activePersonalities } from '../engine/personality.js';
-import { FAVS, TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, turnGroupKey } from '../engine/turns.js';
+import { FAMILY_MAX, FAVS, TURN_BY_ID, TURN_CATEGORIES, cleanAge, compareProfiles, familyMembers, turnGroupKey } from '../engine/turns.js';
 import { periodEra } from '../engine/period.js';
 
 function knowledgePanel(state, ch) {
@@ -49,6 +51,8 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
         ...Object.keys(state.prefs ?? {}).filter(id => state.prefs[id]).map(id => `turn:${id}`)]);
     const show = id => ui.browsing || listed.has(id);
     const hideBody = kind === 'state' && boardCoversBody();
+    // Story groups hidden in Settings \u203a Panel (old or modern authors, smut style\u2026) don't show here at all.
+    const hiddenGroups = new Set(kind === 'story' ? settings().hiddenGroups ?? [] : []);
     // Browsing everything: a folded group's rows are only drawn when it's opened (see fillLazy), which keeps
     // a slider move in the full list quick now that the lists are long.
     const body = (key, count, rows) => {
@@ -59,6 +63,7 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
     let half = '';
     const halfHead = id => { if (kind !== 'state') return ''; const now = NOW_CATEGORIES.has(id) ? 'now' : 'who'; if (now === half) return ''; half = now; return `<h5 class="mw-fact-head">${now === 'now' ? 'Right now <small>wears off or changes as the story goes</small>' : 'Who they are <small>stays put</small>'}</h5>`; };
     const cats = kind === 'turn' ? '' : CATEGORIES.filter(([id, , , , , k = 'mood']) => sectionOf({ category: id, kind: k }) === kind).map(([id, name, icon, color]) => {
+        if (kind === 'story' && hiddenGroups.has(id)) return '';
         const list = MOODS.filter(m => m.category === id && show(m.id) && !m.size && !(hideBody && id === 'body' && !state.moods[m.id])), n = list.filter(m => state.moods[m.id]).length;
         if (!list.length) return '';
         return `${halfHead(id)}<details data-category="${id}" data-kind="${kind}" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${name}</span><small>${n ? `${n} on` : list.length}</small></summary>${body(id, list.length, () => list.map(m => row(m, state)).join(''))}</details>`;
@@ -73,13 +78,12 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
         return `<details data-category="${key}" data-kind="turn" class="mw-turn-group" style="--mw-accent:${color}"><summary><span class="mw-category-icon">${icon}</span><span>${group}</span><small>${n ? `${n} set` : list.length}</small></summary>${body(key, list.length, rowsHtml)}</details>`;
     }).join('');
     const label = SECTION_LABEL[kind];
-    return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${ui.browsing ? 'Search all ' : 'Search your '}${label}\u2026" aria-label="Search ${label}" value="${esc(ui.search)}">${ui.browsing ? `<button data-action="browse-done" class="mw-primary">\u2713 Done</button>`
-            : `<button data-action="browse" class="mw-primary">\uff0b Add ${label}</button>${kind === 'mood' || kind === 'story' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend\u2026</option>${Object.keys(kind === 'story' ? STORY_RECIPES : RECIPES).map(r => `<option>${esc(r)}</option>`).join('')}</select>` : ''}`}</div>
+    return `<div class="mw-tools"><input id="mw-catalogue-search" class="mw-search" type="search" placeholder="${ui.browsing ? 'Search all\u2026' : 'Search\u2026'}" aria-label="Search ${label}" value="${esc(ui.search)}">${ui.browsing ? `<button data-action="browse-done" class="mw-primary">\u2713 Done</button>`
+            : `<button data-action="browse" class="mw-primary" aria-label="Add ${label}">\uff0b Add</button>${kind === 'mood' || kind === 'story' ? `<select data-field="recipe" aria-label="Add a starter blend"><option value="">Starter blend\u2026</option>${Object.keys(kind === 'story' ? STORY_RECIPES : RECIPES).map(r => `<option>${esc(r)}</option>`).join('')}</select>` : ''}`}</div>
     ${ui.browsing ? `<p class="mw-explainer">Tap a moon to add one to ${esc(whose)}\u2019s list.</p>` : ''}
     <datalist id="mw-cast-names">${[ch.name, playerName(), ...getCast(ch).map(p => p.name)].map(name => `<option value="${esc(name)}"></option>`).join('')}</datalist>
     <datalist id="mw-hate-names">${getCast(ch).filter(p => ui.who !== 'cast' || p.id !== selectedCast()?.id).map(p => `<option value="${esc(p.name)}"></option>`).join('')}</datalist>
-    ${!ui.browsing && !cats && !turns ? `<p class="mw-explainer mw-empty-list">Nothing on ${esc(whose)}\u2019s list yet. Tap \u201c\uff0b Add ${label}\u201d.</p>` : ''}
-    <div class="mw-categories ${kind === 'turn' ? 'mw-turn-categories' : ''}">${cats}${turns}</div><p class="mw-no-results" hidden>Nothing matches.</p>`;
+    <div class="mw-categories ${kind === 'turn' ? 'mw-turn-categories' : ''}">${cats}${turns}</div>${hiddenGroups.size ? `<p class="mw-fine mw-hidden-groups">${hiddenGroups.size} group${hiddenGroups.size > 1 ? 's' : ''} hidden. <button type="button" class="mw-link" data-action="settings-panel">\u2699 Settings \u203a Panel</button></p>` : ''}<p class="mw-no-results" hidden>Nothing matches.</p>`;
 }
 // ---- Scene reader card (Moodlets tab) ----
 export const SCOPES = [['mood', '\u2726', 'Moodlets'], ['body', '\u271a', 'Body'], ['trait', '\u2742', 'Traits'], ['wants', '\u2606', 'Wants']];
@@ -146,6 +150,7 @@ function profileCard(state, ch) {
     const core = (state.core ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
     const beliefs = (state.beliefs ?? []).map(id => BY_ID[id]).filter(m => m && state.moods[m.id] > 0);
     return `<section class="mw-profile" data-anchor="profile"><div class="mw-profile-head"><h4>Profile</h4><small>age and height always go; the rest when it fits</small></div>
+        ${ui.who === 'cast' ? '' : cardReadBlock(ui.who === 'user' ? 'user' : 'char')}
         <div class="mw-profile-grid">
             <label class="mw-pf"><span>Age</span><input type="number" data-profile="age" min="1" max="999" inputmode="numeric" enterkeyhint="done" placeholder="\u2014" value="${cleanAge(state.age)}"></label>
             <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
@@ -158,8 +163,7 @@ function profileCard(state, ch) {
         <div class="mw-profile-voice"><span class="mw-profile-sub">Their words <small>sent every reply</small></span>
             <label class="mw-pf mw-pf-wide"><span>Pet names for ${esc(vs[1])}</span><textarea data-words="petNames" rows="2" maxlength="400" placeholder="doll, little lamb, sweetheart">${esc(state.petNames ?? '')}</textarea></label>
             <label class="mw-pf mw-pf-wide"><span>Catchphrases <small>one per line</small></span><textarea data-words="sayings" rows="3" maxlength="400" placeholder="Now, now.&#10;You'll do as you're told, won't you?">${esc(state.sayings ?? '')}</textarea></label></div>
-        <div class="mw-profile-voice"><span class="mw-profile-sub">Family <small>each line sent only when the scene mentions them</small></span>
-            <label class="mw-pf mw-pf-wide"><span>One person a line</span><textarea data-words="family" rows="3" maxlength="400" placeholder="Mother: Ruth, strict, dead since 1951&#10;Brother: Tommy, owes money, the favourite">${esc(state.family ?? '')}</textarea></label></div>
+        ${familyBlock(state)}
         ${secretBlock(state, ch, vs[1])}
         ${ui.who === 'char' ? opinionRow(ch) : ''}
         <div class="mw-profile-core"><span>Core</span>${core.length ? core.map(m => `<button type="button" class="mw-core-chip" data-tab="trait" style="--mw-accent:${m.color}">\u2605 ${esc(m.label)}</button>`).join('') : '<button type="button" class="mw-core-chip is-empty" data-tab="trait">\u2605 Star up to three traits</button>'}</div>
@@ -169,6 +173,14 @@ function profileCard(state, ch) {
 }
 // Secrets and leverage (1.79, engine/secrets.js): one secret a line, and where each stands. The story moves
 // them; a tap sets one by hand until the story moves it again.
+// Family (2.0): folded, one box per person (role, name, about them), \uff0b for another. Each is sent only when the
+// latest messages name their role or their name.
+function familyBlock(state) {
+    const list = familyMembers(state), n = list.filter(m => m.role || m.name || m.info).length;
+    const rows = list.map((m, i) => `<div class="mw-fam-row"><input type="text" data-fam-field="${i}:role" maxlength="40" enterkeyhint="next" placeholder="Role (Dad)" aria-label="Role" value="${esc(m.role)}"><input type="text" data-fam-field="${i}:name" maxlength="40" enterkeyhint="next" placeholder="Name" aria-label="Name" value="${esc(m.name)}"><button type="button" class="mw-fam-del" data-fam-del="${i}" aria-label="Remove">\u2715</button><textarea data-fam-field="${i}:info" rows="2" maxlength="300" placeholder="Who they are to them, what they're like" aria-label="About them">${esc(m.info)}</textarea></div>`).join('');
+    return `<details class="mw-fam mw-profile-voice"><summary><span class="mw-profile-sub">Family <small>${n ? `${n} \u00b7 ` : ''}each sent only when the chat names their role or name</small></span></summary>
+        ${rows}${list.length < FAMILY_MAX ? '<button type="button" class="mw-fam-add" data-action="fam-add">\uff0b Add a family member</button>' : ''}</details>`;
+}
 const SECRET_CHIPS = [['hidden', 'Hidden'], ['suspected', 'Suspected'], ['known', 'Known'], ['out', 'Out']];
 function secretBlock(state, ch, other) {
     if (!['char', 'user'].includes(ui.who) || settings().secrets === false) return '';
@@ -211,20 +223,21 @@ export function factsContent(state, ch, active) {
         return `<button data-jump="${m.id}" class="mw-chip mw-fact-chip" style="--mw-accent:${m.color}" title="${esc(why || `Adjust ${m.label}`)}"><span>${state.pins[m.id] ? '\u25c6 ' : ''}${esc(tagLabel(m))}${note ? `<small>${esc(note)}</small>` : ''}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`; };
     const onHere = facts.length;
     return `${profileCard(state, ch)}
-    <div class="mw-summary mw-facts-summary"><div class="mw-section-label">Facts<span>${onHere} on${onHere ? ` \u00b7 <button class="mw-clear" data-action="clear" title="Turn off the facts, pins too. Other tabs stay as they are">Clear facts</button>` : ''}</span></div>
+    <div class="mw-summary mw-facts-summary mw-hero" data-chapter="state"><i class="mw-hero-art" aria-hidden="true"></i><div class="mw-section-label">Facts<span>${onHere} on${onHere ? ` \u00b7 <button class="mw-clear" data-action="clear" title="Turn off the facts, pins too. Other tabs stay as they are">Clear facts</button>` : ''}</span></div>
         ${now.length ? `<div class="mw-fact-row"><small>Right now</small><div class="mw-chips">${now.map(chip).join('')}</div></div>` : ''}
         ${who.length ? `<div class="mw-fact-row"><small>Who they are</small><div class="mw-chips">${who.map(chip).join('')}</div></div>` : ''}
         ${!onHere ? `<p class="mw-fine">Nothing yet. Right now facts wear off or change as the story goes; the rest stay.</p>` : ''}</div>
     ${catalogueBlock(state, 'state', ch, ui.who === 'story' ? 'the story' : subjectName())}
     ${inventoryView(state, ch)}`;
 }
+const HERO_EMPTY = { mood: 'Feelings', trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy', turn: 'Turn-ons', story: 'The story' };
 export function sectionContent(state, kind, ch, active) {
     if (kind === 'state') return factsContent(state, ch, active);
     const shown = kind === 'turn' ? [] : active.filter(m => sectionOf(m) === kind && m.category !== 'relationship');
     const turnsSet = kind === 'turn' ? Object.entries(state.prefs ?? {}).filter(([id, v]) => v && TURN_BY_ID[id]).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])) : [];
     const whose = ui.who === 'story' ? 'the story' : subjectName();
     const heading = { mood: 'Feeling now', trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy', turn: 'Turn-ons & turn-offs', state: 'Facts', story: 'Story' }[kind];
-    const empty = { mood: 'Nothing yet.', trait: 'Nothing yet.', psyche: 'Nothing yet.', intimacy: 'Nothing yet.', turn: 'Nothing yet.', state: 'Nothing yet.', story: 'Nothing set for this chat yet.' }[kind];
+    const empty = { mood: `No feelings set. ${ui.who === 'char' ? 'The story moves them as it goes, or add some below.' : 'Add some below.'}`, trait: 'No traits yet. Add who they are underneath, kind or cruel.', psyche: 'Nothing in the mind yet: fears, defences, the way they think.', intimacy: 'Nothing set. These lead only in intimate scenes.', turn: 'No turn-ons or turn-offs yet.', state: 'Nothing yet.', story: 'Nothing set for this chat yet: genre, authors, tone and rules all live here.' }[kind];
     const onHere = sectionCount(state, kind), what = SECTION_LABEL[kind];
     const sparks = ['turn', 'intimacy'].includes(kind) && ui.who === 'char' && bondData(ch).on ? computeBond(bondData(ch), Infinity, 'one', 'the other', null, bondList(ch)).sparks.filter(x => kind === 'turn' ? !x.trait : x.trait) : [];
     const lit = new Set(sparks.filter(x => x.fresh && x.id).map(x => x.id)), litTraits = new Set(sparks.filter(x => x.fresh && x.trait).map(x => x.trait));
@@ -240,10 +253,9 @@ export function sectionContent(state, kind, ch, active) {
     const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
         : kind === 'turn' ? 'Lit \u2727 means the last reply touched it.'
         : ui.who === 'user' && ['mood', 'trait', 'psyche', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
-        : kind === 'intimacy' ? 'These lead in intimate scenes and stay quiet otherwise.'
         : kind === 'psyche' ? 'Clear and stronger ones go with every reply; fainter ones only when the scene touches them. Star \u2605 one to send it every reply. Some can lean healthier or darker.' : '';
-    return `<div class="mw-summary"><div class="mw-section-label">${shown.length || turnsSet.length ? heading : 'A clean slate'}<span>${shown.length + turnsSet.length} on${onHere ? ` \u00b7 <button class="mw-clear" data-action="clear" title="Turn off this tab\u2019s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
-        <div class="mw-chips">${chips || `<p>${empty}</p>`}${undo}</div>
+    return `<div class="mw-summary mw-hero" data-chapter="${kind}"><i class="mw-hero-art" aria-hidden="true"></i><div class="mw-section-label">${shown.length || turnsSet.length ? heading : HERO_EMPTY[kind] ?? heading}<span>${shown.length + turnsSet.length} on${onHere ? ` \u00b7 <button class="mw-clear" data-action="clear" title="Turn off this tab\u2019s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
+        <div class="mw-chips">${chips || `<p class="mw-hero-empty">${empty}</p>`}${undo}</div>
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
         ${kind === 'turn' ? signsBlock(ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '\u2715' : '\u2727'} ${esc(x.text)}</span>`).join('')}</div>` : ''}
@@ -252,11 +264,19 @@ export function sectionContent(state, kind, ch, active) {
     ${kind === 'mood' ? readerBlock(state) : ''}
     ${explainer ? `<p class="mw-explainer">${explainer}</p>` : ''}
     ${kind === 'trait' ? typesBlock(state, ch) : ''}
+    ${kind === 'story' ? dialBlock(state) : ''}
     ${kind === 'story' ? voicesBlock(state) : ''}
     ${kind === 'story' ? blendsBlock(state, ch) : ''}
     ${kind === 'story' ? eraBlock(state) : ''}
     ${['mood', 'trait', 'psyche', 'intimacy'].includes(kind) && ui.who === 'user' ? knowledgePanel(state, ch) : ''}${kind === 'turn' && ui.who === 'user' ? turnKnowledgeRows(state, ch, knowledgeNow(ch)) : ''}
     ${catalogueBlock(state, kind, ch, whose)}`;
+}
+// The story's dials (2.0): one tap each for how wild it runs, how much can go wrong, who drives it and how it
+// ends up, instead of hunting rows to switch on. The last three own their rows (engine/dials.js).
+const dialRow = (title, steps, at, attr) => `<div class="mw-dial-one"><div class="mw-dial-head"><b>${title}</b><small>${steps[at][2]}</small></div>
+    <div class="mw-dial-row" role="radiogroup" aria-label="${title}" style="--mw-steps:${steps.length}">${steps.map(([icon, label], i) => `<button type="button" role="radio" ${attr}="${i}" aria-checked="${i === at}" class="${i === at ? 'is-on' : ''}"><span aria-hidden="true">${icon}</span>${label}</button>`).join('')}</div></div>`;
+function dialBlock(state) {
+    return `<div class="mw-dial">${DIALS.map(d => dialRow(d.title, d.steps, stepOf(state, d.key), d.key === 'turns' ? 'data-story-dial' : `data-story-dials="${d.key}" data-step`)).join('')}</div>`;
 }
 // Period lines now live on each person's Period tab (Self section); the Story tab just points there.
 function eraBlock(state) {

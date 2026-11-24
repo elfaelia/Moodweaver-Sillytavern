@@ -1,7 +1,8 @@
 // Building the hidden note sent with each reply, and holding it steady while a reply is written.
+import { castForNote, isFull } from '../engine/cast.js';
 import { meterTies } from '../engine/relationships.js';
 import { getCast, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
-import { autoWantsNow, boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, opinionsNow, pronounsFor, reactions, secretsNow, stressNow, userRelation, weaveOf, writes } from './replies.js';
+import { autoWantsNow, settleArc, boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, opinionsNow, pronounsFor, reactions, secretsNow, stressNow, userRelation, weaveOf, writes } from './replies.js';
 import { stressLines } from '../engine/stress.js';
 import { opinionLines } from '../engine/opinions.js';
 import { secretLines } from '../engine/secrets.js';
@@ -28,6 +29,7 @@ import { pronounize } from '../engine/pronouns.js';
 import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
 import { checkLines, sideLit } from '../engine/checks.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
+import { ARCS, arcLines } from '../engine/arcs.js';
 import { aftermathLines, contagionLine } from '../engine/echoes.js';
 
 // The note is built in full right before every reply (forGeneration). Taps in the panel only ask for a preview
@@ -42,6 +44,10 @@ export function syncPrompt(forGeneration = false, chat = null, type = '') {
 const NOTE_SETTLE_MS = 1200;
 // Straight away, for a chat being opened or a reply that just arrived (not a tap in the panel).
 export function syncPromptNow() { clearTimeout(previewTimer); previewTimer = null; return buildNote(false); }
+// What SillyTavern already sends about them (2.0): the card (description, personality, scenario) and your persona.
+// Who-they-are facts these already state aren't repeated in the note.
+const cardText = ch => String([ch?.description, ch?.personality, ch?.scenario, ch?.data?.description, ch?.data?.personality, ch?.data?.scenario].filter(Boolean).join('\n')).replace(/\{\{char\}\}/gi, ch?.name ?? '').slice(0, 20000);
+const personaText = () => { const pu = ctx().powerUserSettings ?? globalThis.power_user ?? {}; return String(pu.persona_description ?? '').slice(0, 8000); };
 async function buildNote(forGeneration = false, chat = null, type = '') {
     // The note for a reply in progress stays as it was built; redraw it once that reply is done.
     if (!forGeneration && writingNow()) { run.resyncAfter = true; return; }
@@ -86,7 +92,11 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const knows = knowledgeNow(ch, history), notice = Object.entries(mine?.enabled ? mine.prefs ?? {} : {}).some(([id, v]) => v && knowledgeEntry(knows[`turn:${id}`]).mode !== 'known');
         // Secrets (1.79): the hidden line names one only when it moves, so it's listed by short title.
         const sec = secretsNow(ch, history), secTitles = sec && (sec.mine.length || sec.yours.length) ? `Secrets: ${[[n, sec.mine], [u, sec.yours]].filter(([, l]) => l.length).map(([who, l]) => `${who}'s: ${l.map(x => x.title).join('; ')}`).join('. ')}.` : null;
-        const weave = bond.on ? weavePrompt({ notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
+        // Arcs (engine/arcs.js): while one runs the hidden line says when a stage is reached; otherwise, unless turned
+        // off, it can name one the story has clearly begun, offered on Scene as a chip.
+        const arc = story?.enabled !== false ? settleArc(ch, history) : null, arcOn = arc && !arc.landed && !arc.fizzled;
+        const arcAsk = arcOn ? { running: true } : settings().arcOffers !== false && !story?.arc ? { names: ARCS.filter(a => !(story.arcSkip ?? []).includes(a.id)).map(a => a.label.toLowerCase()) } : null;
+        const weave = bond.on ? weavePrompt({ arc: arcAsk, notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
             fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split,
             cast: settings().castAuto !== false && bm.feed ? getCast(ch).filter(p => p.inScene && p.state?.enabled !== false).map(p => shortName(p.name)).filter(Boolean) : [] }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
@@ -94,9 +104,11 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
         // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
         sideLit(skillFolk);
-        const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()) }) : { lines: [], rolls: [] };
+        const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()) }) : { by: {}, rolls: [] };
         run.rolls = { avatar: ch.avatar, list: dice.rolls };
-        const skills = [...skillLines(skillFolk, u, history.length, n), ...insightLines(skillFolk, skillScene0.scene, history.length), ...dice.lines];
+        // Each person's skills, insight and dice results, by name, for their own paragraph.
+        const skills = {}; for (const part of [skillLines(skillFolk, u, history.length, n), insightLines(skillFolk, skillScene0.scene, history.length), dice.by]) for (const [who, lines] of Object.entries(part)) (skills[who] ??= []).push(...lines);
+        const skillsSet = skillFolk.some(p => p.all?.length);
         // Pattern breaker: the character's last five replies, read here, no extra request.
         const patterns = story?.enabled && (story.moods?.pattern_breaker ?? 0) > 0 ? findPatterns(history.filter(m => writes(ch)(m) && !m.is_system).slice(-5).map(m => m.mes), { names: [name, player] }) : [];
         // The count is only a report, so a tokenizer that can't be reached falls back to an estimate
@@ -113,8 +125,8 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
             // Stress and breaking points, and how they've come to feel about people the scene brings up (1.79).
             ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
             ...(sec ? secretLines({ ...sec, n, u, scene: skillScene0.scene }) : [])].filter(Boolean);
-        const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: getCast(ch), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes, order: settings().noteOrder });
+        const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: castForNote(getCast(ch)), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, skillsSet, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes, order: settings().noteOrder, card: cardText(ch), persona: personaText(), arcLines: arcLines(arcOn ? arc : null, story?.arcMarks ?? []) });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // Music \u203a "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
@@ -249,7 +261,7 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         .map(x => ({ ...x, text: pronounize(x.text, n, u) })) : [];
     // Every period line that applies, with the ones sent marked, for the Period tab's "Lines now".
     run.eraNow = { avatar: ch.avatar, lines: eraAll };
-    const lenses = eraAll.filter(x => x.sent).map(x => `- ${x.label}: ${x.text}`);
+    const lenses = eraAll.filter(x => x.sent).map(x => x.text);
     const links = [];
     if (bd) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));
@@ -261,7 +273,7 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     }
     // Where their moods don't match right now: one line at most, and only on some replies.
     const word = id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase();
-    const clash = mine?.enabled ? moodClash({ n: state.moods, u: mine.moods }, { n, u }, word, settings().moodClash, ctx().chat?.length ?? 0) : '';
+    const clash = mine?.enabled ? moodClash({ n: state.moods, u: mine.moods }, { n, u }, word, clashFor(settings().moodClash, getStoryState(ch)?.dial), ctx().chat?.length ?? 0) : '';
     if (clash) links.push(pronounize(clash, n, u));
     return { lenses, links };
 }
@@ -273,6 +285,8 @@ export function lingering(ch, history, st) {
     for (const w of lines) for (const x of w.moods) { const id = feelingId(x.name); if (!id) continue; if (x.delta > 0) up[id] = (up[id] ?? 0) + 1; else down.add(id); }
     return Object.keys(up).filter(id => up[id] >= 4 && !down.has(id) && (st.moods?.[id] ?? 0) >= 41 && !st.pins?.[id] && BY_ID[id]).map(id => BY_ID[id].label.split('/')[0].trim().toLowerCase());
 }
+// The story dial turns clashes off when Calm and up to often when Volatile or wilder.
+const clashFor = (set, dial) => dial === 0 ? 'off' : dial >= 3 ? 'often' : set;
 export function listedFeelings(st) {
     const ids = new Set([...(st.loadout ?? []), ...Object.keys(st.moods ?? {}).filter(id => st.moods[id] > 0)]);
     return [...ids].map(id => BY_ID[id]).filter(m => m && analysed(m)).map(m => m.label.split('/')[0].trim().toLowerCase());
@@ -284,7 +298,7 @@ const mindOf = st => Object.entries(st?.moods ?? {}).filter(([id, v]) => v >= 21
     .map(([id, v]) => { const m = BY_ID[id]; return { label: m.label, words: m.words, v, side: m.light && m.dark ? (st.psyLean?.[id] === 'light' ? 'light' : 'dark') : '' }; }).sort((a, b) => b.v - a.v);
 function skillPeople(ch, state, mine) {
     return [{ name: shortName(ch?.name ?? ''), st: state }, { name: shortName(playerName()), st: mine },
-        ...getCast(ch).filter(p => p.inScene).map(p => ({ name: shortName(p.name), st: p.state }))].filter(p => p.st?.enabled);
+        ...getCast(ch).filter(p => p.inScene && isFull(p)).map(p => ({ name: shortName(p.name), st: p.state }))].filter(p => p.st?.enabled);
 }
 // What's happening, as tokens a skill's `when` can match: feel:<mood category> and mind for anyone in the scene
 // at mild or above, cat:<fact category> and fact:<id> for facts and settings, dyn:<group> for the dynamic, and

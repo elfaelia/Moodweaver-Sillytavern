@@ -25,6 +25,7 @@ import { RELATIONSHIP_BY_ID, SHARED_BY_ID, TO_METER, cloneRelationships, meterTi
 import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
 import { TURN_BY_ID, cleanInterests, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
+import { arcNamed, arcState } from '../engine/arcs.js';
 import { computeStress } from '../engine/stress.js';
 import { computeOpinions } from '../engine/opinions.js';
 import { autoWants } from '../engine/auto-wants.js';
@@ -319,15 +320,18 @@ function touchesInterest(st, text) {
 // counts once it is already at 21 or more (a glance at 15 in a bar argument once read a spilt drink as arousal).
 const LIGHT_WANT = new Set(LIGHT_DESIRE);
 const DESIRE_IDS = new Set(MOODS.filter(m => m.category === 'desire' && !LIGHT_WANT.has(m.id)).map(m => m.id));
-function heated(st, names = []) {
+// base: whether a desire feeling is already at clear or above, worked out once by a caller that asks per message (2.0:
+// bondList asked it per feeling per message over the whole chat, which made the Bonds tab take seconds on long chats).
+const heatedBase = st => { const moods = st?.moods ?? {}; for (const id of DESIRE_IDS) if ((moods[id] ?? 0) >= 41) return true; return false; };
+function heated(st, names = [], base = heatedBase(st)) {
     const moods = st?.moods ?? {};
-    return Object.entries(moods).some(([id, v]) => v >= 41 && DESIRE_IDS.has(id)) || (names ?? []).some(n => { const id = feelingId(n); return DESIRE_IDS.has(id) && (moods[id] ?? 0) >= 21; });
+    return base || (names ?? []).some(n => { const id = feelingId(n); return DESIRE_IDS.has(id) && (moods[id] ?? 0) >= 21; });
 }
 export function bondList(ch, chat = liveChat()) {
     if (!ch) return [];
     const stored = ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch.avatar}`], mine = writes(ch), out = [], nudge = stored?.nudge !== false, scale = paceOf(stored).lean;
     // Read once, not per message (1.96.4): getState rebuilds its catalogue view every call, and this loop runs over the whole chat.
-    const hisSt = getState(ch), yourSt = getUserState();
+    const hisSt = getState(ch), yourSt = getUserState(), hisBase = heatedBase(hisSt), yourBase = heatedBase(yourSt);
     const prefs = hisSt?.prefs ?? {}, sparkPull = sparkRomance(prefs), yourPrefs = yourSt?.prefs ?? {};
     let youBefore = [];
     const secret = nudge ? secretSteps(ch, chat) : [];
@@ -345,7 +349,8 @@ export function bondList(ch, chat = liveChat()) {
         }
         // Feelings that rose this reply nudge the matching meters, unless the line moved them itself.
         // Facts that came on this reply (his from the line, yours when the "you" list gains one) nudge meters too.
-        const you = w.you ? w.you.map(x => factId(x, heated(yourSt, w.seems), true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, heated(hisSt, w.moods.map(y => y.name)))), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
+        const youHot = w.you ? heated(yourSt, w.seems, yourBase) : false, hisHot = w.moods.some(x => x.delta > 0) ? heated(hisSt, w.moods.map(y => y.name), hisBase) : false;
+        const you = w.you ? w.you.map(x => factId(x, youHot, true)).filter(Boolean) : youBefore, hisFacts = [...w.moods.filter(x => x.delta > 0).map(x => factId(x.name, hisHot)), ...(w.facts ?? []).filter(x => !x.off).map(x => factId(x.name, false, true))].filter(Boolean);
         const newYou = you.filter(id => !youBefore.includes(id)); youBefore = you;
         // His own lit turn-ons, and yours he saw land, warm his desire a little when the line gave it no step.
         const lit = (w.sparked ?? []).filter(sp => !sp.off).length + (w.noticed ?? []).filter(x => (yourPrefs[sparkTarget(x, yourPrefs).id] ?? 0) > 0).length;
@@ -931,3 +936,27 @@ export function boardPeople(ch) {
     return list.map(p => ({ ...p, match: fragment => namedIn(fragment, p.name) }));
 }
 export const queueBoard = () => { clearTimeout(run.boardTimer); run.boardTimer = setTimeout(() => void boardChanged(), 150); };
+
+// Arcs (2.0, engine/arcs.js): the running arc's stage, read back from the hidden lines after it began, and an arc
+// the newest reply says the story has begun, offered when none is running.
+export function arcNow(ch, chat = liveChat()) {
+    const story = getStoryState(ch); if (!story?.arc || !ch) return null;
+    const mine = writes(ch), steps = [];
+    (chat ?? []).forEach((m, pos) => { if (!mine(m) || m.is_system) return; const w = weaveOf(m); if (w?.arc) steps.push({ pos, arc: w.arc }); });
+    return arcState(story.arc, steps);
+}
+export function arcOffer(ch, chat = liveChat()) {
+    const story = getStoryState(ch); if (!story || story.arc || settings().arcOffers === false) return null;
+    const last = [...(chat ?? [])].reverse().find(writes(ch)), a = arcNamed(weaveOf(last)?.arc);
+    return a && !(story.arcSkip ?? []).includes(a.id) ? a : null;
+}
+// A landed arc leaves its line behind (at most four kept) and steps aside; a fizzled one just steps aside and isn't
+// offered again in this chat. Called before the note is built, so the next reply already knows.
+export function settleArc(ch, chat = liveChat()) {
+    const now = arcNow(ch, chat); if (!now || !(now.landed || now.fizzled)) return now;
+    const story = getStoryState(ch);
+    if (now.landed) story.arcMarks = [...(story.arcMarks ?? []), now.def.end].slice(-4);
+    else story.arcSkip = [...new Set([...(story.arcSkip ?? []), now.def.id])];
+    story.arc = null; persist(story);
+    return null;
+}

@@ -162,36 +162,28 @@ export function skillProgress(state, id) {
     if (!pace.per || !lv || lv >= 10 || cleanPins(state?.skillPins)[id]) return null;
     return [cleanXp(state.skillXp)[id]?.[0] ?? 0, pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv)];
 }
-// people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. One short roster line for everyone (names and
-// levels only), then, only for what's lit: each skill's description, one combo line, and the rule.
-const roster = p => `${pt(p.name)}: ${p.all.map(x => `${pt(x.prompt)} ${x.level}`).join(', ')}`;
+// people: [{ name, all: skillsOf(...), lit: litSkills(...) }]. Only what's lit is sent:
+// each skill's description, one combo line, and the rule.
 function comboOf(p, other, seed) {
     const ids = new Set(p.lit.map(x => x.id)), hits = SKILL_COMBOS.filter(([a, b]) => ids.has(a) && ids.has(b));
     if (!hits.length) return '';
     const text = hits[Math.abs(seed) % hits.length][2].replaceAll('{n}', p.name).replaceAll('{u}', other);
     return pronounize(text[0].toUpperCase() + text.slice(1), p.name, other);
 }
+// 2.0 brief: each person's skills go inside that person's paragraph (by name), as what they're good or bad at, with
+// no numbers; the scale and the rules sit once in the cached guide (SKILL_RULE). Only skills the scene calls on go.
+export const SKILL_RULE = 'Skills run from hopeless through novice and competent to master, and they decide how attempts go, the player\u2019s character\u2019s included: nobody does better than their skill because the scene needs it, and someone good at something reaches for it unasked. Below novice, they\u2019re genuinely bad at it; how it goes wrong is yours to invent each time, fitting who they are, and the other person reacts in character.';
 export function skillLines(people = [], u = 'the player\u2019s character', seed = 0, n = '') {
-    const all = people.filter(p => p.all?.length);
-    if (!all.length) return [];
-    const out = [`Skills (10 master, 1 novice, 0 untrained, \u22121 to \u221210 bad at it down to hopeless): ${all.map(roster).join('; ')}.`];
-    const lit = people.filter(p => p.lit?.length);
-    if (!lit.length) return out;
-    out.push('In play this reply:', ...lit.map(p => `- ${pt(p.name)}: ${p.lit.map(x => `${pt(x.prompt)} ${x.level > 0 ? `${x.level}/10` : x.level} (${skillWord(x.level)}), ${pt(x.cue)}`).join('; ')}`));
-    // Below zero: how it goes wrong is left to Claude, shaped by who they are. A skill's `bad` ideas (two, picked by
-    // the reply number) are offered as examples only, so the same fumble doesn't come back every time.
-    const bad = lit.flatMap(p => p.lit.filter(x => x.level < 0).map(x => [p, x]));
-    if (bad.length) {
-        out.push('Below zero means genuinely bad at it, worse than untrained. How it goes wrong is yours to invent, and it should differ from last time: clumsy, too much or too little, bad timing, nerves, misreading the moment, overconfidence. Their personality and mood shape it (pride covers it, shyness apologises, cruelty blames the other person, a temper flares), and the other person reacts in character (laughs, softens, gets impatient, takes over). A fumble can shift the scene or the dynamic without ending it, and they may not notice it themselves.');
-        const ideas = bad.map(([p, x], i) => { const opts = (x.bad || '').split('|').filter(Boolean); if (!opts.length) return '';
-            const a = opts[(seed + i) % opts.length], b = opts[(seed + i + 1 + Math.floor(opts.length / 2)) % opts.length];
-            return `${pt(p.name)}'s ${pt(x.prompt)} might show as ${pt(a)}${b !== a ? ` or ${pt(b)}` : ''}, or some other way that fits`; }).filter(Boolean);
-        if (ideas.length) out.push(`For instance (ideas, not a script): ${ideas.join('; ')}.`);
-    }
-    const combos = lit.map((p, i) => comboOf(p, p.name === u ? (n || u) : u, seed + i)).filter(Boolean);
-    if (combos.length) out.push(...combos.map(c => `${pt(c)}.`));
-    out.push(`Levels decide how attempts go, ${pt(u)}'s included: a novice or amateur fumbles, stalls or pays for it; skilled and above make it look easy. Nobody succeeds past their level because the scene needs it, and someone good at a skill reaches for it unasked when it fits, in any kind of scene where it helps. The level sets how well; the how is yours, specific to this moment and this person, never the stock version.`);
-    return out;
+    const by = {};
+    people.filter(p => p.lit?.length).forEach((p, i) => {
+        const good = p.lit.filter(x => x.level > 0), bad = p.lit.filter(x => x.level < 0), out = [];
+        if (good.length) out.push(`Skills the scene calls on: ${good.map(x => `${pt(x.prompt)}, ${skillWord(x.level)} (${pt(x.cue)})`).join('; ')}.`);
+        if (bad.length) out.push(`Bad at: ${bad.map(x => `${pt(x.prompt)}, ${skillWord(x.level)} (${pt(x.cue)})`).join('; ')}.`);
+        const combo = comboOf(p, p.name === u ? (n || u) : u, seed + i);
+        if (combo) out.push(`${pt(combo)}.`);
+        by[p.name] = out;
+    });
+    return by;
 }
 
 // Someone good at reading minds (Psychology or Psychiatry at 6+, while lit) sees what drives the other person
@@ -204,7 +196,7 @@ const READERS = ['psychology', 'psychiatry'];
 const NAMED = /^(Stockholm|Lima|Oedipus|Electra|Peter|Napoleon|Messiah|Medea|Madonna|Nightingale|Cinderella|Cassandra|Capgras|Cotard|Tourette|God\b|[A-Z]{2,})/;
 const midLabel = l => NAMED.test(l) ? l : l.charAt(0).toLowerCase() + l.slice(1);
 export function insightLines(people = [], scene = '', seed = 0) {
-    const out = [];
+    const by = {};
     people.forEach((p, i) => {
         const reader = (p.lit ?? []).filter(x => READERS.includes(x.id) && x.level >= 6).sort((a, b) => b.level - a.level)[0];
         if (!reader) return;
@@ -213,8 +205,8 @@ export function insightLines(people = [], scene = '', seed = 0) {
             const seen = (touched.length ? touched : now ? o.mind : []).sort((a, b) => b.v - a.v).slice(0, reader.level >= 9 ? 2 : 1);
             if (!seen.length) return;
             const what = seen.map(m => `${midLabel(m.label)}${m.side ? ` (${m.side === 'light' ? 'healthy side' : 'unhealthy side'})` : ''}`).join(' and ');
-            out.push(`With ${reader.prompt} at ${reader.level}/10, ${pt(p.name)} sees what is under ${pt(o.name)}'s behaviour right now: ${pt(what)}${reader.level >= 9 ? ', and roughly where it comes from' : ''}. It needn't be said aloud. What ${pt(p.name)} does with it follows ${pt(p.name)}'s own nature and what ${pt(p.name)} wants from ${pt(o.name)}: soothe it, feed it, use it as a lever, or keep it quiet. Understanding a wound is not the same as wanting it healed.`);
+            (by[p.name] ??= []).push(`${pt(p.name)} reads what's under ${pt(o.name)}'s behaviour right now: ${pt(what)}${reader.level >= 9 ? ', and roughly where it comes from' : ''}. It needn't be said aloud, and what ${pt(p.name)} does with it follows ${pt(p.name)}'s own nature; understanding a wound isn't the same as wanting it healed.`);
         });
     });
-    return out;
+    return by;
 }

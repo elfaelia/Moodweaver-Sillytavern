@@ -3,13 +3,17 @@ import { currentPeer, ensureRelation, getCast, getKnowledge, getPair, getState, 
 import { setLaunch } from '../app/launcher.js';
 import { syncPrompt } from '../app/note.js';
 import { analyse, cancelAnalysis, readBond } from '../app/reader.js';
-import { boardMemoryCount, bondAxes, bondData, bondList, bondOverlaps, editBoard, editBond, feedsMeters, liveChat, liveFor, moodTarget, pronounsFor, untouchedMemory, userRelation } from '../app/replies.js';
+import { arcNow, boardMemoryCount, bondAxes, bondData, bondList, bondOverlaps, editBoard, editBond, feedsMeters, liveChat, liveFor, moodTarget, pronounsFor, untouchedMemory, userRelation } from '../app/replies.js';
 import { settings } from '../app/settings.js';
+import { applyCard, readCard } from '../app/card-read.js';
+import { applyDirect, directScene } from '../app/direct.js';
+import { loreFor } from '../app/lore.js';
 import { KEY, ctx, newId, put, run, ui } from '../app/state.js';
 import { EDIT_FIELDS, NO_BOARD, latestBoard, liveBoard, needWord } from '../engine/board.js';
 import { cleanDesire, computeBond, dynamicRows, setDesire, setMeter } from '../engine/bond.js';
 import { addCastMember, castName, newCastId } from '../engine/cast.js';
 import { BY_ID, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
+import { dialsFromMoods } from '../engine/dials.js';
 import { BELIEF_MAX, CORE_MAX, WANT_KINDS, clearOpposites, cleanBeliefs, cleanCore, cleanScope, cleanWants, freshState, knowledgeEntry } from '../engine/state.js';
 import { clamp, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
@@ -23,7 +27,7 @@ import { findList } from './find.js';
 import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, stepRangeMoon, tapPill, tapRangeMoon, toggleNote } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
-import { dockOf, tabStep, tabsFor } from './header.js';
+import { dockHere, dockOf, tabStep, tabsFor } from './header.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
 import { cleanSecrets } from '../engine/secrets.js';
@@ -33,7 +37,7 @@ import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, cleanCompare, cloneRelationships, relationshipKey } from '../engine/relationships.js';
 import { cleanPins, cleanSkillPace, cleanSkills } from '../engine/skills.js';
-import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests, cleanWords } from '../engine/turns.js';
+import { TURN_BY_ID, cleanAge, cleanFavs, cleanHeight, cleanInterests, cleanWords, familyMembers, familyString } from '../engine/turns.js';
 
 // A feeling ended by hand (lit before, 0 now) is remembered with the chat length, so the info board can't bring it
 // back and the next replies are told it's gone. Setting it again by hand forgets that.
@@ -141,6 +145,8 @@ export async function onPanelChange(e) {
     // The profile card on Facts (and your You tab).
     if (input.dataset.fav) { const k = input.dataset.fav, v = input.value; await changeState(s => { s.favs = cleanFavs({ ...s.favs, [k]: v }); }); return; }
     if (input.hasAttribute('data-secrets')) { const v = input.value; await changeState(s => { s.secrets = cleanSecrets(v); }); return; }
+    if (input.dataset.famField) { const [i, part] = input.dataset.famField.split(':'), v = input.value;
+        await changeState(s => { const list = familyMembers(s); if (!list[i]) return; list[i][part] = v; s.family = familyString(list); }); return; }
     if (input.dataset.words) { const k = input.dataset.words, v = input.value; await changeState(s => { s[k] = cleanWords(v); }); return; }
     if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
@@ -280,6 +286,12 @@ export async function onPanelChange(e) {
         const person = selectedCast(); if (!person) return;
         person.inScene = input.checked; render(); await persist(); await syncPrompt(); return;
     }
+    if (field === 'castFull') {
+        const person = selectedCast(); if (!person) return;
+        if (input.checked) person.tier = 'full'; else delete person.tier;
+        if (!tabsFor('cast').some(([k]) => k === ui.tab)) ui.tab = 'mood';
+        render(); await persist(); await syncPrompt(); return;
+    }
     if (field === 'castName') {
         const person = selectedCast(), name = castName(input.value);
         if (!person) return;
@@ -294,7 +306,10 @@ export async function onPanelChange(e) {
         }
         render(); await persist(); await syncPrompt(); return;
     }
-    if (field === 'recipe') { const recipe = (ui.who === 'story' ? STORY_RECIPES : RECIPES)[input.value]; if (recipe) await changeState(s => { for (const [k, v] of Object.entries(recipe)) if (!s.pins[k] && BY_ID[k]) { s.moods[k] = v; if (!s.loadout.includes(k)) s.loadout.push(k); } }); return; }
+    if (field === 'recipe') { const recipe = (ui.who === 'story' ? STORY_RECIPES : RECIPES)[input.value]; if (recipe) await changeState(s => { for (const [k, v] of Object.entries(recipe)) if (!s.pins[k] && BY_ID[k]) { s.moods[k] = v; if (!s.loadout.includes(k)) s.loadout.push(k); }
+        // A blend's rows that a dial owns move that dial instead, never back down.
+        const want = dialsFromMoods(recipe); if (ui.who === 'story') for (const [k, v] of Object.entries(want)) { if (v === 1) continue;
+            if (k === 'turns') s.dial = Math.max(v, s.dial ?? 1); else s.dials = { ...s.dials, [k]: Math.max(v, s.dials?.[k] ?? 1) }; } }); return; }
     if (field) await changeState(s => {
         s[field] = ['enabled', 'sceneBreathing'].includes(field) ? input.checked : field === 'profile' ? input.value : Number(input.value);
         if (['profile', 'interval'].includes(field)) { s.lastFingerprint = ''; s.lastUserCount = -1; }
@@ -341,6 +356,7 @@ export async function onPanelClick(e) {
     if (button.dataset.pill !== undefined) { tapPill(button); return; }
     if (button.dataset.who) {
         if (button.closest('.mw-board')) ui.tab = 'mood';
+        if (ui.tab === 'tonight' || ui.who === 'story') { const tabs = tabsFor(button.dataset.who).map(([k]) => k).filter(k => dockOf(k) === 'person'); ui.tab = tabs.includes(ui.lastTab?.person) ? ui.lastTab.person : 'mood'; }
         ui.who = button.dataset.who; ui.browsing = false; ui.skillSheet = ''; ui.settingsOpen = false; ui.boardFocus = ''; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId;
         ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; render(); return;
     }
@@ -503,15 +519,21 @@ export async function onPanelClick(e) {
     // Tapping the tab or dock section you're already on scrolls back to the top.
     const toTop = () => { ui.panel?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
     if (button.dataset.tab) { if (button.dataset.tab === ui.tab && ui.who !== 'story') { toTop(); return; } openTab(button.dataset.tab); return; }
-    // The dock: Story switches to the story's settings; the others open the tab last used in that section.
+    // The dock (2.0): Tonight, each person's page, Us, Story and Music. A person's page opens on the chapter last used.
     if (button.dataset.dock) {
-        const key = button.dataset.dock;
-        if (key === 'story' ? ui.who === 'story' : ui.who !== 'story' && dockOf(ui.tab) === key) { toTop(); return; }
-        if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; ui.settingsOpen = false; render(); return; }
+        const key = button.dataset.dock; if (dockHere() === key) { toTop(); return; }
+        ui.settingsOpen = false; ui.browsing = false; ui.skillSheet = '';
+        if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; render(); return; }
         if (ui.who === 'story') ui.who = ui.lastWho && ui.lastWho !== 'story' ? ui.lastWho : 'char';
-        const tabs = tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === key);
-        openTab(tabs.includes(ui.lastTab?.[key]) ? ui.lastTab[key] : tabs[0]); return;
+        if (key === 'tonight' || key === 'music') { ui.tab = key; render(); return; }
+        if (key === 'us') { if (!['char', 'user', 'cast'].includes(ui.who)) ui.who = 'char'; const t = ui.lastTab?.us; openTab(['rel', 'turn', 'intimacy'].includes(t) ? t : 'rel'); return; }
+        ui.who = key; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = '';
+        const tabs = tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === 'person');
+        openTab(tabs.includes(ui.lastTab?.person) ? ui.lastTab.person : tabs[0]); return;
     }
+    if (button.dataset.storyDials) { const key = button.dataset.storyDials, v = Number(button.dataset.step); await changeState(s => { s.dials = { ...s.dials, [key]: v }; }); return; }
+    if (button.dataset.storyDial !== undefined) { const v = Number(button.dataset.storyDial); await changeState(s => { s.dial = v; }); return; }
+    if (button.dataset.usSide) { ui.who = button.dataset.usSide; if (button.dataset.castId) ui.selectedCastId = button.dataset.castId; ui.selectedPeer = ''; ui.removingRelation = ''; render(); return; }
     // A moon on a row: its strength, or the dark new moon (and the brightest lit one tapped again) for 0.
     // In dynamic mode a hand-set feeling is pinned so the story leaves it alone; set to 0 it's let go.
     if (button.dataset.moon) {
@@ -577,6 +599,33 @@ export async function onPanelClick(e) {
         render(); ctx().saveSettingsDebounced(); await syncPrompt(); return;
     }
     if (button.dataset.secretSet) { const k = button.dataset.secretSet, state = button.dataset.secretState, at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.secretSet = { ...(s.secretSet ?? {}), [k]: { state, pos: at } }; }); return; }
+    // Story groups shown or hidden (Settings \u203a Panel): one tap each. What's already on in a hidden group still sends.
+    // Read the card (2.0): ask, show the suggestions as chips, add the kept ones.
+    if (button.dataset.action === 'card-read') { if (button.dataset.cardWho) { ui.who = button.dataset.cardWho; ui.tab = ui.who === 'user' ? 'needs' : 'state'; } const who = ui.who === 'user' ? 'user' : ui.who === 'cast' ? 'cast' : 'char', name = who === 'user' ? playerName() : who === 'cast' ? selectedCast()?.name : target()?.name; const p = readCard(who, name, who === 'cast' ? loreFor(name) : ''); render(); await p; render(); return; }
+    if (button.dataset.action === 'direct') { const text = ui.panel.querySelector('[data-direct-text]')?.value.trim(); if (!text) return; const p = directScene(text); render(); await p; render(); return; }
+    if (button.dataset.directPick) { const i = ui.direct?.items?.[Number(button.dataset.directPick)]; if (i) i.on = !i.on; render(); return; }
+    if (button.dataset.directHold) { const i = ui.direct?.items?.[Number(button.dataset.directHold)]; if (i) { i.hold = !i.hold; if (i.hold) i.on = true; } render(); return; }
+    if (button.dataset.action === 'arc-pick') { ui.arcPick = !ui.arcPick; render(); return; }
+    if (button.dataset.arcStart || button.dataset.arcSkip || button.dataset.arcMarkOff || ['arc-hold', 'arc-next', 'arc-end'].includes(button.dataset.action)) {
+        const story = getStoryState(); if (!story) return; const now = arcNow(target());
+        if (button.dataset.arcStart) { story.enabled = true; story.arc = { id: button.dataset.arcStart, from: Math.max(0, (liveChat()?.length ?? 1) - 1), pushed: 0, held: null }; ui.arcPick = false; }
+        if (button.dataset.arcSkip) story.arcSkip = [...new Set([...(story.arcSkip ?? []), button.dataset.arcSkip])];
+        if (button.dataset.arcMarkOff) story.arcMarks = (story.arcMarks ?? []).filter((_, i) => i !== Number(button.dataset.arcMarkOff));
+        if (story.arc && button.dataset.action === 'arc-hold') story.arc.held = Number.isInteger(story.arc.held) ? null : now?.stage ?? 0;
+        if (story.arc && button.dataset.action === 'arc-next') { story.arc.pushed = (story.arc.pushed ?? 0) + 1; if (Number.isInteger(story.arc.held)) story.arc.held++; }
+        if (button.dataset.action === 'arc-end') story.arc = null;
+        render(); await persist(story); await syncPrompt(); return;
+    }
+    if (button.dataset.action === 'direct-cancel') { ui.direct = null; render(); return; }
+    if (button.dataset.action === 'direct-apply') { await applyDirect(); render(); return; }
+    if (button.dataset.cardPick) { const i = ui.cardRead?.items?.[Number(button.dataset.cardPick)]; if (i) i.on = !i.on; render(); return; }
+    if (button.dataset.action === 'card-cancel') { ui.cardRead = null; render(); return; }
+    if (button.dataset.action === 'card-apply') { const story = getStoryState(); await changeState(s => applyCard(s, ['user', 'cast'].includes(ui.who) ? null : story)); return; }
+    if (button.dataset.action === 'fam-add' || button.dataset.famDel) { const del = button.dataset.famDel;
+        await changeState(s => { const list = familyMembers(s); if (del != null) list.splice(Number(del), 1); else list.push({ role: '', name: '', info: '' }); s.family = familyString(list); });
+        if (del == null) ui.panel.querySelector(`[data-fam-field="${familyMembers(viewState()).length - 1}:role"]`)?.focus(); return; }
+    if (button.dataset.groupHide) { const id = button.dataset.groupHide, list = settings().hiddenGroups ?? [];
+        settings().hiddenGroups = list.includes(id) ? list.filter(x => x !== id) : [...list, id]; ctx().saveSettingsDebounced(); render(); return; }
     if (button.dataset.action === 'stress-reset') { const at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.stressFrom = at; }); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.
@@ -638,6 +687,7 @@ export async function onPanelClick(e) {
         }
         case 'find': ui.findOpen = !ui.findOpen; render(); if (ui.findOpen) { ui.panel.scrollTo({ top: 0 }); ui.panel.querySelector('[data-find]')?.focus(); } break;
         case 'settings': ui.settingsOpen = true; render(); ui.panel.scrollTo({ top: 0 }); break;
+        case 'settings-panel': { ui.settingsOpen = true; render(); const box = ui.panel.querySelector('[data-settings="panel"]'); if (box) { box.open = true; box.scrollIntoView({ block: 'start' }); } break; }
         // The token pill opens Settings at What is sent, where the meter splits the count.
         case 'tokens': { ui.settingsOpen = true; render(); renderPreview(); const sent = ui.panel.querySelector('[data-settings="sent"]'); if (sent) { sent.open = true; sent.scrollIntoView({ block: 'start' }); } break; }
         case 'launch-reset': setLaunch({ x: null, y: null, show: true }); render(); break;
@@ -710,7 +760,7 @@ export async function onPanelClick(e) {
         case 'cast-add': {
             try {
                 const person = addCastMember(getCast(), ui.panel.querySelector('[data-cast-new]')?.value ?? '', newCastId(), [playerName(), ...members().map(ch => ch.name)]);
-                ui.selectedCastId = person.id; ui.who = 'cast'; ui.selectedPeer = ''; ui.castAction = ''; run.status = `${person.name} added to this chat\u2019s cast.`;
+                ui.selectedCastId = person.id; ui.who = 'cast'; if (ui.tab === 'tonight') ui.tab = 'mood'; ui.selectedPeer = ''; ui.castAction = ''; run.status = `${person.name} added to this chat\u2019s cast.`;
                 render(); await persist(); await syncPrompt();
             } catch (error) { run.status = error.message; renderStatus(); }
             break;

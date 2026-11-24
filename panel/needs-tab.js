@@ -44,13 +44,16 @@ function tileGroup(kind, tiles, focus, ownerName, pinsOn = true) {
         <button type="button" data-board-cut="${esc(kind)}">\u2715 ${focused.added ? 'Remove' : 'Cut'}</button>` : ''}
         <p class="mw-fine">${pinsOn ? (focused.kept ? 'Kept: sent every reply as part of the board until you let go.' : 'Keep sends it every reply. Cut tells the bot to drop it.') : ''}</p></div>` : ''}`;
 }
+// 2.0: each need is a small planet tile; tapping one opens its moons to set it. A need at a critical low opens by
+// itself, so trouble is never folded away.
 function needCell(nd, pinsOn = true) {
     const colour = needColour(nd.value), word = needWord(nd.value);
-    return `<div class="mw-need ${nd.value <= 15 ? 'is-critical' : ''} ${nd.known ? '' : 'is-quiet'}" style="--mw-need:${colour}" data-need-row="${nd.id}">
-        <div class="mw-need-head"><span class="mw-need-icon">${icon(nd.id)}</span><label for="mw-need-${nd.id}">${nd.label}</label>
-            ${nd.pinned ? `<button type="button" class="mw-need-pin" data-need-unpin="${nd.id}" title="Set by you. Tap to follow the board again" aria-label="Unpin ${nd.label}">\u25c6</button>` : ''}<span class="mw-need-word" data-need-word="${nd.id}">${word}</span></div>
+    if (!pinsOn) return `<div class="mw-need is-flat ${nd.value <= 15 ? 'is-critical' : ''} ${nd.known ? '' : 'is-quiet'}" style="--mw-need:${colour};--mw-v:${nd.value}" data-need-row="${nd.id}" title="${esc(nd.source ? `\u201c${nd.source}\u201d` : nd.label)}"><div class="mw-need-head"><span class="mw-need-icon">${icon(nd.id)}</span><span class="mw-need-name"><span>${nd.label}</span><span class="mw-need-word" data-need-word="${nd.id}">${word}</span></span><i class="mw-need-bar" aria-hidden="true"></i></div></div>`;
+    return `<details class="mw-need ${nd.value <= 15 ? 'is-critical' : ''} ${nd.known ? '' : 'is-quiet'}" style="--mw-need:${colour};--mw-v:${nd.value}" data-need-row="${nd.id}"${nd.value <= 15 && nd.known ? ' open' : ''}>
+        <summary class="mw-need-head"><span class="mw-need-icon">${icon(nd.id)}</span><span class="mw-need-name"><label for="mw-need-${nd.id}">${nd.label}</label><span class="mw-need-word" data-need-word="${nd.id}">${word}</span></span>
+            ${nd.pinned ? `<button type="button" class="mw-need-pin" data-need-unpin="${nd.id}" title="Set by you. Tap to follow the board again" aria-label="Unpin ${nd.label}">\u25c6</button>` : ''}<i class="mw-need-bar" aria-hidden="true"></i></summary>
         <input id="mw-need-${nd.id}" type="range" min="0" max="100" step="5" value="${nd.value}" data-need="${nd.id}" style="--mw-fill:${nd.value}%" aria-valuetext="${word}"${pinsOn ? '' : ' disabled'}>
-        ${nd.source ? `<small title="${esc(nd.source)}">\u201c${esc(nd.source)}\u201d</small>` : ''}</div>`;
+        ${nd.source ? `<small title="${esc(nd.source)}">\u201c${esc(nd.source)}\u201d</small>` : ''}</details>`;
 }
 function presentChips(live, people) {
     const raw = String(live.present ?? '');
@@ -101,7 +104,7 @@ export function boardView({ live, send, sync, charName, userName, people, editin
         ${edit}
         <div class="mw-board-block"><h4>${icon('mind')} State <small>${esc(owner)}</small></h4>
             ${live.state.length || live.found ? tileGroup('state', live.state, focus, charName, pinsOn) : ''}</div>
-        <div class="mw-board-block"><h4>Needs <small>${esc(owner)} \u00b7 tap to set</small></h4>
+        <div class="mw-board-block"><h4>Needs <small>${esc(owner)}${pinsOn ? ' \u00b7 tap one to set it' : ''}</small></h4>
             <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
             <p class="mw-fine">Read from the board\u2019s words${weaveOn ? ' and the hidden line' : ''}${needOpts?.drift ? ', and the board\u2019s clock: needs drain a little as in-world time passes and come back up after a time jump. Who they are changes the speed: an insomniac tires sooner, a clingy heart gets lonely faster' : ''}. Faded bars haven\u2019t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does; nothing extra is printed on your board.</p>
             ${needOpts ? `<details class="mw-need-settings"><summary>Needs over time <small>all chats</small></summary>

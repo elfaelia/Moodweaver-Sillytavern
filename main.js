@@ -1,3 +1,4 @@
+import { clearLore, loreActivated } from './app/lore.js';
 import { getState, identity, persist, target } from './app/chat.js';
 import { addSlashCommand, addWandItem, launch, placeLauncher, setLaunch, warnDuplicate, wireLauncher } from './app/launcher.js';
 import { startGenerating, stopGenerating, syncPrompt, syncPromptNow } from './app/note.js';
@@ -103,11 +104,13 @@ function setup() {
     c.eventSource.on(c.eventTypes.CHAT_CHANGED, () => {
         cancelAnalysis(); ui.selectedAvatar = ''; ui.selectedCastId = ''; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = ''; run.status = ''; ui.boardEditing = false; ui.boardFocus = '';
         run.generating = false; run.resyncAfter = false; clearTimeout(run.genTimer);
-        ++run.promptVersion; clearNotes(c);
+        ++run.promptVersion; clearNotes(c); clearLore();
         render(); void syncPromptNow();
         // Bring the newly opened chat up to date (and move it from older versions) straight away.
         queueBoard();
     });
+    // Lorebook cast (app/lore.js): people whose lorebook entries fire are offered on Scene.
+    if (c.eventTypes.WORLD_INFO_ACTIVATED) c.eventSource.on(c.eventTypes.WORLD_INFO_ACTIVATED, entries => { try { loreActivated(entries); } catch (err) { console.warn('[Moodweaver] lore', err); } });
     c.eventSource.on(c.eventTypes.GENERATION_STOPPED, () => { cancelAnalysis(); stopGenerating(); queueBoard(); });
     c.eventSource.on(c.eventTypes.GENERATION_ENDED, () => { stopGenerating(); queueBoard(); });
     for (const event of ['MESSAGE_RECEIVED', 'CHARACTER_MESSAGE_RENDERED', 'MESSAGE_SWIPED', 'MESSAGE_SWIPE_DELETED', 'MESSAGE_EDITED', 'MESSAGE_UPDATED', 'MESSAGE_DELETED', 'CHARACTER_FIRST_MESSAGE_SELECTED']) {

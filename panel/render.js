@@ -14,7 +14,8 @@ import { escapeHtml as esc, shortName } from '../engine/util.js';
 import { BY_ID, sectionOf } from '../data/catalogue.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { capturePanel, restorePanelFields, restorePanelPosition, savedPanel } from './scroll-memory.js';
-import { PLUMBOB, dockBar, peopleBar, personCard, tabBar, tabsFor } from './header.js';
+import { PLUMBOB, dockBar, dockOf, personCard, tabBar, tabsFor, usSides } from './header.js';
+import { tonightView } from './tonight.js';
 import { TONES, moodTone } from '../engine/tone.js';
 import { factsContent, sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
@@ -125,11 +126,12 @@ function drawPanel() {
     if (!plumbob.strength) { const boardMood = live?.state.map(t => matchMood(t.text)).find(m => m && TONES[m.category]); if (boardMood) plumbob = { lead: TONES[boardMood.category], shade: TONES[boardMood.category], strength: 40, id: boardMood.id }; }
     ui.panel.style.setProperty('--mw-mood', plumbob.lead); tintLauncher(plumbob.lead);
     // A new tab slides in from the side it lives on (swiping left brings the next one in from the right).
-    const order = [...tabsFor(ui.who).map(([k]) => k), 'story'], at = ui.who === 'story' ? 'story' : ui.tab, was = ui.drawnTab ?? at;
+    const order = ['tonight', ...tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === 'person'), 'rel', 'turn', 'intimacy', 'story', 'music'], at = ui.who === 'story' ? 'story' : ui.tab, was = ui.drawnTab ?? at;
     const anim = at === was ? '' : order.indexOf(at) > order.indexOf(was) ? 'next' : 'prev'; ui.drawnTab = at;
     // No chat open means no state: build nothing, or the person card throws and the panel never opens.
     const body = !state ? '' : ui.settingsOpen ? settingsView(state)
-        : `${findView()}${personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
+        : ui.tab === 'tonight' ? `${findView()}<div class="mw-view" data-anim="${anim}">${tonightView(ch, charState, live)}</div>`
+        : `${findView()}${dockOf(ui.tab) === 'us' && ui.who !== 'story' ? usSides(ch) : dockOf(ui.tab) === 'music' && ui.who !== 'story' ? '' : personCard(ch, state, live)}${ui.who === 'story' ? '' : tabBar(counts)}
         <div class="mw-view" data-anim="${anim}">${ui.who === 'user' && ui.tab === 'needs' ? youView(state, ch, live, boardPeople(ch)) + factsContent(state, ch, active)
         : ui.who !== 'story' && ui.tab === 'needs' ? boardView({ needOpts: needOpts(), live, send: boardSend(), sync: settings().boardPresent, charName: ch.name, userName: playerName(), people: boardPeople(ch), editing: ui.boardEditing && settings().boardPins, focus: ui.boardFocus, pinsOn: settings().boardPins, memoriesOn: settings().boardMemories, withWeave: settings().boardWithWeave, weaveOn: bondData(ch).on, savedMemories: boardMemoryCount(ch) }) + (ui.who === 'char' ? stressCard(stressNow(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name)) : '')
         : ui.who !== 'story' && ui.tab === 'music' ? musicView()
@@ -144,9 +146,8 @@ function drawPanel() {
         <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">\u25f7</i><b></b></button><button type="button" class="mw-icon-btn" data-action="find" aria-pressed="${Boolean(ui.findOpen)}" aria-label="Search every tab" title="Search every tab">\u2315</button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what\u2019s sent" title="Settings and what\u2019s sent">\u2699</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">\u00d7</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat \u00b7 main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
-    ${peopleBar(ch, charState)}
     ${state ? body : ''}
-    ${state && !ui.settingsOpen ? dockBar(counts) : ''}`}
+    ${state && !ui.settingsOpen ? dockBar(ch) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. \u00b7 v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>\u2191</button>`;
     restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel); reglow(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
@@ -188,7 +189,7 @@ export function moonify(root) {
 export function pillify(root) {
     for (const sel of root?.querySelectorAll?.('select:not([data-pills]):not([multiple])') ?? []) {
         const opts = [...sel.options].filter(o => !o.hidden && !(o.disabled && !o.value));
-        const short = opts.length >= 2 && opts.length <= 5 && opts.every(o => o.text.trim().length <= 16) && opts.reduce((n, o) => n + o.text.trim().length, 0) <= 46 && !opts.some(o => o.value === '' && /\u2026|\.\.\./.test(o.text));
+        const short = (opts.length >= 2 && opts.length <= 5 && opts.every(o => o.text.trim().length <= 16) && opts.reduce((n, o) => n + o.text.trim().length, 0) <= 46 || opts.length >= 2 && opts.length <= 9 && opts.every(o => o.text.trim().length <= 4)) && !opts.some(o => o.value === '' && /\u2026|\.\.\./.test(o.text));
         if (!short) continue;
         sel.dataset.pills = '1'; sel.hidden = true; sel.tabIndex = -1;
         const row = document.createElement('div');
@@ -365,6 +366,17 @@ function panelReport(showError) {
     lines.push(`on top there: ${!hit ? 'nothing' : ui.panel.contains(hit) ? 'the panel' : describe(hit)}`);
     return lines.join('\n');
 }
+// The phone sheet sits at the bottom by moving up its own height. A height like 786.6px leaves every line of text
+// between pixels, and Safari draws the dock and tab labels soft. This nudges it back onto whole pixels whenever the
+// sheet changes size.
+let snapWatch = null;
+export function snapToPixels(el) {
+    if (!el) return;
+    const fix = () => { el.style.setProperty('--mw-snap', '0px'); const top = el.getBoundingClientRect().top, off = top - Math.round(top);
+        if (Math.abs(off) > 0.01) el.style.setProperty('--mw-snap', `${-off}px`); };
+    fix();
+    if (!snapWatch && typeof ResizeObserver === 'function') { snapWatch = new ResizeObserver(() => requestAnimationFrame(fix)); snapWatch.observe(el); window.addEventListener('resize', () => requestAnimationFrame(fix)); }
+}
 export function openPanel() {
     note('Pressed. Opening\u2026');
     if (run.suspended) { note('Moodweaver is switched off in Manage extensions.', true); globalThis.toastr?.info('Moodweaver is switched off. Turn it back on in Manage extensions.'); return; }
@@ -372,7 +384,7 @@ export function openPanel() {
     try {
         render(false, true);
         if (ui.panel.hidden) ui.panel.hidden = false;
-        if (!ui.panel.open) { ui.panel.show(); ui.panel.focus({ preventScroll: true }); }
+        if (!ui.panel.open) { ui.panel.show(); ui.panel.focus({ preventScroll: true }); } snapToPixels(ui.panel);
     } catch (err) {
         showError = String(err?.message ?? err);
         try { ui.panel.setAttribute('open', ''); } catch { /* nothing else to try */ }

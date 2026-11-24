@@ -40,7 +40,7 @@ function setupCard(m) {
     if (ready) { const p = prepareSignIn(m); ctx().saveSettingsDebounced(); link = p.url; }
     const step = (n, body, lit) => `<li class="${lit ? 'is-lit' : ''}"><span class="mw-music-star" aria-hidden="true">${n}</span><div>${body}</div></li>`;
     return `<section class="mw-music-hero mw-music-setup">
-        <div class="mw-music-planet is-idle" aria-hidden="true"><span class="mw-ring mw-ring-back"><b><i></i></b></span><span class="mw-music-ball">\u266b</span><span class="mw-ring mw-ring-front"><b><i></i></b></span></div>
+        <div class="mw-music-planet is-idle" aria-hidden="true"><span class="mw-ring mw-ring-back"><b><i></i></b></span><span class="mw-music-ball">\u266b</span><span class="mw-ball-glaze"></span><span class="mw-ring mw-ring-front"><b><i></i></b></span></div>
         <h3 class="mw-music-title">Connect your Spotify</h3><p class="mw-music-sub">Once, about five minutes. Moodweaver only plays your own playlists.</p>
         <ol class="mw-music-path">
             ${step(1, `On the <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify developer dashboard</a>, open your app \u203a Settings \u203a Edit. Under <b>Redirect URIs</b> add this address, press <b>Add</b>, then <b>Save</b>:
@@ -117,7 +117,7 @@ function nowCard(m, tone) {
     const elapsed = n ? (n.playing ? Date.now() - n.started : n.progress) : 0, pct = n?.ms ? Math.max(0, Math.min(100, elapsed / n.ms * 100)) : 0, left = n?.ms ? Math.max(0, n.ms - elapsed) : 0;
     return `<section class="mw-music-hero ${playing ? 'is-playing' : ''}" style="${toneVars(tone)}">
         <button type="button" class="mw-music-power" data-music="toggle-on" aria-pressed="${Boolean(m.on)}"><span aria-hidden="true"></span>${m.on ? 'Music on' : 'Music off'}</button>
-        <div class="mw-music-planet ${n ? '' : 'is-idle'}" aria-hidden="true"><span class="mw-ring mw-ring-back"><b><i></i></b></span>${n?.art ? `<img class="mw-music-ball" src="${esc(n.art)}" alt="">` : '<span class="mw-music-ball">\u266b</span>'}<span class="mw-ring mw-ring-front"><b><i></i></b></span></div>
+        <div class="mw-music-planet ${n ? '' : 'is-idle'}" aria-hidden="true"><span class="mw-ring mw-ring-back"><b><i></i></b></span>${n?.art ? `<img class="mw-music-ball" src="${esc(n.art)}" alt="">` : '<span class="mw-music-ball">\u266b</span>'}<span class="mw-ball-glaze"></span><span class="mw-ring mw-ring-front"><b><i></i></b></span></div>
         <h3 class="mw-music-title">${esc(n?.name || (m.on ? 'Waiting for the next scene' : 'The music is resting'))}</h3>
         <p class="mw-music-sub">${n ? `${esc(n.artist ?? '')}${n.device ? ` \u00b7 on ${esc(n.device)}` : ''}` : m.on ? 'A song starts after the next reply.' : 'Switch it on and the scene picks the songs.'}</p>
         ${n?.ms ? `<button type="button" class="mw-music-seek" data-music="seekbar" aria-label="Tap the path to jump to that spot in the song"><span class="mw-music-track"><i style="width:${pct.toFixed(1)}%;animation-duration:${Math.round(left)}ms;animation-play-state:${playing ? 'running' : 'paused'}"></i>${peakMark(m, n)}</span></button>
@@ -143,7 +143,7 @@ function followCard(m, t) {
         <span class="mw-music-who-orbs">${two ? `<i style="${toneVars(t.char)}">${esc(followName('char')[0] ?? '')}</i><i style="${toneVars(t.user)}">${esc(followName('user')[0] ?? '')}</i>` : `<i>${esc(who === 'story' ? '\u2726' : String(name)[0] ?? '')}</i>`}</span>
         <b>${esc(name)}</b><small>${tag}</small></button>`;
     return `<section class="mw-music-follow"><p class="mw-music-label">Music follows</p><div class="mw-music-whos">
-        ${orb('char', followName('char'), '{{char}}', t.char)}${orb('user', followName('user'), '{{user}}', t.user)}${orb('both', 'Both', 'their moods', t.char, true)}${orb('story', '\u2726 Story', 'like a film score', t.char)}</div>
+        ${orb('char', followName('char'), 'their moods', t.char)}${orb('user', followName('user'), 'your moods', t.user)}${orb('both', 'Both', 'together', t.char, true)}${orb('story', 'Story', 'film score', t.char)}</div>
         ${m.follow === 'story' ? '<p class="mw-fine">Story: the music scores the whole scene, like a film. It holds one cue through a scene and changes when the scene does (a new place, kind of scene, someone arriving, heat), not with every passing feeling.</p>' : ''}</section>`;
 }
 // You may have hundreds of playlists: the ticked ones are lit stars on top, the rest are found by searching (or a

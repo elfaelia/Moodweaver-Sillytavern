@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.0.1
+- Authors no longer say anything about point of view or tense. 144 authors described how their books are told (first person, present tense, a diary, alternating narrators, an unreliable narrator, asides to the reader). That fought the point of view and tense you set in Story, so every one of those lines now keeps only the technique (rhythm, word choice, what gets dwelt on, the mood) and drops the person, tense and form. Nine dialogue lines that spoke to "the reader" or "the narrator" were cleaned the same way.
+- The guide's line "a note about an author's person or tense describes them, not this chat" is gone, since no note mentions either any more. With the shorter author lines, the guide is about 50 tokens lighter.
+
+## 2.0.0
+A new version of Moodweaver rather than another update: a new home and layout, a rebuilt prompt, and new ways to steer the story. Your characters, chats, settings, music and ambience all carry over by themselves.
+
+**The panel**
+- **Scene** is the new home page: who's here and how they feel, the dynamic, low needs, people passing through, Direct the scene and Arcs. The dock now names places and people: Scene, the character, you, Bond, Story, Music. Each person is one page with chapters (Feels, Body, Facts, Traits, Mind, Skills, Era, Wants) as two even rows of chips.
+- Every page has its own sky, sized for iPhone 17, with crisp button text, needs drawn as planets, a rebuilt Saturn, cleaner music pickers and Settings laid out as cards.
+- **Cast tiers.** Side characters get a slim page (feelings, a few facts, core traits, their bond) and one switch for a full page. People who only pass through get no page, fade by themselves, and are offered with ＋ if they keep turning up.
+- **Read the card.** One request reads the card, scenario, first message, persona and active lore, and suggests age, height, profile, family, pet names, core traits, era and place as chips. Nothing goes in until you add it. What the card already says is no longer repeated in the notes.
+- **Lorebook cast.** When SillyTavern's lorebook brings in an entry about a person (a name as the entry's title or first key, written about as a person), they're offered on Scene under "From the lorebook". On a side character's card, ✦ Read about them reads their lorebook entry.
+- **Direct the scene.** On Scene, say in your own words where you want things to go. One short request turns it into feelings with strengths, facts and story choices, and Moodweaver keeps only what matches its own lists, as chips per person. Tap away what you don't want, ◆ holds one so the story can't move it, ＋ Add puts the rest in. It's a starting point the story keeps moving, never a lock.
+- **Arcs.** Eleven story shapes with stages and an end: slow burn, slow corruption, obsession deepening, conditioning, breaking point, an affair coming apart, betrayal building, redemption, escape, downward spiral and revenge. Off unless you start one, or the story clearly begins one and it's offered as a chip. A stage moves on only when the hidden line says that reply got there, never on a timer; three replies in a row that turn away let it fizzle. When it lands it leaves one "Behind them" line and steps aside. Hold here, Move on › and End sit on the card. Stages are read back from the chat, so a swipe or a delete takes a step back. ⚙ Settings › Feelings and people › Offer arcs the story starts.
+- **Four story dials** on the Story page: How wild the story runs (Calm to Chaos, with twists rolled as often as the step says), How much can go wrong, Who drives the story, How it ends up. The middle steps send nothing. Wildcards and the nine rows the dials replaced (Real stakes, Your character isn't safe, No one is safe, Death is on the table, The world leads, They escalate on their own, Costly wins, No unearned hope, Bad ending) are gone; chats that had them open on the matching step.
+- Family boxes (role, name, notes) per person, sent only when that person comes up. Authors can be hidden by era, and new dark traits cover more of your themes.
+
+**What Opus reads**
+- The whole prompt is rebuilt, based on research into what Opus 5.5 responds to. In a heavy test chat it went from about 8,700 tokens to about 5,000. The guide (cached) holds the rules once; the fresh note, sent last, holds only this reply.
+- Plain sentences per person instead of labelled lists, no capitals or MUSTs, no example words or quoted sentences for Opus to echo.
+- **Point of view** is one short paragraph instead of six sentences, with a one-line reminder right before Opus writes.
+- **Authors:** all 364 rewritten as a short line on how they narrate and one on how their people talk. No book titles are sent (you still see them), no chapter talk, and each shows its share of the blend.
+- **Skills and dice:** the dice still roll in Moodweaver with the same odds; Opus gets only the outcome, inside the person's paragraph. The rules sit in the guide once. No fumble examples.
+- **Harm:** when something would hurt someone, what was done and where they are decide the damage, not mercy, luck or a softer outcome. Claude is never handed the choice.
+- **You lead** now means following your lead when your moves lean the story a way; everyone else still acts on their own wants.
+- Hidden line, board, needs (only low ones, a few words each), size facts (bare facts) and the explainers are all cut to what Opus needs. The cleaner-writing rules and the long writing, craft and stakes rows (49 in all, Vulgar included) are rebuilt without examples. The other Story rows were already one plain line and keep their wording.
+- The hidden line gains one field, `arc`, asked for only when an arc is running or could be offered.
+
 ## 1.97.5
 - Accents without caricature. The setting's English rule (1960s America and the other regional eras) no longer lists the other country's words. Naming them planted them, and "only a character the card makes British talks that way" read as permission to give that one character the whole list. Now narration and everyone from the setting use its English; someone from another country sounds like a real person from there, with their accent and a few natural habits of speech, never a string of national slang, swearing or stereotypes; and the narration keeps the setting's words for everything, that person's clothes included. Second-era lines are one short sentence each.
 - Continuity first. The note's opening no longer says "earlier replies are settled" (1.97.3), which in a story read as leave to stop checking them. It now says what the story has already established still holds: where everyone is, what they know, wear and hold, what has happened, and what a body or object can physically do next.

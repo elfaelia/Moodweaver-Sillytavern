@@ -87,7 +87,7 @@ function castOf(v) {
         return items.length ? { name: unquote(m[1]).slice(0, 60), items } : null;
     }).filter(Boolean).slice(0, 6);
 }
-const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|facts|stress|secrets|desire|meters|used|skills|dynamic|noticed|cast)\b\s*:?\s*([\s\S]*)$/i;
+const FIELDS = /^(moods?|feelings|needs|toward|friendship|romance|trust|control|power|pull|feels|thinks|sparked|sparks|remember|wants|goals|fears|pressed|new\s+wants?|you|seems|facts|stress|secrets|desire|meters|used|skills|dynamic|noticed|cast|arc)\b\s*:?\s*([\s\S]*)$/i;
 // Fields are split on "|" and read by name, so a missing field or a different order still works.
 function readLine(body) {
     const f = {};
@@ -121,6 +121,8 @@ function readLine(body) {
         thinks: list(f.thinks, 3, 60).map(trait).filter(t => t && t.split(' ').length <= 4),
         sparked: sparks(f.sparked), noticed: list(f.noticed, 3, 60),
         remember: !remember || NONE.test(remember) ? '' : remember.slice(0, 160),
+        // 2.0 arcs (engine/arcs.js): next, away, or the name of one the story has begun.
+        arc: NONE.test(unquote(f.arc ?? '')) ? '' : unquote(f.arc ?? '').slice(0, 40),
     };
 }
 // Every line in the reply is read and merged: meters add up, lists join, the newest need and memory win.
@@ -149,6 +151,7 @@ export function parseWeave(mes) {
         out.cast = [...(out.cast ?? []), ...(x.cast ?? [])].slice(0, 8);
         if (x.you) out.you = x.you;
         if (x.seems) out.seems = x.seems;
+        if (x.arc) out.arc = x.arc;
     }
     return out;
 }
@@ -183,43 +186,48 @@ const SIZES = {
     volatile: { range: 25, ordinary: '5 to 10', turn: '15 to 25', step: 10 },
 };
 // dynamic: { now, pool } when the story names the dynamic. pace: the chat's pace (bond.js PACE).
-export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, stress = false, secrets = null, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false, cast = [] }) {
+export function weavePrompt({ n, u, bond = true, extra = true, moods = true, feelings = true, moodPace = null, moodNames = null, remember = true, wants = false, fears = false, buttons = false, suggest = false, you = false, stress = false, secrets = null, desire = false, meters = [], skills = false, pace = 'steady', dynamic = null, notice = false, settle = null, split = false, cast = [], arc = null }) {
     const size = SIZES[pace] ?? SIZES.steady, mp = moodPace ?? { step: 20, ordinary: '5 to 10' };
     if (!bond && !moods && !remember) return [];
-    // The same instructions in about half the words. The line Moodweaver reads is unchanged.
+    // 2.0 brief: the shape uses [brackets] where words go and the fields say what they hold, with no sample words,
+    // since Opus repeats any it's given. The line Moodweaver reads is unchanged.
     const example = [
-        ...(moods ? [...(feelings ? ['moods amused +10, wanting +5, afraid off'] : []), 'needs hunger low'] : []),
-        ...(bond ? ['romance +2', ...(extra ? [`control ${n} +1`] : []), 'sparked: defiance'] : []),
-        ...(remember ? [`remember: ${u} promised to stay`] : []),
+        ...(moods ? [...(feelings ? ['moods [feeling] +10, [feeling] off'] : []), 'needs [need] low'] : []),
+        ...(bond ? ['romance +2', ...(extra ? [`control ${n} +1`] : []), 'sparked: [name]'] : []),
+        ...(remember ? ['remember: [one line]'] : []),
     ];
     // split: the format is the same every reply and goes near the top to be cached; the step sizes (which follow
     // hunger and tiredness), the feelings that have run high and the current dynamic come late, in live.
     const steps = `${mp.ordinary} usually, up to ${mp.step} for big moments`;
-    const live = split ? [`Hidden line this reply: mood steps ${steps}.${settle?.length && !split ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}${dynamic ? ` The dynamic is ${dynamic.now}: name a new one only if it's no longer that${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ', in two or three words'}.` : ''}`] : [];
+    const live = split ? [`Hidden line this reply: mood steps ${steps}.${dynamic ? ` The dynamic is ${dynamic.now}: name a new one only if it's no longer that${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ', in two or three words'}.` : ''}`] : [];
+    const settled = settle?.length ? ` These have run high for many replies, so lower them unless this reply truly renews them: ${settle.join(', ')}.` : '';
     const lines = [
-        `End every reply with a hidden line for Moodweaver: only what changed for ${n} this reply, or <!-- weave: none -->. Shape:`,
+        `End every reply with a hidden line for Moodweaver, holding only what changed for ${n} this reply, or <!-- weave: none -->:`,
         `<!-- weave: ${example.join(' | ')} -->`,
-        ...(moods ? [...(feelings ? [`- moods: ${n}'s feelings that rose, fell or ended, up to twelve, from the whole range of feeling, not only the ones in these notes (desire, sexual frustration, jealousy, tenderness, shame, spite, dread, contempt and so on; dark, sexual and ugly ones count), named the way this person would have them: the same delight is giddy in one person and smug, possessive or hungry in another, whatever this moment gives them, in plain words: ${split ? 'step sizes as given just before the reply' : steps}, off when gone. Lower or end the ones the scene has moved past. Feelings about ${u} go here too (aroused, smitten, jealous). Score what this reply's events stir, not what the notes say they already feel. When a feeling is about someone other than ${u}, say who (angry +10 at his wife).${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settle?.length ? ` These have run high for many replies: ${settle.join(', ')}. Lower them this reply unless something in it truly renews them.` : ''}`] : []),
-            `- needs: hunger, energy, bladder, hygiene, comfort, social, fun, health as critical, low, okay or fine, or a change (health -10). Food, sleep, washing and company fill them, and fun fills from whatever this person enjoys (play, teasing, flirting, foreplay and sex they want, a thrill, a win, a hobby); filth, cold, restraints, withdrawal, isolation, boredom, injury and rough sex they don't want drain them; a beating costs health.`,
-            `- facts: what became true or stopped being true of ${n} this reply and lasts beyond it, by plain name: clothes and looks (in uniform, hair down), voice (hoarse), status and secrets (engaged, arrested, found out), work (fired, promoted), past (widowed); the same name with off when it ends. Only changes, or leave it out.`,
-            ...(secrets ? [`- secrets: only when one moved this reply, its name and where it stands now: suspected, known (the other one found out), out (everyone knows) or used (played against them). ${secrets}`] : []),
-            ...(stress ? [`- stress: +5 to +20 when ${n} acted against their own beliefs or nature, or was under strain they couldn't control; a minus when they let it out, rested or were comforted; or leave it out.`] : []),
-            bond ? `- toward: a specific stance of ${n}'s toward ${u} that moved, -30 to +30: a role, an opinion of them, a hurt or debt between them, or how it shows (betrayed by, owes their life to, thinks they're naive). Liking, love, trust, desire and the rest go in their own fields; what ${n} feels in the moment goes under moods.`
-                : `- toward: how ${n}'s stance toward ${u} moved (protective, distrusts, obsessed with), -30 to +30. What ${n} feels in the moment, desire included, also goes under moods.`] : []),
-        ...(bond ? [`- friendship (liking, loyalty), romance (desire, love)${extra ? `, trust (relying on ${u})` : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points. Score this reply, even against where they stand. An understated person moves these by what they do, not what they declare.`,
-            ...(extra ? [`- control: who gained real power (doors, money, freedom, demands, rewards), as ${n} +3 or ${u} +3, up to ${size.range}. pull: who gained emotional hold, the same way. They can move opposite ways.`] : []),
-            ...(dynamic ? [split ? '- dynamic: only if it has changed, what it is now (see just before the reply).' : `- dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
-            `- thinks: ${n} thinks ${u} is\u2026 (stubborn, his, a liar).`,
-            `- sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, by name; (off) for a turn-off.`,
-            ...(notice ? [`- noticed: any of ${u}'s turn-ons or turn-offs that ${n} picked up on this reply from how ${u} reacted, by name.`] : [])] : []),
-        ...(wants || fears || buttons || suggest ? [`- ${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}. In ${n}'s wording from these notes.`] : []),
-        ...(meters.length ? [`- meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}: ${size.ordinary} usually, ${size.turn} for turning points${meters.some(m => ['respect', 'pedestal'].includes(m)) ? ' (respect and pedestal can go below zero)' : ''}${meters.includes('mutual') ? '; mutual is how sure they are their feeling is returned (up as they come to believe it, down when they doubt it)' : ''}. Quiet signs count as much as loud ones: a small act of care, standing between ${u} and trouble, loyalty shown and not said, a joke only they share.`] : []),
-        ...(desire ? [`- desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; write release only if ${n} ${n === u ? '' : 'personally '}climaxed this reply. ${u} climaxing is not ${n}'s release: it usually makes ${n} want more, so score arousal up.`] : []),
-        ...(you ? [`- you: what is true of ${u} right now because of the story, of any kind: body (hurt, ill, pregnant), bed (tied up, undressed), substances (drunk, drugged), looks and clothes (soaked, made up, in a slip), voice (hoarse), status and secrets (engaged, arrested, committed, found out), work (fired, hired). The full current list each reply, or none.`,
-            `- seems: how ${u} comes across this reply from what the player wrote, up to three feelings in plain words (scared, defiant, wanting), or none.`] : []),
-        ...(cast.length ? [`- cast: only for ${cast.join(', ')}, and only while they're physically in this scene and something changed for them this reply: name, then one feeling with a step or off, and/or one lasting fact (in uniform, arrested) or that fact off. People split by ; (${cast[0]}: wary +10, soaked). Leave out anyone only talked about, remembered or thought of.`] : []),
-        ...(skills ? [`- used: skills from the skills list that someone used or was tested on this reply, by name.`] : []),
-        ...(remember ? [`- remember: a turning point between them in one line (confession, promise, betrayal, first time, secret).`] : []),
+        ...(moods ? [...(feelings ? [`moods: up to twelve of ${n}'s feelings that rose, fell or ended, of any kind, named the way ${n} would feel them, ${split ? 'at the step sizes given before the reply' : steps}, off when gone, with "at [name]" after the step when one isn't about ${u}.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settled}`] : []),
+            `needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change.`,
+            `facts: what started or stopped being lastingly true of ${n}, with off when it ends.`,
+            ...(secrets ? [`secrets: one that moved, as suspected, known, out or used. ${secrets}`] : []),
+            ...(stress ? [`stress: +5 to +20 for strain or acting against their own nature, a minus for release or comfort.`] : []),
+            bond ? `toward: a lasting stance of ${n}'s toward ${u} that moved, -30 to +30; liking, love and trust have their own fields.`
+                : `toward: how ${n}'s stance toward ${u} moved, -30 to +30.`] : []),
+        ...(bond ? [`friendship, romance${extra ? ', trust' : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points, scored on this reply alone.`,
+            ...(extra ? [`control: who gained real power, as ${n} +3 or ${u} +3, up to ${size.range}; pull: who gained emotional hold, the same way.`] : []),
+            ...(dynamic ? [split ? 'dynamic: only if it has changed (see before the reply).' : `dynamic: only if it's no longer ${dynamic.now}, what it is now${dynamic.pool?.length ? `, from: ${dynamic.pool.join(', ')}` : ' in two or three words'}.`] : []),
+            `thinks: a word or two for what ${n} thinks ${u} is.`,
+            `sparked: ${n}'s turn-ons, turn-offs or bedroom traits this reply touched, (off) for a turn-off.`,
+            ...(notice ? [`noticed: ${u}'s turn-ons or turn-offs ${n} picked up from how ${u} reacted.`] : [])] : []),
+        ...(wants || fears || buttons || suggest ? [`${[wants ? 'wants: one this reply moved (+, -, done)' : '', fears ? 'fears: one the scene came near' : '', buttons ? 'pressed: a hot button that went off' : '', suggest ? 'new want: one they clearly started wanting' : ''].filter(Boolean).join('; ')}, in ${n}'s wording from these notes.`] : []),
+        ...(meters.length ? [`meters: any of ${meters.join(', ')} that moved toward ${u}, -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points${meters.some(m => ['respect', 'pedestal'].includes(m)) ? '; respect and pedestal can go below zero' : ''}${meters.includes('mutual') ? '; mutual is how sure they are it\'s returned' : ''}. Quiet signs count as much as loud ones.`] : []),
+        ...(desire ? [`desire: how this reply moved ${n}'s arousal toward ${u} (arousal +${size.step}, at most +${size.range})${desireNames(desire)}; release only if ${n} ${n === u ? '' : 'personally '}climaxed. ${u} climaxing isn't ${n}'s release and usually raises ${n}'s arousal.`] : []),
+        ...(you ? [`you: everything currently true of ${u} because of the story (body, clothes, substances, restraints, status), the full list, or none.`,
+            `seems: up to three feelings ${u} shows in what the player wrote, or none.`] : []),
+        ...(cast.length ? [`cast: for ${cast.join(', ')} while in the scene and changed this reply: name, one feeling with a step or off, and/or one lasting fact, people split by ; as [name]: [feeling] +10, [fact].`] : []),
+        ...(skills ? [`used: skills someone used or was tested on.`] : []),
+        ...(remember ? [`remember: a turning point between them, in one line.`] : []),
+        // arc: { running: true } while one runs, { names: [...] } to let the story name one it has clearly begun.
+        ...(arc?.running ? ['arc: next when this reply reached the arc\'s next stage, away when the story turned from it.']
+            : arc?.names?.length ? [`arc: only if the story has clearly begun one of these, its name: ${arc.names.join(', ')}.`] : []),
     ];
     if (split) lines.live = live;
     return lines;

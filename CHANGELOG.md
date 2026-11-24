@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.97.4
+- Feelings that fade to a flicker leave on their own. After each reply (and each scene read), any feeling at Faint, 10 or under, goes to 0 and off the list, for the character and for you. Then, if more than 12 feelings are on, the weakest ones under Clear (41) make room, lowest first, so a new feeling coming in pushes out the faintest. This counts feelings you added yourself too; only pinned ones always stay. Traits, intimacy, Mind, facts and turn-ons aren't touched. Deleting or swiping the reply brings them back.
+
 ## 1.97.3
 - Taken out again: the 1.97.2 ask to list the player's message in thinking, and the closing "it answers everything in the player's newest message". They risked replies that answer the message point by point. The note's first line now only says the reply picks up from the player's newest message as written and carries on from it without retelling it, and that earlier replies are settled.
 - New: Settings › What is sent › Where the notes go. After your message (as before); Before your message, writing rules after (moods, facts and the rest before it; point of view, prose rules, pattern breaker and the hidden-line reminder after it); Before your message, only the hidden-line reminder after. The note goes at depth 1 for the "before" choices and the reminder at depth 0, so the hidden line keeps coming back. The preview shows where your message falls.

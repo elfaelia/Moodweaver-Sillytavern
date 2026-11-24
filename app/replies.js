@@ -4,7 +4,7 @@ import { getCast, getKnowledge, getPair, getState, getStoryState, getUserState, 
 import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
-import { knowledgeEntry, listAuto, pruneAuto } from '../engine/state.js';
+import { knowledgeEntry, listAuto, pruneAuto, trimFeelings } from '../engine/state.js';
 import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, setMeter, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { LIGHT_DESIRE } from '../data/catalogue/music.js';
@@ -720,6 +720,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     }
     for (const id of Object.keys(rec.m)) if (st.moods[id] > 0) listAuto(st, id);
     pruneAuto(st);
+    for (const [id, [a, z]] of Object.entries(trimFeelings(st))) rec.m[id] = [rec.m[id]?.[0] ?? a, z];
     if (rec.mem) notes.push('remembered a moment');
     // Your facts: what the hidden line's "you" list names comes on (and what it put on and then leaves off comes
     // off), then they run their course on the same clock. The list keeps the ones it names going.
@@ -730,6 +731,7 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         const um = { ...(w?.you ? fromStory(me, listed, ufx, { full: true }) : {}), ...(w?.seems ? fromStory(me, seems, ufx, { kind: 'mood', full: true }) : {}) };
         const r = runFacts(me, hours, new Set([...listed, ...factsIn(board?.physical, meHot)]));
         for (const [id, [a, z]] of Object.entries(r.m)) um[id] = [um[id]?.[0] ?? a, z];
+        for (const [id, [a, z]] of Object.entries(trimFeelings(me))) um[id] = [um[id]?.[0] ?? a, z];
         Object.assign(ufx, r.fx);
         if (Object.keys(um).length) { rec.um = um; rec.ufx = ufx; me.revision = (me.revision || 0) + 1; notes.push(...Object.keys(um).filter(id => /^(the story|how the story)/.test(ufx[id] ?? '')).map(id => `${playerName()}: ${labelOf(me, id).toLowerCase()}${me.moods[id] ? '' : ' off'}`)); }
         if (rec.um || JSON.stringify(fc) !== JSON.stringify(me.factClock ?? {})) rec.uc = fc;
@@ -780,9 +782,10 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
 }
 function undoReply(meta, writer, st, rec) {
     const backM = untrack(moodTarget(st), rec.m);
+    for (const id of Object.keys(rec.m ?? {})) if (st.moods[id] > 0) listAuto(st, id);
     if (rec.q) st.moodQuiet = structuredClone(rec.q);
     if (rec.fc) st.factClock = structuredClone(rec.fc);
-    if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) untrack(moodTarget(me), rec.um); if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.fromStory = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
+    if (rec.uc || rec.usf) { const me = getUserState(); if (me) { if (rec.um) { untrack(moodTarget(me), rec.um); for (const id of Object.keys(rec.um)) if (me.moods[id] > 0) listAuto(me, id); } if (rec.uc) me.factClock = structuredClone(rec.uc); if (rec.usf) me.fromStory = structuredClone(rec.usf); me.revision = (me.revision || 0) + 1; } }
     if (rec.sf) st.fromStory = structuredClone(rec.sf);
     if (rec.cs) for (const p of getCast(target())) {
         const r = rec.cs[p.id], ps = p.state; if (!r || !ps) continue;

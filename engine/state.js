@@ -1,6 +1,6 @@
 // One person's saved moods, traits, wants and notes: a fresh state, cleaning saved values, and
 // moving values saved by older versions to where they live now.
-import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, isAuthor, sectionOf } from '../data/catalogue.js';
+import { BY_ID, MERGED_MOODS, MOODS, OPPOSITE_OF, REMOVED_MOODS, analysed, isAuthor, sectionOf } from '../data/catalogue.js';
 import { clamp, text } from './util.js';
 import { cleanEnneagram, cleanPersonality } from './personality.js';
 import { MOVED_TARGET, MOVED_TO_RELATIONSHIPS, cloneRelationships, relationshipKey } from './relationships.js';
@@ -230,6 +230,23 @@ export function pruneAuto(state) {
     const gone = new Set(state.autoList.filter(id => !((state.moods?.[id] ?? 0) > 0) && !state.pins?.[id]));
     if (!gone.size) return;
     state.loadout = (state.loadout ?? []).filter(id => !gone.has(id)); state.autoList = state.autoList.filter(id => !gone.has(id));
+}
+// Feelings that have faded to a flicker leave, and the list keeps room (1.97.4). After each reply, any feeling at
+// Faint (10 or under) goes to 0 and off the list; then, past ROOM feelings, the weakest under Clear (41) make room,
+// lowest first. Whoever set them, the story or the player; only pinned ones stay. Traits, intimacy, Mind, facts
+// and turn-ons aren't feelings and are left alone. Returns { id: [before, 0] } so the reply's undo brings them back.
+export const FEELING_FLOOR = 10, FEELING_ROOM = 12;
+export function trimFeelings(state) {
+    const out = {}, moods = state?.moods ?? {}, pinned = id => Boolean(state.pins?.[id]);
+    const on = Object.keys(moods).filter(id => moods[id] > 0 && analysed(BY_ID[id]));
+    const drop = id => { out[id] = [moods[id], 0]; moods[id] = 0; };
+    for (const id of on) if (moods[id] <= FEELING_FLOOR && !pinned(id)) drop(id);
+    const left = on.filter(id => moods[id] > 0);
+    const spare = left.filter(id => !pinned(id) && moods[id] < 41).sort((a, b) => moods[a] - moods[b]);
+    for (let extra = left.length - FEELING_ROOM; extra > 0 && spare.length; extra--) drop(spare.shift());
+    const gone = new Set(Object.keys(out));
+    if (gone.size) { state.loadout = (state.loadout ?? []).filter(id => !gone.has(id)); if (state.autoList) state.autoList = state.autoList.filter(id => !gone.has(id)); }
+    return out;
 }
 // Once per character card (1.96.4): older chats kept every feeling and fact that ever came on. Ones now at zero
 // that were set at some point (an explicit 0) and aren't pinned come off the list. Ones added from Browse all and

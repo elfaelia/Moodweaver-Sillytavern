@@ -3,7 +3,7 @@ import { castForNote, isFull } from '../engine/cast.js';
 import { meterTies } from '../engine/relationships.js';
 import { getCast, getState, getStoryState, getUserState, identity, migratePairs, pairExtras, pairId, playerName, resolveRelationName, target } from './chat.js';
 import { autoWantsNow, settleArc, boardMeta, boardSend, bondAxes, bondData, chatSigns, knowledgeNow, bondList, bondOverlaps, liveChat, liveFor, opinionsNow, pronounsFor, reactions, secretsNow, stressNow, userRelation, weaveOf, writes } from './replies.js';
-import { stressLines } from '../engine/stress.js';
+import { copeLabels, stressLines } from '../engine/stress.js';
 import { opinionLines } from '../engine/opinions.js';
 import { secretLines } from '../engine/secrets.js';
 import { settings } from './settings.js';
@@ -97,7 +97,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const arc = story?.enabled !== false ? settleArc(ch, history) : null, arcOn = arc && !arc.landed && !arc.fizzled;
         const arcAsk = arcOn ? { running: true } : settings().arcOffers !== false && !story?.arc ? { names: ARCS.filter(a => !(story.arcSkip ?? []).includes(a.id)).map(a => a.label.toLowerCase()) } : null;
         const weave = bond.on ? weavePrompt({ arc: arcAsk, notice, n, u, bond: true, extra: bond.extra, pace: bond.pace, dynamic: storyNames, moods: bm.feed, feelings: state.moodAuto !== false, moodPace: movePace(ch), moodNames: state.moodScope === 'list' ? listedFeelings(state) : null, remember: memories, wants: live.some(w => ['want', 'goal'].includes(w.kind)),
-            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split,
+            fears: live.some(w => w.kind === 'fear'), buttons: live.some(w => w.kind === 'button'), suggest: settings().wantSuggest && settings().wantsTab !== false && live.filter(w => w.kind === 'want').length < 3, you: settings().youTrack, stress: settings().stress !== false && { copes: copeLabels(state) }, secrets: secTitles, desire: bond.desire?.on === true ? cleanDesire(bond.desire).scales : false, meters: meterWeaveNames(cleanMore(bond.more).on), skills: skillPeople(ch, state, mine).some(p => skillsOf(p.st).length), settle: state.moodAuto !== false ? lingering(ch, history, state) : null, split,
             cast: settings().castAuto !== false && bm.feed ? getCast(ch).filter(p => p.inScene && p.state?.enabled !== false).map(p => shortName(p.name)).filter(Boolean) : [] }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);

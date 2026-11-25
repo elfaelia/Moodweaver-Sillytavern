@@ -28,28 +28,75 @@ export function stressRate(st) {
     return clamp(1 + 0.2 * fast - 0.25 * slow, 0.5, 1.6);
 }
 
-// How they cope while strained: the first that fits who they are, strongest trait first. [ids, how].
-const COPING = [
-    [['alcoholic', 'functional_addict', 'substance_abuser'], 'drinks or uses more than usual, and earlier in the day'],
-    [['controlling', 'perfectionist', 'disciplined', 'ocd', 'uptight', 'stiff'], 'tightens control: rules, order, routine and other people put exactly where they belong'],
-    [['devout', 'puritanical', 'fanatic', 'spiritual'], 'prays harder and judges harder, and punishes their own wanting'],
-    [['workaholic'], 'buries themself in work and stays late'],
-    [['sadistic_personality', 'psychopathic', 'sociopathic'], 'takes it out on someone who can\u2019t fight back, and feels calmer after'],
-    [['hot_headed', 'volatile', 'violent', 'explosive_rage'], 'snaps, slams doors and picks fights over nothing'],
-    [['womaniser', 'sim_flirty'], 'goes looking for sex or attention to feel in charge again'],
-    [['keeps_up_appearances', 'repressed'], 'polishes the surface: perfect manners and a pressed shirt, and nothing allowed to show'],
-    [['lone_wolf', 'withdrawn', 'introverted'], 'disappears for hours and answers in single words'],
-    [['self_destructive', 'gambling_compulsion'], 'does something reckless just to feel something else'],
-    [['soft_hearted', 'caretaker', 'people_pleaser'], 'fusses over everyone else so they don\u2019t have to look at themself'],
-    [['smoker'], 'chain-smokes and paces'],
-    [['binge_eater', 'bulimic', 'anorexic'], 'eats too much or not at all'],
-    [['insomniac'], 'stops sleeping and wanders the house at night'],
-];
+// Ways of coping (2.0.3): up to three picked per person on the Stress card, or the one their traits suggest.
+// When a reply shows them coping their own way, stress comes down (less each time in a row), and that act is
+// never counted as strain. [id, label, how it shows, traits that suggest it].
+export const COPES = [
+    // Healthier: ease it a little each time, and keep working.
+    ['exercise', 'Exercise', 'h', 'runs, lifts or trains until the body is too tired to think', ['disciplined']],
+    ['art', 'Music or art', 'h', 'loses themself in music, drawing or writing', ['creative', 'artistic']],
+    ['talk', 'Talking it out', 'h', 'talks to someone they trust until it eases', ['open', 'extroverted']],
+    ['crying', 'Crying it out', 'h', 'lets it out in tears somewhere private, then breathes again', ['sensitive']],
+    ['sleep', 'Sleep', 'h', 'sleeps it off', []],
+    ['outdoors', 'Walks and fresh air', 'h', 'walks for miles or sits outside until it settles', []],
+    ['faith', 'Faith', 'h', 'prays or sits somewhere quiet and holy until it settles', ['spiritual']],
+    ['routine', 'Routine', 'h', 'leans on routine: the same small tasks, done properly, one after another', []],
+    ['hands', 'Working with their hands', 'h', 'fixes, cleans, cooks or builds something until their hands are steady', []],
+    ['humour', 'Humour', 'h', 'finds the joke in it and shares it', ['funny', 'witty']],
+    // Mixed: work well enough, but lean on them too hard and they cost something.
+    ['sex', 'Sex', 'm', 'goes looking for sex or someone\u2019s attention to feel in charge again', ['womaniser', 'sim_flirty']],
+    ['work', 'Work', 'm', 'buries themself in work and stays late', ['workaholic']],
+    ['distraction', 'Distraction', 'm', 'keeps busy with anything but the problem: TV, games, errands, noise', []],
+    ['alone', 'Withdrawing', 'm', 'disappears for hours and comes back quieter', ['lone_wolf', 'withdrawn', 'introverted']],
+    ['control', 'Control', 'm', 'tightens control: rules, order, routine and people put where they belong', ['controlling', 'perfectionist', 'ocd', 'uptight', 'stiff']],
+    ['caring', 'Looking after others', 'm', 'fusses over everyone else so they don\u2019t have to look at themself', ['soft_hearted', 'caretaker', 'people_pleaser']],
+    ['deflecting', 'Joking it away', 'm', 'jokes it away, louder the worse it gets', []],
+    ['appearances', 'Keeping up appearances', 'm', 'polishes the surface until nothing is allowed to show', ['keeps_up_appearances', 'repressed']],
+    ['comfort_food', 'Comfort eating', 'm', 'eats something rich and sweet, more than they meant to', []],
+    ['driving', 'Driving', 'm', 'drives fast with nowhere to go', []],
+    ['penance', 'Penance', 'm', 'prays harder, judges harder, and punishes their own wanting', ['devout', 'puritanical', 'fanatic']],
+    // Unhealthy: ease it fast, then cost them: it comes back worse once it wears off.
+    ['drink', 'Drinking', 'u', 'drinks more than usual, and earlier in the day', ['alcoholic']],
+    ['drugs', 'Substance abuse', 'u', 'uses to take the edge off', ['functional_addict', 'substance_abuser']],
+    ['smoke', 'Smoking', 'u', 'chain-smokes and paces', ['smoker']],
+    ['avoidance', 'Avoidance', 'u', 'won\u2019t think about it, talk about it or go near anything that touches it', ['avoidant_attachment', 'in_denial']],
+    ['numbing', 'Shutting down', 'u', 'goes numb and far away, and lets things happen around them', ['dissociative']],
+    ['fight', 'Fighting', 'u', 'picks a fight or hits something until it\u2019s out of them', ['hot_headed', 'volatile', 'violent', 'explosive_rage']],
+    ['lashing', 'Lashing out', 'u', 'snaps at whoever is closest and says the cruel thing first', ['bitter', 'spiteful']],
+    ['cruelty', 'Cruelty', 'u', 'takes it out on someone who can\u2019t fight back, and feels calmer after', ['sadistic_personality', 'psychopathic', 'sociopathic']],
+    ['reckless', 'Reckless thrills', 'u', 'does something reckless just to feel something else', ['self_destructive']],
+    ['gambling', 'Gambling', 'u', 'bets money they can\u2019t lose, chasing the rush', ['gambling_compulsion']],
+    ['spending', 'Spending', 'u', 'spends money they shouldn\u2019t on things they don\u2019t need', ['materialistic']],
+    ['bingeing', 'Bingeing or starving', 'u', 'eats until they feel sick, or nothing at all', ['binge_eater', 'bulimic', 'anorexic']],
+    ['self_harm', 'Hurting themself', 'u', 'hurts themself where nobody will see, to feel something they can control', []],
+].map(([id, label, kind, how, traits]) => ({ id, label, kind, how, traits }));
+const COPE_BY = Object.fromEntries(COPES.map(c => [c.id, c]));
 const COPE_DEFAULT = 'is short with everyone, sleeps badly and loses the thread of things';
-export function copingOf(st) {
+// The ways that count for this person: their picks, else the one their strongest matching trait suggests.
+export function copesOf(st) {
+    const picked = (Array.isArray(st?.copes) ? st.copes : []).filter(id => COPE_BY[id]).slice(0, 3);
+    if (picked.length) return { ids: picked, auto: false };
     let best = null, bestV = 0;
-    for (const [ids, how] of COPING) for (const id of ids) { const v = st?.moods?.[id] ?? 0; if (v > bestV) { best = how; bestV = v; } }
-    return best ?? COPE_DEFAULT;
+    for (const c of COPES) for (const id of c.traits) { const v = st?.moods?.[id] ?? 0; if (v > bestV) { best = c.id; bestV = v; } }
+    return { ids: best ? [best] : [], auto: true };
+}
+export function copingOf(st) {
+    const { ids } = copesOf(st);
+    return ids.length ? ids.map(id => COPE_BY[id].how).join('; or ') : COPE_DEFAULT;
+}
+export const copeLabels = st => copesOf(st).ids.map(id => COPE_BY[id].label.toLowerCase());
+// How much coping eases, by kind and how many replies in a row it's the same thing again (2.0.4):
+//  - healthier ways ease steadily;
+//  - mixed ways ease well when fresh and fade to half if it's the same again, never to nothing. Switching it up
+//    makes it fresh: another way, or the same way with something new in it (sex that lights a turn-on or kink
+//    not lit in this run counts as fresh, and a little stronger);
+//  - unhealthy ways ease a lot every time, with no fading or rebound: being drunk or high is its own cost, on the page.
+const COPE_EASE = { h: [6, 6, 5, 5], m: [8, 6, 5, 4], u: [12, 12, 12, 12] }, SPARK_BONUS = 2;
+// The way named after "coped" on the hidden line, else their first.
+export function copeUsed(st, said) {
+    const t = String(said ?? '').toLowerCase(), { ids } = copesOf(st);
+    const hit = COPES.find(c => t.includes(c.label.toLowerCase()) || t.includes(c.id.replace('_', ' ')));
+    return hit ?? COPE_BY[ids[0]] ?? null;
 }
 
 // What a break looks like: the first that fits, strongest first, else by what's been building (rage, grief, fear).
@@ -83,7 +130,7 @@ function breakOf(st, families) {
 // ("Let it go" on the panel). Returns where stress stands now and whether a break is happening.
 export function computeStress(entries = [], st = {}, from = -1) {
     const rate = stressRate(st), families = {};
-    let v = 0, lastBreak = null, cooldown = 0;
+    let v = 0, lastBreak = null, cooldown = 0, streak = 0, lastWay = null, seen = new Set();
     const trail = [];
     for (const e of entries) {
         if (e.pos <= from) continue;
@@ -98,7 +145,15 @@ export function computeStress(entries = [], st = {}, from = -1) {
         const crit = Object.entries(e.needs ?? {}).filter(([k, x]) => ['hunger', 'energy', 'health', 'comfort', 'hygiene'].includes(k) && x <= 10).length;
         const low = Object.entries(e.needs ?? {}).filter(([k, x]) => ['hunger', 'energy', 'health', 'comfort'].includes(k) && x > 10 && x <= 30).length;
         const line = clamp(Number(e.stress) || 0, -20, 20);
-        const up = Math.min(6, feel) + 2 * crit + low + Math.max(0, line), down = Math.min(4, ease) + Math.max(0, -line) + (e.release ? 8 : 0) + 1;
+        // Coping their own way is never strain, and eases it; restraint they chose for a reason they believe in
+        // still costs them, but half as much as strain they can't make sense of (2.0.3).
+        const used = e.coped ? copeUsed(st, e.coped) : null, kind = used?.kind ?? 'm', sparks = e.coped ? (e.sparks ?? []) : [];
+        const newSpark = sparks.some(k => !seen.has(k)), fresh = e.coped && (used?.id !== lastWay || newSpark);
+        if (!e.coped) { streak = 0; lastWay = null; seen = new Set(); }
+        else { streak = fresh ? 1 : streak + 1; if (fresh && !newSpark) seen = new Set(); sparks.forEach(k => seen.add(k)); lastWay = used?.id ?? null; }
+        const pushed = e.coped ? 0 : Math.max(0, line);
+        const cope = e.coped ? COPE_EASE[kind][Math.min(streak, 4) - 1] + (newSpark && streak === 1 ? SPARK_BONUS : 0) : 0;
+        const up = (Math.min(6, feel) + 2 * crit + low + pushed) * (e.chose ? 0.5 : 1), down = Math.min(4, ease) + Math.max(0, -line) + (e.release ? 8 : 0) + cope + 1;
         v = clamp(v + up * rate - down, 0, 100);
         cooldown = Math.max(0, cooldown - 1);
         const edge = crit >= 2 ? 75 : 90;
@@ -106,7 +161,7 @@ export function computeStress(entries = [], st = {}, from = -1) {
         trail.push(Math.round(v));
     }
     const since = lastBreak ? trail.length - 1 - lastBreak.at : null;
-    return { value: Math.round(v), level: stressLevel(v)[1], word: stressLevel(v)[2], rate, coping: copingOf(st), trail: trail.slice(-12),
+    return { value: Math.round(v), level: stressLevel(v)[1], word: stressLevel(v)[2], rate, coping: copingOf(st), copes: copesOf(st), trail: trail.slice(-12),
         breaking: since === 0 ? lastBreak.how : '', after: since === 1 ? lastBreak.how : '' };
 }
 

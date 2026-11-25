@@ -5,7 +5,7 @@ import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry, listAuto, pruneAuto, trimFeelings } from '../engine/state.js';
-import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours } from '../engine/board.js';
+import { NO_BOARD, hornyFromBoard, boardKeyOf, cleanBoardMeta, factId, factsIn, feedValues, placesIn, feelingId, feelingsFromBoard, fixActive, hasBoard, isNone, latestBoard, liveBoard, namedIn, needBias, needWord, parseBoard, relationId, relationsFromBoard, replyHours, needsInText, skipIn } from '../engine/board.js';
 import { METERS, cleanBond, computeBond, computeDesire, dynamicLean, paceOf, setMeter, sliderAxes, sparkTarget, storedSteps } from '../engine/bond.js';
 import { LIGHT_DESIRE } from '../data/catalogue/music.js';
 import { sexHappened } from '../engine/scene-words.js';
@@ -67,14 +67,19 @@ function needTimeline(ch, chat = liveChat()) {
     if (!ch) return [];
     const mine = writes(ch), feed = cleanBoardMeta(boardMeta()).feed && bondData(ch).on, out = [];
     (chat ?? []).forEach((m, i) => {
-        if (!mine(m) || m.is_system) return;
-        const board = hasBoard(m.mes) ? parseBoard(m.mes) : null, w = feed ? weaveOf(m) : null;
+        if (m?.is_system) return;
+        // Your message can skip time too ("a day and a half later"): the reply that follows already starts after it,
+        // with only the needs your words say went unmet still low.
+        if (m?.is_user) { const skip = skipIn(m.mes); if (skip) out.push({ index: i, board: null, needs: needsInText(m.mes), deltas: {}, skip }); return; }
+        if (!mine(m)) return;
+        const board = hasBoard(m.mes) ? parseBoard(m.mes) : null, w = feed ? weaveOf(m) : null, skip = skipIn(m.mes);
         // Enjoying themselves fills Fun even when the line didn't score it: a reply that raised a happy or desire
         // feeling (playful, amused, heated, horny\u2026) tops it up a little, so foreplay or a good time isn't "bored" (1.78).
         const deltas = { ...(w?.needDeltas ?? {}) };
         if (w && w.needs?.fun === undefined && deltas.fun === undefined) { const cats = w.moods.filter(x => x.delta > 0).map(x => BY_ID[feelingId(x.name)]?.category);
             if (cats.includes('desire')) deltas.fun = 8; else if (cats.includes('happy')) deltas.fun = 5; }
-        if (board || (w && (Object.keys(w.needs ?? {}).length || Object.keys(deltas).length))) out.push({ index: i, board, needs: w?.needs ?? {}, deltas });
+        // Every reply counts as a step, so a need the story stops mentioning can be seen to off-screen.
+        if (board || w || skip) out.push({ index: i, board, needs: w?.needs ?? {}, deltas, skip });
     });
     return out.slice(-40);
 }
@@ -82,9 +87,9 @@ function needTimeline(ch, chat = liveChat()) {
 // share with it. Stress counts feelings about anyone but someone named ("at his wife"); those build opinions.
 export function stressNow(ch, chat = liveChat()) {
     const st = getState(ch); if (!st?.enabled || !ch || !bondData(ch).on || settings().stress === false) return null;
-    const mine = writes(ch), entries = [], secret = secretSteps(ch, chat);
+    const mine = writes(ch), entries = [], secret = secretSteps(ch, chat), bed = bedroomTraits(st);
     (chat ?? []).forEach((m, i) => { if (!mine(m) || m.is_system) return; const w = weaveOf(m); if (!w) return;
-        entries.push({ pos: i, stress: (w.stress ?? 0) + (w.stress > 0 ? 0 : secretStrain(secret.filter(x => x.pos === i))), rose: w.moods.map(aimed).filter(x => x.delta > 0 && !x.about).map(x => [feelingId(x.name), x.delta]).filter(([id]) => id),
+        entries.push({ pos: i, coped: w.coped || '', chose: Boolean(w.chose), sparks: w.coped ? (w.sparked ?? []).map(sp => { const t = sparkTarget(sp.text, st.prefs ?? {}, bed); return t.id ?? t.trait ?? String(sp.text).toLowerCase(); }) : [], stress: (w.stress ?? 0) + (w.stress > 0 ? 0 : secretStrain(secret.filter(x => x.pos === i))), rose: w.moods.map(aimed).filter(x => x.delta > 0 && !x.about).map(x => [feelingId(x.name), x.delta]).filter(([id]) => id),
             needs: w.needs ?? {}, release: Boolean(w.desire?.release) }); });
     return computeStress(entries, st, Number.isFinite(st.stressFrom) ? st.stressFrom : -1);
 }
@@ -110,7 +115,7 @@ export function opinionsNow(ch, chat = liveChat()) {
         entries.push(w.moods.map(aimed).filter(x => x.about && x.delta > 0).map(x => ({ about: x.about, id: feelingId(x.name), delta: x.delta })).filter(x => x.id)); });
     return computeOpinions(entries, st);
 }
-export const needOpts = ch => ({ bias: ch ? needBias(getState(ch)?.moods) : {}, drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
+export const needOpts = ch => ({ bias: ch ? needBias(getState(ch)?.moods) : {}, self: settings().needsSelf, drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
 // Intimacy entries that are on can light up like turn-ons.
 const bedroomTraits = st => MOODS.filter(m => INTIMACY_CATEGORIES.has(m.category) && (st?.moods?.[m.id] ?? 0) > 0).map(m => ({ id: m.id, label: m.label }));
 const WANT_STOP = new Set(['the', 'and', 'her', 'his', 'them', 'their', 'she', 'him', 'get', 'make', 'for', 'with', 'from', 'being']);

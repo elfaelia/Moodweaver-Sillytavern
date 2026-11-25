@@ -865,10 +865,11 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-find-hit span{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:2px;color:var(--mw-muted);font-size:12px;line-height:1.35}
 
 /* 1.73 Bonds meters as a constellation: stars instead of moons, the lit ones joined by a line */
-.mw-moons.mw-stars{position:relative;gap:0;margin:6px 0 4px}
+.mw-moons.mw-stars{position:relative;gap:0;margin:6px 0 4px;grid-template-columns:repeat(var(--mw-n,9),minmax(0,1fr))}
+.mw-stars .mw-star-lines polyline.mw-star-track{stroke:#ffffff26;stroke-width:1.2;opacity:1;filter:none}
 .mw-stars .mw-star-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .mw-stars .mw-star-lines polyline{fill:none;stroke:var(--mw-moon);stroke-width:1.6;opacity:.85;filter:drop-shadow(0 0 3px #efd59c88)}
-.mw-stars .mw-star-lines.is-cool polyline{stroke:#9fc4ff;filter:drop-shadow(0 0 3px #9fc4ff88)}
+.mw-stars .mw-star-lines.is-cool polyline:not(.mw-star-track){stroke:#9fc4ff;filter:drop-shadow(0 0 3px #9fc4ff88)}
 .mw-panel .mw-stars .mw-moon,.mw-panel .mw-stars .mw-moon.is-lit{position:relative;z-index:1;background:none !important;border-radius:12px;min-height:30px}
 .mw-panel .mw-stars-arc .mw-moon{min-height:44px}
 .mw-stars .mw-moon>span{width:6px;height:6px;background:#ffffff59 !important;transform:translateY(var(--mw-rise,0px));box-shadow:none !important}
@@ -1394,3 +1395,5 @@ span.mw-music-ball{background:radial-gradient(circle at 32% 26%,#fff8 0 4%,color
 .mw-panel .mw-dial-row>button.is-on{background:linear-gradient(180deg,#e0d4ff,#a993e6);color:#1a1238;font-weight:600;box-shadow:0 0 14px #c9b8f077}
 .mw-panel .mw-dial-row>button:active{transform:scale(.94)}
 @media (prefers-reduced-motion:reduce){.mw-panel .mw-dial-row>button{transition:none}}
+.mw-copes{margin:10px 0 6px}.mw-copes>summary{cursor:pointer;display:grid;gap:2px;padding:8px 0;font-size:13.5px}.mw-copes>summary small{color:var(--mw-muted,#a59cc6);font-size:11.5px}.mw-copes .mw-card-chips{margin:4px 0 8px}
+.mw-panel .mw-copes .mw-card-chip:not(.is-on){text-decoration:none;border-style:solid;border-color:#ffffff1f}

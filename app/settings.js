@@ -57,7 +57,7 @@ export function settings() {
         boardMemories: saved.boardMemories === true, boardPins: saved.boardPins === true, boardWithWeave: saved.boardWithWeave !== false,
         // Needs over in-world time, your character's condition, and wants the story suggests.
         needsDrift: saved.needsDrift !== false, needsSpeed: ['gentle', 'normal', 'harsh'].includes(saved.needsSpeed) ? saved.needsSpeed : 'normal',
-        needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
+        needsSelf: saved.needsSelf !== false, needsSkips: saved.needsSkips !== false, needsFloor: saved.needsFloor !== false, youTrack: saved.youTrack !== false, wantSuggest: saved.wantSuggest !== false,
         showsMode: ['all', 'mine', 'off'].includes(saved.showsMode) ? saved.showsMode : 'all',
         moodClash: CLASH_CHOICES.includes(saved.moodClash) ? saved.moodClash : 'sometimes',
         // Who-they-are facts (looks, style, voice, job, past) only when the scene touches them, so the card isn't repeated.

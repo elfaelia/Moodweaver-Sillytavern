@@ -261,10 +261,13 @@ const STAR_RISE = [0, 5, 10, 13, 14, 13, 10, 5, 0];
 function starLines(box) {
     const stars = [...box.querySelectorAll('.mw-moon')], now = stars.findIndex(b => b.classList.contains('is-now'));
     const start = box.classList.contains('mw-poles') ? 4 : 0, arc = box.classList.contains('mw-stars-arc');
-    if (now < 0 || now === start) return '<svg class="mw-star-lines" aria-hidden="true"></svg>';
-    const [a, b] = now > start ? [start, now] : [now, start], pt = i => `${(i + 0.5) * 100},${arc ? 32 - STAR_RISE[i] : 15}`;
-    const pts = Array.from({ length: b - a + 1 }, (_, k) => pt(a + k)).join(' ');
-    return `<svg class="mw-star-lines${now < start ? ' is-cool' : ''}" viewBox="0 0 ${stars.length * 100} ${arc ? 44 : 30}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" vector-effect="non-scaling-stroke"/></svg>`;
+    // One even column per star across the whole row, so the lines below land exactly on the stars (2.0.3).
+    box.style.setProperty('--mw-n', stars.length);
+    const pt = i => `${(i + 0.5) * 100},${arc ? 32 - STAR_RISE[i] : 15}`, run = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => pt(a + k)).join(' ');
+    // A faint track joins every star, so the unlit ones read as the rest of the same path, not loose dots.
+    const track = `<polyline class="mw-star-track" points="${run(0, stars.length - 1)}" vector-effect="non-scaling-stroke"/>`;
+    const lit = now < 0 || now === start ? '' : `<polyline points="${now > start ? run(start, now) : run(now, start)}" vector-effect="non-scaling-stroke"/>`;
+    return `<svg class="mw-star-lines${now >= 0 && now < start ? ' is-cool' : ''}" viewBox="0 0 ${stars.length * 100} ${arc ? 44 : 30}" preserveAspectRatio="none" aria-hidden="true">${track}${lit}</svg>`;
 }
 // A tap on one of those moons: set the slider, fire its events, redraw the moons (a re-render may replace them anyway).
 export function tapRangeMoon(button) {

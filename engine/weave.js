@@ -112,6 +112,8 @@ function readLine(body) {
         seems: 'seems' in f ? (NONE.test(String(f.seems).trim()) ? [] : list(f.seems, 3, 30)) : null,
         // 1.79: stress this reply, "+10" or "-5" (engine/stress.js).
         stress: (() => { const m = String(f.stress ?? '').replace(/[\u2212\u2013]/g, '-').match(/([+-]?)\s*(\d{1,2})/); return m ? Math.max(-20, Math.min(20, Number((m[1] || '+') + m[2]))) : 0; })(),
+        // 2.0.3: "coped" (they used their own way of coping) and "chose" (restraint they chose for a reason).
+        coped: String(f.stress ?? '').match(/\bcoped\b\s*([a-z ]{0,30})/i)?.[0] ?? '', chose: /\bchose\b/i.test(String(f.stress ?? '')),
         // 1.79: secrets that moved this reply ("affair suspected, debts known"), engine/secrets.js.
         secrets: list(f.secrets, 4, 80).map(secretStep).filter(Boolean),
         // 1.78: facts about the character the story made or ended this reply ("fired, in uniform, engaged off").
@@ -147,7 +149,7 @@ export function parseWeave(mes) {
         if (x.desire) out.desire = out.desire ? { ...Object.fromEntries(['a', 's', 'b', 't', 'x', 'h'].map(k => [k, (out.desire[k] ?? 0) + (x.desire[k] ?? 0)])), release: out.desire.release || x.desire.release } : x.desire;
         out.facts = [...(out.facts ?? []), ...(x.facts ?? [])].slice(0, 8);
         out.secrets = [...(out.secrets ?? []), ...(x.secrets ?? [])].slice(0, 6);
-        out.stress = Math.max(-20, Math.min(20, (out.stress ?? 0) + (x.stress ?? 0)));
+        out.stress = Math.max(-20, Math.min(20, (out.stress ?? 0) + (x.stress ?? 0))); out.coped = out.coped || x.coped || ''; out.chose = Boolean(out.chose || x.chose);
         out.cast = [...(out.cast ?? []), ...(x.cast ?? [])].slice(0, 8);
         if (x.you) out.you = x.you;
         if (x.seems) out.seems = x.seems;
@@ -205,10 +207,10 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         `End every reply with a hidden line for Moodweaver, holding only what changed for ${n} this reply, or <!-- weave: none -->:`,
         `<!-- weave: ${example.join(' | ')} -->`,
         ...(moods ? [...(feelings ? [`moods: up to twelve of ${n}'s feelings that rose, fell or ended, of any kind, named the way ${n} would feel them, ${split ? 'at the step sizes given before the reply' : steps}, off when gone, with "at [name]" after the step when one isn't about ${u}.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settled}`] : []),
-            `needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change.`,
+            `needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change, only when this reply shows it unmet or met, and each reply it stays unmet.`,
             `facts: what started or stopped being lastingly true of ${n}, with off when it ends.`,
             ...(secrets ? [`secrets: one that moved, as suspected, known, out or used. ${secrets}`] : []),
-            ...(stress ? [`stress: +5 to +20 for strain or acting against their own nature, a minus for release or comfort.`] : []),
+            ...(stress ? [`stress: +5 to +20 for strain, or for acting against what ${n} believes, wants or feels about someone, the dynamic included; a minus for release or comfort. Add chose when it's restraint ${n} chose for a reason ${n} believes in; add coped and how when ${n} coped ${n}'s own way${stress.copes?.length ? ` (${stress.copes.join(', ')})` : ''}.`] : []),
             bond ? `toward: a lasting stance of ${n}'s toward ${u} that moved, -30 to +30; liking, love and trust have their own fields.`
                 : `toward: how ${n}'s stance toward ${u} moved, -30 to +30.`] : []),
         ...(bond ? [`friendship, romance${extra ? ', trust' : ''}: -${size.range} to +${size.range}, ${size.ordinary} usually, ${size.turn} for turning points, scored on this reply alone.`,

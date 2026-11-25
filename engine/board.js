@@ -169,6 +169,12 @@ function needsFromBoard(board) {
     }
     return out;
 }
+// Needs a stretch of story says are going unmet ("he hasn't eaten", "starving"): the low readings only.
+export function needsInText(text) {
+    const t = String(text ?? '').replace(/"[^"\n]*"|\u201c[^\u201d\n]*\u201d/g, ' ').toLowerCase().replace(/[\u2019\u2018]/g, "'"), out = {};
+    for (const [id, value, , re] of RULES) { if (value > 35) continue; const m = re.exec(t); if (m && !negated(t, m.index) && !(out[id] <= value)) out[id] = value; }
+    return out;
+}
 export function hornyFromBoard(board) {
     const text = String(board?.horny ?? '').toLowerCase().replace(/[\u2019\u2018]/g, "'");
     if (!text) return null;
@@ -196,13 +202,16 @@ function boardClock(board) {
     else if (/midnight/.test(t)) minutes = 0; else if (/noon|midday/.test(t)) minutes = 720;
     const raw = String(board.date ?? '').split('|')[0].replace(/^\s*[a-z]+day,?\s*/i, '').replace(/(\d)(st|nd|rd|th)\b/gi, '$1').trim();
     const ms = raw && /\d{3,4}/.test(raw) ? Date.parse(raw) : NaN;
-    return { minutes, day: Number.isFinite(ms) ? Math.round(ms / 86400000) : null };
+    // No year to date it by: the weekday still tells a new day from the same one ("Tuesday" to "Thursday").
+    const wd = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf((String(board.date ?? '').toLowerCase().match(/\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*day\b/)?.[1]) ?? '');
+    return { minutes, day: Number.isFinite(ms) ? Math.round(ms / 86400000) : null, wd: wd < 0 ? null : wd };
 }
 // Hours from one board to the next; null when it can't be told or time went backwards.
 function hoursBetween(a, b) {
     if (a?.minutes == null || b?.minutes == null) return null;
     if (a.day != null && b.day != null) { const h = ((b.day - a.day) * 1440 + b.minutes - a.minutes) / 60; return h < 0 ? null : h; }
     const diff = b.minutes - a.minutes;
+    if (a.wd != null && b.wd != null && a.wd !== b.wd) return (((b.wd - a.wd + 7) % 7) * 1440 + diff) / 60;
     return (diff >= 0 ? diff : diff + 1440) / 60;
 }
 // Per in-world hour on screen. Comfort and health only change when the story changes them.
@@ -224,16 +233,37 @@ export function needBias(moods = {}) {
     for (const [id, by] of Object.entries(NEED_BIAS)) if ((moods?.[id] ?? 0) >= 41) for (const [need, f] of Object.entries(by)) out[need] = (out[need] ?? 1) * f;
     return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, Math.max(0.3, Math.min(2, v))]));
 }
-const cleanNeedOpts = o => ({ bias: o?.bias && typeof o.bias === 'object' ? o.bias : {}, drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
+const cleanNeedOpts = o => ({ bias: o?.bias && typeof o.bias === 'object' ? o.bias : {}, drift: o?.drift !== false, speed: NEED_SPEEDS[o?.speed] ? o.speed : 'normal', skips: o?.skips !== false, floor: o?.floor !== false, self: o?.self !== false, skipHours: Math.max(1, Math.min(12, Number(o?.skipHours) || 4)) });
+// Time skips said in words ("a day and a half later", "the next morning", "time skip"), in narration only:
+// quoted speech is dropped first, so "see you two days later" in dialogue doesn't count. Hours, or 0.
+const NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, few: 3, several: 4, couple: 2, some: 3, many: 5 };
+const UNIT = { hour: 1, day: 24, week: 168, month: 720, year: 8760 };
+export function skipIn(text) {
+    const t = String(text ?? '').replace(/<!--[\s\S]*?-->/g, ' ').replace(/<[^>]+>/g, ' ').replace(/"[^"\n]*"|\u201c[^\u201d\n]*\u201d/g, ' ').toLowerCase().replace(/[\u2019\u2018]/g, "'");
+    let best = 0;
+    if (/\btime[- ]?skip|\bskip ahead\b|\bfast[- ]forward/.test(t)) best = 12;
+    if (/\b(the )?(next|following) (morning|day|afternoon|evening|night)\b|\bovernight\b|\bby morning\b|\bwakes? (up )?(the next|in the morning)/.test(t)) best = Math.max(best, 10);
+    const re = /\b(?:(a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|few|several|couple|some|many|\d{1,3})\s+(?:of\s+)?)?(hour|day|week|month|year)s?(\s+and\s+a\s+half)?\s+(?:later|pass(?:ed|es)?|go(?:es)? by|went by|drag(?:s|ged)? by|crawl(?:s|ed)? by)\b/g;
+    for (const m of t.matchAll(re)) {
+        const n = m[1] ? (NUM[m[1]] ?? Number(m[1])) : 3;
+        best = Math.max(best, (n + (m[3] ? 0.5 : 0)) * UNIT[m[2]]);
+    }
+    return Math.min(best, 24 * 400);
+}
+// Needs the people in a story see to off-screen: nobody has to eat, sleep or use the bathroom on the page.
+const ROUTINE = ['hunger', 'energy', 'bladder', 'hygiene', 'social', 'fun'];
 const hrs = h => h < 1 ? `${Math.max(1, Math.round(h * 60))} min` : `${Math.round(h * 10) / 10} h`;
 // timeline: the character's replies oldest first, [{ index, board, needs: { id: level }, deltas: { id: \u00b1n } }].
 function simulateNeeds(timeline = [], options = {}) {
     const o = cleanNeedOpts(options), speed = NEED_SPEEDS[o.speed];
-    const values = Object.fromEntries(NEEDS.map(n => [n.id, NEED_DEFAULT])), source = {}, known = {};
+    const values = Object.fromEntries(NEEDS.map(n => [n.id, NEED_DEFAULT])), source = {}, known = {}, unsaid = {};
     let prev = null;
     for (const step of timeline ?? []) {
         const clock = boardClock(step.board);
-        const h = o.drift && prev && clock ? hoursBetween(prev, clock) : null;
+        // A skip said in words counts even without a clock, and after one the old clock no longer measures anything.
+        const said = Number(step.skip) || 0, ticked = o.drift && prev && clock ? hoursBetween(prev, clock) : null;
+        const h = Math.max(said, ticked ?? 0) || null;
+        if (said) prev = null;
         if (h && h > 0) {
             if (h > o.skipHours && o.skips) {
                 for (const id of ['hunger', 'energy', 'bladder', 'hygiene', 'social', 'fun']) if (values[id] < 75) { values[id] = 75; source[id] = `${hrs(h)} later: life went on off-screen`; }
@@ -243,13 +273,22 @@ function simulateNeeds(timeline = [], options = {}) {
                 const span = Math.min(h, o.skipHours);
                 for (const [id, rate] of Object.entries(NEED_DRAIN)) {
                     if (!rate) continue;
-                    const next = Math.round(Math.max(Math.min(values[id], o.floor ? 30 : 0), values[id] - rate * (o.bias[id] ?? 1) * span * speed));
+                    // Looked after off-screen: time alone only takes the edge off an everyday need, never makes it pressing.
+                    const floor = o.self && ROUTINE.includes(id) ? 66 : o.floor ? 30 : 0;
+                    const next = Math.round(Math.max(Math.min(values[id], floor), values[id] - rate * (o.bias[id] ?? 1) * span * speed));
                     if (next < values[id]) { values[id] = next; source[id] = `${hrs(span)} passed`; if (next < 66) known[id] = true; }
                 }
             }
         }
         if (clock?.minutes != null) prev = clock;
         const read = step.board ? needsFromBoard(step.board) : {};
+        // An everyday need the story set low stays low only while the story keeps saying so. Two replies (or two
+        // in-world hours) without a word about it, and it was seen to off-screen: it comes back up a step each reply.
+        if (o.self) for (const id of ROUTINE) {
+            const told = id in read || id in (step.needs ?? {}) || id in (step.deltas ?? {});
+            unsaid[id] = told ? 0 : (unsaid[id] ?? 0) + 1;
+            if (!told && values[id] < 75 && (unsaid[id] >= 2 || (ticked ?? 0) >= 2)) { values[id] = Math.min(75, values[id] + 25); source[id] = 'seen to off-screen'; }
+        }
         for (const [id, r] of Object.entries(read)) { values[id] = r.value; source[id] = r.source; known[id] = true; }
         for (const [id, v] of Object.entries(step.needs ?? {})) if (id in values) { values[id] = v; source[id] = 'the story'; known[id] = true; }
         for (const [id, d] of Object.entries(step.deltas ?? {})) if (id in values) { values[id] = Math.max(0, Math.min(100, values[id] + d)); source[id] = `the story (${d > 0 ? '+' : ''}${d})`; known[id] = true; }

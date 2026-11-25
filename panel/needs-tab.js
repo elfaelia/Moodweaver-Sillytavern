@@ -4,6 +4,7 @@ import { escapeHtml as esc } from '../engine/util.js';
 import { level } from '../engine/strength.js';
 import { CATEGORIES } from '../data/catalogue.js';
 import { matchMood, needWord } from '../engine/board.js';
+import { COPES } from '../engine/stress.js';
 
 const CATEGORY_LOOK = Object.fromEntries(CATEGORIES.map(([id, , icon, color]) => [id, [icon, color]]));
 const P = {
@@ -108,12 +109,13 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <div class="mw-needs">${live.needs.map(nd => needCell(nd, pinsOn)).join('')}</div>
             <p class="mw-fine">Read from the board\u2019s words${weaveOn ? ' and the hidden line' : ''}${needOpts?.drift ? ', and the board\u2019s clock: needs drain a little as in-world time passes and come back up after a time jump. Who they are changes the speed: an insomniac tires sooner, a clingy heart gets lonely faster' : ''}. Faded bars haven\u2019t come up yet. Low and critical needs${pinsOn ? ', and any you set,' : ''} go to the bot as things that change what ${esc(charName)} does; nothing extra is printed on your board.</p>
             ${needOpts ? `<details class="mw-need-settings"><summary>Needs over time <small>all chats</small></summary>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSelf" ${needOpts.self !== false ? 'checked' : ''}> Everyday needs are seen to off-screen: only the story saying so keeps one low, and it comes back up once the story stops mentioning it</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsDrift" ${needOpts.drift ? 'checked' : ''}> Needs drain as in-world time passes</label>
                 <label class="mw-field">How fast<select data-setting-choice="needsSpeed" aria-label="How fast needs drain">${[['gentle', 'Gentle'], ['normal', 'Normal'], ['harsh', 'Harsh']].map(([v, l]) => `<option value="${v}" ${needOpts.speed === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSkips" ${needOpts.skips ? 'checked' : ''}> Time jumps of more than 4 hours top needs back up (they ate, slept and washed off-screen)</label>
+                <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsSkips" ${needOpts.skips ? 'checked' : ''}> Time jumps of more than 4 hours top needs back up, from the board\u2019s clock or words like \u201ca day later\u201d (they ate, slept and washed off-screen)</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsFloor" ${needOpts.floor ? 'checked' : ''}> Time alone never makes a need critical; only the story can</label>
                 <label class="mw-toggle"><input type="checkbox" data-setting-bool="needsMood" ${settings().needsMood !== false ? 'checked' : ''}> Hungry, tired or uncomfortable makes feelings quicker to flare</label>
-                <p class="mw-fine">Needs drain as story time passes and refill after a time skip.</p></details>` : ''}</div>
+                <p class="mw-fine">Needs drain a little as story time passes and refill after a time skip.</p></details>` : ''}</div>
         ${live.meta.includeHorny ? `<div class="mw-board-block mw-desire"><h4>${icon('horny')} Horny ${live.hornyPinned ? `<button type="button" class="mw-need-pin" data-need-unpin="horny" aria-label="Unpin horny">\u25c6</button>` : ''}<small data-need-word="horny">${hornyV == null ? '\u2014' : level(hornyV)}</small></h4>
             <input type="range" min="0" max="100" step="5" value="${hornyV ?? 0}" data-need="horny" class="mw-horny-bar" style="--mw-fill:${hornyV ?? 0}%" aria-label="Horny"${pinsOn ? '' : ' disabled'}>
             ${live.horny ? `<p class="mw-quote">${esc(live.horny)}${pinMark(pins, 'horny')}</p>` : ''}</div>` : ''}
@@ -148,6 +150,10 @@ export function stressCard(s, name) {
     return `<section class="mw-board"><div class="mw-board-block mw-stress" data-anchor="stress"><h4>Stress <small>${esc(name)} \u00b7 ${esc(word)}</small></h4>
         <div class="mw-stress-stars" role="img" aria-label="Stress ${s.value} of 100">${stars}</div>
         <p class="mw-fine">${note}</p>
-        <p class="mw-fine">Builds when they act against what they believe or who they are, or when strain, fear, guilt and empty needs pile up; eases with rest, comfort and release.${s.rate !== 1 ? ` Their nature makes it build ${s.rate > 1 ? 'faster' : 'slower'}.` : ''} Past what they can hold, they break once, in character.</p>
+        <p class="mw-fine">Builds when they act against what they believe, want or feel about someone (the dynamic included), or when strain, fear, guilt and empty needs pile up; eases with rest, comfort, release and their own ways of coping.${s.rate !== 1 ? ` Their nature makes it build ${s.rate > 1 ? 'faster' : 'slower'}.` : ''} Past what they can hold, they break once, in character.</p>
+        <details class="mw-copes"><summary>How ${esc(name)} copes: <b>${esc(s.copes?.ids.length ? s.copes.ids.map(id => COPES.find(c => c.id === id)?.label).join(', ') : 'not chosen')}</b><small>${s.copes?.auto ? 'from who they are \u00b7 tap to choose' : 'tap to change \u00b7 up to three'}</small></summary>${[['h', 'Healthier: ease it steadily, every time'], ['m', 'Mixed: fade to half when it\u2019s the same again; switch it up to refresh'], ['u', 'Unhealthy: ease it most, and being drunk or high is the cost']].map(([k, title]) =>
+            `<p class="mw-fine">${title}</p><div class="mw-card-chips">${COPES.filter(c => c.kind === k).map(c =>
+            `<button type="button" class="mw-card-chip${s.copes?.ids.includes(c.id) ? ' is-on' : ''}" data-cope="${c.id}" aria-pressed="${s.copes?.ids.includes(c.id) ?? false}">${esc(c.label)}</button>`).join('')}</div>`).join('')}
+        <p class="mw-fine">When a reply shows ${esc(name)} coping one of these ways, stress comes down and doing it never counts as strain. Holding back by choice, for a reason they believe in, builds stress at half the rate.</p></details>
         ${s.value > 0 ? '<button type="button" class="mw-chip-btn" data-action="stress-reset">Let it go (start from 0)</button>' : ''}</div></section>`;
 }

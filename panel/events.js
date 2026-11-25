@@ -626,6 +626,9 @@ export async function onPanelClick(e) {
         if (del == null) ui.panel.querySelector(`[data-fam-field="${familyMembers(viewState()).length - 1}:role"]`)?.focus(); return; }
     if (button.dataset.groupHide) { const id = button.dataset.groupHide, list = settings().hiddenGroups ?? [];
         settings().hiddenGroups = list.includes(id) ? list.filter(x => x !== id) : [...list, id]; ctx().saveSettingsDebounced(); render(); return; }
+    // Ways of coping (2.0.3): tap to choose, up to three; the first tap replaces the one their traits suggested.
+    if (button.dataset.cope) { const id = button.dataset.cope; await changeState(s => { const list = Array.isArray(s.copes) ? s.copes : [];
+        s.copes = list.includes(id) ? list.filter(x => x !== id) : [...list, id].slice(-3); }); return; }
     if (button.dataset.action === 'stress-reset') { const at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.stressFrom = at; }); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.

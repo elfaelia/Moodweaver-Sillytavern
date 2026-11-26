@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.11
+- A shock can break a feeling at once. When a character's anger, coldness, cruelty, cockiness, desire or joy is strong (50 or more), the note gets one roll for it each reply. If it comes up, the note says that if something in the moment hits them hard enough (a real shock or a line crossed, not just being pushed back), the feeling breaks this time and whatever the moment stirs takes its place. If it doesn't come up, the note says it holds this time: it can shift or crack, but not vanish in one reply. The story still decides whether the moment is a shock at all.
+- The odds start from the speed (30% Slow burn, 40% Steady, 50% Quick, 60% Volatile). Protective, soft-hearted, empathetic, loyal or hot-headed traits, protective or devoted feelings right now, being close to you and a romance or obsession dynamic raise them. Stubborn, proud, vindictive, cold-blooded or callous traits, being set against you and a captor, power or distant dynamic lower them. They stay between 10% and 85%, and are halved for six replies after a snap so it doesn't happen every time.
+- When a feeling breaks, the feeling the reply raised most can come in at up to twice the usual step.
+- The Moods tab shows the odds and what moves them, under the speed. Settings › Feelings and people › A shock can break a feeling at once turns it off.
+
+## 2.0.10
+- Angst no longer means a fight every reply. Arguments still end unfinished, but quiet, ordinary moments and care that slips out come between the flare-ups, how someone keeps their distance changes with the moment instead of repeating one move, and outright cruelty is rare. The dials now end with: each person meets this in their own way, through their personality and their dynamic.
+- The dynamic shows a little at a time and not the same way every reply, and what just happened in the scene comes first.
+- Keeping them pure is about shielding, not shoving: quietly keeping the drugs and deals out of sight, steering them clear of the worst of it, and holding back the parts of themself they think would stain them.
+
 ## 2.0.9
 - When a tab has more than 8 things on, the chips at the top fold into one row per group: its name, how many, and the names in one line. Tap a row to open that group's chips. All the author groups share one Authors row. Open rows stay open.
 - Each chip's ✕ now joins the chip as its end cap instead of floating beside it, so a row of chips takes less room. The ✕ keeps its size.

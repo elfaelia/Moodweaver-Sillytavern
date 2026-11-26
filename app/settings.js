@@ -13,7 +13,7 @@ function periodOffFrom(saved) {
 }
 import { CLASH_CHOICES } from '../engine/links.js';
 
-const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, traitFocus: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true, musicTab: true, blendsOn: true, dockClose: true, chipRemove: true, castAuto: true, fillInChip: true };
+const defaults = { tokenBudget: 2000, depth: 0, placementVersion: 1, sceneMessages: 6, sceneChars: 8000, outputTokens: 800, baselines: {}, promptVersion: 6, readerProfile: '', boardSend: true, boardPresent: true, blendPlan: false, bondTrack: true, boardStrip: true, boardMemories: false, boardPins: false, boardWithWeave: true, needsDrift: true, needsSpeed: 'normal', needsSkips: true, needsFloor: true, youTrack: true, wantSuggest: true, showsMode: 'all', combosOn: true, cravingsOn: true, skillLookback: 1, eraLines: '3', wantsTab: true, whyOn: true, authorStyle: true, needsMood: true, moodClash: 'sometimes', factsWhenRelevant: true, traitFocus: true, splitNote: true, factOpposites: true, contagion: 'scene', aftermath: true, snaps: true, musicTab: true, blendsOn: true, dockClose: true, chipRemove: true, castAuto: true, fillInChip: true };
 export function settings() {
     const c = ctx();
     c.extensionSettings[KEY] ??= structuredClone(defaults);
@@ -76,7 +76,7 @@ export function settings() {
         // Opposite facts (Hot and Cold) switch each other off.
         factOpposites: saved.factOpposites !== false,
         // Feelings carrying on: the player's feeling rubbing off on an empathetic character, and a strong feeling's aftermath.
-        contagion: saved.contagion === 'off' ? 'off' : 'scene', noteOrder: ['before', 'rules'].includes(saved.noteOrder) ? saved.noteOrder : 'after', aftermath: saved.aftermath !== false, stress: saved.stress !== false, opinions: saved.opinions !== false, secrets: saved.secrets !== false, arcOffers: saved.arcOffers !== false, autoWants: saved.autoWants === true,
+        contagion: saved.contagion === 'off' ? 'off' : 'scene', noteOrder: ['before', 'rules'].includes(saved.noteOrder) ? saved.noteOrder : 'after', aftermath: saved.aftermath !== false, snaps: saved.snaps !== false, stress: saved.stress !== false, opinions: saved.opinions !== false, secrets: saved.secrets !== false, arcOffers: saved.arcOffers !== false, autoWants: saved.autoWants === true,
         // Combos and cravings.
         combosOn: saved.combosOn !== false, cravingsOn: saved.cravingsOn !== false, skillLookback: [1, 2, 3].includes(Number(saved.skillLookback)) ? Number(saved.skillLookback) : 1,
         // How many period lines (Power, Medicine, Vices\u2026) at most; when more apply, they take turns.

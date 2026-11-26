@@ -14,7 +14,7 @@ const TURNS = { key: 'turns', title: 'How wild the story runs', steps: [
 // Claude's discretion: handed a choice, Claude picks the kindest outcome.
 const hurt = (u, led) => `Anyone can be badly hurt, ${u} included. When something would injure, sicken or wear ${u} down, it does, as hard as it really would: what was done and where they are decide the damage, not mercy, luck or a softer outcome${led ? '' : `. The player still writes ${u}\u2019s choices`}. Being central to the story protects no one.`;
 const lead = (n, u) => `${n}, the others and the world make the big moves, and the player only writes ${u}\u2019s words and choices. When something big is coming, it happens in this reply; stop only where the next beat has to be ${u}\u2019s, never on a threshold or a question to ${u}.`;
-const ANGST = 'Feelings, motives and secrets stay mostly unsaid. They show in what someone does, avoids or lets slip, never in a speech that explains them, and hinting that there\u2019s something they\u2019ll never tell gives it away just the same. Arguments end unfinished or worse, and nobody turns a fight into a confession.';
+const ANGST = 'Feelings, motives and secrets stay mostly unsaid. They show in what someone does, avoids or lets slip, never in a speech that explains them, and hinting that there\u2019s something they\u2019ll never tell gives it away just the same. Arguments end unfinished, and nobody turns a fight into a confession. It isn\u2019t a fight every reply: quiet, ordinary moments and care that slips out come between the flare-ups, how someone keeps their distance changes with the moment instead of repeating one move, and outright cruelty is rare.';
 export const DIALS = [TURNS,
     { key: 'danger', title: 'How much can go wrong', steps: [
         ['\u2661', 'Safe', 'Fear and setbacks, but nothing lasting or deadly.', () => 'Nobody comes to lasting or deadly harm. Fear, pain and setbacks are fine, and people recover.'],
@@ -81,5 +81,7 @@ export const cleanTurns = (dial, moods) => [0, 1, 2, 3, 4].includes(dial) ? dial
 // The note's paragraph: one sentence per dial that's off the middle, or ''.
 export function dialParagraph(story, n, u) {
     const led = stepOf(story, 'drive') >= 2, lines = DIALS.map(d => d.steps[stepOf(story, d.key)]?.[3]?.(n, u, led)).filter(Boolean);
-    return lines.length ? `How this story runs: ${lines.join(' ')}` : '';
+    // 2.0.10: the dials set the weather, and each person meets it as who they are (her protective Kenny had turned
+    // Angst into insults every reply).
+    return lines.length ? `How this story runs: ${lines.join(' ')} Each person meets this in their own way, through their personality and their dynamic.` : '';
 }

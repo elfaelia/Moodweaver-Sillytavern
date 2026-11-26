@@ -16,7 +16,7 @@ import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine
 import { MORE_METERS, cleanMore, computeMore, saidMeters, setMore } from '../engine/meters.js';
 import { withFacts, withNudges } from '../engine/mood-meters.js';
 import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
-import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta } from '../engine/moodpace.js';
+import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta, snapped } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
@@ -660,6 +660,12 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
             // (the desire field used to take it, so Horny never moved while the card was on).
             const pace = movePace(writer), named = new Set();
             const list = st.moodAuto === false ? [] : w.moods.map(x => ({ ...aimed(x), delta: paceDelta(x.delta, pace) }));
+            // A snap (2.0.11): when the line breaks a strong hot or hard feeling outright, the one feeling it raised most
+            // comes in at up to twice the usual step, taking its place.
+            if (list.length && settings().snaps !== false && w.moods.some(x => { const id = feelingId(x.name), v = st.moods[id] ?? 0; return id && !hold?.m?.has(id) && snapped(id, v, x.delta <= -100 ? 0 : Math.max(0, v + x.delta)); })) {
+                const top = w.moods.reduce((best, x, i) => x.delta > 0 && x.delta > (w.moods[best]?.delta ?? 0) ? i : best, -1);
+                if (top >= 0) list[top].delta = paceDelta(w.moods[top].delta, { ...pace, step: pace.step * 2 });
+            }
             if (st.moodAuto !== false && w.desire?.a && !list.some(x => feelingId(x.name) === 'horny')) list.push({ name: 'horny', delta: paceDelta(w.desire.a * 4, pace) });
             // Feelings the line put under "toward" (aroused, obsessed with her, in love) are feelings too, so they reach
             // the Moods tab as well as Bonds. Halved, since toward moves in bigger steps.

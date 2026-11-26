@@ -21,7 +21,7 @@ import { effectiveChat } from '../engine/ledger.js';
 import { coreLink, moodClash, moodLink, roleLink, tieLink } from '../engine/links.js';
 import { cleanAge, heightCm } from '../engine/turns.js';
 import { cleanMore, meterWeaveNames } from '../engine/meters.js';
-import { MOOD_PACE, SHORT_FUSE, temperPace } from '../engine/moodpace.js';
+import { MOOD_PACE, SHORT_FUSE, SNAP_COOL, snapLine, snapOdds, snapRoll, snapped, temperPace } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
@@ -121,7 +121,9 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         // Aftermath of a strong feeling that just ended, and the player's feeling rubbing off (Settings \u203a What is sent).
         const newestW = [...history].reverse().find(m => m && !m.is_system && writes(ch)(m)), seemsIds = (newestW ? weaveOf(newestW)?.seems ?? [] : []).map(feelingId).filter(Boolean);
         const close = Boolean(bd && (bd.f >= 41 || bd.r >= 41));
-        const echoes = [...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
+        // Snaps (2.0.11): a strong hot or hard feeling gets one roll this reply for breaking at once if the moment is a shock.
+        const snap = snapNow(ch, state, bd, bond.pace), snapAt = snap ? snapLine(snap, snapRoll((history.length * 7919 + (run.diceSalt ?? 0) + 4099) | 0), n) : '';
+        const echoes = [snapAt, ...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
             contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion }),
             // Stress and breaking points, and how they've come to feel about people the scene brings up (1.79).
             ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
@@ -175,6 +177,17 @@ export function stopGenerating() {
 export const FEELINGS_COUNT = MOODS.filter(analysed).length;
 // The dynamic group each character's last note was sent with, so the next reply's fading can follow it.
 export const lastDynamic = new Map();
+// Snaps (2.0.11): the odds of a strong feeling breaking at once in a shock, for the note and the Moods tab. Replies
+// since the last snap come from the applied records, so a swipe or Undo takes one back.
+export function snapNow(ch, st = getState(ch), bd = null, pace = bondData(ch).pace) {
+    if (settings().snaps === false || !st?.enabled || st.moodAuto === false) return null;
+    const recs = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch?.avatar}`] ?? [];
+    const back = recs.slice(-SNAP_COOL).reverse().findIndex(r => Object.entries(r?.m ?? {}).some(([id, [a, b]]) => snapped(id, a, b)));
+    const odds = snapOdds(st, { pace, bond: bd ? { f: bd.f, r: bd.r, group: bd.dynamic?.group } : null, recent: back < 0 ? Infinity : back });
+    lastSnap.set(ch?.avatar, odds);
+    return odds;
+}
+export const lastSnap = new Map();
 // One pace per character and chat, set on the Moods card (or the Bonds tab): feelings, meters and desire all move at it.
 export const scenePace = ch => MOOD_PACE[ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`]?.pace] ?? MOOD_PACE.steady;
 // The pace this character's feelings actually move at: the chat's pace, shifted by their temper (volatile swings

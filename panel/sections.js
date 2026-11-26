@@ -1,7 +1,7 @@
 // The Moods, Traits, Body, Turn-ons and Story tabs: the catalogue list, the scene reader card
 // and the per-section tools.
 import { getCast, getKnowledge, getState, getUserState, playerName, profiles, selectedCast, subjectName, turnKnowledgeRows } from '../app/chat.js';
-import { FEELINGS_COUNT, listedFeelings, movePace, scenePace } from '../app/note.js';
+import { FEELINGS_COUNT, lastSnap, listedFeelings, movePace, scenePace } from '../app/note.js';
 import { readerProfile, readerRequest, readerSubject, roughTokens, sceneStart } from '../app/reader.js';
 import { boardMeta, boardSend, bondData, bondList, chatSigns, knowledgeNow, opinionsNow, pronounsFor, secretsNow } from '../app/replies.js';
 import { effectiveChat } from '../engine/ledger.js';
@@ -327,6 +327,14 @@ export function lastMoodRec(ch) {
     const list = ctx().chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [];
     return list.at(-1) ?? null;
 }
+// Snaps (2.0.11): the odds that a strong feeling breaks at once if the next reply's moment is a shock, and why.
+function snapNote(ch, odds) {
+    if (!odds || settings().snaps === false) return '';
+    const label = id => BY_ID[id]?.label.split('/')[0].trim().toLowerCase() ?? id;
+    const up = [...odds.gives.slice(0, 2).map(label), ...odds.why.filter(w => w !== 'set against you' && w !== 'snapped a moment ago'), ...(odds.dyn > 0 ? ['the dynamic'] : [])];
+    const down = [...odds.holds.slice(0, 2).map(label), ...odds.why.filter(w => w === 'set against you' || w === 'snapped a moment ago'), ...(odds.dyn < 0 ? ['the dynamic'] : [])];
+    return `<p class="mw-fine mw-snap-odds">\u26a1 In a shock, ${esc(odds.feel.map(label).join(' and '))} would break at once about ${odds.chance}% of the time${up.length ? `. Likelier: ${esc(up.join(', '))}` : ''}${down.length ? `. Holds on: ${esc(down.join(', '))}` : ''}.</p>`;
+}
 function storyMoodBlock(state, ch) {
     const bond = bondData(ch), feed = cleanBoardMeta(boardMeta()).feed, on = state.moodAuto !== false, fade = state.moodFade !== false, pace = scenePace(ch), moves = movePace(ch);
     const rec = lastMoodRec(ch), moved = Object.entries(rec?.m ?? {}).filter(([id]) => BY_ID[id]);
@@ -344,5 +352,6 @@ function storyMoodBlock(state, ch) {
             <option value="list" ${state.moodScope === 'list' ? 'selected' : ''}>Only ${esc(ch.name)}\u2019s list (${listedFeelings(state).length})</option></select></label>
         ${state.moodScope === 'list' ? `<p class="mw-fine">The story can only move feelings on this list. Add more from the list below.</p>` : ''}
         <p class="mw-fine">${esc(pace.label)}, ${esc(pace.hint)}: up to ${moves.step} a reply.${fade ? ` A feeling nobody mentions for ${moves.after} repl${moves.after === 1 ? 'y' : 'ies'} loses ${moves.fade} a reply after that.` : ' Feelings stay until the story turns them down.'} Pinned \u25c6 ones never move.${moves.temper ? ` ${esc(moves.temper.slice(0, 2).map(id => BY_ID[id].label).join(' and '))} ${moves.temper.length > 1 ? 'shift' : 'shifts'} this: ${moves.swings > 0.2 ? 'feelings swing harder and let go sooner' : moves.swings < -0.2 ? 'feelings move less and hold on longer' : 'feelings hang on longer'}.` : ''}${moves.low?.length ? ` Low ${esc(moves.low.join(' and '))} make${moves.low.length > 1 ? '' : 's'} them quicker to flare.` : ''}</p>
+        ${snapNote(ch, lastSnap.get(ch.avatar))}
         ${moved.length ? `<div class="mw-moodlast"><small>Last reply</small><div>${moved.map(step).join('')}</div><button type="button" data-action="mood-undo-last">\u21b6 Undo</button></div>` : rec?.undone ? '<p class="mw-fine">Last reply\u2019s changes were undone.</p>' : ''}` : ''}</details>`;
 }

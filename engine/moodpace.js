@@ -1,4 +1,4 @@
-import { MOODS } from '../data/catalogue.js';
+import { BY_ID, MOODS, sectionOf } from '../data/catalogue.js';
 // How fast feelings move and fade when the story moves them (the hidden line), per character.
 // step: the most one reply can move a feeling. ordinary: what the prompt asks for in an ordinary moment.
 // after: replies a feeling can go unmentioned before it starts to fade. fade: points lost per reply after that.
@@ -96,3 +96,60 @@ export function temperPace(pace, moods = {}, low = []) {
     return { ...pace, step: Math.max(5, Math.round(pace.step * (1 + 0.3 * s - 0.3 * d))), after: Math.max(1, Math.round(pace.after * (1 - 0.4 * s + 0.6 * d + 0.8 * l))),
         fade: Math.max(1, Math.round(pace.fade * (1 + 0.4 * s - 0.4 * d - 0.4 * l))), temper, swings: s - d, low };
 }
+
+// ---- Snaps: a feeling that breaks at once (2.0.11) ----
+// A shock can knock a strong feeling out in one reply: an angry man hears she's going back to the father who hurt
+// her, and the anger is simply gone, with something else in its place. Before each reply a strong hot or hard
+// feeling gets one roll, so it isn't every time. The story still judges whether the moment is a shock at all: the
+// note only says what happens if it is, breaking this time or holding. Personality, the dynamic and how much the
+// other person means to them weight the roll. Light feelings and calm, sad or scared ones aren't rolled.
+export const SNAP_KINDS = new Set(['angry', 'cold', 'cruel', 'bold', 'desire', 'happy']);
+const SNAP_LIGHT = new Set(['butterflies', 'grumpy', 'huffy', 'indignant', 'snarky', 'petty', 'nitpicking', 'checking_out', 'mean_jokes', 'hangry', 'irritable']);
+export const SNAP_AT = 50, SNAP_COOL = 6;
+const SNAP_BASE = { slow: 30, steady: 40, quick: 50, volatile: 60 };
+// Traits that let a shock through (protectors, soft hearts, people who flare and burn out) and ones that hold
+// on whatever happens (stubborn, proud, vindictive, cold).
+const SNAP_GIVES = { empathetic: 10, soft_hearted: 10, kind_hearted: 8, protector_role: 10, protection_giving: 8, dirty_handed_protector: 10, protective_best_friend: 8, hidden_heart: 8,
+    one_person_exception: 10, loyal: 5, loyal_to_a_fault: 8, secretly_sentimental: 6, forgiving_nature: 8, mature: 5, sensitive: 6, volatile: 8, hot_headed: 6, impulsive: 6,
+    unpredictable: 5, sim_over_emotional: 6, sim_dramatic: 5, abandonment_issues: 10, reluctant_guardian: 6, rescuer: 6 };
+const SNAP_HOLDS = { stubborn: 12, prideful: 10, arrogant: 8, vindictive: 12, petty_by_nature: 6, emotional_scorekeeping: 8, contrarian: 6, argumentative: 6, sore_loser: 6,
+    cold_blooded: 15, callous: 10, insensitive: 8, emotionless: 10, mask_of_sanity: 10, thick_skinned: 5, eye_for_an_eye: 6, contempt_for_weakness: 8, sim_mean_spirited: 6, sim_brooding: 6 };
+// Feelings right now that make losing the other person land hard.
+const SNAP_CARES = ['protective', 'caring', 'devoted', 'terrified_of_losing', 'cant_lose_another', 'cant_let_go', 'protective_rage', 'watching_over'];
+const SNAP_DYNAMIC = { romance: 10, obsess: 10, toxic: 5, allies: 5, power: -5, captor: -10, distance: -10 };
+const snapLabel = id => BY_ID[id]?.label.split('/')[0].trim().toLowerCase() ?? id;
+const snappable = id => BY_ID[id] && SNAP_KINDS.has(BY_ID[id].category) && !SNAP_LIGHT.has(id) && sectionOf(BY_ID[id]) === 'mood';
+// st: the character. pace: the chat's pace key. bond: { f, r, group } toward the player. recent: replies since their
+// last snap (Infinity if none lately). Returns null when nothing is strong enough, else the feelings at stake, the
+// chance (10 to 85) and the reasons for the panel.
+export function snapOdds(st, { pace = 'steady', bond = null, recent = Infinity } = {}) {
+    const m = st?.moods ?? {}, pins = st?.pins ?? {};
+    const feel = Object.entries(m).filter(([id, v]) => v >= SNAP_AT && !pins[id] && snappable(id))
+        .sort((a, b) => b[1] - a[1]).slice(0, 2).map(([id]) => id);
+    if (!feel.length) return null;
+    let chance = SNAP_BASE[pace] ?? SNAP_BASE.steady;
+    const gives = [], holds = [];
+    for (const [id, w] of Object.entries(SNAP_GIVES)) if ((m[id] ?? 0) >= 21) { chance += w; gives.push(id); }
+    for (const [id, w] of Object.entries(SNAP_HOLDS)) if ((m[id] ?? 0) >= 21) { chance -= w; holds.push(id); }
+    const cares = SNAP_CARES.filter(id => (m[id] ?? 0) >= 41);
+    if (cares.length) { chance += 10; gives.push(cares[0]); }
+    const close = Math.max(bond?.f ?? 0, bond?.r ?? 0), why = [];
+    if (close >= 61) { chance += 15; why.push('close to you'); } else if (close >= 41) { chance += 8; why.push('fond of you'); } else if (bond && close <= -20) { chance -= 10; why.push('set against you'); }
+    const dyn = SNAP_DYNAMIC[bond?.group] ?? 0; chance += dyn;
+    if (recent < SNAP_COOL) { chance = Math.round(chance / 2); why.push('snapped a moment ago'); }
+    chance = Math.max(10, Math.min(85, Math.round(chance)));
+    return { feel, chance, gives, holds, why, dyn };
+}
+// One roll from the reply's seed, 0 to 99.
+export const snapRoll = seed => { let h = 2166136261 ^ seed; for (const c of 'snap') h = Math.imul(h ^ c.charCodeAt(0), 16777619); h ^= h >>> 13; return Math.abs(Math.imul(h, 2654435761) >>> 0) % 100; };
+// The line for the note: what happens if this reply's moment is a shock. No example feelings, since Opus copies them.
+export function snapLine(odds, roll, n) {
+    if (!odds) return '';
+    const what = odds.feel.map(snapLabel).join(' and ');
+    return roll < odds.chance
+        ? `If something in this moment hits ${n} hard enough to cut through how ${n} feels now (${what}), as a real shock or a line crossed, not just being pushed back, it breaks at once this time: end it or drop it sharply in the hidden line, and whatever the moment stirs in ${n} instead takes its place, shown in ${n}'s own way. If nothing like that happens, it carries on as usual.`
+        : `If something in this moment hits ${n} hard enough to cut through how ${n} feels now (${what}), it holds this time: it can shift, turn or show cracks, but it doesn't vanish in one reply.`;
+}
+// After a reply: did a rolled feeling break? before/after are the person's values. Used for the cool-down and to let
+// the feeling that takes its place come in strongly.
+export const snapped = (id, before, after) => before >= SNAP_AT && after <= 10 && snappable(id);

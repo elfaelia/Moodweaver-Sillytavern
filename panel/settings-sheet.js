@@ -22,7 +22,7 @@ const card = (key, icon, color, title, sub, body, open = false) => `<details cla
 export function settingsView(state) {
     const whose = ui.who === 'user' ? playerName() : ui.who === 'story' ? 'the story' : subjectName();
     const n = pinCounts(), words = n ? pinWords(n) : '';
-    const feelingsOn = ['aftermath', 'stress', 'opinions', 'secrets', 'factOpposites'].filter(on).length;
+    const feelingsOn = ['aftermath', 'snaps', 'stress', 'opinions', 'secrets', 'factOpposites'].filter(on).length;
     return `<section class="mw-settings">
         <div class="mw-settings-head mw-set-hero"><i class="mw-set-sky" aria-hidden="true"></i><button type="button" class="mw-back" data-action="settings-close">\u2039 Back</button><div><b>Settings</b><small>Most of these are for every chat. Clearing and defaults are for ${esc(whose)}.</small></div></div>
         ${card('sent', '\u25f7', '#efd59c', 'Tokens and the note', 'What goes to Claude each reply, and where', `
@@ -37,12 +37,13 @@ export function settingsView(state) {
             ${sw('data-setting-bool="blendPlan"', yes('blendPlan'), 'Ask Claude to plan before writing', 'Asks Claude to work out how your strongest settings fit together before it writes. Opus 5.5 does this anyway, so best off.')}
             <details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre><b class="mw-pre-label">Ready to send</b><pre data-preview></pre><b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
 `)}
-        ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 5 extras on`, `
+        ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 6 extras on`, `
             ${choice('showsMode', 'How feelings show', [['all', 'Default + yours'], ['mine', 'Only yours'], ['off', 'Names only']])}
             ${choice('moodClash', 'When their moods clash', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'Your moods and theirs can rub. Traits never clash.')}
             ${choice('contagion', 'Your feelings rubbing off', [['scene', 'When it fits'], ['off', 'Off']])}
             <p class="mw-fine">When the story reads a feeling in you, a character with the empathy for it now and then feels a faint echo of it. Warm traits make it likelier; cold-blooded, psychopathic, narcissistic or cruel ones stop it.</p>
             ${sw('data-setting-bool="aftermath"', on('aftermath'), 'Strong feelings leave an aftermath', 'Shaking hands after terror, a short fuse after rage.')}
+            ${sw('data-setting-bool="snaps"', on('snaps'), 'A shock can break a feeling at once', 'Strong anger, coldness, cruelty, cockiness, desire or joy get a roll each reply. If the moment really hits them, it breaks and something else takes its place, or it holds this time. Their personality, the dynamic and how close you are set the odds, shown on Moods.')}
             ${sw('data-setting-bool="stress"', on('stress'), 'Stress and breaking points', 'Builds against their beliefs and nature, eases with rest.')}
             ${sw('data-setting-bool="opinions"', on('opinions'), 'Feelings about other people build up', 'Sent only when the scene names that person.')}
             ${sw('data-setting-bool="secrets"', on('secrets'), 'Secrets and leverage', 'Hidden, suspected, known, out.')}

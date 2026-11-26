@@ -76,7 +76,7 @@ export const DYNAMICS = [
         (n, u) => `${n} knows ${u} likes ${n} and acts as if ${n} doesn't feel the same, keeping it light and crude, because saying it would make it real`,
         "romance", "pretend mask feelings knows likes me denial joke light deflect", []],
     ["Keeping them pure", d => d.pr >= 50 && d.pe >= 40 && d.uw >= 30 && (d.co ?? 0) <= 20,
-        (n, u) => `${n} keeps ${u} out of everything dirty, ${n} included: no drugs, no deals, no one like ${n}; ${n} wants ${u} to stay the one clean thing`,
+        (n, u) => `${n} shields ${u} from everything dirty in ${n}'s world, quietly where ${n} can: keeps the drugs and deals out of ${u}'s sight, steers ${u} clear of the worst of it, and holds back the parts of ${n} that ${n} thinks would stain ${u}; ${n} wants ${u} to stay the one clean thing`,
         "obsess", "pure clean innocent keep out drugs deals protect angel dirty", []],
     ["Does the dirty work", d => d.pr >= 50 && d.sc >= 40 && (d.se >= 30 || d.cm >= 30),
         (n, u) => `${n} does the ugly jobs so ${u} never has to: threats, beatings, deals, and comes back with clean hands and a lie`,

@@ -1405,3 +1405,17 @@ span.mw-music-ball{background:radial-gradient(circle at 32% 26%,#fff8 0 4%,color
 @media (prefers-reduced-motion:reduce){.mw-panel .mw-dial-row>button{transition:none}}
 .mw-copes{margin:10px 0 6px}.mw-copes>summary{cursor:pointer;display:grid;gap:2px;padding:8px 0;font-size:13.5px}.mw-copes>summary small{color:var(--mw-muted,#a59cc6);font-size:11.5px}.mw-copes .mw-card-chips{margin:4px 0 8px}
 .mw-panel .mw-copes .mw-card-chip:not(.is-on){text-decoration:none;border-style:solid;border-color:#ffffff1f}
+/* 2.0.9: chips fold into one row per group when there are many, and each chip's ✕ joins the chip as its end cap */
+.mw-chip-groups{display:grid;gap:6px}
+.mw-panel .mw-chip-group{border:1px solid color-mix(in srgb,var(--mw-accent) 28%,transparent);border-radius:14px;background:color-mix(in srgb,var(--mw-accent) 6%,transparent)}
+.mw-panel .mw-chip-group>summary{display:flex;align-items:center;gap:10px;min-height:50px;padding:6px 12px;cursor:pointer;list-style:none}
+.mw-panel .mw-chip-group>summary::-webkit-details-marker{display:none}
+.mw-chip-group-icon{flex:none;width:22px;text-align:center;color:var(--mw-accent)}
+.mw-chip-group-text{display:grid;min-width:0;flex:1}
+.mw-chip-group-text b{font-weight:600;font-size:13px;color:var(--mw-text)}.mw-chip-group-text b i{font-style:normal;color:var(--mw-accent);margin-left:4px}
+.mw-chip-group-text small{color:var(--mw-muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mw-chip-group[open] .mw-chip-group-text small{display:none}
+.mw-panel .mw-chip-group>.mw-chips{padding:0 10px 10px}
+.mw-chip-wrap{gap:0}
+.mw-panel .mw-chip-wrap>.mw-chip{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
+.mw-panel .mw-chip-wrap>.mw-chip-x{min-width:40px;border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid #ffffff14}

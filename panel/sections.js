@@ -11,7 +11,7 @@ import { KEY, ctx, run, ui } from '../app/state.js';
 import { cleanBoardMeta, latestBoard } from '../engine/board.js';
 import { computeBond } from '../engine/bond.js';
 import { DIALS, stepOf } from '../engine/dials.js';
-import { BY_ID, CATEGORIES, MERGED_SEARCH_NAMES, MOODS, RECIPES, STORY_RECIPES, sectionOf } from '../data/catalogue.js';
+import { BY_ID, CATEGORIES, MERGED_SEARCH_NAMES, MOODS, RECIPES, STORY_RECIPES, isAuthor, sectionOf } from '../data/catalogue.js';
 import { KNOWLEDGE_MODES, activeMoods, cleanScope, knowledgeEntry } from '../engine/state.js';
 import { escapeHtml as esc, shortName } from '../engine/util.js';
 import { level } from '../engine/strength.js';
@@ -233,6 +233,21 @@ export function factsContent(state, ch, active) {
     ${catalogueBlock(state, 'state', ch, ui.who === 'story' ? 'the story' : subjectName())}
     ${inventoryView(state, ch)}`;
 }
+// More than this many chips (2.0.9) and they fold into one row per group: the group's name, how many, and the first
+// few names; a tap opens that group's chips. Open groups stay open across redraws (data-anchor).
+const CHIP_FOLD = 8;
+const CAT_NAME = new Map(CATEGORIES.map(([id, name, icon, color]) => [id, { name, icon, color }]));
+const CAT_ORDER = new Map(CATEGORIES.map(([id], i) => [id, i]));
+function groupedChips(shown, turnsSet, chipOf) {
+    if (turnsSet.length || shown.length <= CHIP_FOLD) return null;
+    const groups = new Map();
+    // All the author groups (classic, mid-century, modern) fold into one Authors row.
+    for (const m of shown) { const key = isAuthor(m) ? 'authors' : m.category; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(m); }
+    return `<div class="mw-chip-groups">${[...groups].sort((a, b) => (CAT_ORDER.get(a[0]) ?? 0) - (CAT_ORDER.get(b[0]) ?? 0)).map(([cat, list]) => {
+        const c = cat === 'authors' ? { ...(CAT_NAME.get('authors') ?? { icon: '\u270e', color: list[0].color }), name: 'Authors' } : CAT_NAME.get(cat) ?? { name: cat, icon: '\u2022', color: list[0].color };
+        return `<details class="mw-chip-group" data-anchor="chips-${esc(cat)}" style="--mw-accent:${c.color}"><summary><span class="mw-chip-group-icon" aria-hidden="true">${c.icon}</span><span class="mw-chip-group-text"><b>${esc(c.name)} <i>${list.length}</i></b><small>${list.map(m => esc(tagLabel(m))).join(', ')}</small></span></summary><div class="mw-chips">${list.map(chipOf).join('')}</div></details>`;
+    }).join('')}</div>`;
+}
 const HERO_EMPTY = { mood: 'Feelings', trait: 'Traits', psyche: 'Mind', intimacy: 'Intimacy', turn: 'Turn-ons', story: 'The story' };
 export function sectionContent(state, kind, ch, active) {
     if (kind === 'state') return factsContent(state, ch, active);
@@ -251,14 +266,15 @@ export function sectionContent(state, kind, ch, active) {
     const xOn = settings().chipRemove !== false;
     const xWrap = (id, label, chip) => xOn ? `<span class="mw-chip-wrap">${chip}<button type="button" class="mw-chip-x" data-chip-off="${esc(id)}" aria-label="Take ${esc(label)} off" title="Take ${esc(label)} off">\u2715</button></span>` : chip;
     const undo = ui.chipUndo && ui.chipUndo.who === ui.who && ui.chipUndo.kind === kind ? `<button type="button" class="mw-chip-btn mw-chip-undo" data-action="chip-undo">\u21b6 Put ${esc(ui.chipUndo.label)} back</button>` : '';
+    const chipOf = m => xWrap(m.id, m.label, `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '\u2727 ' : ''}${state.pins[m.id] ? '\u25c6 ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`);
     const chips = turnsSet.map(([id, v]) => xWrap(`turn:${id}`, TURN_BY_ID[id].label, `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''} ${shows.has(id) && !lit.has(id) ? 'is-shown' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : shows.has(id) ? `${esc(shows.get(id))}. ` : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '\u2727' : v > 0 ? '\u2661' : '\u2715'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`)).join('')
-        + shown.map(m => xWrap(m.id, m.label, `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '\u2727 ' : ''}${state.pins[m.id] ? '\u25c6 ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`)).join('');
+        + shown.map(m => chipOf(m)).join('');
     const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
         : kind === 'turn' ? 'Lit \u2727 means the last reply touched it.'
         : ui.who === 'user' && ['mood', 'trait', 'psyche', 'intimacy'].includes(kind) ? `${esc(ch.name)} reacts to these but never writes for you. Choose what ${esc(ch.name)} knows below.`
         : kind === 'psyche' ? 'Clear and stronger ones go with every reply; fainter ones only when the scene touches them. Star \u2605 one to send it every reply. Some can lean healthier or darker.' : '';
     return `<div class="mw-summary mw-hero" data-chapter="${kind}"><i class="mw-hero-art" aria-hidden="true"></i><div class="mw-section-label">${shown.length || turnsSet.length ? heading : HERO_EMPTY[kind] ?? heading}<span>${shown.length + turnsSet.length} on${onHere ? ` \u00b7 <button class="mw-clear" data-action="clear" title="Turn off this tab\u2019s ${what}, pins too. Other tabs stay as they are">Clear ${what}</button>` : ''}</span></div>
-        <div class="mw-chips">${chips || `<p class="mw-hero-empty">${empty}</p>`}${undo}</div>
+        ${groupedChips(shown, turnsSet, chipOf) ?? `<div class="mw-chips">${chips || `<p class="mw-hero-empty">${empty}</p>`}${undo}</div>`}${undo && shown.length + turnsSet.length > CHIP_FOLD ? `<div class="mw-chips">${undo}</div>` : ''}
         ${kind === 'turn' && ui.who === 'char' ? reactiveBlock(state, ch) : ''}
         ${kind === 'turn' ? signsBlock(ch) : ''}
         ${sparks.length ? `<div class="mw-sparks"><small>Lit lately</small>${sparks.map(x => `<span class="mw-spark ${x.off ? 'is-off' : ''} ${x.fresh ? 'is-fresh' : ''}">${x.off ? '\u2715' : '\u2727'} ${esc(x.text)}</span>`).join('')}</div>` : ''}

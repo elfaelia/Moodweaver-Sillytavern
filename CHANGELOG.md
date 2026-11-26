@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.9
+- When a tab has more than 8 things on, the chips at the top fold into one row per group: its name, how many, and the names in one line. Tap a row to open that group's chips. All the author groups share one Authors row. Open rows stay open.
+- Each chip's ✕ now joins the chip as its end cap instead of floating beside it, so a row of chips takes less room. The ✕ keeps its size.
+
 ## 2.0.8
 - New story dial, How feelings come out: Said plainly, As it comes, Slow to settle, Angst, Never said. Angst keeps feelings, motives and secrets mostly unsaid, showing in what someone does, avoids or lets slip; hinting that there's something they'll never tell counts as telling; arguments end unfinished, and nobody turns a fight into a confession. Never said goes further: any confession comes out partial or wrong, or is taken back.
 - Always on: the dynamic and the lines under it show in what they do, never in what they say about it; a guarded secret isn't hinted at.

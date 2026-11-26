@@ -1419,3 +1419,9 @@ span.mw-music-ball{background:radial-gradient(circle at 32% 26%,#fff8 0 4%,color
 .mw-chip-wrap{gap:0}
 .mw-panel .mw-chip-wrap>.mw-chip{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
 .mw-panel .mw-chip-wrap>.mw-chip-x{min-width:40px;border-top-left-radius:0;border-bottom-left-radius:0;border-left:1px solid #ffffff14}
+/* Writers (2.0.15): who is writing, and one tap to switch. */
+.mw-tn-writer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 0;padding:10px 12px;border-radius:16px;border:1px solid #b9d7f233;background:#b9d7f20d}
+.mw-tn-writer.is-alt{border-color:#e7a6c455;background:#e7a6c40f}
+.mw-tn-writer p{flex:1 1 150px;margin:0;font-size:13px;color:#e3dcf2}
+.mw-tn-writer p span{color:#b9d7f2;margin-right:4px}
+.mw-tn-writer .mw-primary{min-height:44px;padding:0 16px;flex:0 0 auto}

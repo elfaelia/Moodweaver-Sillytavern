@@ -6,7 +6,7 @@ import { getCast, getUserState, playerName } from '../app/chat.js';
 import { mus } from '../app/music.js';
 import { boardPeople, bondAxes, bondData, bondList, liveChat, liveFor, reactions, stressNow } from '../app/replies.js';
 import { settings } from '../app/settings.js';
-import { ui } from '../app/state.js';
+import { run, ui } from '../app/state.js';
 import { activeMoods } from '../engine/state.js';
 import { computeBond } from '../engine/bond.js';
 import { level } from '../engine/strength.js';
@@ -18,6 +18,7 @@ import { tagLabel } from './rows.js';
 import { directBlock } from '../app/direct.js';
 import { arcsCard } from './arcs-card.js';
 import { lorePeople } from '../app/lore.js';
+import { writerState } from '../app/writer.js';
 
 const NEED_TINT = { hunger: '#e8b36f', energy: '#b8a6e0', bladder: '#9fc6e8', hygiene: '#9fd3c9', comfort: '#e8936f', social: '#ef9fbe', fun: '#efd59c', health: '#e26d7a' };
 const tint = m => TONES[m?.category] ?? m?.color ?? '#c9b8f0';
@@ -74,6 +75,13 @@ function castStars(cast) {
     if (here.length + away.length <= 6) return [...here, ...away].map(s).join('');
     return `${here.map(s).join('')}<details class="mw-tn-away" data-anchor="tonight-away"><summary><b>${away.length}</b><small>off scene</small></summary><div class="mw-tn-cast">${away.map(s).join('')}</div></details>`;
 }
+// Writers (2.0.15): who is writing, and one big tap to switch to the other.
+function writerRow() {
+    const w = writerState(); if (!w) return '';
+    const to = w.onAlt ? w.main : w.alt, toName = w.onAlt ? w.mainName : w.altName;
+    return `<div class="mw-tn-writer${w.onAlt ? ' is-alt' : ''}"><p><span aria-hidden="true">\u270e</span> ${w.nowName ? `<b>${esc(w.nowName)}</b> is writing` : 'Another connection is writing'}</p>
+        <button type="button" class="mw-primary" data-writer-to="${esc(to)}" ${run.writerBusy ? 'disabled' : ''}>${run.writerBusy ? 'Switching\u2026' : `${w.onAlt ? 'Back to' : 'Switch to'} ${esc(toName)}`}</button></div>`;
+}
 export function tonightView(ch, charState, live = liveFor(ch)) {
     const userState = getUserState(), cast = getCast(ch);
     const where = live?.found ? live.location : '', when = live?.found ? live.time : '';
@@ -103,6 +111,7 @@ export function tonightView(ch, charState, live = liveFor(ch)) {
             <button type="button" class="mw-tn-add" data-action="cast-new" aria-pressed="${ui.castAction === 'adding'}"><span aria-hidden="true">\uff0b</span><small>Side character</small></button></div>
             ${ui.castAction === 'adding' ? '<div class="mw-cast-add mw-new-cast"><input type="text" data-cast-new maxlength="80" aria-label="New side character name" placeholder="Their name"><button data-action="cast-add">Add</button></div>' : ''}`}
         ${passingRow(ch, live)}${loreRow(ch, live)}
+        ${writerRow()}
         ${directBlock(shortName(ch.name), shortName(playerName()))}
         ${arcsCard(ch)}
         ${(body.length && a.top) || (you.length && b.top) ? `<div class="mw-tn-says">${body.length && a.top ? `<p><span>${esc(shortName(ch.name))}, from the story</span>${body.map(t => `<i>${esc(t)}</i>`).join('')}</p>` : ''}${you.length && b.top ? `<p><span>${esc(shortName(playerName()))}</span>${you.map(t => `<i>${esc(t)}</i>`).join('')}</p>` : ''}</div>` : ''}

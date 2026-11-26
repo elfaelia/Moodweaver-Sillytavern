@@ -1,6 +1,7 @@
 // What happens when you type, tap or change something in the panel.
 import { currentPeer, ensureRelation, getCast, getKnowledge, getPair, getState, getStoryState, getUserState, keyForTarget, loadCastDefault, members, pairId, peers, persist, personKeyOfSubject, playerName, relationshipList, resolveRelationName, saveCastDefault, selectedCast, selectedRelation, subjectName, swapTarget, target, validRelationName, viewState } from '../app/chat.js';
 import { setLaunch } from '../app/launcher.js';
+import { switchWriter } from '../app/writer.js';
 import { syncPrompt } from '../app/note.js';
 import { analyse, cancelAnalysis, readBond } from '../app/reader.js';
 import { arcNow, boardMemoryCount, bondAxes, bondData, bondList, bondOverlaps, editBoard, editBond, feedsMeters, liveChat, liveFor, moodTarget, pronounsFor, untouchedMemory, userRelation } from '../app/replies.js';
@@ -617,6 +618,11 @@ export async function onPanelClick(e) {
     if (button.dataset.action === 'direct') { const text = ui.panel.querySelector('[data-direct-text]')?.value.trim(); if (!text) return; const p = directScene(text); render(); await p; render(); return; }
     if (button.dataset.directPick) { const i = ui.direct?.items?.[Number(button.dataset.directPick)]; if (i) i.on = !i.on; render(); return; }
     if (button.dataset.directHold) { const i = ui.direct?.items?.[Number(button.dataset.directHold)]; if (i) { i.hold = !i.hold; if (i.hold) i.on = true; } render(); return; }
+    if (button.dataset.writerTo !== undefined) {
+        const p = switchWriter(button.dataset.writerTo); render();
+        try { await p; run.status = ''; } catch (err) { run.status = err?.message ?? String(err); }
+        render(); renderStatus(); return;
+    }
     if (button.dataset.action === 'arc-pick') { ui.arcPick = !ui.arcPick; render(); return; }
     if (button.dataset.arcStart || button.dataset.arcSkip || button.dataset.arcMarkOff || ['arc-hold', 'arc-next', 'arc-end'].includes(button.dataset.action)) {
         const story = getStoryState(); if (!story) return; const now = arcNow(target());

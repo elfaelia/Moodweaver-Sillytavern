@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.15
+- Writers: pick a main writer and a stand-in writer in Settings › Writers. Both are SillyTavern Connection Profiles, so make one per model in SillyTavern first. Once both are picked, the Scene page shows which one is writing and has one big button to switch to the other ("Switch to …" / "Back to …"). It uses SillyTavern's own /profile command, the same as picking the profile in its Connection Profiles menu. Nothing switches by itself yet.
+
 ## 2.0.14
 - Drinking facts describe how it feels, nothing more. Drunk is "loose and reckless" instead of "bad judgement", Blackout drunk says the night will come back in pieces later instead of "won't remember any of it", Tipsy drops "guard lowered but still in control", and Pleasantly tipsy "leans in" instead of "lowered guard". Those words were setting off Claude's own caution in scenes with drinking.
 

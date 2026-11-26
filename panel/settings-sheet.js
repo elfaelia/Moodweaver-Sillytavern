@@ -11,6 +11,7 @@ import { escapeHtml as esc } from '../engine/util.js';
 import { CATEGORIES } from '../data/catalogue.js';
 import { freshState } from '../engine/state.js';
 import { changeState, render } from './render.js';
+import { writerChoices, writerName } from '../app/writer.js';
 
 // 2.0: Settings as an observatory. A small sky at the top, then one card per subject, each folded to a line that
 // says what's inside. Switches sit on the right like every other switch in the panel; long explanations fold to an
@@ -37,6 +38,11 @@ export function settingsView(state) {
             ${sw('data-setting-bool="blendPlan"', yes('blendPlan'), 'Ask Claude to plan before writing', 'Asks Claude to work out how your strongest settings fit together before it writes. Opus 5.5 does this anyway, so best off.')}
             <details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre><b class="mw-pre-label">Ready to send</b><pre data-preview></pre><b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
 `)}
+        ${card('writers', '\u270e', '#b9d7f2', 'Writers', settings().writerMain && settings().writerAlt ? `${esc(writerName(settings().writerMain) || 'Main')} and ${esc(writerName(settings().writerAlt) || 'stand-in')}` : 'Not set', `
+            ${writerChoices().length ? `${choice('writerMain', 'Main writer', [['', 'Not set'], ...writerChoices()], 'The model that writes most replies.')}
+            ${choice('writerAlt', 'Stand-in writer', [['', 'Not set'], ...writerChoices()], 'The one you switch to with one tap on the Scene page.')}
+            <p class="mw-fine">These are SillyTavern Connection Profiles. Make one for each model in SillyTavern first (the plug icon \u203a Connection Profiles), then pick them here.</p>`
+            : '<p class="mw-fine">Make a Connection Profile for each model in SillyTavern first (the plug icon \u203a Connection Profiles), then pick them here.</p>'}`)}
         ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 6 extras on`, `
             ${choice('showsMode', 'How feelings show', [['all', 'Default + yours'], ['mine', 'Only yours'], ['off', 'Names only']])}
             ${choice('moodClash', 'When their moods clash', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'Your moods and theirs can rub. Traits never clash.')}

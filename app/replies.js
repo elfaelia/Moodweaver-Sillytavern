@@ -557,7 +557,9 @@ const mergeMoved = (rec, moved) => { for (const [id, [a, b]] of Object.entries(m
 // and runs its course; a feeling named rises to it. When the line gives the whole list (full), the ones it put
 // on and has since left off go: a fact comes off, a feeling fades a step each reply. Pinned ones and ones you set
 // yourself stay. kind: 'state' for facts, 'mood' for feelings. Returns { id: [before, after] }; fx says why.
-const STORY_ON = 50, STORY_FADE = 15;
+const STORY_ON = 50, STORY_FADE = 15, STORY_BUILD = 10, STORY_TOP = 80, YOURS_FADE = 5;
+// Which feelings a read feeling pushes down (2.0.12): tears, fear or anger take the shine off happy and calm, and the reverse.
+const MOOD_AGAINST = { sad: ['happy', 'calm'], scared: ['happy', 'calm'], angry: ['happy', 'calm'], happy: ['sad', 'scared', 'angry'], calm: ['scared', 'angry'] };
 // full 'loose' (the character's board) only takes off facts that don't run a course: those wear off by the clock.
 // The story keeps at most FACT_CAP facts on one person at a time; past that the oldest one it put on comes off.
 // Who-they-are facts (a job, a past, a status, an accent: not body, bed, substances or places, and not ones that
@@ -570,9 +572,28 @@ function fromStory(st, named, fx, { kind = 'state', hold = null, full = false } 
     const mine = new Set(st.fromStory ?? []), fact = kind === 'state';
     for (const id of named) {
         const v = st.moods[id] ?? 0;
+        // A feeling seen again while already strong builds a little (2.0.12), so crying reply after reply outweighs an old high.
+        if (!fact && v >= STORY_ON && v < STORY_TOP && !st.pins?.[id] && !hold?.m?.has(id)) { set(id, Math.min(STORY_TOP, v + STORY_BUILD), 'how the story reads you'); continue; }
         if (st.pins?.[id] || hold?.m?.has(id) || (fact ? v > 0 : v >= STORY_ON)) continue;
         set(id, STORY_ON, fact ? 'the story put it on' : 'how the story reads you'); if (!v) mine.add(id);
         if (fact && settings().factOpposites !== false) for (const o of OPPOSITE_OF[id] ?? []) if ((st.moods[o] ?? 0) > 0 && !st.pins?.[o] && !named.has(o)) { set(o, 0, 'its opposite came on'); mine.delete(o); }
+    }
+    // Feelings that don't fit how the story reads you now (happy while it reads you crying or scared) drop a step a reply,
+    // whoever set them, unless pinned or read again (2.0.12). They used to hold until changed by hand.
+    if (!fact) {
+        const kinds = new Set([...named].map(id => BY_ID[id]?.category)), against = new Set([...kinds].flatMap(k => MOOD_AGAINST[k] ?? []).filter(k => !kinds.has(k)));
+        if (against.size) for (const [id, v] of Object.entries(st.moods)) {
+            const m = BY_ID[id];
+            if (!(v > 0) || !m || sectionOf(m) !== 'mood' || !against.has(m.category) || named.has(id) || st.pins?.[id] || hold?.m?.has(id)) continue;
+            const to = Math.max(0, v - STORY_FADE); set(id, to, 'doesn\u2019t fit how the story reads you now'); if (!to) mine.delete(id);
+        }
+        // Feelings you set yourself are the story's to move too (2.0.13): while it doesn't read them in you they ease off
+        // slowly, a few points a reply. Pinned ones stay; ones the story put on fade faster below.
+        if (full) for (const [id, v] of Object.entries(st.moods)) {
+            const m = BY_ID[id];
+            if (!(v > 0) || !m || sectionOf(m) !== 'mood' || mine.has(id) || named.has(id) || id in moved || st.pins?.[id] || hold?.m?.has(id)) continue;
+            set(id, Math.max(0, v - YOURS_FADE), 'easing off, not seen in you lately');
+        }
     }
     if (full) for (const id of mine) {
         if ((BY_ID[id]?.kind === 'state') !== fact || named.has(id) || (full === 'loose' && (BY_ID[id]?.lasts || lasting(id)))) continue;

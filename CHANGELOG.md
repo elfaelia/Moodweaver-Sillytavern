@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.14
+- Drinking facts describe how it feels, nothing more. Drunk is "loose and reckless" instead of "bad judgement", Blackout drunk says the night will come back in pieces later instead of "won't remember any of it", Tipsy drops "guard lowered but still in control", and Pleasantly tipsy "leans in" instead of "lowered guard". Those words were setting off Claude's own caution in scenes with drinking.
+
+## 2.0.13
+- The story can move every mood of yours, including ones you set yourself. While it doesn't read a feeling in you, a hand-set one eases off by 5 a reply (ones the story put on still fade by 15). Pinned ones never move.
+
+## 2.0.12
+- The opening fiction rules follow each person's nature and ties. They used to say that someone heading for a bad choice is let go or used, that kindness never softens anyone, and to plan around what isn't safest or kindest, for everyone. Now someone who doesn't care leaves another person's trouble or uses it, while someone who does care acts on it in their own manner (gruff, controlling or sly as that may be). Kindness softens only someone it really would, and replies aim for what the person would really do, not what's harshest either.
+- A dark feeling aimed at someone else (murderous at her father) no longer switches on the dark-settings line, which read as the whole person being dark toward everyone, the player included. The feeling still says who it's aimed at.
+- Your moods follow the story better. A feeling the story reads in you again while already strong builds by 10, up to 80. Tears, fear or anger read in you take 15 a reply off happy and calm feelings, and the reverse, even ones you set yourself (pinned ones stay). Before, the story could only lift a feeling to 50, and nothing you set by hand ever went down.
+
 ## 2.0.11
 - A shock can break a feeling at once. When a character's anger, coldness, cruelty, cockiness, desire or joy is strong (50 or more), the note gets one roll for it each reply. If it comes up, the note says that if something in the moment hits them hard enough (a real shock or a line crossed, not just being pushed back), the feeling breaks this time and whatever the moment stirs takes its place. If it doesn't come up, the note says it holds this time: it can shift or crack, but not vanish in one reply. The story still decides whether the moment is a shock at all.
 - The odds start from the speed (30% Slow burn, 40% Steady, 50% Quick, 60% Volatile). Protective, soft-hearted, empathetic, loyal or hot-headed traits, protective or devoted feelings right now, being close to you and a romance or obsession dynamic raise them. Stubborn, proud, vindictive, cold-blooded or callous traits, being set against you and a captor, power or distant dynamic lower them. They stay between 10% and 85%, and are halved for six replies after a snap so it doesn't happen every time.

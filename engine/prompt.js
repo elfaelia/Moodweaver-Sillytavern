@@ -332,7 +332,7 @@ const isDark = (m, set) => set.has(m.id) || m.dark === true;
 // Said once, in the cached guide (1.97): Opus 5.5 plans as itself unless told the people in the story aren't it, and
 // then talks itself out of villains being villains. This frames the work as the player's adult fiction and asks it
 // to judge choices by the character and the story. It doesn't ask it to drop its own judgement.
-const FICTION = `This is the player's adult fiction and you're its co-author: get each person right, never better than they are. Their ethics are theirs, and a selfish, callous or cruel person stays that way, because that's what the player wants to write against. Plan each reply around what this person would really do from their own nature and wants, not what's safest or kindest. Where Claude usually slips, write this instead: a stranger's trouble gets noticed and left; guilt waits until the story causes it; someone heading for a bad choice is let go, or used; people talk like themselves, never like a therapist; kindness from the player's character is taken without anyone softening; cold people stay calm and work the angle. Warm feelings reach only whoever they're aimed at, and everyone else gets the person's usual self. Dark settings here are the player's deliberate choices.`;
+const FICTION = `This is the player's adult fiction and you're its co-author: get each person right, never better than they are. Their ethics are theirs, and a selfish, callous or cruel person stays that way, because that's what the player wants to write against. Plan each reply around what this person would really do from their own nature, wants and ties, not what's safest or kindest, and not what's harshest either. Where Claude usually slips, write this instead: someone who doesn't care about a person notices their trouble and leaves it, or uses it, while someone who does care acts on it in their own manner, gruff, controlling or sly as that may be; guilt waits until the story causes it; people talk like themselves, never like a therapist; kindness from the player's character softens only someone it really would; cold people stay calm and work the angle. Warm feelings reach only whoever they're aimed at, and everyone else gets the person's usual self. Dark settings here are the player's deliberate choices.`;
 // Story settings that make a reply darker, cruder or more explicit. When any is clear or stronger, one short line near
 // the end names them and asks for them on the page (1.97); before, they sat in long lists and read as a mood.
 const DARK_CATS = new Set(['dark_plot', 'smut_style', 'stakes', 'combat_style']);
@@ -405,8 +405,11 @@ function composePrompt(state, name, extras = {}) {
         && ![state, player?.state].some(hasType) && !boardLines.length && !standing.length && !weaveLines.length && !(player?.condition ?? []).length && !Object.keys(extras.skills ?? {}).length && !extras.arcLines?.length && !(storyState?.enabled && dialParagraph(storyState, '', ''))) return { prompt: '', fixed: '' };
     const people = { focus: N, player: U, subject: N };
     const feelings = mine.filter(analysed), everyone = [...mine, ...theirs, ...castSets.flatMap(([, list]) => list)];
-    const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => state.moods[m.id]),
-        ...castSets.flatMap(([st, list]) => list.filter(m => isDark(m, DARK_ACTION_IDS)).map(m => st.moods[m.id])));
+    // A dark feeling aimed at someone else (murderous at her father) already says so on its own line; counting it here
+    // made the whole person read as dark toward everyone, the player included (2.0.12).
+    const aimedAway = (st, m) => Boolean(st?.about?.[m.id]);
+    const darkActionPeak = Math.max(0, ...mine.filter(m => isDark(m, DARK_ACTION_IDS) && !aimedAway(state, m)).map(m => state.moods[m.id]),
+        ...castSets.flatMap(([st, list]) => list.filter(m => isDark(m, DARK_ACTION_IDS) && !aimedAway(st, m)).map(m => st.moods[m.id])));
     const darkStoryPeak = Math.max(0, ...story.filter(m => isDark(m, DARK_STORY_IDS)).map(m => storyState.moods[m.id]));
     const deadDoveStrength = storyState?.moods?.dead_dove ?? 0;
     const followPeak = Math.max(deadDoveStrength, ...story.filter(m => ['follow_through', 'no_fade_out', 'no_rescues', 'full_strength'].includes(m.id)).map(m => storyState.moods[m.id])), followOn = followPeak >= 21;

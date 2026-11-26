@@ -58,6 +58,7 @@ function mergeTurns(state, knowledgeMaps) {
         for (const map of knowledgeMaps) delete map[key];
     }
 }
+const TRAIT_TO_COPE = { self_medicating: 'drugs', escapism: 'distraction', glutton_for_punishment: 'penance', self_destructive: 'reckless' };
 export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
     state.moods ??= {};
     state.pins ??= {};
@@ -82,6 +83,13 @@ export function migrateCatalogue(state, knowledgeMaps = [], snapshot = false) {
         state.moods[target] = peak;
         state.pins[target] = ids.some(id => Boolean(state.pins[id]));
         for (const id of ids.slice(1)) { delete state.moods[id]; delete state.pins[id]; }
+    }
+    // 2.0.8: traits that were really ways of coping move to the Stress card's ways of coping (up to six).
+    for (const [id, cope] of Object.entries(TRAIT_TO_COPE)) {
+        if (!Object.hasOwn(state.moods, id)) continue;
+        if (!snapshot && clamp(state.moods[id]) > 0) state.copes = [...new Set([...(Array.isArray(state.copes) ? state.copes : []), cope])].slice(-6);
+        delete state.moods[id]; delete state.pins[id];
+        for (const map of knowledgeMaps) delete map[id];
     }
     for (const id of REMOVED_MOODS) {
         delete state.moods[id]; delete state.pins[id];

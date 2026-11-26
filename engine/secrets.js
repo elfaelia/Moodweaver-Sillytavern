@@ -49,7 +49,7 @@ export function secretLines({ mine = [], yours = [], n, u, scene = '', now = 0 }
     const out = [];
     for (const s of mine) {
         const x = pt(s.text);
-        if (s.state === 'hidden' && near(s, scene)) out.push(`${pt(n)}'s secret, which ${pt(u)} doesn't know: ${x}. The scene is close to it: ${pt(n)} guards it, deflects or lies, and it costs something to.`);
+        if (s.state === 'hidden' && near(s, scene)) out.push(`${pt(n)}'s secret, which ${pt(u)} doesn't know: ${x}. The scene is close to it: ${pt(n)} guards it, deflects or lies, and it costs something to; hinting that there is a secret would give it away.`);
         else if (s.state === 'suspected') out.push(`${pt(u)} suspects ${pt(n)}'s secret (${x}) without being sure. ${pt(n)} can feel it and watches what ${pt(u)} knows.`);
         else if (s.state === 'known') out.push(`${pt(u)} knows ${pt(n)}'s secret (${x}): a hook ${pt(u)} holds over ${pt(n)}. ${pt(n)} knows it, and it shifts the balance between them.`);
         else if (['out', 'used'].includes(s.state) && now - s.at <= OUT_FOR) out.push(`${pt(n)}'s secret is out${s.state === 'used' ? `, played against ${pt(n)}` : ''}: ${x}. ${pt(n)} lives with what that costs.`);

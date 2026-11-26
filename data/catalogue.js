@@ -38,7 +38,8 @@ for (const c of SECTIONS) for (const r of c.rows) {
 // Traits tab: who someone is, rather than how they feel right now. Intimacy tab: how they want and have sex
 // (catalogue/intimacy.js). Both are standing: they don't fade, and the scene reader only changes them when its
 // \u2742 Traits scope is on.
-export const TRAIT_CATEGORIES = new Set(['love', 'sims', 'manner', 'temperament', 'views', 'alignment', 'psychology', 'archetype']);
+// 2.0.8: the groups come from catalogue/trait.js, so Temperament's split into building blocks needs nothing here.
+export const TRAIT_CATEGORIES = new Set(traitSection.map(c => c.id));
 export const INTIMACY_CATEGORIES = new Set(intimacySection.map(c => c.id));
 // Mind tab (catalogue/psyche.js): how someone's mind works underneath. Standing, like traits.
 export const PSYCHE_CATEGORIES = new Set(psycheSection.map(c => c.id));

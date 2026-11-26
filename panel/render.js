@@ -43,23 +43,24 @@ export function renderPreview() {
     if (count) {
         const max = Math.max((info.target || 1) + guide, info.tokens || 0), w = n => `${Math.round(n / max * 100)}%`;
         count.innerHTML = `<div class="mw-token-meter" role="img" aria-label="${info.tokens} tokens: ${guide} cached guide, ${fresh} fresh"><i class="is-guide" style="width:${w(guide)}"></i><i class="is-fresh" style="width:${w(fresh)}"></i>${info.target ? `<b style="left:${w(info.target + (guide ? guide : 0))}" title="Your target"></b>` : ''}</div>
-            <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first \u00b7 ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply \u00b7 target ${info.target ?? '\u2014'}${guide ? ' (for the fresh part)' : ''} \u00b7 ${info.selectedIds?.length || 0} settings in play</p>`;
+            <p class="mw-token-legend">${guide ? `<span class="is-guide">Guide ${guide}</span> the same every reply, cached after the first \u00b7 ` : ''}<span class="is-fresh">Right now ${fresh}</span> sent fresh each reply \u00b7 warning at ${info.target ?? '\u2014'} \u00b7 ${info.selectedIds?.length || 0} settings in play</p>`;
     }
     const preview = ui.panel.querySelector('[data-preview]');
     if (preview) preview.textContent = info.prompt ? `${info.fixed ? `${info.fixed}\n\n` : ''}${info.prompt}${info.tail ? `\n\n[your message goes here]\n\n${info.tail}` : ''}` : 'No mood directions are being sent.';
     const audit = ui.panel.querySelector('[data-audit]');
-    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role \u00b7 depth ${settings().depth}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
+    if (audit) audit.textContent = `Every active mood, fact, relationship feeling and story setting is sent, using the same strength words shown on the sliders. Paused relationships and cast members off scene are left out. Numbers are not sent.\nFormat: ${info.fixed ? 'guide in the prompt above the chat (system role), notes as ' : ''}user role \u00b7 ${PLACE_WORDS[settings().noteOrder] ?? PLACE_WORDS.after}${info.overBudget ? `\n${info.overBudget} tokens above the ${info.target}-token target; nothing was dropped or shortened.` : ''}`;
     const last = ui.panel.querySelector('[data-last-prompt]');
     if (last) {
         const snapshot = generationSnapshots.get(identity());
-        last.textContent = snapshot ? `${snapshot.at}\nUser role \u00b7 depth ${snapshot.depth}\n${snapshot.fixed ? `${snapshot.fixed}\n\n` : ''}${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
+        last.textContent = snapshot ? `${snapshot.at}\nUser role \u00b7 ${PLACE_WORDS[snapshot.order] ?? PLACE_WORDS.after}\n${snapshot.fixed ? `${snapshot.fixed}\n\n` : ''}${snapshot.prompt || '(No mood injection)'}` : 'No generation prepared for this chat/character since this page loaded.';
     }
     const warning = ui.panel.querySelector('[data-budget-warning]');
     if (warning) {
         warning.hidden = !info.overBudget;
-        warning.textContent = `Full blend kept: ${guide ? fresh : info.tokens} tokens${guide ? ' sent fresh' : ''} (${info.overBudget} above target). Details are in \u201cWhat is sent to the model?\u201d`;
+        warning.textContent = `Full blend kept: ${guide ? fresh : info.tokens} tokens${guide ? ' sent fresh' : ''} (${info.overBudget} above target). Nothing is cut; the details are in \u201cWhat\u2019s sent, in full\u201d below.`;
     }
 }
+const PLACE_WORDS = { after: 'after your message', rules: 'around your message', before: 'before your message' };
 export function renderStatus() {
     if (ui.panel?.querySelector('[data-status]')) ui.panel.querySelector('[data-status]').textContent = run.status;
 }
@@ -205,7 +206,7 @@ const noteKey = el => el.textContent.trim().slice(0, 60);
 export function foldNotes(root) {
     ui.openNotes ??= new Set();
     for (const p of root?.querySelectorAll?.(NOTE_SEL) ?? []) {
-        if (p.dataset.fold || p.matches('.mw-period-warn, .mw-empty-list, .mw-scope-none, [data-filter-empty]') || p.closest('[role="status"], .mw-want-empty')) continue;
+        if (p.dataset.fold || p.matches('.mw-keep, .mw-period-warn, .mw-empty-list, .mw-scope-none, [data-filter-empty]') || p.closest('[role="status"], .mw-want-empty')) continue;
         if (p.textContent.trim().length < 70 || p.querySelector('input, select, button, textarea')) continue;
         p.dataset.fold = '1'; p.classList.add('mw-foldable'); p.classList.toggle('is-open', ui.openNotes.has(noteKey(p)));
         p.setAttribute('role', 'button'); p.tabIndex = 0; p.setAttribute('aria-expanded', String(p.classList.contains('is-open')));

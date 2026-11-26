@@ -18,7 +18,7 @@ ${n} feels: up to five feelings, each followed by a strength word (${STRENGTH}),
 ${n} facts: things that become true of ${n}'s body, clothes, condition or situation, comma separated
 ${u} feels: up to five feelings with a strength word each, comma separated
 ${u} facts: things that become true of ${u}, comma separated
-story: up to three things about how the story runs or what it's about (genre, trope, theme, how wild, how dangerous, how it ends), comma separated]`;
+story: up to three things about how the story runs or what it's about (genre, trope, theme, how wild, how dangerous, how feelings come out, how it ends), comma separated]`;
 
 // Story rows by name: genres, tropes, dark pressure, stakes and writing rows, not authors, point of view or craft.
 const norm = s => String(s ?? '').toLowerCase().replace(/\s*\(.*\)\s*$/, '').replace(/[^a-z0-9' -]/g, ' ').replace(/\s+/g, ' ').trim();

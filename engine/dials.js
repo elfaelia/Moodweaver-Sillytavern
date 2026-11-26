@@ -14,6 +14,7 @@ const TURNS = { key: 'turns', title: 'How wild the story runs', steps: [
 // Claude's discretion: handed a choice, Claude picks the kindest outcome.
 const hurt = (u, led) => `Anyone can be badly hurt, ${u} included. When something would injure, sicken or wear ${u} down, it does, as hard as it really would: what was done and where they are decide the damage, not mercy, luck or a softer outcome${led ? '' : `. The player still writes ${u}\u2019s choices`}. Being central to the story protects no one.`;
 const lead = (n, u) => `${n}, the others and the world make the big moves, and the player only writes ${u}\u2019s words and choices. When something big is coming, it happens in this reply; stop only where the next beat has to be ${u}\u2019s, never on a threshold or a question to ${u}.`;
+const ANGST = 'Feelings, motives and secrets stay mostly unsaid. They show in what someone does, avoids or lets slip, never in a speech that explains them, and hinting that there\u2019s something they\u2019ll never tell gives it away just the same. Arguments end unfinished or worse, and nobody turns a fight into a confession.';
 export const DIALS = [TURNS,
     { key: 'danger', title: 'How much can go wrong', steps: [
         ['\u2661', 'Safe', 'Fear and setbacks, but nothing lasting or deadly.', () => 'Nobody comes to lasting or deadly harm. Fear, pain and setbacks are fine, and people recover.'],
@@ -27,6 +28,15 @@ export const DIALS = [TURNS,
         ['\u25d0', 'Shared', 'The story as it comes.'],
         ['\u2609', 'The world leads', 'Others and events make the big moves.', lead],
         ['\u27a4', 'They push it', 'The story pushes on every reply, and they go further unasked.', (n, u) => `${lead(n, u)} Push forward every reply, and when someone would go further, they do it now instead of waiting for ${u} to raise it.`],
+    ] },
+    // 2.0.8: how much is said out loud, and how fast hurt and fights settle (her Kenny story kept confessing and
+    // making up mid-argument). The angst steps also stop a character announcing that they have something to hide.
+    { key: 'heart', title: 'How feelings come out', steps: [
+        ['\u2600\ufe0e', 'Said plainly', 'People say what they feel and settle things.', () => 'People mostly say what they feel, and arguments get talked through and settled when the scene allows.'],
+        ['\u25d0', 'As it comes', 'The story decides; nothing added.'],
+        ['\u2767', 'Slow to settle', 'Hurt and fights don\u2019t settle in one scene.', () => 'Hurt and fights don\u2019t settle in one scene: people deflect, sulk, say the wrong thing or walk off, and making up comes later, once it\u2019s earned.'],
+        ['\u2602\ufe0e', 'Angst', 'Feelings and secrets stay mostly unsaid; fights end unfinished.', () => ANGST],
+        ['\u2620\ufe0e', 'Never said', 'The heart of it is never said; any confession comes out wrong or is taken back.', () => `${ANGST} What matters most stays unsaid; if a confession starts, it comes out partial or wrong, or is taken back, and the hurt stays.`],
     ] },
     { key: 'ending', title: 'How it ends up', steps: [
         ['\u2600\ufe0e', 'Hopeful', 'Things can come right when the story earns it.', () => 'Good endings, repair and hope stay open once the story has earned them.'],

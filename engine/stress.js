@@ -57,14 +57,14 @@ export const COPES = [
     ['penance', 'Penance', 'm', 'prays harder, judges harder, and punishes their own wanting', ['devout', 'puritanical', 'fanatic']],
     // Unhealthy: ease it fast, then cost them: it comes back worse once it wears off.
     ['drink', 'Drinking', 'u', 'drinks more than usual, and earlier in the day', ['alcoholic']],
-    ['drugs', 'Substance abuse', 'u', 'uses to take the edge off', ['functional_addict', 'substance_abuser']],
+    ['drugs', 'Substance abuse', 'u', 'uses to take the edge off', ['substance_abuser', 'addictive_personality']],
     ['smoke', 'Smoking', 'u', 'chain-smokes and paces', ['smoker']],
     ['avoidance', 'Avoidance', 'u', 'won\u2019t think about it, talk about it or go near anything that touches it', ['avoidant_attachment', 'in_denial']],
     ['numbing', 'Shutting down', 'u', 'goes numb and far away, and lets things happen around them', ['dissociative']],
     ['fight', 'Fighting', 'u', 'picks a fight or hits something until it\u2019s out of them', ['hot_headed', 'volatile', 'violent', 'explosive_rage']],
     ['lashing', 'Lashing out', 'u', 'snaps at whoever is closest and says the cruel thing first', ['bitter', 'spiteful']],
     ['cruelty', 'Cruelty', 'u', 'takes it out on someone who can\u2019t fight back, and feels calmer after', ['sadistic_personality', 'psychopathic', 'sociopathic']],
-    ['reckless', 'Reckless thrills', 'u', 'does something reckless just to feel something else', ['self_destructive']],
+    ['reckless', 'Reckless thrills', 'u', 'does something reckless just to feel something else', ['death_wish', 'thrill_seeker']],
     ['gambling', 'Gambling', 'u', 'bets money they can\u2019t lose, chasing the rush', ['gambling_compulsion']],
     ['spending', 'Spending', 'u', 'spends money they shouldn\u2019t on things they don\u2019t need', ['materialistic']],
     ['bingeing', 'Bingeing or starving', 'u', 'eats until they feel sick, or nothing at all', ['binge_eater', 'bulimic', 'anorexic']],
@@ -107,7 +107,7 @@ export function copeUsed(st, said) {
 
 // What a break looks like: the first that fits, strongest first, else by what's been building (rage, grief, fear).
 const BREAKS = [
-    [['alcoholic', 'functional_addict', 'substance_abuser'], 'goes on a binge: drinks or uses until the edges blur, and does or says something they can\u2019t take back'],
+    [['alcoholic', 'substance_abuser'], 'goes on a binge: drinks or uses until the edges blur, and does or says something they can\u2019t take back'],
     [['sadistic_personality', 'psychopathic', 'sociopathic', 'explosive_rage', 'violent'], 'goes cold and does something cruel and deliberate, worse than they\u2019ve shown before'],
     [['controlling', 'perfectionist', 'ocd', 'disciplined'], 'tries to seize control of everything at once: rules, locks, schedules, people, and comes apart when it won\u2019t hold'],
     [['devout', 'puritanical', 'fanatic'], 'falls into a frenzy of guilt and penance, confession or self-punishment'],
@@ -115,7 +115,7 @@ const BREAKS = [
     [['lone_wolf', 'withdrawn', 'introverted', 'avoidant_attachment'], 'vanishes: leaves without a word, for hours or a night, and won\u2019t say where'],
     [['borderline', 'anxious_attachment', 'codependent'], 'clings and accuses in turns: begging the other person not to leave, then pushing them away'],
     [['manic', 'bipolar'], 'goes manic: no sleep, big plans, money spent, risks taken'],
-    [['self_destructive', 'gambling_compulsion'], 'throws something important away: a fight they can\u2019t win, a risk that costs them, a bridge burned'],
+    [['death_wish', 'self_sabotage', 'gambling_compulsion'], 'throws something important away: a fight they can\u2019t win, a risk that costs them, a bridge burned'],
     [['soft_hearted', 'sensitive', 'people_pleaser'], 'breaks down crying where they least want to, and can\u2019t stop'],
 ];
 const BREAK_BY_FAMILY = {

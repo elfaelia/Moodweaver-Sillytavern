@@ -27,19 +27,16 @@ export function settingsView(state) {
         <div class="mw-settings-head mw-set-hero"><i class="mw-set-sky" aria-hidden="true"></i><button type="button" class="mw-back" data-action="settings-close">\u2039 Back</button><div><b>Settings</b><small>Most of these are for every chat. Clearing and defaults are for ${esc(whose)}.</small></div></div>
         ${card('sent', '\u25f7', '#efd59c', 'Tokens and the note', 'What goes to Claude each reply, and where', `
             <div data-token-count class="mw-token-count"></div><p data-budget-warning class="mw-fine" hidden></p>
-            ${choice('noteOrder', 'Where the notes go', [['after', 'After message'], ['rules', 'Rules after'], ['before', 'Before it']], 'Whatever comes last gets the most attention.')}
-            <p class="mw-fine"><b>After message:</b> the notes come last, so settings and writing rules bite hardest, but a small detail in your message can get lost under them. <b>Rules after:</b> moods, facts and the rest come before your message and only the point of view, writing rules and hidden-line reminder come after it. <b>Before it:</b> everything comes before your message except the hidden-line reminder.</p>
-            ${sw('data-setting-bool="splitNote"', on('splitNote'), 'Split the note for caching', 'The parts that never change go once near the top, where they cost much less.')}
-            ${sw('data-field="sceneBreathing"', state.sceneBreathing !== false, 'Keep scenes moving')}
-            ${sw('data-setting-bool="fillInChip"', on('fillInChip'), 'Offer to add a missing hidden line', 'A button under any reply that came back without it.')}
-            ${sw('data-setting-bool="blendPlan"', yes('blendPlan'), 'Plan the blend while thinking', 'Usually best off: Opus 5.5 plans on its own.')}
+            ${choice('noteOrder', 'Where the notes sit', [['after', 'After your message'], ['rules', 'Around your message'], ['before', 'Before your message']], 'Claude pays most attention to whatever it reads last.')}
+            <p class="mw-fine mw-keep">${{ after: 'Everything Moodweaver sends comes after your newest message, so moods, settings and writing rules count most; a small detail in your message can get less attention.', rules: 'Moods, facts and the rest come before your message; only the point of view, writing rules and the hidden-line reminder come after it. A middle way.', before: 'Everything comes before your message except the hidden-line reminder, so your own message counts most.' }[settings().noteOrder] ?? ''}</p>
+            ${sw('data-setting-bool="splitNote"', on('splitNote'), 'Cache the parts that never change', 'The rules that are the same every reply go once at the very top, where they\u2019re cached and cost about a tenth. Best on. It works with any of the three above.')}
+            <label class="mw-set-num">Warn me when the fresh part passes <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}" aria-label="Token warning"></label>
+            <p class="mw-fine">In tokens. Only a warning: nothing you set is ever cut.</p>
+            ${sw('data-field="sceneBreathing"', state.sceneBreathing !== false, 'Keep scenes moving', 'Tells Claude to move each scene along rather than linger in it.')}
+            ${sw('data-setting-bool="fillInChip"', on('fillInChip'), 'Offer to add a missing hidden line', 'When Claude forgets the hidden line Moodweaver reads after a reply, a button under that reply adds it in one tap.')}
+            ${sw('data-setting-bool="blendPlan"', yes('blendPlan'), 'Ask Claude to plan before writing', 'Asks Claude to work out how your strongest settings fit together before it writes. Opus 5.5 does this anyway, so best off.')}
             <details class="mw-sent-full"><summary>What\u2019s sent, in full</summary><pre data-audit></pre><b class="mw-pre-label">Ready to send</b><pre data-preview></pre><b class="mw-pre-label">Last reply</b><pre data-last-prompt></pre></details>
-            <details class="mw-sent-full" data-settings="limits"><summary>Limits</summary>
-                <label class="mw-set-num">Token target <input type="number" data-setting="tokenBudget" min="160" max="3000" value="${settings().tokenBudget}"></label>
-                <label class="mw-set-num">Depth from the end <input type="number" data-setting="depth" min="0" max="10" step="1" value="${settings().depth}"></label>
-                <label class="mw-set-num">Reader text cap <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
-                <label class="mw-set-num">Reader reply cap <input type="number" data-setting="outputTokens" min="300" max="16000" step="100" value="${settings().outputTokens}"></label>
-                <p class="mw-fine">Depth 0 (after your latest message) works best. The text cap is in characters; raise the reply cap if a thinking model runs out before it answers.</p></details>`)}
+`)}
         ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 5 extras on`, `
             ${choice('showsMode', 'How feelings show', [['all', 'Default + yours'], ['mine', 'Only yours'], ['off', 'Names only']])}
             ${choice('moodClash', 'When their moods clash', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'Your moods and theirs can rub. Traits never clash.')}

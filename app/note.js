@@ -132,11 +132,13 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         // Music \u203a "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
         if (musicLine) { result.prompt = result.prompt ? `${result.prompt}\n${musicLine}` : musicLine; result.tokens = (result.tokens ?? 0) + Math.ceil(musicLine.length / 4); }
-        // In-chat, user role. Depth 0 puts the note after the latest chat message, depth 1 just before it, where the
-        // player's message is read last (Settings \u203a What is sent \u203a Where the notes go); a short reminder then
-        // follows it at depth 0. Preset instructions outside chat history can still come after both.
+        // In-chat, user role. After your message: the note at depth 0, after the latest chat message. Around or before
+        // it: depth 1, just before it, so the player's message is read last, and a short reminder follows it at depth
+        // 0 (Settings \u203a Tokens and the note \u203a Where the notes sit). Preset instructions outside chat history can still
+        // come after both. 2.0.7: the separate depth number is gone; it could put the note before your message while
+        // the note itself said it came after.
         const before = settings().noteOrder === 'before' || settings().noteOrder === 'rules';
-        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, before ? 1 : settings().depth, false, 1);
+        c.setExtensionPrompt(PROMPT_KEY, result.prompt, 1, before ? 1 : 0, false, 1);
         c.setExtensionPrompt(TAIL_KEY, before ? result.tail ?? '' : '', 1, 0, false, 1);
         // The guide sits in the prompt above the chat (system role), so it stays the same text reply after reply and
         // can be cached along with everything before it.

@@ -482,7 +482,7 @@ const SIXTIES = [
     L('mind', 'Pills', 'pills', 'Pills', {
         he: '{who}\u2019s pills came from a doctor, so nobody calls them a habit.',
         she: 'Tranquillisers are in half the medicine cabinets in the country, and housewives are the biggest customers. Nobody would call {who} an addict.' },
-    { ids: ['medicated', 'on_benzos', 'on_tranquillisers', 'on_sleeping_pills', 'on_diet_pills', 'on_painkillers', 'self_medicating', 'functional_addict'] }),
+    { ids: ['medicated', 'on_benzos', 'on_tranquillisers', 'on_sleeping_pills', 'on_diet_pills', 'on_painkillers', 'substance_abuser'] }),
 
     // ---- Reputation and judgement ----
     L('name', 'Neighbours', 'appearances', 'What the neighbours think', {
@@ -543,7 +543,7 @@ const SIXTIES = [
     L('temper', 'Manner', 'pride', 'Pride', {
         he: 'A proud man is respected, so long as he can back it up.',
         she: 'A woman who is proud of herself is called stuck-up. {who} is supposed to wait to be praised.' },
-    { ids: ['proud', 'confident', 'cocky', 'arrogant', 'superior', 'snobbish', 'egotistical'] }),
+    { ids: ['proud', 'confident', 'cocky', 'arrogant', 'snobbish'] }),
     L('temper', 'Manner', 'speaks_mind', 'Speaking out', {
         he: 'A man who speaks his mind is called straight-talking.',
         she: 'Women are expected to keep their opinions to themselves, especially in front of men. {who} speaking her mind will be called pushy or unladylike.' },

@@ -47,7 +47,7 @@ globalThis.moodweaverBeforeGeneration = async (chat, _contextSize, _abort, type)
     const ch = target(true), state = getState(ch);
     if (state?.enabled && state.mode === 'dynamic' && !['swipe', 'regenerate', 'continue'].includes(type)) await analyse(false, 'char', ch);
     await syncPrompt(true, chat, type);
-    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), depth: settings().depth, prompt: run.promptInfo.prompt + (run.promptInfo.tail ? `\n\n${run.promptInfo.tail}` : ''), fixed: run.promptInfo.fixed ?? '' });
+    generationSnapshots.set(identity(ch), { at: new Date().toLocaleString(), order: settings().noteOrder, prompt: run.promptInfo.prompt + (run.promptInfo.tail ? `\n\n${run.promptInfo.tail}` : ''), fixed: run.promptInfo.fixed ?? '' });
     if (generationSnapshots.size > 20) generationSnapshots.delete(generationSnapshots.keys().next().value);
     renderPreview();
 };

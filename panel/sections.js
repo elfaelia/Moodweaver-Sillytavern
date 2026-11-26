@@ -103,6 +103,9 @@ function readerBlock(state) {
             <label>Connection<select data-reader="profile"><option value="">Choose a connection profile\u2026</option>${profile && !allProfiles.some(p => p.id === profile) ? `<option selected value="${esc(profile)}">Unavailable profile, choose another</option>` : ''}${allProfiles.map(p => `<option value="${esc(p.id)}" ${p.id === profile ? 'selected' : ''}>${esc(p.name)} \u00b7 ${esc(p.model)}</option>`).join('')}</select></label>
             <div class="mw-seg-label">Recent messages it reads</div>
             <div class="mw-seg" role="group" aria-label="Recent messages">${[4, 6, 10, 16].map(n => `<button type="button" data-reader-msgs="${n}" aria-pressed="${settings().sceneMessages === n}">${n}</button>`).join('')}</div>
+            <label class="mw-set-num">Most chat text it reads (characters) <input type="number" data-setting="sceneChars" min="2000" max="40000" step="1000" value="${settings().sceneChars}"></label>
+            <label class="mw-set-num">Longest answer it may give (tokens) <input type="number" data-setting="outputTokens" min="300" max="16000" step="100" value="${settings().outputTokens}"></label>
+            <p class="mw-fine">Raise the answer length if a thinking model runs out before it answers.</p>
             <div class="mw-scene-mark">${start && start < chatLen ? `<span>\u27f2 Scene starts at message ${start + 1} of ${chatLen}</span><button type="button" data-action="scene-clear">Remove</button>`
                 : `<button type="button" data-action="scene-mark">\u27f2 New scene starts at the latest message</button>`}</div>
             <p class="mw-fine">Nothing before the mark gets read.</p>

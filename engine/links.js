@@ -107,7 +107,7 @@ export function tieLink(his = {}, yours = {}, dynamic, n, u) {
 // changing the dynamic. lead: 'n' when he holds the power right now, 'u' when you do, '' when nobody clearly does.
 // [trait ids, test(dynamic, lead), text(n, u, name)]. First match wins.
 const CORE_BENDS = [
-    [['prideful', 'arrogant', 'superior', 'vain', 'dignified', 'stubborn', 'egotistical', 'snobbish', 'entitled'], (d, lead) => lead === 'u',
+    [['prideful', 'arrogant', 'vain', 'dignified', 'stubborn', 'snobbish', 'entitled'], (d, lead) => lead === 'u',
         (n, u) => `${n} gives way to ${u} but never looks like it: concessions come dressed as choices, and the pride stays intact`],
     [['soft_hearted', 'sunshine', 'selfless', 'self_sacrificing', 'gentlemanly', 'fatherly'], (d, lead) => lead === 'n' || ['power', 'captor'].includes(d.group),
         (n, u) => `${n} holds the power gently: firm where it counts, soft everywhere else`],

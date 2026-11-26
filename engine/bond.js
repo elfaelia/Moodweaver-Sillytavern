@@ -378,7 +378,7 @@ export function sparkTarget(text, prefs = {}, traits = []) {
 
 // Rows for the relationships block, under "[character] toward [player]". Words only: a number tells the
 // model less than "wary" does. The request for the hidden line is built in weave.js.
-export function bondStanding({ bond, chatLength, n, u, axes = null, list = null }) {
+export function bondStanding({ bond, chatLength, n, u, axes = null, list = null, mood = null }) {
     if (!bond?.on) return [];
     const d = computeBond(bond, chatLength, n, u, axes, list), low = s => s.toLowerCase(), word = w => w === 'Even' ? 'even' : pt(w);
     return [
@@ -386,7 +386,7 @@ export function bondStanding({ bond, chatLength, n, u, axes = null, list = null 
         ...(bond.extra ? [`their dynamic, ${low(d.dynamic.name)}: ${pt(d.dynamic.cue)}${d.swing ? `. Lately the upper hand keeps changing hands, so either of them can take it in a scene` : ''}`] : []),
         ...(bond.extra && d.under ? [`underneath it, slower to change, ${low(d.under.name)}: ${pt(d.under.cue)}. It colours the main dynamic rather than replacing it`] : []),
         ...(d.thinks.length ? [`${pt(n)} thinks ${pt(u)} is: ${d.thinks.map(t => pt(String(t.text).replace(new RegExp(`^(?:${u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|she|he|they)\\s+(?:is|are)\\s+`, 'i'), ''))).join(', ')}`] : []),
-        ...moreLines(bond.more, list ?? [], pt(n), pt(u), paceOf(bond).cap),
+        ...moreLines(bond.more, list ?? [], pt(n), pt(u), paceOf(bond).cap, mood),
         ...desireLines(bond, list ?? [], pt(n), pt(u)),
     ];
 }

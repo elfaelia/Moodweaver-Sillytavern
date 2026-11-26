@@ -10,7 +10,7 @@ import { settings } from './settings.js';
 import { GUIDE_KEY, KEY, PROMPT_KEY, TAIL_KEY, clearNotes, ctx, run, tintLauncher } from './state.js';
 import { moodTone } from '../engine/tone.js';
 import { boardPromptLines, cleanBoardMeta, feelingId } from '../engine/board.js';
-import { bondStanding, cleanDesire, computeBond } from '../engine/bond.js';
+import { bondStanding, cleanDesire, computeBond, paceOf } from '../engine/bond.js';
 import { BY_ID, MOODS, analysed, sectionOf } from '../data/catalogue.js';
 import { budgetPrompt } from '../engine/prompt.js';
 import { shortName } from '../engine/util.js';
@@ -20,8 +20,8 @@ import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, POWER_PAIRS, POW
 import { effectiveChat } from '../engine/ledger.js';
 import { coreLink, moodClash, moodLink, roleLink, tieLink } from '../engine/links.js';
 import { cleanAge, heightCm } from '../engine/turns.js';
-import { cleanMore, meterWeaveNames } from '../engine/meters.js';
-import { MOOD_PACE, SHORT_FUSE, SNAP_COOL, snapLine, snapOdds, snapRoll, snapped, temperPace } from '../engine/moodpace.js';
+import { cleanMore, computeMore, meterWeaveNames } from '../engine/meters.js';
+import { MOOD_PACE, RESTRAINT_BREAK, SHORT_FUSE, SNAP_COOL, restraintLine, restraintOdds, snapLine, snapOdds, snapRoll, snapped, temperPace } from '../engine/moodpace.js';
 import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
@@ -123,13 +123,15 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const close = Boolean(bd && (bd.f >= 41 || bd.r >= 41));
         // Snaps (2.0.11): a strong hot or hard feeling gets one roll this reply for breaking at once if the moment is a shock.
         const snap = snapNow(ch, state, bd, bond.pace), snapAt = snap ? snapLine(snap, snapRoll((history.length * 7919 + (run.diceSalt ?? 0) + 4099) | 0), n) : '';
-        const echoes = [snapAt, ...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
+        // Restraint giving way (2.0.18): one roll while the Restraint meter is strong.
+        const held = restraintNow(ch, state, bond, bondList0), heldAt = held ? restraintLine(held, snapRoll((history.length * 7919 + (run.diceSalt ?? 0) + 7121) | 0), n, u) : '';
+        const echoes = [snapAt, heldAt, ...(settings().aftermath !== false ? aftermathLines(c.chatMetadata?.[KEY]?.applied?.[`char:${ch.avatar}`] ?? [], state, n) : []),
             contagionLine({ seems: seemsIds, st: state, close, n, u, seed: history.length, mode: settings().contagion }),
             // Stress and breaking points, and how they've come to feel about people the scene brings up (1.79).
             ...stressLines(stressNow(ch, history), n), ...opinionLines(opinionsNow(ch, history), n, skillScene0.scene),
             ...(sec ? secretLines({ ...sec, n, u, scene: skillScene0.scene }) : [])].filter(Boolean);
         const result = await budgetPrompt(stateNote, name, settings().tokenBudget, count, { player: { state: mine, name: player, knowledge: knows, condition: settings().youTrack ? react.condition : [] }, story: storyNote, cast: castForNote(getCast(ch)), pairs, board, blendPlan: settings().blendPlan, lit: react, patterns, showsMode: settings().showsMode,
-            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0 }), links.links), weave, skills, skillsSet, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes, order: settings().noteOrder, card: cardText(ch), persona: personaText(), arcLines: arcLines(arcOn ? arc : null, story?.arcMarks ?? []) });
+            standing: withLinks(bondStanding({ bond, chatLength: history.length, n, u, axes: bondAxes(ch), list: bondList0, mood: { moods: state.moods, about: state.about, family: id => BY_ID[id]?.category ?? '' } }), links.links), weave, skills, skillsSet, lenses: links.lenses, pronounLine: pronounLine(ch, bond, n, u), signs: chatSigns(ch, bond), seed: history.length, scene: skillScene0.scene, factsWhenRelevant: settings().factsWhenRelevant !== false, turnsWhenRelevant: settings().turnsWhenRelevant !== false, turnsSend: settings().turnsSend, turnsStrong: settings().turnsStrong === true, turnsEvery: settings().turnsEvery, traitFocus: settings().traitFocus !== false, split, echoes, order: settings().noteOrder, card: cardText(ch), persona: personaText(), arcLines: arcLines(arcOn ? arc : null, story?.arcMarks ?? []) });
         if (version !== run.promptVersion || id !== identity(target(forGeneration))) return;
         // Music \u203a "Let the story feel the music": one line on the music's feel, sent fresh (off by default).
         const musicLine = run.musicLine?.() ?? '';
@@ -188,6 +190,16 @@ export function snapNow(ch, st = getState(ch), bd = null, pace = bondData(ch).pa
     return odds;
 }
 export const lastSnap = new Map();
+export const lastRestraint = new Map();
+export function restraintNow(ch, st = getState(ch), bond = bondData(ch), list = bondList(ch)) {
+    if (settings().snaps === false || !bond?.on || !st?.enabled) return null;
+    const more = cleanMore(bond.more); if (!more.on.includes('rt')) return null;
+    const v = computeMore(bond.more, list, paceOf(bond).cap).values;
+    const back = list.slice(-SNAP_COOL).reverse().findIndex(x => (x.s?.m?.rt ?? 0) <= -RESTRAINT_BREAK);
+    const odds = restraintOdds(st, { pace: bond.pace, rt: v.rt ?? 0, lust: v.lu ?? 0, guilt: v.gu ?? 0, recent: back < 0 ? Infinity : back });
+    lastRestraint.set(ch?.avatar, odds);
+    return odds;
+}
 // One pace per character and chat, set on the Moods card (or the Bonds tab): feelings, meters and desire all move at it.
 export const scenePace = ch => MOOD_PACE[ctx().chatMetadata?.[KEY]?.bond?.[`char:${ch?.avatar}`]?.pace] ?? MOOD_PACE.steady;
 // The pace this character's feelings actually move at: the chat's pace, shifted by their temper (volatile swings
@@ -283,13 +295,13 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         const role = roleLink({ ...pairMoods, ...relMoods }, bd.dynamic, n, u); if (role) links.push(pronounize(role, n, u));
         const tie = tieLink({ ...pairMoods, ...relMoods }, { ...pairMoods, ...yourSide }, bd.dynamic, n, u); if (tie) links.push(pronounize(tie, n, u));
         const core = coreLink([...(state.beliefs ?? []), ...(state.core ?? [])].filter(id => (state.moods?.[id] ?? 0) > 0), bd.dynamic, top, n, u); if (core) links.push(pronounize(core, n, u));
-        const topMood = MOODS.filter(m => analysed(m) && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
+        const topMood = MOODS.filter(m => analysed(m) && (state.moods?.[m.id] ?? 0) > 0 && !state.about?.[m.id]).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
         const mood = topMood ? moodLink({ label: topMood.label, family: topMood.category, value: state.moods[topMood.id] }, bd.dynamic, n) : '';
         if (mood && links.length < 3) links.push(pronounize(mood, n, u));
     }
     // Where their moods don't match right now: one line at most, and only on some replies.
     const word = id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase();
-    const clash = mine?.enabled ? moodClash({ n: state.moods, u: mine.moods }, { n, u }, word, clashFor(settings().moodClash, getStoryState(ch)?.dial), ctx().chat?.length ?? 0) : '';
+    const clash = mine?.enabled ? moodClash({ n: Object.fromEntries(Object.entries(state.moods ?? {}).filter(([id]) => !state.about?.[id])), u: mine.moods }, { n, u }, word, clashFor(settings().moodClash, getStoryState(ch)?.dial), ctx().chat?.length ?? 0) : '';
     if (clash) links.push(pronounize(clash, n, u));
     return { lenses, links };
 }

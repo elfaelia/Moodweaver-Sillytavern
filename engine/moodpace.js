@@ -153,3 +153,33 @@ export function snapLine(odds, roll, n) {
 // After a reply: did a rolled feeling break? before/after are the person's values. Used for the cool-down and to let
 // the feeling that takes its place come in strongly.
 export const snapped = (id, before, after) => before >= SNAP_AT && after <= 10 && snappable(id);
+
+// ---- Restraint giving way (2.0.18) ----
+// The same idea for the Restraint meter: while it's strong, one roll a reply decides whether, if the moment really
+// breaks through (not a near miss), it gives way at once this time or holds. Desire, drink and an impulsive nature make
+// it likelier; discipline, principles, propriety and guilt (often the reason for holding back) make it less likely.
+// After it gives way the odds halve for six replies, so it isn't broken every night.
+const GIVE_BASE = { slow: 20, steady: 30, quick: 40, volatile: 50 };
+const GIVES_WAY = { impulsive: 10, reckless: 10, hedonistic: 8, thrill_seeker: 6, hot_headed: 5, volatile: 5, live_fast: 6, addictive_personality: 5, sim_flirty: 4 };
+const HOLDS_BACK = { disciplined: 12, principled: 10, devout: 10, puritanical: 12, dutiful: 8, stiff: 6, uptight: 8, risk_averse: 6, control_freak: 8, respectability_obsessed: 8, keeps_up_appearances: 6, mature: 4 };
+const DRINK = ['drunk', 'blackout_drunk', 'tipsy', 'crossfaded', 'hazy_drunk', 'party_brain', 'high', 'stoned'];
+export const RESTRAINT_AT = 50, RESTRAINT_BREAK = 30;
+// rt: the Restraint meter now. lust, guilt: those meters (0 if off). recent: replies since restraint last gave way.
+export function restraintOdds(st, { pace = 'steady', rt = 0, lust = 0, guilt = 0, recent = Infinity } = {}) {
+    if (!(rt >= RESTRAINT_AT)) return null;
+    const m = st?.moods ?? {}, why = [];
+    let chance = GIVE_BASE[pace] ?? GIVE_BASE.steady;
+    for (const [id, w] of Object.entries(GIVES_WAY)) if ((m[id] ?? 0) >= 21) { chance += w; why.push(id); }
+    for (const [id, w] of Object.entries(HOLDS_BACK)) if ((m[id] ?? 0) >= 21) chance -= w;
+    if (Object.entries(m).some(([id, v]) => v >= 41 && BY_ID[id]?.category === 'desire') || lust >= 61) chance += 10;
+    if (DRINK.some(id => (m[id] ?? 0) > 0)) chance += 10;
+    if (Object.entries(m).some(([id, v]) => v >= 41 && /guilt/.test(id)) || guilt >= 61) chance -= 8;
+    if (recent < SNAP_COOL) chance = Math.round(chance / 2);
+    return { chance: Math.max(5, Math.min(80, Math.round(chance))), why };
+}
+export function restraintLine(odds, roll, n, u) {
+    if (!odds) return '';
+    return roll < odds.chance
+        ? `If something in this moment breaks through ${n}'s restraint with ${u}, a moment ${n} can't hold back from rather than a near miss, it gives way at once this time: ${n} acts on what ${n} has been holding back, and the hidden line drops restraint by ${RESTRAINT_BREAK} or more. If nothing like that happens, ${n} holds back as usual.`
+        : `If something in this moment tests ${n}'s restraint with ${u}, it holds this time: ${n} comes close and stops short.`;
+}

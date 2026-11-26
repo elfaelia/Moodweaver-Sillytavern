@@ -147,6 +147,9 @@ export function cleanMore(raw) {
 // list: [{ pos, key, s: { m: { ob: +3, ... } } }] oldest first. Meters that are off stay undefined, so
 // nothing that depends on them can fire.
 // cap: the largest step one reply can make, set by the chat's pace (bond.js PACE).
+const EASE = { vo: 3 };
+// Meters that can give way at once when the moment breaks through (2.0.18): the largest drop one reply can make.
+const BREAKS = { rt: 50 };
 export function computeMore(raw, list = [], cap = 10) {
     const d = cleanMore(raw), v = Object.fromEntries(MORE_KEYS.map(k => [k, DEF[k][3]]));
     let start = 0;
@@ -156,8 +159,10 @@ export function computeMore(raw, list = [], cap = 10) {
         for (const k of MORE_KEYS) v[k] = d.anchor[k]; start = at + 1;
     }
     for (let i = start; i < list.length; i++) for (const k of d.on) {
-        const step = list[i].s?.m?.[k]; if (!step) continue;
-        v[k] = clamp(v[k] + clamp(step, -cap, cap), DEF[k][2] ? -100 : 0, 100);
+        const step = list[i].s?.m?.[k];
+        // Pressure that isn't kept up eases (2.0.18): a reply that doesn't push volatility lets it settle a little.
+        if (!step) { if (EASE[k] && v[k] > 0) v[k] = Math.max(0, v[k] - EASE[k]); continue; }
+        v[k] = clamp(v[k] + clamp(step, -Math.max(cap, BREAKS[k] ?? 0), cap), DEF[k][2] ? -100 : 0, 100);
     }
     for (const k of MORE_KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];
     return { values: Object.fromEntries(d.on.map(k => [k, v[k]])), on: d.on, pins: d.pins };
@@ -179,13 +184,27 @@ export function saidMeters(raw, list = [], cap = 10) {
     const { values, on } = computeMore(raw, list, cap);
     return Object.fromEntries(on.filter(k => says(k, values[k])).map(k => [k, values[k]]));
 }
-export function moreLines(raw, list, n, u, cap = 10) {
+// The harsh, flaring meters (2.0.17) only act when a feeling in the moment wakes them: volatility needs anger, fear,
+// coldness or clinging right now, jealousy needs clinging or anger, and so on. Asleep, they're listed as a tendency
+// with "when something sets it off" and their behaviour line isn't sent, so a high meter stops making every reply
+// the same. Feelings aimed at someone else don't wake them. moods: the character's feelings; about: who each is aimed at.
+const WAKES = { vo: ['angry', 'scared', 'cold', 'attachment'], je: ['attachment', 'angry'], rs: ['angry', 'sad', 'cold'], hu: ['cruel', 'angry'], fe: ['scared'] };
+const CARING = ['ly', 'pr', 'ca'];
+export function meterAwake(k, moods = null, about = {}, family = () => '') {
+    if (!WAKES[k] || !moods) return true;
+    return Object.entries(moods).some(([id, v]) => v >= 41 && !about?.[id] && WAKES[k].includes(family(id)));
+}
+export function moreLines(raw, list, n, u, cap = 10, mood = null) {
     const { values, on } = computeMore(raw, list, cap);
     if (!on.length) return [];
     const said = on.filter(k => says(k, values[k]));
     if (!said.length) return [];
-    const words = said.map(k => `${DEF[k][1].toLowerCase()}: ${moreWord(k, values[k]).replace(/\bthem\b/, u)}`);
-    const strong = said.map(k => values[k] >= 61 ? DEF[k][6](n, u) : (DEF[k][2] && values[k] <= -60) || (LOW_SAYS.has(k) && values[k] <= 20) ? DEF[k][7]?.(n, u) : '').filter(Boolean).map(s => pronounize(s, n, u));
+    const awake = k => meterAwake(k, mood?.moods, mood?.about, mood?.family);
+    const words = said.map(k => `${DEF[k][1].toLowerCase()}: ${moreWord(k, values[k]).replace(/\bthem\b/, u)}${awake(k) ? '' : ' when something sets it off'}`);
+    const strong = said.filter(awake).map(k => values[k] >= 61 ? DEF[k][6](n, u) : (DEF[k][2] && values[k] <= -60) || (LOW_SAYS.has(k) && values[k] <= 20) ? DEF[k][7]?.(n, u) : '').filter(Boolean).map(s => pronounize(s, n, u));
+    // Strong care beside an awake harsh one: the care decides how far the harsh one goes with them.
+    const harsh = said.some(k => WAKES[k] && awake(k) && values[k] >= 61), cares = said.some(k => CARING.includes(k) && values[k] >= 61);
+    if (harsh && cares) strong.push(pronounize(`how much ${n} cares for ${u} decides how far the harsher ones go with ${u}`, n, u));
     return [`${words.join('; ')}${strong.length ? `. ${strong.map(s => s[0].toUpperCase() + s.slice(1)).join('. ')}` : ''}`];
 }
 // Field names on the hidden line: "obsession +3, jealousy +5, respect -4".

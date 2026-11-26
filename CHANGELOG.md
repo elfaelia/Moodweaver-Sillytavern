@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.18
+- Volatility settles. A reply that doesn't push it lets it ease by 3, and the hidden line is told that volatility falls once a blow-up has happened and the air clears. Before, it only ever went down if the story happened to lower it.
+- Restraint can give way at once. While the Restraint meter is 50 or more, one roll a reply decides what happens if the moment really breaks through (not a near miss): it gives way this time and he acts on what he's been holding back (the hidden line can drop it by up to 50 in one reply), or it holds and he comes close and stops short. Odds start at 20 to 50% by speed; desire, Lust 61+, drink and impulsive, reckless or hedonistic traits raise them; discipline, principles, faith, propriety and guilt lower them. 5% to 80%, halved for six replies after it gives way. Shown on Moods; the same switch as the mood snaps turns it off.
+
+## 2.0.17
+- Meters act when the moment calls for them. The harsh, flaring ones (Volatility, Jealousy, Resentment, Urge to hurt, Fear) only send how they behave when a feeling right now wakes them: Volatility needs anger, fear, coldness or clinging; Jealousy needs clinging or anger; Resentment needs anger, hurt or coldness; Urge to hurt needs cruelty or anger; Fear needs fear. Asleep, they're listed with "when something sets it off" instead. Feelings aimed at someone else don't wake them.
+- When a harsh meter is awake beside strong Loyalty, Protectiveness or Care, the note adds that how much he cares for her decides how far the harsher ones go with her.
+- The guide says meters are standing tendencies that surface when the moment gives them a reason, and that they temper each other.
+
+## 2.0.16
+- A feeling aimed at someone else no longer colours the dynamic with the player. The "how his strongest feeling shows inside the dynamic" line used the strongest feeling even when it was aimed elsewhere, so murderous at her father became "murderous inside Keeping them pure: with a deliberate edge, testing how much it can hurt" — aimed at her. Now the strongest feeling that isn't aimed at someone else is used (for Kenny right now: protective, which comes out softer and gentle). Mood clashes skip aimed feelings too.
+- No one is safe / Anything goes now say it's about what happens, not how people treat the player: each person still treats her the way their nature and their feelings for her decide.
+- Angst says it's about what stays unsaid, not about anyone being unkind, and that someone who cares shows it through what they do even while they won't say it.
+
 ## 2.0.15
 - Writers: pick a main writer and a stand-in writer in Settings › Writers. Both are SillyTavern Connection Profiles, so make one per model in SillyTavern first. Once both are picked, the Scene page shows which one is writing and has one big button to switch to the other ("Switch to …" / "Back to …"). It uses SillyTavern's own /profile command, the same as picking the profile in its Connection Profiles menu. Nothing switches by itself yet.
 

@@ -232,3 +232,14 @@ export function withFacts(step, his, yours, scale = 1) {
     return out;
 }
 // How many feelings move a meter (for DEVELOPING and the checks).
+// 2.0.19: a stand-in for meters that are switched off, so a dynamic built on them can still come up. Each of the
+// character's feelings at 21 or more (not ones aimed at someone else) adds what it would nudge, scaled by how
+// strong it is. Returns { meter: change from its start } only for meters some feeling speaks to.
+export function meterShadow(moods = {}, about = {}) {
+    const out = {};
+    for (const [id, v] of Object.entries(moods ?? {})) {
+        if (!(v >= 21) || about?.[id]) continue;
+        for (const [k, x] of Object.entries(BY_MOOD.get(id) ?? {})) if (x && !BASE.includes(k)) out[k] = (out[k] ?? 0) + (v / 100) * x * 20;
+    }
+    return out;
+}

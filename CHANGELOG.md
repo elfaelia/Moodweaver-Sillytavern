@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.21
+- Untouched in their eyes no longer says he sees nothing dated in it (that put a date on it); now he's simply sure this is how things are.
+- New dynamic Mine now, the other way Untouched can end: after they've slept together he counts her as his, the same bias but turned fiercely protective. She's still clean to him because he's the one who had her; anyone after him would be what spoils her. Comes up with Pedestal still 20+, Possessiveness 40+ and Protectiveness or Jealousy 30+. Ruined in their eyes stays the colder ending (Pedestal 10 or less).
+
+## 2.0.20
+- The moment between them. Bonds now shows a third, short-lived line under the dynamic, "Right now", read from his strongest feeling toward you against yours (both at clear or above). It changes as soon as either of you shifts.
+- It covers every sensible pairing, not just clashes: moods that fit (Both wanting it, Good spirits, Soft on each other, Both low, Scared together, Cold standoff, Easy quiet, Two masks, Hooked on each other, Two edges), one leading and one following (Leading and following, Taking charge giving way, Brat and handler, Shelter, Tending, Edge and fear, The chase, Steady hand, Making amends), and all 25 old clashes, now named.
+- Pairings named by a single feeling beat whole families, so domspace meeting subspace reads exactly. Feelings aimed at someone else never count.
+- Each line stays open-ended (may this, or that) and goes with a reply on the same setting as before, now called When their moods meet (Settings, What is sent). The moment also leans the main dynamic toward its kind, as clashes did.
+
+## 2.0.19
+- Meters ease faster at the quicker speeds. Volatility settles by 1, 2, 4 or 5 a reply (Slow burn to Volatile) when nothing pushes it, and Jealousy, Urge to hurt and Fear now ease too, at half that.
+- Feelings aimed at someone else (his rage at her dad, say) no longer move the meters toward you. The hidden line is told the meters are only what he feels toward you.
+- Every mood family now points the dynamic somewhere: how someone wants and what draws them lean to heat, impulse to toxic, thinking styles to mind, and single calm, energy and attraction feelings to the kinds that fit them (eerily calm to captor, vigilant to allies, observant to mind, sated to heat and so on). The rest of calm and energy (tired, sleepy, wired) are someone's own state and stay neutral.
+- Dynamics whose meters are switched off can still come up. A meter that's off gets a rough reading from his feelings (at 21 or more, not ones aimed at someone else) and the ties set toward you, used only to pick the dynamic. Nothing extra is sent.
+- New dynamic Untouched in their eyes: he prizes her for being untouched and holds back because having her would make her ordinary in his eyes; a double standard he sees nothing dated in. Once they've slept together it can turn into Ruined in their eyes.
+- 15 more new dynamics: Planning something for them, Angry for them, Owes them everything, Gone stale, Guarding their name, Jealous of their past, Wants to fix them, Hands all over them, Egging each other on, Looks out like family, Watching them fall, Dangerous calm, Just passing by, Says it with deeds, Leaning on them. No new meters needed (682 dynamics).
+
 ## 2.0.18
 - Volatility settles. A reply that doesn't push it lets it ease by 3, and the hidden line is told that volatility falls once a blow-up has happened and the air clears. Before, it only ever went down if the story happened to lower it.
 - Restraint can give way at once. While the Restraint meter is 50 or more, one roll a reply decides what happens if the moment really breaks through (not a near miss): it gives way this time and he acts on what he's been holding back (the hidden line can drop it by up to 50 in one reply), or it holds and he comes close and stops short. Odds start at 20 to 50% by speed; desire, Lust 61+, drink and impulsive, reckless or hedonistic traits raise them; discipline, principles, faith, propriety and guilt lower them. 5% to 80%, halved for six replies after it gives way. Shown on Moods; the same switch as the mood snaps turns it off.

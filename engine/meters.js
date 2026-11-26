@@ -147,7 +147,9 @@ export function cleanMore(raw) {
 // list: [{ pos, key, s: { m: { ob: +3, ... } } }] oldest first. Meters that are off stay undefined, so
 // nothing that depends on them can fire.
 // cap: the largest step one reply can make, set by the chat's pace (bond.js PACE).
-const EASE = { vo: 3 };
+// 2.0.19: the flaring meters ease when nothing pushes them, faster at quicker speeds (base \u00d7 cap / 10: Volatility
+// eases 1 a reply on Slow burn, 2 on Steady, 4 on Quick, 5 on Volatile; Jealousy, Urge to hurt and Fear half that).
+const EASE = { vo: 2, je: 1, hu: 1, fe: 1 };
 // Meters that can give way at once when the moment breaks through (2.0.18): the largest drop one reply can make.
 const BREAKS = { rt: 50 };
 export function computeMore(raw, list = [], cap = 10) {
@@ -161,7 +163,7 @@ export function computeMore(raw, list = [], cap = 10) {
     for (let i = start; i < list.length; i++) for (const k of d.on) {
         const step = list[i].s?.m?.[k];
         // Pressure that isn't kept up eases (2.0.18): a reply that doesn't push volatility lets it settle a little.
-        if (!step) { if (EASE[k] && v[k] > 0) v[k] = Math.max(0, v[k] - EASE[k]); continue; }
+        if (!step) { if (EASE[k] && v[k] > 0) v[k] = Math.max(0, v[k] - Math.max(1, Math.round(EASE[k] * cap / 10))); continue; }
         v[k] = clamp(v[k] + clamp(step, -Math.max(cap, BREAKS[k] ?? 0), cap), DEF[k][2] ? -100 : 0, 100);
     }
     for (const k of MORE_KEYS) if (d.pins[k] !== null) v[k] = d.pins[k];

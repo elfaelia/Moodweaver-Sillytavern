@@ -45,7 +45,7 @@ export function settingsView(state) {
             : '<p class="mw-fine">Make a Connection Profile for each model in SillyTavern first (the plug icon \u203a Connection Profiles), then pick them here.</p>'}`)}
         ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 6 extras on`, `
             ${choice('showsMode', 'How feelings show', [['all', 'Default + yours'], ['mine', 'Only yours'], ['off', 'Names only']])}
-            ${choice('moodClash', 'When their moods clash', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'Your moods and theirs can rub. Traits never clash.')}
+            ${choice('moodClash', 'When their moods meet', [['off', 'Off'], ['sometimes', 'Now and then'], ['often', 'Often']], 'The moment between you: your strongest mood against theirs, whether it fits, leads or rubs. Shown on Bonds as Right now. Traits never count.')}
             ${choice('contagion', 'Your feelings rubbing off', [['scene', 'When it fits'], ['off', 'Off']])}
             <p class="mw-fine">When the story reads a feeling in you, a character with the empathy for it now and then feels a faint echo of it. Warm traits make it likelier; cold-blooded, psychopathic, narcissistic or cruel ones stop it.</p>
             ${sw('data-setting-bool="aftermath"', on('aftermath'), 'Strong feelings leave an aftermath', 'Shaking hands after terror, a short fuse after rage.')}

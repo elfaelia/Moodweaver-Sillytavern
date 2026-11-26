@@ -14,7 +14,7 @@ import { clamp, escapeHtml as esc, shortName } from '../engine/util.js';
 import { ROLE_HOMES, fill as fillDynamic } from '../engine/dynamics.js';
 import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine/ledger.js';
 import { MORE_METERS, cleanMore, computeMore, saidMeters, setMore } from '../engine/meters.js';
-import { withFacts, withNudges } from '../engine/mood-meters.js';
+import { meterShadow, withFacts, withNudges } from '../engine/mood-meters.js';
 import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta, snapped } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
@@ -368,7 +368,7 @@ export function bondList(ch, chat = liveChat()) {
         const sn = secretNudges(secret.filter(x => x.pos === pos));
         if (sn.p && !step.p) step.p = Math.round(sn.p * scale) || Math.sign(sn.p);
         if (Object.keys(sn.m).length) step.m = { ...Object.fromEntries(Object.entries(sn.m).map(([k, v]) => [k, Math.max(1, Math.round(v * scale))])), ...(step.m ?? {}) };
-        out.push({ pos, key: readOf(m).wkey, s: nudge ? withFacts(withNudges(step, w.moods.filter(x => x.delta > 0).map(x => feelingId(x.name)).filter(Boolean), scale), hisFacts, newYou, scale) : step });
+        out.push({ pos, key: readOf(m).wkey, s: nudge ? withFacts(withNudges(step, w.moods.filter(x => x.delta > 0 && !aimedAway(x)).map(x => feelingId(aimed(x).name)).filter(Boolean), scale), hisFacts, newYou, scale) : step });
     });
     if (out.length) { const traits = bedroomTraits(getState(ch)); for (const x of out.slice(-3)) x.s = { ...x.s, sparks: x.s.sparks.map(sp => ({ ...sp, ...sparkTarget(sp.text, prefs, traits) })) }; }
     return out;
@@ -421,12 +421,26 @@ export function bondAxes(ch, bond = null) {
     const his = rel && rel.enabled !== false ? rel.moods ?? {} : {}, shared = pair?.enabled !== false ? pair?.moods ?? {} : {}, yours = yourSide(ch);
     const axes = sliderAxes(his, shared, yours), me = getUserState(), myMoods = me?.enabled ? me.moods ?? {} : {};
     // What's on the cards leans the dynamic toward the kinds that fit it (moods, ties, a clash between their moods).
-    const clash = clashOf({ n: st?.moods ?? {}, u: myMoods }, { n: 'n', u: 'u' }, id => id);
+    // 2.0.20: the moment between them, mood against mood (only his feelings toward you, not ones aimed elsewhere).
+    const hisNow = Object.fromEntries(Object.entries(st?.moods ?? {}).filter(([id]) => !st?.about?.[id]));
+    const clash = clashOf({ n: hisNow, u: myMoods }, { n: shortName(ch.name), u: shortName(playerName()) }, id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase());
     const recent = (ctx().chat ?? []).slice(-4).filter(m => m && !m.is_system).slice(-2).map(m => m.mes ?? '').join(' ');
     // 1.86: feelings that became meters still lift the dynamics that fit them, read from the side meters.
     const b = bond ?? bondData(ch), fromMeters = b?.on ? meterTies({ more: computeMore(b.more, bondList(ch), paceOf(b).cap).values }) : {};
-    const lean = dynamicLean([st?.moods, myMoods], { ...fromMeters, ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
-    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean, slept: sleptTogether({ ...shared, ...his, ...yours }) };
+    const lean = dynamicLean([hisNow, myMoods], { ...fromMeters, ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
+    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean, slept: sleptTogether({ ...shared, ...his, ...yours }), moment: clash ? { name: clash.name, line: clash.line, group: clash.group } : null, shadow: shadowMeters(b, st, { ...shared, ...his }) };
+}
+// 2.0.19: meters that are switched off still get a rough reading from his feelings and the ties set toward you,
+// so a dynamic you turned on that tests them can come up. Only meters something speaks to; the rest stay unread.
+function shadowMeters(bond, st, ties) {
+    const on = new Set(bond?.on ? cleanMore(bond.more).on : []), delta = meterShadow(st?.moods, st?.about);
+    for (const [id, [k, sign]] of Object.entries(TO_METER)) { const v = ties?.[id] ?? 0; if (v > 0) delta[k] = (delta[k] ?? 0) + v * sign * 0.5; }
+    const out = {};
+    for (const [k, d] of Object.entries(delta)) {
+        const def = MORE_METERS.find(m => m[0] === k); if (!def || on.has(k) || !d) continue;
+        out[k] = clamp(Math.round(def[3] + d), def[2] ? -100 : 0, 100);
+    }
+    return out;
 }
 // 1.96: whether the two have slept together yet, for the dynamics that assume it (NEEDS_SEX): a tie that means it, or
 // a message earlier in this chat where sex plainly happened. Checked once per chat length.
@@ -628,6 +642,12 @@ export function sceneFeelings(text) {
     return out;
 }
 export const intimate = text => { const t = String(text ?? '').replace(/<!--[\s\S]*?-->/g, ''); return KISS.test(t) && new Set((t.match(TOUCH) ?? []).map(w => w.toLowerCase())).size >= 2; };
+// A feeling the line aims at someone other than you ("murderous +10 at her father") doesn't nudge the meters toward
+// you (2.0.19): plans for her father were raising Urge to hurt toward her.
+function aimedAway(x) {
+    const about = aimed(x).about; if (!about) return false;
+    return ![playerName(), shortName(playerName()), 'you', 'them'].some(v => String(v).toLowerCase() === about.toLowerCase());
+}
 function aimed(x) {
     if (x.about || feelingId(x.name) || factId(x.name)) return x;
     const m = x.name.match(/^(.+?)\s+(?:at|about|toward|towards)\s+(.+)$/);

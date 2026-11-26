@@ -103,15 +103,25 @@ const FAMILY_LEAN = {
     // Mind tab groups, at clear or above.
     psy_complexes: ['obsess', 'power'], psy_personality: ['toxic', 'mind', 'power'], psy_attachment: ['obsess', 'toxic'], psy_trauma: ['captor', 'mind'],
     psy_psychosis: ['obsess', 'mind'], psy_anxiety: ['distance'], psy_defences: ['secret'], psy_schools: ['mind'], psy_old: ['clinic', 'society'], psy_strengths: ['romance', 'allies'],
+    // 2.0.19: the families that leaned nowhere. Calm and energy are mostly someone's own state, so only the single
+    // feelings below point anywhere; how someone wants and what draws them lean toward heat.
+    sexual_nature: ['heat'], attraction: ['heat'], psy_impulse: ['toxic'], psy_thinking: ['mind'],
 };
 // Single feelings that point somewhere their family doesn't.
 const MOOD_LEAN = {
     clinic: ['hysteria', 'neurasthenia', 'frigidity', 'nymphomania', 'sexual_psychopath', 'nervous_breakdown', 'florence_nightingale_effect', 'clinical', 'taking_notes', 'clinical_cruelty', 'curious', 'morbid_curiosity', 'bedside_manner', 'experimenter_role', 'test_subject', 'medicated', 'sedated', 'hospital_ward', 'playing_god'],
-    mind: ['gaslighting', 'manipulative', 'hypnotised', 'brainwashed', 'conditioned', 'conditioning', 'dissociating', 'in_denial', 'mindfuck', 'confused', 'disoriented', 'performing_obedience'],
+    mind: ['observant', 'detective_mind', 'watchful_quiet', 'gaslighting', 'manipulative', 'hypnotised', 'brainwashed', 'conditioned', 'conditioning', 'dissociating', 'in_denial', 'mindfuck', 'confused', 'disoriented', 'performing_obedience'],
     secret: ['false_self', 'divided_self', 'compartmentalising', 'lying', 'hiding_evidence', 'false_persona', 'fear_of_being_found_out', 'covering_for_them', 'hiding_it_from_family', 'secretive', 'plausible_deniability', 'blackmailing'],
     obsess: ['erotomania', 'romantic_delusion', 'borderline', 'anxious_attachment', 'lima_syndrome', 'florence_nightingale_effect', 'mirror_hunger', 'monomania'],
-    captor: ['stockholm_syndrome', 'lima_syndrome', 'identifies_with_aggressor', 'fawns'],
-    power: ['god_complexed', 'messiah_complex', 'napoleon_complex', 'father_complex', 'electra_complex', 'moves_against'],
+    // 2.0.19: calm, energy and attraction feelings that point at a kind of dynamic.
+    power: ['deliberate', 'planning', 'expectant', 'cool_headed', 'god_complexed', 'messiah_complex', 'napoleon_complex', 'father_complex', 'electra_complex', 'moves_against', 'predatory_patience', 'one_step_ahead', 'in_control', 'stern', 'businesslike', 'measured_patience', 'obedience_arousal'],
+    captor: ['eerily_calm', 'calm_after_violence', 'stockholm_syndrome', 'lima_syndrome', 'identifies_with_aggressor', 'fawns', 'predatory_patience', 'fear_arousal', 'one_step_behind'],
+    romance: ['chill', 'content', 'at_ease_with_them', 'sleepy_contentment', 'relieved', 'care_as_foreplay', 'bond_fuelled_attraction', 'reciprocal_desire', 'peaceful'],
+    roles: ['teaching', 'patient'],
+    distance: ['stoic', 'cautious', 'bored', 'apathetic', 'bored_stiff', 'socially_drained', 'distance_fuelled_desire', 'unflappable'],
+    allies: ['vigilant', 'second_wind', 'competitive_attraction', 'banter_fuelled_attraction', 'running_on_spite', 'feral_energy'],
+    toxic: ['pent_up', 'running_hot', 'frantic', 'explosive_rage', 'attraction_to_contrast', 'post_violence_lust'],
+    heat: ['sated', 'languid', 'revved_up', 'seduction_as_hunting', 'losing_control_arousal', 'novelty_led_desire', 'sex_compulsion'],
     society: ['keeps_up_appearances', 'respectability_obsessed', 'polite_smile', 'gritted_politeness', 'stiff_upper_lip', 'gossipy', 'traditional', 'status_panic', 'married_status', 'engaged_status', 'persona_bound', 'madonna_whore_complex'],
 };
 const MOOD_LEAN_BY_ID = new Map();
@@ -295,7 +305,9 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
         return [k, bond.more?.pins?.[k] !== null && bond.more?.pins?.[k] !== undefined ? val : clamp(Math.round(val + pull(t)), def?.[2] ? -100 : 0, 100)];
     }));
     const ds = bond.desire?.on ? computeDesire(bond, all).a : undefined;
-    const axesNow = { ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}), sx: axes?.slept === true };
+    // 2.0.19: meters that are off read from his feelings and ties (replies.js shadowMeters), so their dynamics can still come up.
+    const shadow = Object.fromEntries(Object.entries(axes?.shadow ?? {}).filter(([k]) => !(k in more)));
+    const axesNow = { ...shadow, ...eff, ...moreEff, ...(ds !== undefined ? { ds } : {}), sx: axes?.slept === true };
     // The main dynamic is the scene's: what's on the cards right now weighs about as much as how specific a row is.
     const ctxLean = axes?.lean ? { ...axes.lean, weight: 2 * (0.6 + 0.4 * pace.lean) } : null, meters = dynamicOf(axesNow, n, u, '', bond.pool, ctxLean);
     // The secondary dynamic: read from where the meters have settled (no pull from the last few replies, and the
@@ -305,7 +317,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     // thinning out (Fading out, Drifting apart) need it, so low meters early in a chat never read as two people drifting.
     const slow = all.slice(-(UNDER_WINDOW[bond.pace] ?? UNDER_WINDOW.steady)), fall = Math.max(0, -slow.reduce((t, x) => t + (Number(x.s?.f) || 0) + (Number(x.s?.r) || 0) + (Number(x.s?.m?.ly) || 0), 0));
     axesNow.fall = fall;
-    const settled = { ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall, sx: axes?.slept === true };
+    const settled = { ...shadow, ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall, sx: axes?.slept === true };
     let underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
     // Underneath colours the main dynamic; it doesn't contradict it. A distant one under a close one needs a real
     // drop or actual ill will (friendship below zero), or the next best fit is used.
@@ -337,7 +349,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic, auto: meters.name, byMeters: meters, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend, scene: axesNow };
+        dynamic, auto: meters.name, byMeters: meters, moment: axes?.moment ?? null, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend, scene: axesNow };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.

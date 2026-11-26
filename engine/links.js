@@ -169,7 +169,7 @@ export function tieOffer(d, his = {}, offered = []) {
 // inHeat: only while one of them feels desire, so bed roles that stay switched on don't snag every scene.
 // The last field is the kind of dynamic the clash leans the Bonds reading toward (bond.js dynamicLean).
 const CAT = new Map(MOODS.map(m => [m.id, m.category]));
-const LEAD = ['commanding', 'taking_charge', 'demanding', 'in_control', 'dominant_hunger', 'power_drunk', 'territorial', 'assertive'];
+const LEAD = ['domspace', 'commanding', 'taking_charge', 'demanding', 'in_control', 'dominant_hunger', 'power_drunk', 'territorial', 'assertive'];
 const BED_LEAD = ['pleasure_dom', 'courtly_dom', 'dominant', 'top', 'master', 'mistress', 'daddy', 'mommy', 'gentle_dominant', 'owner', 'brat_tamer', 'ravishing', 'disciplinarian', 'princess_dominance', 'rigger', 'service_top'];
 const BED_LED = ['soft_sub', 'submissive', 'bottom', 'obedient', 'service_submissive', 'little_girl', 'pillow_princess', 'owned', 'doll', 'ravished', 'rope_bunny', 'wants_to_be_taken', 'submissive_longing', 'wants_to_be_pursued'];
 const WORN = ['tired', 'sleepy', 'exhausted_to_the_bone', 'sluggish', 'run_down', 'dragging', 'sleep_deprived', 'grief_tired', 'adrenaline_crash', 'sleepy_contentment', 'apathetic'];
@@ -188,37 +188,67 @@ const WOUNDED = ['traumatised', 'ptsd', 'complex_ptsd', 'depressed', 'self_defea
 const SUSPICIOUS = ['paranoid_personality', 'persecution_complex', 'hypervigilant', 'persecutory_delusion'];
 const ORDERLY = ['obsessive_personality', 'anal_retentive', 'superego_ridden', 'ocd'];
 const IMPULSIVE = ['id_driven', 'adhd', 'puer_aeternus', 'peter_pan_complex', 'bipolar'];
+// 2.0.20: moods that sit well together, or where one leads and the other follows.
+const SUB_HEAD = ['subspace', 'submissive_longing', 'obedient', 'wanting_to_belong_to', 'performing_obedience', 'wants_praise', 'wants_to_be_taken'];
+const BRAT = ['bratty_defiance', 'petulant', 'provocative', 'teasing_them'];
+const SHIELDS = ['protective', 'protective_rage', 'watching_over', 'vigilant', 'holding_it_together_for_them'];
+const TENDS = ['caretaker', 'caring', 'comforting_presence', 'reassuring', 'cherishing', 'soft_spot', 'aftercare_mode'];
+const HURTING = ['sad', 'hurt', 'used', 'rejected', 'wants_comfort'];
+const SHY = ['coy', 'shy_desire', 'butterflies'];
+const SORRY = ['guilty', 'contrite', 'ashamed', 'guilt_sick'];
+const AGGRIEVED = ['angry', 'resentful', 'hurt', 'betrayed'];
 const CLASHES = [
-    [LEAD, LEAD, (a, b, x, y) => `both want the lead (${a} ${x}, ${b} ${y}): they may butt heads, or one may give way for a price`, true, false, false, 'power'],
-    [BED_LEAD, BED_LEAD, (a, b, x, y) => `both lean to leading in bed (${a} ${x}, ${b} ${y}): neither waits to be led, so it can turn into a contest, or a game of who gives first`, true, false, true, 'power'],
-    [BED_LED, BED_LED, (a, b, x, y) => `both lean to being led (${a} ${x}, ${b} ${y}): each may wait on the other to take charge, or one may have to step up`, true, false, true, 'power'],
-    [['angry'], ['angry'], (a, b, x, y) => `both are angry (${a} ${x}, ${b} ${y}): it can flare into a real fight or burn out fast`, true, false, false, 'toxic'],
-    [STIRRED, LOOSE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s mood may feed ${a}'s, whether ${b} means it to or not`, false, false, false, 'obsess'],
-    [['desire'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y} without the heat: ${a} may want more than ${b} is in the mood for, or the tenderness may bring ${b} round`, false, true, false, 'heat'],
-    [['desire'], WORN, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may be too worn out for it, or be talked round`, false, true, false, 'heat'],
-    [['desire'], ['sad', 'scared', 'angry', 'cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may not be in the mood, and how ${a} takes that matters`, false, true, false, 'heat'],
-    [['closeness', 'attachment', 'love'], ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: one reaching, one pulling back; it can sting, or make ${a} try harder`, false, false, false, 'distance'],
-    [['happy'], ['sad'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${a}'s good mood may jar on ${b}, or lift ${b} a little`, false, false, false, 'allies'],
-    [['happy'], ['angry'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a}'s lightness may needle ${b}, or take the edge off`, false, false, false, 'toxic'],
-    [['happy'], ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may reach out and meet a wall, or thaw ${b} a little`, false, false, false, 'distance'],
-    [['calm'], ['angry'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: the calm may steady ${b}, or make ${b} angrier`, false, false, false, 'toxic'],
-    [['angry'], ['sad'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${a}'s temper may land hard on ${b}, or soften on seeing it`, false, false, false, 'toxic'],
-    [['angry'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s softness may get snapped at, or slowly disarm ${a}`, false, false, false, 'romance'],
-    [['cruel'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s warmth may meet ${a}'s edge, or catch ${a} off guard`, false, false, false, 'toxic'],
-    [['scared'], ['happy', 'bold'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${b} may miss it entirely, or see it and steady ${a}`, false, false, false, 'captor'],
-    [WIRED, WORN, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: they're at different speeds, and ${a} may wear ${b} out or get ${b} moving`, false, false, false, 'allies'],
-    [SOCIAL, QUIET, (a, b, x, y) => `${a} is ${x} and ${b} wants quiet (${y}): ${a} may grate, or coax ${b} out`, false, false, false, 'distance'],
+    [LEAD, LEAD, (a, b, x, y) => `both want the lead (${a} ${x}, ${b} ${y}): they may butt heads, or one may give way for a price`, true, false, false, 'power', 'Butting heads'],
+    [BED_LEAD, BED_LEAD, (a, b, x, y) => `both lean to leading in bed (${a} ${x}, ${b} ${y}): neither waits to be led, so it can turn into a contest, or a game of who gives first`, true, false, true, 'power', 'Both want to lead in bed'],
+    [BED_LED, BED_LED, (a, b, x, y) => `both lean to being led (${a} ${x}, ${b} ${y}): each may wait on the other to take charge, or one may have to step up`, true, false, true, 'power', 'Both wait to be led'],
+    [['angry'], ['angry'], (a, b, x, y) => `both are angry (${a} ${x}, ${b} ${y}): it can flare into a real fight or burn out fast`, true, false, false, 'toxic', 'Both fired up'],
+    [STIRRED, LOOSE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s mood may feed ${a}'s, whether ${b} means it to or not`, false, false, false, 'obsess', 'Jealous and flirting'],
+    [['desire'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y} without the heat: ${a} may want more than ${b} is in the mood for, or the tenderness may bring ${b} round`, false, true, false, 'heat', 'Heat and tenderness'],
+    [['desire'], WORN, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may be too worn out for it, or be talked round`, false, true, false, 'heat', 'Wanting and worn out'],
+    [['desire'], ['sad', 'scared', 'angry', 'cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may not be in the mood, and how ${a} takes that matters`, false, true, false, 'heat', 'Not in the mood'],
+    [['closeness', 'attachment', 'love'], ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: one reaching, one pulling back; it can sting, or make ${a} try harder`, false, false, false, 'distance', 'Reaching and pulling back'],
+    [['happy'], ['sad'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${a}'s good mood may jar on ${b}, or lift ${b} a little`, false, false, false, 'allies', 'Cheer and gloom'],
+    [['happy'], ['angry'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a}'s lightness may needle ${b}, or take the edge off`, false, false, false, 'toxic', 'Lightness and temper'],
+    [['happy'], ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may reach out and meet a wall, or thaw ${b} a little`, false, false, false, 'distance', 'Warmth against a wall'],
+    [['calm'], ['angry'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: the calm may steady ${b}, or make ${b} angrier`, false, false, false, 'toxic', 'Calm against temper'],
+    [['angry'], ['sad'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${a}'s temper may land hard on ${b}, or soften on seeing it`, false, false, false, 'toxic', 'Temper and hurt'],
+    [['angry'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s softness may get snapped at, or slowly disarm ${a}`, false, false, false, 'romance', 'Temper and softness'],
+    [['cruel'], ['closeness', 'love'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s warmth may meet ${a}'s edge, or catch ${a} off guard`, false, false, false, 'toxic', 'Edge and warmth'],
+    [['scared'], ['happy', 'bold'], (a, b, x, y) => `${a} is ${x} while ${b} is ${y}: ${b} may miss it entirely, or see it and steady ${a}`, false, false, false, 'captor', 'Fear unnoticed'],
+    [WIRED, WORN, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: they're at different speeds, and ${a} may wear ${b} out or get ${b} moving`, false, false, false, 'allies', 'Different speeds'],
+    [SOCIAL, QUIET, (a, b, x, y) => `${a} is ${x} and ${b} wants quiet (${y}): ${a} may grate, or coax ${b} out`, false, false, false, 'distance', 'Noise and quiet'],
     // Mind settings (Mind tab), set at clear or above, against each other or against a mood.
-    [CLINGS, PULLS_AWAY, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: the more one reaches, the more the other backs off, and each move feeds the other's`, false, false, false, 'toxic'],
-    [CLINGS, ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s coolness may read to ${a} as being left`, false, false, false, 'toxic'],
-    [NEEDS_MIRROR, GIVES_SELF, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may feed what ${a} needs and lose a little of themselves each time`, false, false, false, 'mind'],
-    [RESCUER, WOUNDED, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may want to fix ${b}, and ${b} may not want to be anyone's project`, false, false, false, 'romance'],
-    [SUSPICIOUS, ['masks', 'secretive', 'lying', 'compartmentalising', 'false_self'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may smell what ${b} is hiding, or invent worse`, false, false, false, 'secret'],
-    [ORDERLY, IMPULSIVE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: order meets impulse; it can grate, or loosen ${a} up`, false, false, false, 'allies'],
+    [CLINGS, PULLS_AWAY, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: the more one reaches, the more the other backs off, and each move feeds the other's`, false, false, false, 'toxic', 'Chase and retreat'],
+    [CLINGS, ['cold'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b}'s coolness may read to ${a} as being left`, false, false, false, 'toxic', 'Clinging to a cold shoulder'],
+    [NEEDS_MIRROR, GIVES_SELF, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${b} may feed what ${a} needs and lose a little of themselves each time`, false, false, false, 'mind', 'Mirror and giver'],
+    [RESCUER, WOUNDED, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may want to fix ${b}, and ${b} may not want to be anyone's project`, false, false, false, 'romance', 'Rescuer and wound'],
+    [SUSPICIOUS, ['masks', 'secretive', 'lying', 'compartmentalising', 'false_self'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may smell what ${b} is hiding, or invent worse`, false, false, false, 'secret', 'Suspicion and secrets'],
+    [ORDERLY, IMPULSIVE, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: order meets impulse; it can grate, or loosen ${a} up`, false, false, false, 'allies', 'Order and impulse'],
+    // 2.0.20: moments where the two moods fit, or one leads and the other follows. Same shape; named ones beat families.
+    [['desire'], ['desire'], (a, b, x, y) => `both want it (${a} ${x}, ${b} ${y}): it may spill over fast, or the waiting may stretch it out`, true, false, false, 'heat', 'Both wanting it'],
+    [['happy'], ['happy'], (a, b, x, y) => `both are in good spirits (${a} ${x}, ${b} ${y}): it may loosen things between them, or tip into silliness`, true, false, false, 'allies', 'Good spirits'],
+    [['closeness', 'love'], ['closeness', 'love'], (a, b, x, y) => `both are soft on each other right now (${a} ${x}, ${b} ${y}): it may draw them closer, or one may get shy of it`, true, false, false, 'romance', 'Soft on each other'],
+    [['sad'], ['sad'], (a, b, x, y) => `both are low (${a} ${x}, ${b} ${y}): they may lean on each other, or each sink into their own`, true, false, false, 'distance', 'Both low'],
+    [['scared'], ['scared'], (a, b, x, y) => `both are frightened (${a} ${x}, ${b} ${y}): they may hold together, or the fear may make them snap at each other`, true, false, false, 'allies', 'Scared together'],
+    [['cold'], ['cold'], (a, b, x, y) => `both are cool and closed (${a} ${x}, ${b} ${y}): neither may give first, or one may crack`, true, false, false, 'distance', 'Cold standoff'],
+    [['calm'], ['calm'], (a, b, x, y) => `both are settled (${a} ${x}, ${b} ${y}): an easy stretch, with room for something quiet to be said or left alone`, true, false, false, 'romance', 'Easy quiet'],
+    [['masks'], ['masks'], (a, b, x, y) => `both are hiding part of themselves (${a} ${x}, ${b} ${y}): they may circle each other politely, or see straight through each other`, true, false, false, 'secret', 'Two masks'],
+    [['attachment'], ['attachment'], (a, b, x, y) => `both are hooked on each other (${a} ${x}, ${b} ${y}): it may feel like being matched at last, or wind them both tighter`, true, false, false, 'obsess', 'Hooked on each other'],
+    [['cruel'], ['cruel'], (a, b, x, y) => `both have an edge out (${a} ${x}, ${b} ${y}): it may turn into a contest, or a grim kind of understanding`, true, false, false, 'toxic', 'Two edges'],
+    [BED_LEAD, BED_LED, (a, b, x, y) => `${a} leans to leading in bed (${x}) and ${b} to being led (${y}): it may click into place, or ${b} may test how firm ${a} is`, false, false, true, 'power', 'Leading and following'],
+    [LEAD, SUB_HEAD, (a, b, x, y) => `${a} wants the lead (${x}) and ${b} wants to give it (${y}): it may settle easily, or ${b} may test how firmly ${a} holds it`, false, false, false, 'power', 'Taking charge, giving way'],
+    [BRAT, [...LEAD, ...BED_LEAD], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may push for a rise, and ${b} may rise to it or refuse to`, false, false, false, 'power', 'Brat and handler'],
+    [SHIELDS, ['scared'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may steady ${b}, or ${b} may not want steadying`, false, false, false, 'allies', 'Shelter'],
+    [TENDS, HURTING, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may reach for ${b}, or hold back unsure what ${b} wants`, false, false, false, 'romance', 'Tending'],
+    [['cruel'], ['scared'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a}'s edge may sharpen at it, or blunt on seeing it`, false, false, false, 'captor', 'Edge and fear'],
+    [['desire'], SHY, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may close in, and ${b} may let it happen slowly or slip away to be followed`, false, false, false, 'heat', 'The chase'],
+    [['calm'], ['scared'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a}'s calm may settle ${b}, or ${b} may resent how unbothered ${a} seems`, false, false, false, 'allies', 'Steady hand'],
+    [SORRY, AGGRIEVED, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may try to make it right, and ${b} may take it or not yet`, false, false, false, 'toxic', 'Making amends'],
 ];
 // For tests/pronouns.mjs, which renders every line.
 export const LINK_LINES = { ROLE_LINKS, TIE_LINKS, CORE_BENDS };
 export const CLASH_CHOICES = ['off', 'sometimes', 'often'];
+const FAMILIES = new Set(MOODS.map(m => m.category));
 const fits = (id, side) => side.includes(id) || side.includes(CAT.get(id));
 // The strongest mismatch at clear or above, whether or not this reply speaks about it: { line, group } or null.
 // moods: { n, u } each person's moods; names: { n, u }; word(id): the plain name of a feeling.
@@ -228,11 +258,12 @@ export function clashOf(moods, names, word) {
     const desire = { n: strong.n.some(([id]) => CAT.get(id) === 'desire'), u: strong.u.some(([id]) => CAT.get(id) === 'desire') };
     const on = k => strong[k], wants = k => desire[k];
     let best = null;
-    for (const [sa, sb, text, same, notWanting, inHeat, group] of CLASHES) for (const [a, b] of same ? [['n', 'u']] : [['n', 'u'], ['u', 'n']]) {
+    for (const [sa, sb, text, same, notWanting, inHeat, group, name] of CLASHES) for (const [a, b] of same ? [['n', 'u']] : [['n', 'u'], ['u', 'n']]) {
         if ((notWanting && wants(b)) || (inHeat && !wants('n') && !wants('u'))) continue;
         for (const [x, vx] of on(a)) if (fits(x, sa)) for (const [y, vy] of on(b)) if (fits(y, sb)) {
-            const score = Math.min(vx, vy);
-            if (!best || score > best.score) best = { score, group, line: text(names[a], names[b], word(x), word(y)) };
+            // A pairing named by feeling beats one by family, so subspace meeting domspace reads exactly.
+            const score = Math.min(vx, vy) + (sa.includes(x) && !FAMILIES.has(x) ? 8 : 0) + (sb.includes(y) && !FAMILIES.has(y) ? 8 : 0);
+            if (!best || score > best.score) best = { score, group, name, line: text(names[a], names[b], word(x), word(y)) };
         }
     }
     return best;

@@ -245,8 +245,29 @@ const CLASHES = [
     [['calm'], ['scared'], (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a}'s calm may settle ${b}, or ${b} may resent how unbothered ${a} seems`, false, false, false, 'allies', 'Steady hand'],
     [SORRY, AGGRIEVED, (a, b, x, y) => `${a} is ${x} and ${b} is ${y}: ${a} may try to make it right, and ${b} may take it or not yet`, false, false, false, 'toxic', 'Making amends'],
 ];
+// 2.0.23: one person's nature against the other's mood, used only when no two moods pair up. Either way round.
+const T_CARER = ['nurturing', 'kind_hearted', 'soft_hearted', 'gentle', 'empathetic', 'protector_role', 'fatherly', 'big_sibling_energy', 'hidden_heart', 'secretly_sentimental'];
+const T_COLD = ['cold_blooded', 'callous', 'emotionless', 'cold_calculator', 'contempt_for_weakness', 'not_my_problem', 'insensitive'];
+const T_STORMY = ['volatile', 'hot_headed', 'moody', 'unpredictable'];
+const T_STEADY = ['even_tempered', 'mature', 'resilient', 'thick_skinned'];
+const T_PROUD = ['arrogant', 'prideful', 'vain', 'snobbish', 'entitled', 'elitist'];
+const T_SLY = ['manipulator', 'cunning', 'opportunistic', 'cold_reader', 'gaslighter', 'love_bomber'];
+const T_JEALOUS = ['possessive_nature', 'jealous_nature'];
+const T_DRY = ['morbid_humour', 'sarcastic', 'deadpan', 'wry', 'roaster', 'gremlin'];
+const T_OLD = ['chauvinist', 'misogynist', 'anti_feminist', 'traditional', 'provider_pride'];
+const NATURE_MOOD = [
+    [T_CARER, ['sad', 'scared'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: it may draw ${a} in, or ${a} may not know what ${b} needs`, 'romance', 'A soft spot for it'],
+    [T_COLD, ['sad', 'scared'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may barely register it, or be thrown by caring at all`, 'distance', 'Cold to it'],
+    [T_STORMY, ['angry'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: it may catch light, or ${a} may surprise them both by staying level`, 'toxic', 'Tinder'],
+    [T_STEADY, ['angry', 'scared'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may hold steady for ${b}, or ${b} may resent how unshaken ${a} is`, 'allies', 'Steady ground'],
+    [T_PROUD, ['sad', 'closeness', 'love'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may not stoop to meet it, or soften in spite of that pride`, 'society', 'Pride in the way'],
+    [T_SLY, ['sad', 'scared', 'closeness'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may see an opening, or let it pass`, 'mind', 'An opening'],
+    [T_JEALOUS, ['happy', 'bold', 'desire'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may wonder who it's for, or simply enjoy it`, 'obsess', 'Who is it for'],
+    [T_DRY, ['sad', 'angry'], (a, b, x, y) => `${a} has a ${x} streak and ${b} is ${y}: a joke may help, or land wrong`, 'allies', 'Joking it off'],
+    [T_OLD, ['bold', 'angry'], (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may bristle at it, or find it more appealing than ${a} lets on`, 'power', 'Not how it should be'],
+];
 // For tests/pronouns.mjs, which renders every line.
-export const LINK_LINES = { ROLE_LINKS, TIE_LINKS, CORE_BENDS };
+export const LINK_LINES = { ROLE_LINKS, TIE_LINKS, CORE_BENDS, NATURE_MOOD };
 export const CLASH_CHOICES = ['off', 'sometimes', 'often'];
 const FAMILIES = new Set(MOODS.map(m => m.category));
 const fits = (id, side) => side.includes(id) || side.includes(CAT.get(id));
@@ -263,6 +284,14 @@ export function clashOf(moods, names, word) {
         for (const [x, vx] of on(a)) if (fits(x, sa)) for (const [y, vy] of on(b)) if (fits(y, sb)) {
             // A pairing named by feeling beats one by family, so subspace meeting domspace reads exactly.
             const score = Math.min(vx, vy) + (sa.includes(x) && !FAMILIES.has(x) ? 8 : 0) + (sb.includes(y) && !FAMILIES.has(y) ? 8 : 0);
+            if (!best || score > best.score) best = { score, group, name, line: text(names[a], names[b], word(x), word(y)) };
+        }
+    }
+    if (best) return best;
+    // No two moods meet: one person's nature against the other's mood fills in (2.0.23).
+    for (const [traits, fam, text, group, name] of NATURE_MOOD) for (const [a, b] of [['n', 'u'], ['u', 'n']]) {
+        for (const [x, vx] of on(a)) if (traits.includes(x)) for (const [y, vy] of on(b)) if (fits(y, fam)) {
+            const score = Math.min(vx, vy);
             if (!best || score > best.score) best = { score, group, name, line: text(names[a], names[b], word(x), word(y)) };
         }
     }

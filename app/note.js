@@ -19,6 +19,7 @@ import { fill as fillDynamic } from '../engine/dynamics.js';
 import { DOM_TRAITS, DOM_TURNS, MEDICINE_PAIRS, MEDICINE_ROLES, POWER_PAIRS, POWER_ROLES, ROMANCE_PAIRS, SCENE, SUB_TRAITS, SUB_TURNS, UNDER_ROLES, periodLines } from '../engine/period.js';
 import { effectiveChat } from '../engine/ledger.js';
 import { coreLink, moodClash, moodLink, roleLink, tieLink } from '../engine/links.js';
+import { natureLine } from '../engine/nature.js';
 import { cleanAge, heightCm } from '../engine/turns.js';
 import { cleanMore, computeMore, meterWeaveNames } from '../engine/meters.js';
 import { MOOD_PACE, RESTRAINT_BREAK, SHORT_FUSE, SNAP_COOL, restraintLine, restraintOdds, snapLine, snapOdds, snapRoll, snapped, temperPace } from '../engine/moodpace.js';
@@ -303,6 +304,9 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const word = id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase();
     const clash = mine?.enabled ? moodClash({ n: Object.fromEntries(Object.entries(state.moods ?? {}).filter(([id]) => !state.about?.[id])), u: mine.moods }, { n, u }, word, clashFor(settings().moodClash, getStoryState(ch)?.dial), ctx().chat?.length ?? 0) : '';
     if (clash) links.push(pronounize(clash, n, u));
+    // How their natures fit (2.0.23): only when the scene touches it or every sixth reply.
+    const natures = settings().natureFit === false ? [] : bd?.nature ?? bondAxes(ch).nature ?? [];
+    if (natures.length) { const nl = natureLine(natures, (ctx().chat ?? []).slice(-2).map(m => m?.mes ?? '').join(' '), ctx().chat?.length ?? 0); if (nl) links.push(pronounize(nl, n, u)); }
     return { lenses, links };
 }
 // The feelings on a character's list, as the plain names the hidden line uses (first part of the label).

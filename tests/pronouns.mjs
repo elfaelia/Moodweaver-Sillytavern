@@ -7,6 +7,7 @@ import { DYNAMICS } from '../data/catalogue/dynamics.js';
 import { MORE_METERS } from '../engine/meters.js';
 import { COMBOS } from '../engine/reactive.js';
 import { LINK_LINES } from '../engine/links.js';
+import { NATURE_ROWS } from '../engine/nature.js';
 import { SKILL_COMBOS } from '../data/catalogue/skills.js';
 import { turnOnsLine } from '../engine/prompt.js';
 import { PERIOD } from '../data/catalogue/period.js';
@@ -19,6 +20,8 @@ const lines = [
     ...LINK_LINES.ROLE_LINKS.map((r, i) => [`role link ${i + 1}`, r[2]]),
     ...LINK_LINES.TIE_LINKS.map((r, i) => [`tie link ${i + 1}`, r[3]]),
     ...LINK_LINES.CORE_BENDS.map((r, i) => [`core link ${i + 1}`, (n, u) => r[2](n, u, 'the slow burn')]),
+    ...LINK_LINES.NATURE_MOOD.flatMap((r, i) => [[`nature-mood ${i + 1}`, (n, u) => r[2](n, u, 'stubborn', 'sad')], [`nature-mood ${i + 1} reversed`, (n, u) => r[2](u, n, 'stubborn', 'sad')]]),
+    ...NATURE_ROWS.flatMap(r => [[`nature "${r[0]}"`, (n, u) => r[3](n, u, 'stubborn', 'warm')], [`nature "${r[0]}" reversed`, (n, u) => r[3](u, n, 'stubborn', 'warm')]]),
     ...SKILL_COMBOS.map(r => [`skill combo ${r[0]}+${r[1]}`, (n, u) => r[2].replaceAll('{n}', n).replaceAll('{u}', u)]),
     // Period lines: {who} is one of them, {other} the other, either way round.
     ...PERIOD.flatMap(l => ['he', 'she', 'any'].filter(g => l[g] && /\{other\}/.test(l[g])).flatMap(g => [

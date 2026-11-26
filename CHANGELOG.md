@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.23
+- How their natures fit: a slow layer read from his traits against yours (core traits count most, clear or above). Bonds shows the strongest pairing as By nature, with up to two more under Also. 19 pairings: 11 where opposites pull (Gruff and sunny, Order and chaos, Carer and cared for, Cold and warm, Wall and door, Proud and plain, Old-fashioned and their own person, Trusting and sly, Dark and bright, Watchful and easy, Storm and anchor) and 8 kindred ones (Same dark humour, Two minds, Partners in crime, Two hard heads, Two closed books, Ride or die, Two romantics, Two carers). Never written as a clash.
+- It leans the slower dynamic underneath, not the scene's, since traits barely change.
+- Sent as one short line only when the last two messages touch it or every sixth reply. Switch: Settings, What is sent, How their natures fit.
+- Nature against mood joins Right now: when no two moods pair up, one person's nature against the other's mood fills in (A soft spot for it, Cold to it, Tinder, Steady ground, Pride in the way, An opening, Who is it for, Joking it off, Not how it should be), either way round. Same setting and cadence as before, so nothing extra is sent.
+
+## 2.0.22
+- Penis size bands moved down to real-world sizes: Large now starts a little over six inches erect (was seven), Very large past seven and a half (was well past eight). Small and Average unchanged.
+
 ## 2.0.21
 - Untouched in their eyes no longer says he sees nothing dated in it (that put a date on it); now he's simply sure this is how things are.
 - New dynamic Mine now, the other way Untouched can end: after they've slept together he counts her as his, the same bias but turned fiercely protective. She's still clean to him because he's the one who had her; anyone after him would be what spoils her. Comes up with Pedestal still 20+, Possessiveness 40+ and Protectiveness or Jealousy 30+. Ruined in their eyes stays the colder ending (Pedestal 10 or less).

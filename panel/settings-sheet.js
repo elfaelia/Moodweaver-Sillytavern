@@ -56,6 +56,7 @@ export function settingsView(state) {
             ${sw('data-setting-bool="factOpposites"', on('factOpposites'), 'Opposite facts switch each other off', 'Hot takes off Cold, Drunk takes off Tipsy. Pinned ones stay.')}
             ${sw('data-setting-bool="factsWhenRelevant"', on('factsWhenRelevant'), 'Who-they-are facts only when the scene touches them', 'Looks, style, voice, job and past. Saves tokens when the card already says it.')}
             ${sw('data-setting-bool="traitFocus"', on('traitFocus'), 'Traits in focus', 'Three in full each reply, the rest as names in the background.')}
+            ${sw('data-setting-bool="natureFit"', on('natureFit'), 'How their natures fit', 'His traits against yours, shown on Bonds as By nature. Sent only when the scene touches it or every sixth reply.')}
             ${sw('data-setting-bool="diceOn"', on('diceOn'), 'Dice checks for skills in play')}
             ${sw('data-setting-bool="arcOffers"', on('arcOffers'), 'Offer arcs the story starts', 'A chip on Scene when the story begins a slow burn, a corruption and so on.')}`)}
         ${card('turns', '\u21cb', '#e7a6c4', 'Turn-ons', ({ fit: 'Sent when they fit the moment', heat: 'Sent only in intimate scenes', all: 'Sent every reply' })[settings().turnsSend] ?? '', `

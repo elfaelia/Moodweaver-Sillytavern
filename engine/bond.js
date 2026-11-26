@@ -318,10 +318,12 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const slow = all.slice(-(UNDER_WINDOW[bond.pace] ?? UNDER_WINDOW.steady)), fall = Math.max(0, -slow.reduce((t, x) => t + (Number(x.s?.f) || 0) + (Number(x.s?.r) || 0) + (Number(x.s?.m?.ly) || 0), 0));
     axesNow.fall = fall;
     const settled = { ...shadow, ...base, ...more, ...(ds !== undefined ? { ds } : {}), fall, sx: axes?.slept === true };
-    let underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }) : null;
+    // How their natures fit (2.0.23) leans the slower dynamic underneath, not the scene's.
+    const ng = axes?.nature?.[0]?.group, underLean = ctxLean && { ...ctxLean, weight: 0.5, groups: ng ? { ...ctxLean.groups, [ng]: Math.min(1, (ctxLean.groups?.[ng] ?? 0) + 0.6) } : ctxLean.groups };
+    let underRaw = bond.under && bond.extra ? dynamicOf(settled, n, u, '', [], underLean) : null;
     // Underneath colours the main dynamic; it doesn't contradict it. A distant one under a close one needs a real
     // drop or actual ill will (friendship below zero), or the next best fit is used.
-    if (underRaw?.group === 'distance' && meters.group !== 'distance' && fall < 5 && (settled.f ?? 0) >= 0) underRaw = dynamicOf(settled, n, u, '', [], ctxLean && { ...ctxLean, weight: 0.5 }, 'distance');
+    if (underRaw?.group === 'distance' && meters.group !== 'distance' && fall < 5 && (settled.f ?? 0) >= 0) underRaw = dynamicOf(settled, n, u, '', [], underLean, 'distance');
     // The story's call lasts STORY_HOLD replies; after that the meters and the scene take over again until the
     // story names a new one, so one old call can't hold the dynamic for the rest of the chat.
     const call0 = bond.mode === 'story' && !bond.fixed ? storyCall(bond, all) : null, call = call0 && call0.ago < (STORY_HOLD[bond.pace] ?? STORY_HOLD.steady) ? call0 : null;
@@ -349,7 +351,7 @@ export function computeBond(bond, chatLength = Infinity, n = 'one', u = 'the oth
     const source = bond.fixed ? 'you' : called ? call.by : 'meters';
     return { ...v, more, thinks, sparks, recent, friend: levelOf(FRIEND_LEVELS, v.f), romance: levelOf(ROMANCE_LEVELS, v.r), trust: levelOf(TRUST_LEVELS, v.t),
         control: controlWord(v.p, n, u), pull: pullWord(v.l, n, u), power: controlWord(v.p, n, u), swing,
-        dynamic, auto: meters.name, byMeters: meters, moment: axes?.moment ?? null, under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend, scene: axesNow };
+        dynamic, auto: meters.name, byMeters: meters, moment: axes?.moment ?? null, nature: axes?.nature ?? [], under, underRaw, source, call: called ? { ...call, name: called.name } : null, trend, scene: axesNow };
 }
 // Dragging a meter sets where it stands now; later replies move it from there. The anchor sits just
 // after the newest reply, so swiping that reply keeps your value and the new swipe moves it.

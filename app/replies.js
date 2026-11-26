@@ -16,6 +16,7 @@ import { diff, effectiveChat, settle, track, untrack, weaveKey } from '../engine
 import { MORE_METERS, cleanMore, computeMore, saidMeters, setMore } from '../engine/meters.js';
 import { meterShadow, withFacts, withNudges } from '../engine/mood-meters.js';
 import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
+import { natureOf } from '../engine/nature.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta, snapped } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
@@ -428,7 +429,14 @@ export function bondAxes(ch, bond = null) {
     // 1.86: feelings that became meters still lift the dynamics that fit them, read from the side meters.
     const b = bond ?? bondData(ch), fromMeters = b?.on ? meterTies({ more: computeMore(b.more, bondList(ch), paceOf(b).cap).values }) : {};
     const lean = dynamicLean([hisNow, myMoods], { ...fromMeters, ...shared, ...his, ...yours }, clash?.group ?? '', stripWeave(recent));
-    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean, slept: sleptTogether({ ...shared, ...his, ...yours }), moment: clash ? { name: clash.name, line: clash.line, group: clash.group } : null, shadow: shadowMeters(b, st, { ...shared, ...his }) };
+    return { ...axes, r: axes.r + signsPull(chatSigns(ch, bond ?? bondData(ch)).char), lean, slept: sleptTogether({ ...shared, ...his, ...yours }), moment: clash ? { name: clash.name, line: clash.line, group: clash.group } : null, nature: natureNow(ch, st, me), shadow: shadowMeters(b, st, { ...shared, ...his }) };
+}
+// 2.0.23: how their natures fit, from his traits and yours (core traits count most). Up to three pairings.
+const traitsOf = st => Object.fromEntries(Object.entries(st?.moods ?? {}).filter(([id, v]) => v > 0 && BY_ID[id] && sectionOf(BY_ID[id]) === 'trait' && !st?.about?.[id]));
+function natureNow(ch, st, me) {
+    if (!st || !me?.enabled) return [];
+    const word = id => (BY_ID[id]?.label ?? id).split('/')[0].trim().toLowerCase();
+    return natureOf(traitsOf(st), traitsOf(me), { n: new Set(st.core ?? []), u: new Set(me.core ?? []) }, { n: shortName(ch.name), u: shortName(playerName()) }, word);
 }
 // 2.0.19: meters that are switched off still get a rough reading from his feelings and the ties set toward you,
 // so a dynamic you turned on that tests them can come up. Only meters something speaks to; the rest stay unread.

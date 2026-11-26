@@ -546,10 +546,13 @@ function composePrompt(state, name, extras = {}) {
     // Narration and dialogue given to different authors (Story \u203a an author's "Narration" or "Dialogue" button).
     // The period as one plain instruction and a short line, then what it does to the things in play.
     const year = storyState?.targets?.year ? `, exactly ${pt(storyState.targets.year)}` : '';
+    // The setting lines (Setting tab): what the world around them expects, says and risks. They go even when no
+    // Story period is set, if a set was switched on by hand.
+    const lensLines = extras.lenses?.length ? [`The world around them, which is what others expect, say and risk; it doesn't decide how either of them acts, and it can be defied or ignored. ${extras.lenses.map(t => sentence(pt(t))).join(' ')}`] : [];
+    if (!eras.length && lensLines.length) out.push('', ...lensLines);
     if (eras.length) {
         const eraLines = [...eras].sort((a, b) => storyState.moods[b.id] - storyState.moods[a.id]).map((m, i) => `${i ? 'It also touches on' : 'Keep the story set in'} ${/^\d+s$/.test(m.label) ? 'the ' : ''}${m.label}${i ? '' : year}. ${m.cue[0].toUpperCase()}${m.cue.slice(1)}.`);
         const eraRule = `Technology, money, slang, manners, laws, medicine and attitudes stay true to it. People talk like people of the time, casual and full of contractions, never stiff. Modern labels in these notes are shorthand: show them through period words and behaviour.`;
-        const lensLines = extras.lenses?.length ? [`The period around them, which is what others expect, say and risk; it doesn't decide how either of them acts, and it can be defied or ignored. ${extras.lenses.map(t => sentence(pt(t))).join(' ')}`] : [];
         if (split) { fx.push('', ...eraLines, eraRule, ...(locales.length ? [LOCALE_MARK] : [])); if (lensLines.length) out.push('', ...lensLines); }
         else out.push('', ...eraLines, ...lensLines, eraRule, ...(locales.length ? [LOCALE_MARK] : []));
     }

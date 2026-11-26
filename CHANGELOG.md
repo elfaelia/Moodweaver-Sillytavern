@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.6
+- The Era tab is now the Setting tab. Along the top: one tab per era set, 1960s, 1980s, 1990s, 2010s and 2020s, with a ✦ on the ones in use. Each set switches on or off whole for this chat; the Story period's set is on by itself unless switched off, and any other set can be switched on by hand, with or without a Story period. America or England picks which place's lines go (the Story period's place, else America).
+- 96 new setting lines for the 1980s, 1990s, 2010s and 2020s, some for America, some for England, most for both: cliques and trends, being queer and the law, what reads as queer (a soft man, a masculine woman), how men and women look at each other, who leads, money, dating and phones, reputation, therapy, bodies, drugs and smoking, and the police and the drug trade for criminals (stop and search, the war on drugs, cameras and DNA, county lines, phones and plates, EncroChat, fentanyl). They wake from the same cards as the 1960s lines.
+- Up to six ways of coping. All of them go to Claude by name on the hidden line every reply; while stress shows, the full description goes for three at most, the ones not used last first, taking turns.
+- Chauvinist and misogynist are told apart: a chauvinist believes men should lead, provide and protect and treats women as precious but lesser, gallant rather than hateful; a misogynist holds women in contempt underneath.
+
+## 2.0.5
+- Fights and holds against side characters are real contests. Side characters have no skill lists, so before this a fight with one fell to a plain check, and a skilled fighter won every fight and broke every hold. Now the other side rolls too, with a hidden level the story dial How much can go wrong raises (from Safe to Anything goes), and skill counts for at most two dice there, so even a master loses now and then. Claude is told only who gets the better of it and how cleanly: clearly ahead, ahead but it costs something, giving ground, or badly beaten.
+- The skills rule now says skills belong only to the people they're listed for and compare with your character only between the two of you. Anyone else is as able as they plainly are by size, strength, age, work and history; a strong or seasoned opponent resists, counters and can win, and a fight costs even the winner.
+
 ## 2.0.4
 - Mixed ways of coping fade to half, never to nothing. The same thing again eases stress a little less each reply (8, 6, 5, then 4 for as long as it lasts), so it never stops helping. Switching it up makes it fresh again: another way, or the same way with something new in it. Sex that lights a turn-on or kink not lit since this run of coping started counts as fresh, and eases 2 more than usual.
 - Unhealthy ways no longer compound. Drinking, drugs and the rest ease stress the full amount every time, with no fading and no rebound afterwards. Being drunk or high is the cost, and it plays out on the page.

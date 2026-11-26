@@ -278,10 +278,10 @@ const dialRow = (title, steps, at, attr) => `<div class="mw-dial-one"><div class
 function dialBlock(state) {
     return `<div class="mw-dial">${DIALS.map(d => dialRow(d.title, d.steps, stepOf(state, d.key), d.key === 'turns' ? 'data-story-dial' : `data-story-dials="${d.key}" data-step`)).join('')}</div>`;
 }
-// Period lines now live on each person's Period tab (Self section); the Story tab just points there.
+// Setting lines live on each person's Setting tab; the Story tab just points there.
 function eraBlock(state) {
     const era = MOODS.filter(m => m.category === 'era' && (state.moods?.[m.id] ?? 0) > 0).sort((a, b) => state.moods[b.id] - state.moods[a.id])[0];
-    return era && periodEra(era.id) ? '<p class="mw-fine mw-era-note">\u2766 Period lines for each of you are on their own Period tab, under Self.</p>' : '';
+    return era && periodEra(era.id) ? '<p class="mw-fine mw-era-note">\u2766 Setting lines for each of you are on their own Setting tab.</p>' : '';
 }
 // Saved author blends for this character: tap one to put its authors (and who writes narration or dialogue)
 // back on, \u2715 to delete it. Folded into one line, and hidden until there's an author on or a blend saved.

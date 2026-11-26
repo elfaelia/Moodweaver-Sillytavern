@@ -24,9 +24,12 @@
 // world: assumes ordinary public life (a job, money, neighbours, going out); "kept apart" switches these off.
 // w: the weight when nothing on the cards woke it (default 60). group: only one line of a group goes per reply.
 
+import { PERIOD_MODERN } from './period-modern.js';
+
 export const PERIOD_CATS = [
     ['power', 'Power and roles'],
     ['seen', 'How men and women are seen'],
+    ['queer', 'Being queer'],
     ['money', 'Money and work'],
     ['home', 'Home and marriage'],
     ['dating', 'Dating and courting'],
@@ -38,13 +41,15 @@ export const PERIOD_CATS = [
     ['name', 'Reputation and judgement'],
     ['temper', 'Personality'],
     ['vices', 'Drink, smoke and drugs'],
+    ['crime', 'Crime and the police'],
+    ['scene', 'Cliques and trends'],
     ['world', 'Out in the world'],
     ['pair', 'The two of them'],
 ];
 
 const L = (cat, sub, id, label, texts, on = {}) => ({ cat, sub, id, label, ...texts, ...on });
 
-export const PERIOD = [
+const SIXTIES = [
     // ---- Power and roles ----
     L('power', 'Who decides', 'man_decides', 'A man\u2019s say', {
         he: 'Most people take it for granted that a man has the final say over a woman. Police, doctors, banks and her own family will usually back {who} before they back {other}.' },
@@ -925,3 +930,6 @@ export const PERIOD = [
         any: 'Everyone watches everyone. What the neighbours, the church and the office think of {who} and {other} shapes almost everything they do.' },
     { dyn: ['society'], group: 'dyn', w: 50 }),
 ];
+
+// Every setting line (2.0.6): the 1950s\u201360s America ones above, then the 1980s, 1990s, 2010s and 2020s ones.
+export const PERIOD = [...SIXTIES.map(line => ({ era: '60s', place: 'us', ...line })), ...PERIOD_MODERN];

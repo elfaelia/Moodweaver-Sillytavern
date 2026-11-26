@@ -39,7 +39,7 @@ export function personCard(ch, state, live) {
 }
 // 2.0: the dock holds places and people, not categories. Tonight is the scene at a glance; each person is one
 // page with chapters (the chips at the top); Us is the relationship from either side; then Story and Music.
-const TABS = [['mood', '\u263e', 'Feels', '#c9b8f0'], ['needs', '\u25d4', 'Body', '#9fd3b4'], ['state', '\u2302', 'Facts', '#9fc6c0'], ['trait', '\u2742', 'Traits', '#e3c38f'], ['psyche', '\u262f\ufe0e', 'Mind', '#b8a6e0'], ['skills', '\u272a', 'Skills', '#9fc0e8'], ['period', '\u2766', 'Era', '#d9b98c'], ['wants', '\u2606', 'Wants', '#e5ca7f'],
+const TABS = [['mood', '\u263e', 'Feels', '#c9b8f0'], ['needs', '\u25d4', 'Body', '#9fd3b4'], ['state', '\u2302', 'Facts', '#9fc6c0'], ['trait', '\u2742', 'Traits', '#e3c38f'], ['psyche', '\u262f\ufe0e', 'Mind', '#b8a6e0'], ['skills', '\u272a', 'Skills', '#9fc0e8'], ['period', '\u2766', 'Setting', '#d9b98c'], ['wants', '\u2606', 'Wants', '#e5ca7f'],
     ['rel', '\u2665', 'Bonds', '#ef9fbe'], ['turn', '\u21cb', 'Turn-ons', '#e7a6c4'], ['intimacy', '\u2698', 'Intimacy', '#d49bc9'], ['music', '\u266b', 'Music', '#9fd3c9']];
 const US = ['rel', 'turn', 'intimacy'];
 // Which group of the dock a tab lives in: the scene, a person's page, the two of them, or music.

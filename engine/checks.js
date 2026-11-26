@@ -32,9 +32,9 @@ const CONTESTS = [
     { att: ['intimidation', 'interrogation', 'mental_torture', 'terrorising', 'disciplining'], def: ['masking_emotions', 'lying', 'emotional_maturity'],
         verb: 'tries to break or frighten', win: '{d} cracks or gives something away', lose: '{d} holds firm', what: 'pressuring' },
     { att: ['restraining', 'rope_work', 'captivity'], def: ['escape_artistry', 'strength', 'self_defence'],
-        verb: 'tries to hold or tie', win: '{d} can\u2019t get free', lose: '{d} slips loose', what: 'holding' },
+        verb: 'tries to hold or tie', win: '{d} can\u2019t get free', lose: '{d} slips loose', what: 'holding', oa: '{a} tries to hold or tie', od: '{a} is held by, and tries to get free of,' },
     { att: ['violence', 'knife_fighting', 'swordsmanship', 'ambush', 'strangling', 'blunt_weapons', 'boxing', 'martial_arts'], def: ['self_defence', 'violence', 'fitness', 'boxing', 'martial_arts'],
-        verb: 'attacks', win: 'it lands on {d}', lose: '{d} gets clear or turns it', what: 'attacking' },
+        verb: 'attacks', win: 'it lands on {d}', lose: '{d} gets clear or turns it', what: 'attacking', oa: '{a} fights', od: '{a} is attacked by' },
     { att: ['bratting'], def: ['brat_taming', 'domination', 'emotional_maturity'],
         verb: 'pushes the buttons of', win: '{d} rises to it, and the provocation gets the reaction it wanted', lose: '{d} stays amused and in control', what: 'provoking' },
 ];
@@ -68,10 +68,35 @@ const PLAIN = {
     great: ['works well, better than expected', 'goes smoothly', 'goes better than hoped'],
     crit: ['works brilliantly', 'goes perfectly, with something extra', 'could hardly have gone better'],
 };
+// Against anyone else (2.0.5). Side characters have no skill lists, and a contest with them used to fall to the plain
+// check against 12, so a skilled fighter won every fight and broke every hold. Now it's a contest with an unnamed
+// other side: they roll too, with a hidden level that the story's "How much can go wrong" dial raises (edge 0 to 4),
+// and the result only says who gets the better of it and how cleanly. Only for the physical contests (holds and
+// fights); reading, lying and persuading someone else stay plain checks. Who that other person plainly is (size,
+// strength, age, training, experience) is left to Claude to weigh on top. Skill helps less here than in a contest
+// with the player's character: at most two dice, so a master still loses now and then.
+const OTHER = [[-2, 4], [0, 5], [1, 6], [2, 7], [3, 8]];
+const OPEN = {
+    crit: ['{a} gets the better of it almost at once'],
+    clear: ['{a} clearly has the upper hand, though it still takes effort and they fight it', '{a} comes out well ahead, not untouched'],
+    edge: ['{a} gets the better of it, but not cleanly: they resist, counter or cost {a} something', '{a} edges it after a real struggle, and it costs something'],
+    close: ['they get the better of it this time, and {a} pays for it', 'it goes their way, and {a} has to give ground'],
+    lose: ['it goes badly against {a}', '{a} is clearly outmatched this time'],
+};
+const openContest = (seed, name, sk, c, side, edge = 1) => {
+    const [lo, hi] = OTHER[Math.max(0, Math.min(4, edge))] ?? OTHER[1];
+    const lv = lo + (d20(seed, `${name}:${sk.id}:other`) % (hi - lo + 1));
+    const ra = roll(seed, `${name}:${sk.id}:open`, Math.max(-7, Math.min(7, sk.level))), rd = roll(seed, `${name}:${sk.id}:them`, lv);
+    const m = (ra + sk.level) - (rd + lv);
+    const t = ra === 20 && m >= 5 ? 'crit' : ra === 1 ? (m > 0 ? 'close' : 'lose') : m >= 10 ? 'clear' : m > 0 ? 'edge' : m > -7 ? 'close' : 'lose';
+    return { win: m > 0, roll: ra, total: ra + sk.level, olevel: lv, oroll: rd,
+        text: `If ${(side === 'a' ? c.oa : c.od).replaceAll('{a}', name)} anyone else, ${OPEN[t][ra % OPEN[t].length].replaceAll('{a}', name)}.` };
+};
+const contestOf = id => CONTESTS.find(c => c.oa && c.att.includes(id)) ?? CONTESTS.find(c => c.oa && c.def.includes(id));
 const best = (all, ids) => all.filter(x => ids.includes(x.id)).sort((a, b) => b.level - a.level)[0];
 // people: [{ name, all: skillsOf(), lit: litSkills(), moods }]; two people at most are compared (the first two).
 // Returns { by, rolls }: sentences for each doer's paragraph, rolls for the panel.
-export function checkLines(people = [], seed = 0, { max = 3, player = '' } = {}) {
+export function checkLines(people = [], seed = 0, { max = 3, player = '', edge = 1 } = {}) {
     const rolls = [], used = new Set();
     const [p, q] = people;
     const pairs = q ? [[p, q], [q, p]] : [];
@@ -87,10 +112,16 @@ export function checkLines(people = [], seed = 0, { max = 3, player = '' } = {})
         used.add(`${a.name}:${sk.id}`);
         rolls.push({ kind: 'contest', a: a.name, d: d.name, skill: sk.prompt ?? sk.id, level: sk.level, roll: ra, total: ta, dskill: dk.prompt ?? dk.id, dlevel: dk.level, droll: rd, dtotal: td, win, what: c.what,
             hide: win && d.name === player && c.what === 'deceiving',
-            text: `If ${a.name} ${c.verb} ${d.name} (${sk.prompt ?? sk.id} against ${dk.prompt ?? dk.id}), ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.` });
+            text: `If ${a.name} ${c.verb} ${d.name} (${sk.prompt ?? sk.id} against ${dk.prompt ?? dk.id}), ${(win ? c.win : c.lose).replaceAll('{d}', d.name).replaceAll('{a}', a.name)}.${c.oa && litA ? ` ${openContest(seed, a.name, sk, c, 'a', edge).text}` : ''}` });
     }
     for (const person of people.slice(0, 2)) for (const sk of person.lit ?? []) {
         if (used.has(`${person.name}:${sk.id}`) || rolls.some(r => r.a === person.name && r.skill === sk.prompt)) continue;
+        const c = contestOf(sk.id);
+        if (c) {
+            const o = openContest(seed, person.name, sk, c, c.att.includes(sk.id) ? 'a' : 'd', edge);
+            rolls.push({ kind: 'open', a: person.name, skill: sk.prompt, level: sk.level, roll: o.roll, total: o.total, olevel: o.olevel, oroll: o.oroll, win: o.win, text: o.text });
+            continue;
+        }
         const r = roll(seed, `${person.name}:${sk.id}`, sk.level), total = r + sk.level, t = tier(r, total, DC);
         rolls.push({ kind: 'check', a: person.name, skill: sk.prompt, level: sk.level, roll: r, total, tier: t,
             text: `If ${person.name} tries ${sk.prompt}, it ${PLAIN[t][r % PLAIN[t].length]}.` });

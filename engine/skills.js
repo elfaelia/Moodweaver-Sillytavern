@@ -172,7 +172,7 @@ function comboOf(p, other, seed) {
 }
 // 2.0 brief: each person's skills go inside that person's paragraph (by name), as what they're good or bad at, with
 // no numbers; the scale and the rules sit once in the cached guide (SKILL_RULE). Only skills the scene calls on go.
-export const SKILL_RULE = 'Skills run from hopeless through novice and competent to master, and they decide how attempts go, the player\u2019s character\u2019s included: nobody does better than their skill because the scene needs it, and someone good at something reaches for it unasked. Below novice, they\u2019re genuinely bad at it; how it goes wrong is yours to invent each time, fitting who they are, and the other person reacts in character.';
+export const SKILL_RULE = 'Skills run from hopeless through novice and competent to master, and they decide how attempts go, the player\u2019s character\u2019s included: nobody does better than their skill because the scene needs it, and someone good at something reaches for it unasked. Below novice, they\u2019re genuinely bad at it; how it goes wrong is yours to invent each time, fitting who they are, and the other person reacts in character. Skills belong only to the people listed and compare with the player\u2019s character only between them. Anyone else is as able as they plainly are by size, strength, age, work and history: a strong or seasoned opponent resists, counters and can win, and a fight costs even the winner.';
 export function skillLines(people = [], u = 'the player\u2019s character', seed = 0, n = '') {
     const by = {};
     people.filter(p => p.lit?.length).forEach((p, i) => {

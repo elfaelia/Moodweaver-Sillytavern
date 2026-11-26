@@ -1,4 +1,4 @@
-// Period lines for 1950s\u201360s America: picks which lines from data/catalogue/period.js go with this reply. A line
+// Setting lines (1950s\u201360s America; since 2.0.6 also the 1980s, 1990s, 2010s and 2020s, America or England): picks which lines from data/catalogue/period.js go with this reply. A line
 // is about one person and only goes when something on the cards wakes it, the person's Period tab allows it, and
 // it is written for their gender (he, she, or any). Opus 5.5 gets them as short plain sentences under one heading
 // that says they are the world around the two of them, not who they are. Pure functions; app/note.js works out
@@ -9,8 +9,24 @@ import { PERIOD } from '../data/catalogue/period.js';
 const MOOD_CAT = new Map(MOODS.map(m => [m.id, m.category]));
 
 export const ERA_LINE_CHOICES = [1, 2, 3, 4, 5, 6, 8, 10];
-// The lines are written for America in the fifties and sixties; any other period gets only its own era sentence.
-export const periodEra = id => /^era_19[56]0s/.test(id ?? '') && !/britain|scotland/.test(id);
+// The sets of setting lines (2.0.6), one per era, each written for America, England or both.
+export const ERA_SETS = [['60s', '1960s'], ['80s', '1980s'], ['90s', '1990s'], ['10s', '2010s'], ['20s', '2020s']];
+export const PLACES = [['us', 'America'], ['uk', 'England']];
+// The set a Story-tab period belongs to, and the place it names ('' when it names none).
+export const eraSetOf = id => { const m = /^era_(19|20)([0-9])0s/.exec(id ?? ''); if (!m) return ''; const d = `${m[2]}0s`;
+    return m[1] === '19' ? (d === '50s' || d === '60s' ? '60s' : ['80s', '90s'].includes(d) ? d : '') : ['10s', '20s'].includes(d) ? d : ''; };
+export const placeOf = id => /america/.test(id ?? '') ? 'us' : /britain|england|scotland/.test(id ?? '') ? 'uk' : '';
+// Which sets are on and which place counts, for one character's chat. choice: { on: { set: true | false }, place }
+// from the Setting tab. The Story-tab period's set is on unless switched off there; any other set only when switched
+// on. The place is the one picked, else the one the Story period names, else America. The 1950s\u201360s lines are
+// America's, so 1960s Britain gets none of them unless they're switched on by hand.
+export function settingFor(eraId = '', choice = {}) {
+    const story = eraSetOf(eraId), on = choice?.on ?? {};
+    const place = PLACES.some(([k]) => k === choice?.place) ? choice.place : placeOf(eraId) || 'us';
+    const sets = ERA_SETS.map(([k]) => k).filter(k => on[k] === true || (on[k] !== false && k === story && !(k === '60s' && placeOf(eraId) === 'uk')));
+    return { sets, place, story };
+}
+export const periodEra = (id, choice) => settingFor(id, choice).sets.length > 0;
 // Soft or feminine ways on a man, and mannish ways on a woman (the "Not like the others" line).
 const FEMININE = ['feminine', 'girlish', 'prissy'], MASCULINE = ['masculine', 'swagger'];
 const at = (moods, ids, min = 41) => Math.max(0, ...ids.map(id => moods?.[id] ?? 0).filter(v => v >= min));
@@ -69,16 +85,18 @@ function seededOrder(list, seed) {
 export const periodText = (line, gender) => (gender === 'he' || gender === 'she' ? line[gender] : '') || line.any || '';
 const fill = (text, map) => text.replace(/\{(\w+)\}/g, (m, key) => map[key] ?? m);
 
-// c: { era, n, u (names), g: { n, u } ('he' | 'she' | 'they'), top / bedTop ('n' | 'u' | ''), heat, romance, wed,
+// c: { era (the Story-tab period id), choice (the Setting tab's { on, place }), n, u (names), g: { n, u } ('he' | 'she' | 'they'), top / bedTop ('n' | 'u' | ''), heat, romance, wed,
 //   medicine, sub / dom: { n, u } (has a submissive or dominant streak), scene: { key: true }, moods / prefs / ties /
 //   needs / ages / heights: { n, u }, dynGroup (the pair's dynamic group key, '' when none), off: { n, u } (Sets of line ids switched off on their Period tab), cap, seed }.
 // Returns every line that applies right now, most important first, with the ones sent this reply marked.
 export function periodLines(c) {
-    if (!periodEra(c.era)) return [];
+    const { sets, place } = settingFor(c.era, c.choice);
+    if (!sets.length) return [];
     const found = new Map();
     for (const k of ['n', 'u']) {
         const o = k === 'n' ? 'u' : 'n', gender = c.g[k];
         for (const line of PERIOD) {
+            if (!sets.includes(line.era) || (line.place && line.place !== place)) continue;
             const text = periodText(line, gender);
             if (!text || c.off?.[k]?.has(line.id)) continue;
             if (line.other && c.g[o] !== line.other) continue;

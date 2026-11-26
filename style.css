@@ -894,6 +894,14 @@ img.mw-music-ball{box-shadow:0 0 0 1px #ffffff26,0 0 34px color-mix(in srgb,var(
 .mw-period-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
 .mw-panel .mw-period-presets button{min-height:46px;padding:6px 8px;border-radius:12px;border:1px solid #d9b98c55;background:#d9b98c14;color:var(--mw-text);cursor:pointer;line-height:1.2}
 .mw-panel .mw-period-presets button span{display:block;color:var(--mw-muted);font-size:.78em;margin-top:2px}
+.mw-period-sets{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:10px var(--mw-pad) 8px}
+.mw-panel .mw-period-sets button,.mw-panel .mw-period-places button{min-height:44px;padding:6px 4px;border-radius:12px;border:1px solid #d9b98c44;background:transparent;color:var(--mw-muted);cursor:pointer;font-size:.9em;line-height:1.15}
+.mw-panel .mw-period-sets button.is-on{color:#d9b98c;border-color:#d9b98c88}
+.mw-panel .mw-period-sets button.is-active,.mw-panel .mw-period-places button.is-active{background:#d9b98c22;color:var(--mw-text);border-color:#d9b98c}
+.mw-panel .mw-period-switch{display:block;width:calc(100% - 2*var(--mw-pad));margin:0 var(--mw-pad) 8px;min-height:52px;padding:8px 12px;border-radius:14px;border:1px solid #d9b98c55;background:#d9b98c0d;color:var(--mw-muted);text-align:left;cursor:pointer}
+.mw-panel .mw-period-switch b{display:block;color:var(--mw-text);font-weight:600}.mw-panel .mw-period-switch span{font-size:.8em}
+.mw-panel .mw-period-switch.is-on{background:#d9b98c1f;border-color:#d9b98c}.mw-panel .mw-period-switch.is-on b{color:#d9b98c}
+.mw-period-places{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 var(--mw-pad) 8px}
 .mw-period-cat{margin:8px 0;padding:8px 12px;border-radius:14px;background:#ffffff06;border:1px solid #ffffff14}
 .mw-period-cat>summary{display:flex;justify-content:space-between;gap:10px;min-height:40px;align-items:center;cursor:pointer;list-style:none;font-weight:600}
 .mw-period-cat>summary small{color:var(--mw-muted);font-weight:400}

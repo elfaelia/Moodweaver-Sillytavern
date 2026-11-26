@@ -31,7 +31,9 @@ import { dockHere, dockOf, tabStep, tabsFor } from './header.js';
 import { clearAllPins, clearEverything, pinCounts, pinWords, undoClear } from './settings-sheet.js';
 import { filterSkills } from './skills-tab.js';
 import { cleanSecrets } from '../engine/secrets.js';
-import { periodFor, periodOff, periodWho } from './period-tab.js';
+import { COPE_MAX } from '../engine/stress.js';
+import { settingFor } from '../engine/period.js';
+import { browsedSet, periodChoice, periodFor, periodOff, periodWho, storyEra } from './period-tab.js';
 import { filterPersonality } from './personality-tab.js';
 import { cleanEnneagram, cleanPersonality } from '../engine/personality.js';
 import { cleanCombos } from '../engine/reactive.js';
@@ -587,11 +589,21 @@ export async function onPanelClick(e) {
         if (same >= 0) list[same] = { name, authors, roles }; else list.push({ name, authors, roles });
         ui.blendUndo = null; save(); run.status = `Saved the ${name} blend for ${ch.name}.`; render(); renderStatus(); return;
     }
-    // The Period tab: one line on or off for this person, a whole category, or a quick preset.
+    // The Setting tab (2.0.6): look at another era set, switch a whole set on or off for this chat, or pick the place.
+    if (button.dataset.periodSet) { ui.periodSet = button.dataset.periodSet; render(); return; }
+    if (button.dataset.periodUse || button.dataset.periodPlace) {
+        const ch = target(); if (!ch) return;
+        const key = `char:${ch.avatar}`, all = settings().periodSets ??= {}, choice = { on: { ...(all[key]?.on ?? {}) }, place: all[key]?.place ?? '' };
+        if (button.dataset.periodPlace) choice.place = button.dataset.periodPlace;
+        else { const x = button.dataset.periodUse; choice.on[x] = !settingFor(storyEra()?.id, all[key]).sets.includes(x); }
+        all[key] = choice;
+        render(); ctx().saveSettingsDebounced(); await syncPrompt(); return;
+    }
+    // The Setting tab: one line on or off for this person, a whole category, or a quick preset (the set on view only).
     if (button.dataset.periodLine || button.dataset.periodCat || button.dataset.periodPreset) {
         const ch = target(); if (!ch) return;
         const key = `char:${ch.avatar}`, k = periodWho(), all = settings().periodOff ??= {};
-        const off = periodOff(ch, k), mine = periodFor(pronounsFor(ch, bondData(ch))[k]);
+        const off = periodOff(ch, k), mine = periodFor(pronounsFor(ch, bondData(ch))[k], browsedSet(ch), settingFor(storyEra()?.id, periodChoice(ch)).place);
         if (button.dataset.periodLine) { const id = button.dataset.periodLine; if (off.has(id)) off.delete(id); else off.add(id); }
         else if (button.dataset.periodCat) for (const l of mine.filter(l => l.cat === button.dataset.periodCat)) { if (button.dataset.periodTo === 'off') off.add(l.id); else off.delete(l.id); }
         else { off.clear(); const p = button.dataset.periodPreset; for (const l of mine) if (p === 'none' || (p === 'apart' && l.world)) off.add(l.id); }
@@ -626,9 +638,9 @@ export async function onPanelClick(e) {
         if (del == null) ui.panel.querySelector(`[data-fam-field="${familyMembers(viewState()).length - 1}:role"]`)?.focus(); return; }
     if (button.dataset.groupHide) { const id = button.dataset.groupHide, list = settings().hiddenGroups ?? [];
         settings().hiddenGroups = list.includes(id) ? list.filter(x => x !== id) : [...list, id]; ctx().saveSettingsDebounced(); render(); return; }
-    // Ways of coping (2.0.3): tap to choose, up to three; the first tap replaces the one their traits suggested.
+    // Ways of coping (2.0.3): tap to choose, up to six (2.0.6); the first tap replaces the one their traits suggested.
     if (button.dataset.cope) { const id = button.dataset.cope; await changeState(s => { const list = Array.isArray(s.copes) ? s.copes : [];
-        s.copes = list.includes(id) ? list.filter(x => x !== id) : [...list, id].slice(-3); }); return; }
+        s.copes = list.includes(id) ? list.filter(x => x !== id) : [...list, id].slice(-COPE_MAX); }); return; }
     if (button.dataset.action === 'stress-reset') { const at = Math.max(-1, (ctx().chat?.length ?? 0) - 1); await changeState(s => { s.stressFrom = at; }); return; }
     if (button.dataset.pin) { await changeState(s => { s.pins[button.dataset.pin] = !s.pins[button.dataset.pin]; }); return; }
     // Core traits: up to three, always sent. Starring one that's off puts it on at a clear 60.

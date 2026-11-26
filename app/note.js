@@ -28,6 +28,7 @@ import { findPatterns } from '../engine/patterns.js';
 import { pronounize } from '../engine/pronouns.js';
 import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
 import { checkLines, sideLit } from '../engine/checks.js';
+import { stepOf } from '../engine/dials.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
 import { ARCS, arcLines } from '../engine/arcs.js';
 import { aftermathLines, contagionLine } from '../engine/echoes.js';
@@ -104,7 +105,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
         const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
         // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
         sideLit(skillFolk);
-        const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()) }) : { by: {}, rolls: [] };
+        const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()), edge: story?.enabled ? stepOf(story, 'danger') : 1 }) : { by: {}, rolls: [] };
         run.rolls = { avatar: ch.avatar, list: dice.rolls };
         // Each person's skills, insight and dice results, by name, for their own paragraph.
         const skills = {}; for (const part of [skillLines(skillFolk, u, history.length, n), insightLines(skillFolk, skillScene0.scene, history.length), dice.by]) for (const [who, lines] of Object.entries(part)) (skills[who] ??= []).push(...lines);
@@ -245,10 +246,10 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
     const scene = Object.fromEntries(Object.entries(SCENE).map(([key, t]) => [key, people.some(([, , st]) => (t.turns ?? []).some(id => (st?.prefs?.[id] ?? 0) > 40) || strongIn(st?.moods, t.moods ?? []) || (t.skills ?? []).some(id => (st?.skills?.[id] ?? 0) >= 5))
         || (t.items ?? '').split(' ').some(w => carried.has(w))
         || [relMoods, yourSide, pairMoods].some(m => strongIn(m, t.ties ?? [])) || strongIn(story?.enabled ? story.moods : {}, t.story ?? [], 1)]));
-    // Lines switched off on each person's Period tab.
+    // Lines switched off on each person's Setting tab.
     const offs = settings().periodOff?.[`char:${ch.avatar}`] ?? {};
     const you = mine?.enabled ? mine : null;
-    const eraAll = era ? periodLines({ era, n, u, g, top, bedTop, heat, romance,
+    const eraAll = periodLines({ era, choice: settings().periodSets?.[`char:${ch.avatar}`], n, u, g, top, bedTop, heat, romance,
         wed: strongIn(pairMoods, ['married', 'engaged', 'arranged_marriage', 'marriage_of_convenience']),
         medicine: scene.medicine || strongIn(relMoods, MEDICINE_ROLES) || strongIn(yourSide, MEDICINE_ROLES) || strongIn(pairMoods, MEDICINE_PAIRS),
         sub: { n: kinky(state, SUB_TRAITS, SUB_TURNS), u: Boolean(you) && kinky(you, SUB_TRAITS, SUB_TURNS) },
@@ -258,8 +259,8 @@ function sceneLinks({ ch, state, mine, story, bond, bd, n, u }) {
         needs: { n: (liveFor(ch)?.needs ?? []).filter(nd => nd.known && nd.value <= 35).map(nd => nd.id), u: [] },
         ages: { n: cleanAge(state.age), u: you ? cleanAge(you.age) : 0 }, heights: { n: heightCm(state.height), u: you ? heightCm(you.height) : 0 },
         off: { n: new Set(offs.n ?? []), u: new Set(offs.u ?? []) }, cap: Number(settings().eraLines) || 3, seed: ctx().chat?.length ?? 0 })
-        .map(x => ({ ...x, text: pronounize(x.text, n, u) })) : [];
-    // Every period line that applies, with the ones sent marked, for the Period tab's "Lines now".
+        .map(x => ({ ...x, text: pronounize(x.text, n, u) }));
+    // Every period line that applies, with the ones sent marked, for the Setting tab's "Lines now".
     run.eraNow = { avatar: ch.avatar, lines: eraAll };
     const lenses = eraAll.filter(x => x.sent).map(x => x.text);
     const links = [];

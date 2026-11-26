@@ -28,7 +28,7 @@ export function stressRate(st) {
     return clamp(1 + 0.2 * fast - 0.25 * slow, 0.5, 1.6);
 }
 
-// Ways of coping (2.0.3): up to three picked per person on the Stress card, or the one their traits suggest.
+// Ways of coping (2.0.3): up to six (2.0.6) picked per person on the Stress card, or the one their traits suggest.
 // When a reply shows them coping their own way, stress comes down (less each time in a row), and that act is
 // never counted as strain. [id, label, how it shows, traits that suggest it].
 export const COPES = [
@@ -71,18 +71,24 @@ export const COPES = [
     ['self_harm', 'Hurting themself', 'u', 'hurts themself where nobody will see, to feel something they can control', []],
 ].map(([id, label, kind, how, traits]) => ({ id, label, kind, how, traits }));
 const COPE_BY = Object.fromEntries(COPES.map(c => [c.id, c]));
+// Up to six picked (2.0.6). All of them go as short names on the hidden line every reply; the full "how" goes only
+// while stress shows, and then three at most: the ones not used last first, taking turns reply to reply.
+export const COPE_MAX = 6, COPE_SENT = 3;
 const COPE_DEFAULT = 'is short with everyone, sleeps badly and loses the thread of things';
 // The ways that count for this person: their picks, else the one their strongest matching trait suggests.
 export function copesOf(st) {
-    const picked = (Array.isArray(st?.copes) ? st.copes : []).filter(id => COPE_BY[id]).slice(0, 3);
+    const picked = (Array.isArray(st?.copes) ? st.copes : []).filter(id => COPE_BY[id]).slice(0, COPE_MAX);
     if (picked.length) return { ids: picked, auto: false };
     let best = null, bestV = 0;
     for (const c of COPES) for (const id of c.traits) { const v = st?.moods?.[id] ?? 0; if (v > bestV) { best = c.id; bestV = v; } }
     return { ids: best ? [best] : [], auto: true };
 }
-export function copingOf(st) {
+export function copingOf(st, last = '', turn = 0) {
     const { ids } = copesOf(st);
-    return ids.length ? ids.map(id => COPE_BY[id].how).join('; or ') : COPE_DEFAULT;
+    if (!ids.length) return COPE_DEFAULT;
+    const fresh = ids.filter(id => id !== last), at = fresh.length ? turn % fresh.length : 0;
+    const order = [...fresh.slice(at), ...fresh.slice(0, at), ...ids.filter(id => id === last)];
+    return order.slice(0, COPE_SENT).map(id => COPE_BY[id].how).join('; or ');
 }
 export const copeLabels = st => copesOf(st).ids.map(id => COPE_BY[id].label.toLowerCase());
 // How much coping eases, by kind and how many replies in a row it's the same thing again (2.0.4):
@@ -161,7 +167,7 @@ export function computeStress(entries = [], st = {}, from = -1) {
         trail.push(Math.round(v));
     }
     const since = lastBreak ? trail.length - 1 - lastBreak.at : null;
-    return { value: Math.round(v), level: stressLevel(v)[1], word: stressLevel(v)[2], rate, coping: copingOf(st), copes: copesOf(st), trail: trail.slice(-12),
+    return { value: Math.round(v), level: stressLevel(v)[1], word: stressLevel(v)[2], rate, coping: copingOf(st, lastWay ?? '', entries.length), copes: copesOf(st), trail: trail.slice(-12),
         breaking: since === 0 ? lastBreak.how : '', after: since === 1 ? lastBreak.how : '' };
 }
 

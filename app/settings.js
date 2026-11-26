@@ -50,8 +50,10 @@ export function settings() {
         dynamicPools: saved.dynamicPools && typeof saved.dynamicPools === 'object' ? saved.dynamicPools : {},
         // Named author blends, per character: { 'char:<avatar>': [{ name, authors: { id: value }, roles: { id: role } }] }.
         authorBlends: saved.authorBlends && typeof saved.authorBlends === 'object' ? saved.authorBlends : {},
-        // Period lines switched off on each person's Period tab, per character: { 'char:<avatar>': { n: [ids], u: [ids] } }.
+        // Setting lines switched off on each person's Setting tab, per character: { 'char:<avatar>': { n: [ids], u: [ids] } }.
         periodOff: periodOffFrom(saved),
+        // The Setting tab's era sets switched on or off and the place, per character (2.0.6): { 'char:<avatar>': { on: { '80s': true }, place: 'uk' } }.
+        periodSets: saved.periodSets && typeof saved.periodSets === 'object' ? saved.periodSets : {},
         boardSend: saved.boardSend !== false, boardPresent: saved.boardPresent !== false, castAuto: saved.castAuto !== false, blendPlan: saved.blendPlan === true, bondTrack: saved.bondTrack !== false, boardStrip: saved.boardStrip !== false,
         // Board memories and board pins are opt-in; board words count alongside the hidden line.
         boardMemories: saved.boardMemories === true, boardPins: saved.boardPins === true, boardWithWeave: saved.boardWithWeave !== false,

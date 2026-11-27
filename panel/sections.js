@@ -194,11 +194,16 @@ function secretBlock(state, ch, other) {
         <label class="mw-pf mw-pf-wide"><span>One secret a line</span><textarea data-secrets rows="3" maxlength="600" placeholder="Having an affair with his secretary&#10;Owes money to the wrong people">${esc(state.secrets ?? '')}</textarea></label>
         ${rows}</div>`;
 }
-// How they've come to feel about the people the story keeps bringing up (1.79, engine/opinions.js): read-only.
+// How they've come to feel about the people the story keeps bringing up (1.79, engine/opinions.js). Tap someone to
+// correct it (2.0.26): pick the real feeling, Not at all to drop them, or Story decides to hand it back.
+const OPINION_WORDS = [['adores', 'Adores'], ['fond of', 'Fond'], ['warm toward', 'Warm'], ['torn about', 'Torn'], ['cool toward', 'Cool'], ['resents', 'Resents'], ['hates', 'Hates']];
 function opinionRow(ch) {
     const list = opinionsNow(ch, effectiveChat(ctx().chat ?? [])); if (!list.length) return '';
-    return `<div class="mw-profile-voice mw-opinions"><span class="mw-profile-sub">Feelings about others <small>built from the story, sent when the scene names them</small></span>
-        <div class="mw-opinion-list">${list.map(o => `<span class="mw-opinion ${o.score >= 0 ? 'is-warm' : 'is-cold'}"><b>${esc(o.name)}</b> ${esc(o.word)}${o.feel.length ? ` <small>${esc(o.feel.join(', '))}</small>` : ''}</span>`).join('')}</div></div>`;
+    return `<div class="mw-profile-voice mw-opinions"><span class="mw-profile-sub">Feelings about others <small>built from the story, sent when the scene names them; tap someone to correct it</small></span>
+        <div class="mw-opinion-list">${list.map(o => `<button type="button" class="mw-opinion ${o.score >= 0 ? 'is-warm' : 'is-cold'}" data-opinion-open="${esc(o.key)}" aria-expanded="${ui.opinionEdit === o.key}"><b>${esc(o.name)}</b> ${esc(o.word)}${o.yours ? ' <small>\u270e yours</small>' : o.feel.length ? ` <small>${esc(o.feel.join(', '))}</small>` : ''}</button>`).join('')}</div>
+        ${(() => { const o = list.find(x => x.key === ui.opinionEdit); if (!o) return '';
+            return `<div class="mw-opinion-edit"><small>How does ${esc(subjectName())} really feel about ${esc(o.name)}?</small><div class="mw-size-row">${OPINION_WORDS.map(([w, label]) => `<button type="button" class="mw-size-chip" data-opinion-set="${esc(o.key)}" data-opinion-name="${esc(o.name)}" data-v="${w}" aria-pressed="${o.yours && o.word === w}">${label}</button>`).join('')}
+                <button type="button" class="mw-size-chip" data-opinion-set="${esc(o.key)}" data-opinion-name="${esc(o.name)}" data-v="off">Not at all</button>${o.yours ? `<button type="button" class="mw-size-chip" data-opinion-set="${esc(o.key)}" data-v="">Story decides</button>` : ''}</div></div>`; })()}</div>`;
 }
 // Gender (1.89): sets the pronouns every line uses (he/she/they), which period lines apply, the body-size row,
 // and the women-only sounds. Auto reads the card or persona; a persona nobody described counts as a woman.
@@ -213,10 +218,10 @@ function genderRow(ch) {
 // Body size on the profile, by gender: penis size for a man, breast size for a woman, both when the pronouns
 // don't say. Each is a private fact (sent only in intimate or private moments); tap one to set it, tap it again
 // to clear. The story can set them too, by the words on each row.
-const SIZES = { he: ['Size', MOODS.filter(m => m.size === 'he')], she: ['Bust', MOODS.filter(m => m.size === 'she')], hands: ['Hands', MOODS.filter(m => m.size === 'hands')] };
+const SIZES = { he: ['Penis', MOODS.filter(m => m.size === 'he')], she: ['Bust', MOODS.filter(m => m.size === 'she')], hands: ['Hands', MOODS.filter(m => m.size === 'hands')] };
 function sizeRow(state, ch) {
     const g = ch ? pronounsFor(ch, bondData(ch))[ui.who === 'user' ? 'u' : 'n'] : '', which = [...(g === 'he' || g === 'she' ? [g] : ['he', 'she']), 'hands'];
-    return `<div class="mw-profile-size"><span class="mw-profile-sub">Body <small>sizes go only in intimate moments; hands only when hands are in play</small></span>${which.map(k => { const [label, rows] = SIZES[k];
+    return `<div class="mw-profile-size"><span class="mw-profile-sub">Sizes <small>penis and bust only in intimate moments; hands only when hands are in play</small></span>${which.map(k => { const [label, rows] = SIZES[k];
         return `<div class="mw-size-row" role="group" aria-label="${label}"><span>${label}</span>${rows.map(m => `<button type="button" class="mw-size-chip" data-size="${m.id}" aria-pressed="${state.moods[m.id] > 0}">${esc(m.label.replace(/ (penis|breasts|hands)$/, ''))}</button>`).join('')}</div>`; }).join('')}</div>`;
 }
 // The Facts tab (and the bottom of your You tab).

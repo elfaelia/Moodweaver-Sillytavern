@@ -113,8 +113,14 @@ export function opinionsNow(ch, chat = liveChat()) {
     const st = getState(ch); if (!st?.enabled || !ch || !bondData(ch).on || settings().opinions === false) return [];
     const mine = writes(ch), entries = [];
     (chat ?? []).forEach(m => { if (!mine(m) || m.is_system) return; const w = weaveOf(m); if (!w) return;
-        entries.push(w.moods.map(aimed).filter(x => x.about && x.delta > 0).map(x => ({ about: x.about, id: feelingId(x.name), delta: x.delta })).filter(x => x.id)); });
-    return computeOpinions(entries, st);
+        entries.push(w.moods.map(aimed).filter(x => x.about && x.delta > 0 && aimedAway(x)).map(x => ({ about: x.about, id: feelingId(x.name), delta: x.delta })).filter(x => x.id)); });
+    // Your corrections (2.0.26): a word you set holds until you tap Story decides; Not at all hides them.
+    const set = st.opinionSet ?? {}, list = computeOpinions(entries, st), score = { adores: 60, 'fond of': 35, 'warm toward': 15, 'cool toward': -15, resents: -35, hates: -60, 'torn about': 0 };
+    const known = new Set(list.map(o => o.key));
+    const fixed = list.flatMap(o => !set[o.key] ? [o] : set[o.key] === 'off' ? [] : [{ ...o, word: set[o.key], score: score[set[o.key]] ?? 0, feel: [], yours: true }]);
+    // A word you set for someone the story has stopped bringing up stays until you clear it.
+    for (const [key, word] of Object.entries(set)) if (!known.has(key) && word !== 'off' && st.opinionNames?.[key]) fixed.push({ key, name: st.opinionNames[key], rel: '', word, score: score[word] ?? 0, warm: 0, cold: 0, feel: [], yours: true });
+    return fixed;
 }
 export const needOpts = ch => ({ bias: ch ? needBias(getState(ch)?.moods) : {}, self: settings().needsSelf, drift: settings().needsDrift, speed: settings().needsSpeed, skips: settings().needsSkips, floor: settings().needsFloor });
 // Intimacy entries that are on can light up like turn-ons.
@@ -654,15 +660,20 @@ export const intimate = text => { const t = String(text ?? '').replace(/<!--[\s\
 // you (2.0.19): plans for her father were raising Urge to hurt toward her.
 function aimedAway(x) {
     const about = aimed(x).about; if (!about) return false;
-    return ![playerName(), shortName(playerName()), 'you', 'them'].some(v => String(v).toLowerCase() === about.toLowerCase());
+    return ![playerName(), shortName(playerName()), 'you', 'them', 'her', 'him'].some(v => String(v).toLowerCase() === about.toLowerCase());
 }
+// "angry at his wife +10": the feeling and who it's about. Split first (2.0.26): the loose name match used to read
+// the whole phrase as the plain feeling, so a feeling about someone else landed on the player. A name that is a
+// feeling's own label as written (one with "at" in it) stays whole.
+const EXACT_NAME = new Set(MOODS.flatMap(m => [m.id.replace(/_/g, ' '), ...m.label.toLowerCase().split('/').map(t => t.trim())]));
 function aimed(x) {
-    if (x.about || feelingId(x.name) || factId(x.name)) return x;
-    const m = x.name.match(/^(.+?)\s+(?:at|about|toward|towards)\s+(.+)$/);
+    if (x.about || EXACT_NAME.has(String(x.name).toLowerCase())) return x;
+    const m = x.name.match(/^(.+?)\s+(?:at|about|toward|towards|over|of|for|with)\s+(.+)$/);
     return m && (feelingId(m[1]) || factId(m[1])) ? { ...x, name: m[1], about: m[2].slice(0, 40) } : x;
 }
 function aimAt(st, list, rec) {
-    const you = new Set([playerName(), shortName(playerName()), 'you', 'them'].map(v => String(v).toLowerCase()));
+    // A bare her or him in the hidden line is the player in a two-person scene, never someone else (2.0.27).
+    const you = new Set([playerName(), shortName(playerName()), 'you', 'them', 'her', 'him'].map(v => String(v).toLowerCase()));
     for (const x of list) {
         const id = feelingId(x.name); if (!id || !rec.m[id] || x.delta <= 0) continue;
         const about = x.about && !you.has(x.about.toLowerCase()) ? x.about : '';

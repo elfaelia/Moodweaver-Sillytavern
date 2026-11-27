@@ -32,26 +32,26 @@ const LOYAL = ['loyal', 'loyal_to_a_fault', 'family_first', 'street_code', 'no_s
 const ROMANTIC = ['hopeless_romantic', 'romanticising', 'fated_love', 'idealistic', 'poetic'];
 
 const ROWS = [
-    ['Gruff and sunny', GRUFF, SUNNY, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b}'s brightness may wear on ${a}, or get under ${a}'s guard`, false, 'romance', 'smile laugh grump cheer'],
-    ['Order and chaos', ORDER, WILD, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may try to rein ${b} in, and ${b} may make ${a} loosen up`, false, 'power', 'rules mess reckless careful'],
-    ['Carer and cared for', CARER, NEEDS_CARE, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may look after ${b} without being asked, and ${b} may lean into it or chafe`, false, 'roles', 'look after take care fuss help'],
-    ['Cold and warm', COLD, WARM, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b}'s warmth may bounce off ${a}, or be the thing ${a} can't explain wanting`, false, 'romance', 'kind cold warm care'],
-    ['Wall and door', GUARDED, OPEN, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b} may keep knocking, and ${a} may give a little more each time or shut tighter`, false, 'distance', 'ask question secret open talk'],
-    ['Proud and plain', PROUD, HUMBLE, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may look down on it, or find it disarming`, false, 'society', 'proud show off brag humble'],
-    ['Old-fashioned and their own person', OLD_SCHOOL, OWN_WOMAN, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may expect ${b} to fall in line, and ${b} may refuse; it can draw ${a} as much as it rankles`, false, 'power', 'place woman man own mind rules'],
-    ['Trusting and sly', SCHEMER, TRUSTING, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may find ${b} easy to read and steer, or find that trust oddly hard to betray`, false, 'mind', 'trust lie believe'],
-    ['Dark and bright', DARK, BRIGHT, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may scoff at ${b}'s hope, or quietly borrow some of it`, false, 'romance', 'hope dark death future'],
-    ['Watchful and easy', JEALOUS, SOCIAL, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may keep an eye on who ${b} charms, and ${b} may not even notice`, false, 'obsess', 'flirt other people party talk to'],
-    ['Storm and anchor', STORMY, STEADY, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b} may steady ${a}, or ${a}'s weather may test how steady ${b} really is`, false, 'toxic', 'temper calm mood'],
+    ['Gruff and sunny', GRUFF, SUNNY, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b}'s brightness may wear on ${a}, or get under ${a}'s guard`, false, 'romance', 'smile laugh grumpy cheer sulk'],
+    ['Order and chaos', ORDER, WILD, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may try to rein ${b} in, and ${b} may make ${a} loosen up`, false, 'power', 'rules mess reckless careful tidy'],
+    ['Carer and cared for', CARER, NEEDS_CARE, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may look after ${b} without being asked, and ${b} may lean into it or chafe`, false, 'roles', 'fuss nurse bandage tuck spoil'],
+    ['Cold and warm', COLD, WARM, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b}'s warmth may bounce off ${a}, or be the thing ${a} can't explain wanting`, false, 'romance', 'kindness cold warmth gentle'],
+    ['Wall and door', GUARDED, OPEN, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b} may keep knocking, and ${a} may give a little more each time or shut tighter`, false, 'distance', 'question secret pry nosy'],
+    ['Proud and plain', PROUD, HUMBLE, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may look down on it, or find it disarming`, false, 'society', 'proud brag humble showing'],
+    ['Old-fashioned and their own person', OLD_SCHOOL, OWN_WOMAN, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may expect ${b} to fall in line, and ${b} may refuse; it can draw ${a} as much as it rankles`, false, 'power', 'wife obey independent proper ladylike'],
+    ['Trusting and sly', SCHEMER, TRUSTING, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may find ${b} easy to read and steer, or find that trust oddly hard to betray`, false, 'mind', 'trust lies lying believe naive'],
+    ['Dark and bright', DARK, BRIGHT, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may scoff at ${b}'s hope, or quietly borrow some of it`, false, 'romance', 'hope death future dream'],
+    ['Watchful and easy', JEALOUS, SOCIAL, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${a} may keep an eye on who ${b} charms, and ${b} may not even notice`, false, 'obsess', 'flirt flirting party charm'],
+    ['Storm and anchor', STORMY, STEADY, (a, b, x, y) => `${a} is ${x} by nature and ${b} is ${y}: ${b} may steady ${a}, or ${a}'s weather may test how steady ${b} really is`, false, 'toxic', 'temper calm outburst'],
     // Kindred: the same streak in both.
-    ['Same dark humour', DRY, DRY, (a, b, x, y) => `both have a dry, dark streak (${a} ${x}, ${b} ${y}): they may get each other's jokes when no one else does`, true, 'allies', 'joke laugh funny'],
-    ['Two minds', MINDS, MINDS, (a, b, x, y) => `both live in their heads (${a} ${x}, ${b} ${y}): talk may run long and go places others can't follow`, true, 'romance', 'book read idea think'],
-    ['Partners in crime', WILD, WILD, (a, b, x, y) => `both are wild by nature (${a} ${x}, ${b} ${y}): they may egg each other on, with no one to call it off`, true, 'allies', 'dare risk party run'],
-    ['Two hard heads', HEADSTRONG, HEADSTRONG, (a, b, x, y) => `both are headstrong (${a} ${x}, ${b} ${y}): neither backs down easily, which can make for sparks either way`, true, 'allies', 'argue fight win right'],
-    ['Two closed books', GUARDED, GUARDED, (a, b, x, y) => `both keep themselves close (${a} ${x}, ${b} ${y}): they may understand each other's silence, or never get past it`, true, 'distance', 'quiet secret silence'],
-    ['Ride or die', LOYAL, LOYAL, (a, b, x, y) => `both are loyal to the bone (${a} ${x}, ${b} ${y}): once they're each other's, it holds`, true, 'allies', 'loyal side trust family'],
-    ['Two romantics', ROMANTIC, ROMANTIC, (a, b, x, y) => `both are romantics at heart (${a} ${x}, ${b} ${y}): they may make more of each moment than it is, together`, true, 'romance', 'love romance fate'],
-    ['Two carers', CARER, CARER, (a, b, x, y) => `both look after people (${a} ${x}, ${b} ${y}): each may forget to let the other look after them`, true, 'romance', 'care look after'],
+    ['Same dark humour', DRY, DRY, (a, b, x, y) => `both have a dry, dark streak (${a} ${x}, ${b} ${y}): they may get each other's jokes when no one else does`, true, 'allies', 'joke joking laugh funny'],
+    ['Two minds', MINDS, MINDS, (a, b, x, y) => `both live in their heads (${a} ${x}, ${b} ${y}): talk may run long and go places others can't follow`, true, 'romance', 'book books reading idea theory'],
+    ['Partners in crime', WILD, WILD, (a, b, x, y) => `both are wild by nature (${a} ${x}, ${b} ${y}): they may egg each other on, with no one to call it off`, true, 'allies', 'dare risk party trouble'],
+    ['Two hard heads', HEADSTRONG, HEADSTRONG, (a, b, x, y) => `both are headstrong (${a} ${x}, ${b} ${y}): neither backs down easily, which can make for sparks either way`, true, 'allies', 'argue argument fight stubborn'],
+    ['Two closed books', GUARDED, GUARDED, (a, b, x, y) => `both keep themselves close (${a} ${x}, ${b} ${y}): they may understand each other's silence, or never get past it`, true, 'distance', 'silence silent secret quiet'],
+    ['Ride or die', LOYAL, LOYAL, (a, b, x, y) => `both are loyal to the bone (${a} ${x}, ${b} ${y}): once they're each other's, it holds`, true, 'allies', 'loyal loyalty betray side'],
+    ['Two romantics', ROMANTIC, ROMANTIC, (a, b, x, y) => `both are romantics at heart (${a} ${x}, ${b} ${y}): they may make more of each moment than it is, together`, true, 'romance', 'romance fate romantic destiny'],
+    ['Two carers', CARER, CARER, (a, b, x, y) => `both look after people (${a} ${x}, ${b} ${y}): each may forget to let the other look after them`, true, 'romance', 'nurse tend fuss worry'],
 ];
 // For tests/pronouns.mjs.
 export const NATURE_ROWS = ROWS;
@@ -72,6 +72,6 @@ export function natureOf(his = {}, yours = {}, core = {}, names = { n: 'one', u:
 const NATURE_EVERY = 6;
 export function natureLine(pairs, text = '', seed = 0) {
     const top = pairs?.[0]; if (!top) return '';
-    const t = ` ${String(text).toLowerCase()} `, touched = top.words.split(' ').some(w => t.includes(` ${w}`));
+    const t = ` ${String(text).toLowerCase().replace(/[^a-z']+/g, ' ')} `, touched = top.words.split(' ').filter(w => w.length >= 4).some(w => t.includes(` ${w} `) || t.includes(` ${w}s `) || t.includes(` ${w}ed `) || t.includes(` ${w}d `) || t.includes(` ${w}ing `));
     return touched || seed % NATURE_EVERY === 0 ? `${top.line}. A standing part of how they are together, there to draw on when it fits` : '';
 }

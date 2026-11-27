@@ -27,7 +27,7 @@ const list = (v, max, len) => NONE.test(String(v ?? '').trim()) ? [] : String(v 
 function changes(v, max = 5) {
     if (NONE.test(String(v ?? '').trim())) return [];
     return String(v ?? '').split(/[,;]/).map(part => {
-        const m = part.trim().replace(/[\u2212\u2013]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*(?:\(?\s*(?:at|about|over|toward|towards)\s+([^)]+?)\)?)?\s*$/i);
+        const m = part.trim().replace(/[\u2212\u2013]/g, '-').match(/^(.+?)\s*([+-]\s*\d+|\boff|\bgone)\s*(?:\(?\s*(?:at|about|over|toward|towards|of|for|with)\s+([^)]+?)\)?)?\s*$/i);
         if (!m) return null;
         // "afraid off" ends a feeling outright: the model only sees strength words, not numbers.
         // Who it's about: "angry +10 at his wife" or "angry at his wife +10".

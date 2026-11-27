@@ -449,6 +449,13 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
+    if (button.dataset.opinionOpen !== undefined) { ui.opinionEdit = ui.opinionEdit === button.dataset.opinionOpen ? '' : button.dataset.opinionOpen; render(); return; }
+    if (button.dataset.opinionSet !== undefined) {
+        const key = button.dataset.opinionSet, v = button.dataset.v ?? '', name = button.dataset.opinionName ?? '';
+        await changeState(st => { st.opinionSet = { ...(st.opinionSet ?? {}) }; st.opinionNames = { ...(st.opinionNames ?? {}) };
+            if (v) { st.opinionSet[key] = v; if (name) st.opinionNames[key] = name; } else { delete st.opinionSet[key]; delete st.opinionNames[key]; } });
+        ui.opinionEdit = ''; return;
+    }
     if (button.dataset.gender) { const key = ui.who === 'user' ? 'pu' : 'pn', v = button.dataset.gender; await editBond(b => { b[key] = v; }); return; }
     if (button.dataset.size) {
         // One size per group: tapping one clears the others in its group; tapping the one that's on clears it.

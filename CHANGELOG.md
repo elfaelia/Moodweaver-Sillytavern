@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.27 (check-over fixes)
+- Feelings about someone written with of, for or with (protective of Clyde, proud of him, worried for his sister, angry with his boss) are now read as about that person. Before, only at, about, toward and over were understood, so the rest landed on you and pushed his meters toward you.
+- A bare her or him after a feeling in the hidden line counts as you, not as some other person.
+- You no longer show up in his Feelings about others list when the story aims a feeling at you by name.
+- How their natures fit: the words that count as the scene touching a pairing were too loose (short everyday words like to, after and look counted), so the line went out almost every reply instead of only when it fits. Now only real words of four letters or more, matched whole (with -s, -ed, -d, -ing).
+
+## 2.0.26
+- The size rows on the profile are now headed Sizes, with the rows called Penis, Bust and Hands (the penis row used to say just Size under Body).
+- Feelings about others can be corrected: tap a person under Feelings about others on Facts, then pick how he really feels (Adores, Fond, Warm, Torn, Cool, Resents, Hates), Not at all to drop them, or Story decides to hand it back. Your word holds and is what gets sent; it shows as yours.
+- Fixed: a feeling written as "warm toward someone +10" (the feeling, then who, then the number) was read as a plain feeling, so it landed on you and never counted as being about that person. The feeling and who it's about are now always split, unless the whole phrase is a feeling's own name.
+
 ## 2.0.25
 - New cleaner-writing row No beat-then-explain (Story, Cleaner writing): no short sentence summing up what someone does or doesn't do followed by a longer one that shows it; sentence length follows what's happening, with no set short-then-long rhythm and no runs of all-short or all-long sentences. A short sentence stays only when the moment itself is abrupt. No example words in it.
 - The pattern breaker now spots that shape in his own last replies (a narration sentence of five words or fewer, a subject and a verb or a negation, then a sentence of nine words or more), three times across two replies, and quotes his own examples back as something to stop.

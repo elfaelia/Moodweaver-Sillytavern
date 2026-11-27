@@ -353,7 +353,7 @@ const newestHit = (list, texts) => { let best = null; for (const [id, re] of lis
 // 1.88.4: sex sounds only for sex happening now. A sentence that's imagined, wished, remembered or hypothetical doesn't
 // count, and in a public place it takes two sentences of plain sex in the last two messages.
 const IMAGINED = /\b(?:imagin\w*|fantas\w*|daydream\w*|pictur(?:es|ed|ing)|envision\w*|dream(?:s|ed|ing|t)?|would|could|might|wants? to|wanted to|wish(?:es|ed)?|if only|what it would|what it'd|remember(?:s|ed|ing)?|memor(?:y|ies)|recall\w*|thinks? (?:about|of)|thought (?:about|of)|thinking (?:about|of)|in (?:his|her|their|my) (?:head|mind)|(?:his|her|their|my) mind|mind (?:wanders|wandered|drifts|drifted|goes|went)|later tonight|someday|one day|longs? to|craves?|craved|aches? to|ached to|tempted)\b/i;
-const SEX_ACT = new RegExp(SCENE_WORDS.sex[0][1].source + '|\\b(?:moan(?:s|ed|ing)?|undress(?:es|ed|ing)?|naked|on top of (?:her|him)|hips (?:roll|rolled|buck|bucked|snap|snapped|stutter)|rock(?:s|ed|ing)? into (?:her|him))', 'i');
+const SEX_ACT = new RegExp(SCENE_WORDS.sex[0][1].source + '|\\b(?:moan(?:s|ed|ing)?|undress(?:es|ed|ing)?|naked|on top of (?:her|him)|hips (?:roll|rolled|buck|bucked|snap|snapped|stutter)|rock(?:s|ed|ing)? into (?:her|him)|thrust(?:s|ed|ing)?|(?:deep )?inside (?:her|him)|fuck(?:s|ed|ing)? (?:her|him|me|you)|rid(?:es|ing) (?:him|her)|rode (?:him|her)|sinks? (?:down )?onto (?:him|his)|sank (?:down )?onto (?:him|his)|pushes into (?:her|him)|pushed into (?:her|him)|bottoms? out|buried (?:to the hilt|inside)|(?:his|her) cock|grinding (?:down )?on (?:him|his))', 'i');
 const PUBLIC_BEDS = new Set(['bar', 'barbusy', 'cafe', 'cafeteria', 'diner', 'restaurant', 'crowd', 'campus', 'campusnight', 'lobby', 'messhall', 'schoolhall', 'carnival', 'roadside', 'clubout', 'city', 'darkcity', 'waves', 'meadow', 'train', 'hospital', 'ward', 'chantry']);
 const PUBLIC_PLACES = new Set(CAT_PUBLIC);
 const realSentences = texts => texts.flatMap(t => String(t).split(/(?<=[.!?\u2026"\u201d])\s+|\n+/)).filter(x => x.trim() && !IMAGINED.test(x));
@@ -377,7 +377,15 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     // 1.85: acts with their own layer when the last 2 messages name them (fingers, grinding, spanking, a whip or belt),
     // and her voice in sex when you or the character is a she.
     // 2.0.32: touching themselves, him or her, with its own layer first (from the last 2 messages).
-    if (heatNow) for (const act of ['solo', 'soloher']) if (said(amb.MORE_WORDS[act])) beds.unshift(act);
+    // 2.0.33: or a body word and a stroking motion anywhere in those messages ("pumps it from the base", "spits in his
+    // palm"), so the story's own wording counts. Heat isn't needed: the two together already say what's happening.
+    const soloText = near2.join(' '), soloMoving = amb.MORE_WORDS.soloMove.test(soloText);
+    const soloHim = said(amb.MORE_WORDS.solo) || (soloMoving && amb.MORE_WORDS.soloHim.test(soloText));
+    const soloHer = said(amb.MORE_WORDS.soloher) || (soloMoving && amb.MORE_WORDS.soloHer.test(soloText) && !soloHim);
+    if ((heatNow || !inPublic) && soloHer) beds.unshift('soloher');
+    if ((heatNow || !inPublic) && soloHim) beds.unshift('solo');
+    // On the toilet while at it: the seat creaks along.
+    if ((soloHim || soloHer) && !beds.some(b => amb.LOVE_WORDS.some(([k]) => k === b)) && realSentences(texts.slice(0, 3)).some(t => amb.LOVE_WORDS.find(([k]) => k === 'seat')[1].test(t))) beds.push('seat');
     if (heatNow) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
     // 2.0.32 remixes: a scuffle, pulling at restraints, creaking footsteps, a rocking chair, someone shifting in bed (not
     // during sex), kissing (warm, before sex), a bath running.

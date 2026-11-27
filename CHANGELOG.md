@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.33
+- Him or her touching themselves is now read from the passage, not one fixed phrase: a body word (or spitting in a palm, lotion, jerking off, a toy, between her legs) plus a stroking motion anywhere in the last two messages (MORE_WORDS.soloHim/soloHer/soloMove). It no longer needs the scene to be marked as heat, and on a toilet the seat creaks along. Fixes silence for "pumps it slow from the base up over the head" on a closed toilet lid.
+- Far more wordings for every sound: wet, skin, fingers, grinding, spanking, whip, breath, heartbeat, kissing, peeing, sink, bath, scuffle, footsteps, shifting in bed, restraints, rocking; the furniture (toilet, couch, chair, counters and car bonnets, walls and fridges, floors, car seats); one-offs (knock, punch, slam, gunshot, glass, slap, zip, belt, landing on a bed or couch, sitting down, flush, splash, clang); and what counts as sex happening (thrusting, riding, inside her or him).
+- Narrowed where a wider net misfired: "steps closer" and "walks in" no longer play footsteps, "goes for his belt" isn't a fight, "huffs a laugh" isn't breathing.
+
 ## 2.0.32
 - Her third batch of recordings (sounds/seat-1, seat-2, solo-1, solo-2, solo-3, water), cut into grains:
   - New erotic layers: a creaking toilet seat as furniture (toilet, stall), him touching himself (dry strokes, wet ones as it quickens), her touching herself (the either-way take plus slick fingers), someone peeing (the tap thinned into a stream, a seat creak now and then), kissing before sex (soft wet clusters from the old wet takes).

@@ -213,11 +213,11 @@ function genderRow(ch) {
 // Body size on the profile, by gender: penis size for a man, breast size for a woman, both when the pronouns
 // don't say. Each is a private fact (sent only in intimate or private moments); tap one to set it, tap it again
 // to clear. The story can set them too, by the words on each row.
-const SIZES = { he: ['Size', MOODS.filter(m => m.size === 'he')], she: ['Bust', MOODS.filter(m => m.size === 'she')] };
+const SIZES = { he: ['Size', MOODS.filter(m => m.size === 'he')], she: ['Bust', MOODS.filter(m => m.size === 'she')], hands: ['Hands', MOODS.filter(m => m.size === 'hands')] };
 function sizeRow(state, ch) {
-    const g = ch ? pronounsFor(ch, bondData(ch))[ui.who === 'user' ? 'u' : 'n'] : '', which = g === 'he' || g === 'she' ? [g] : ['he', 'she'];
-    return `<div class="mw-profile-size"><span class="mw-profile-sub">Body <small>only sent in intimate or private moments</small></span>${which.map(k => { const [label, rows] = SIZES[k];
-        return `<div class="mw-size-row" role="group" aria-label="${label}"><span>${label}</span>${rows.map(m => `<button type="button" class="mw-size-chip" data-size="${m.id}" aria-pressed="${state.moods[m.id] > 0}">${esc(m.label.replace(/ (penis|breasts)$/, ''))}</button>`).join('')}</div>`; }).join('')}</div>`;
+    const g = ch ? pronounsFor(ch, bondData(ch))[ui.who === 'user' ? 'u' : 'n'] : '', which = [...(g === 'he' || g === 'she' ? [g] : ['he', 'she']), 'hands'];
+    return `<div class="mw-profile-size"><span class="mw-profile-sub">Body <small>sizes go only in intimate moments; hands only when hands are in play</small></span>${which.map(k => { const [label, rows] = SIZES[k];
+        return `<div class="mw-size-row" role="group" aria-label="${label}"><span>${label}</span>${rows.map(m => `<button type="button" class="mw-size-chip" data-size="${m.id}" aria-pressed="${state.moods[m.id] > 0}">${esc(m.label.replace(/ (penis|breasts|hands)$/, ''))}</button>`).join('')}</div>`; }).join('')}</div>`;
 }
 // The Facts tab (and the bottom of your You tab).
 export function factsContent(state, ch, active) {

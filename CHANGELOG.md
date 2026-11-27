@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.24
+- Hand size on the profile (Facts, and your You tab), for anyone: Small, Average, Large, Very large, under Body next to the other sizes. Sent only when hands are in play in the last messages (hands, fingers, palms, wrists, holding, gripping, touching, stroking and the like), never otherwise. The story can set it from its own words too.
+- Stress and coping moved from Body to the top of Mind, for the character.
+
 ## 2.0.23
 - How their natures fit: a slow layer read from his traits against yours (core traits count most, clear or above). Bonds shows the strongest pairing as By nature, with up to two more under Also. 19 pairings: 11 where opposites pull (Gruff and sunny, Order and chaos, Carer and cared for, Cold and warm, Wall and door, Proud and plain, Old-fashioned and their own person, Trusting and sly, Dark and bright, Watchful and easy, Storm and anchor) and 8 kindred ones (Same dark humour, Two minds, Partners in crime, Two hard heads, Two closed books, Ride or die, Two romantics, Two carers). Never written as a clash.
 - It leans the slower dynamic underneath, not the scene's, since traits barely change.

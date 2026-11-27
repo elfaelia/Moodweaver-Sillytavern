@@ -236,11 +236,14 @@ const STANDING_FACTS = {
 const STEAM_RULES = new Set(['prose_steam_in_character', 'prose_bed_talk']);
 const PRIVATE_SCENE = /\b(shower\w*|bath(e|es|ed|ing|tub)?|naked|nude|undress\w*|strip\w*|bed|bedroom|sex\w*|cock|dick|penis|crotch|groin|trousers|pants|zipper|erection|hard-on|kiss\w*|moan\w*|thighs?)\b/i;
 const SIZE_SCENE = /\b(size|sized|inch(es)?|girth|measur\w*|endowed|hung|cup size|flat-chested|compar\w* (him|her|them|it|his|hers)|(small|smaller|little|tiny|big|bigger|huge|large|larger) (cock|dick|penis|prick|breasts|tits|chest))\b/i;
+// Hand size (2.0.24) goes only when hands are in play: holding, gripping, touching, fingers, a hand on someone.
+const HAND_SCENE = /\b(hands?|fingers?|fingertips?|palms?|fists?|knuckles?|wrists?|thumbs?|grip\w*|grasp\w*|clasp\w*|cup(s|ped|ping)?|cradl\w*|span\w*|gloves?|rings?|hold(s|ing)? (her|his|their|my|your|it|them|him|hands?)|held (her|his|their|my|your|it|them|him|hands?)|touch\w*|strok\w*|caress\w*|squeez\w*|pinn\w*|choke\w*|grabb?\w*|slap\w*|spank\w*)\b/i;
 const labelIn = (m, scene) => { const key = m.label.replace(/\s*\(.*\)\s*$/, '').toLowerCase(); return key.length > 3 && scene.toLowerCase().includes(key); };
 // card: the text SillyTavern already sends about this person (their card, or your persona). A who-they-are fact it
 // already names isn't repeated, unless the scene is about it right now (2.0).
 const factOn = (st, scene, gate, card = '') => m => {
     if (m.kind !== 'state' || sectionOf(m) !== 'state') return true;
+    if (m.size === 'hands') return gate.hands;
     if (m.private) return gate.intimate && (!m.size || gate.size);
     if (!gate.on || !STANDING_FACTS[m.category]) return true;
     const touched = sceneHas(m, scene) || labelIn(m, scene);
@@ -371,6 +374,7 @@ function composePrompt(state, name, extras = {}) {
         // Size facts (1.80.1): in an intimate scene they'd go every reply, and Claude then brought them up every
         // reply. Now only when the scene draws attention to size, or one reply in five as a reminder.
         size: SIZE_SCENE.test(scene) || seed < 2 || seed % 5 === 0,
+        hands: HAND_SCENE.test(scene),
         intimate: PRIVATE_SCENE.test(scene) || [state, player?.state, ...(extras.cast ?? []).filter(p => p.inScene).map(p => p.state)].some(st => st?.enabled && aroused(st)) };
     TURNS = { mode: ['all', 'fit', 'heat'].includes(extras.turnsSend) ? extras.turnsSend : extras.turnsWhenRelevant === false ? 'all' : 'fit', strong: extras.turnsStrong === true,
         every: Number.isFinite(Number(extras.turnsEvery)) ? Math.max(0, Math.round(Number(extras.turnsEvery))) : 6, seed, intimate: gate.intimate, scene };

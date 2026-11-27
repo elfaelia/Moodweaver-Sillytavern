@@ -17,13 +17,15 @@ import { MORE_METERS, cleanMore, computeMore, saidMeters, setMore } from '../eng
 import { meterShadow, withFacts, withNudges } from '../engine/mood-meters.js';
 import { OFFER_AFTER, clashOf, tieOffer } from '../engine/links.js';
 import { natureOf } from '../engine/nature.js';
+import { DRINKS_WINDOW, drinkFact, drinksIn, drugTaken, his } from '../engine/intake.js';
+import { placesFrom } from '../engine/inventory.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta, snapped } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
 import { render } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, TO_METER, cloneRelationships, meterTies } from '../engine/relationships.js';
-import { SKILL_BY_ID, growSkills, ungrowSkills } from '../engine/skills.js';
+import { SKILL_BY_ID, growSkills, ungrowSkills, usedBy } from '../engine/skills.js';
 import { TURN_BY_ID, cleanInterests, signsPull, turnSigns } from '../engine/turns.js';
 import { hasWeave, parseWeave, powerChange, stripWeave } from '../engine/weave.js';
 import { arcNamed, arcState } from '../engine/arcs.js';
@@ -668,8 +670,9 @@ function aimedAway(x) {
 const EXACT_NAME = new Set(MOODS.flatMap(m => [m.id.replace(/_/g, ' '), ...m.label.toLowerCase().split('/').map(t => t.trim())]));
 function aimed(x) {
     if (x.about || EXACT_NAME.has(String(x.name).toLowerCase())) return x;
-    const m = x.name.match(/^(.+?)\s+(?:at|about|toward|towards|over|of|for|with)\s+(.+)$/);
-    return m && (feelingId(m[1]) || factId(m[1])) ? { ...x, name: m[1], about: m[2].slice(0, 40) } : x;
+    // The raw text keeps the name's capital, which tells a person from a thing (opinions.js).
+    const m = String(x.raw ?? x.name).match(/^(.+?)\s+(?:at|about|toward|towards|over|of|for|with)\s+(.+)$/i);
+    return m && (feelingId(m[1].toLowerCase()) || factId(m[1].toLowerCase())) ? { ...x, name: m[1].toLowerCase(), about: m[2].slice(0, 40) } : x;
 }
 function aimAt(st, list, rec) {
     // A bare her or him in the hidden line is the player in a two-person scene, never someone else (2.0.27).
@@ -684,12 +687,26 @@ function aimAt(st, list, rec) {
 }
 // hold: feelings you moved by hand after an earlier version of this same swipe (before it was continued
 // or its hidden line edited). They're yours now, so the new version leaves them alone.
+function intakeFacts(writer, st, m) {
+    const who = { name: writer?.name ?? '', pronoun: pronounsFor(writer, bondData(writer)).n }, out = [];
+    const drug = drugTaken(m.mes, who); if (drug && BY_ID[drug]) out.push(drug);
+    const chat = ctx().chat ?? [], at = chat.indexOf(m), mine = writes(writer);
+    if (drinksIn(m.mes, who)) {
+        let n = 0, seen = 0;
+        for (let i = at < 0 ? chat.length - 1 : at; i >= 0 && seen < DRINKS_WINDOW; i--) { const x = chat[i]; if (!x || x.is_system || !mine(x)) continue; seen++; if (drinksIn(x.mes, who)) n++; }
+        const id = drinkFact(n); if (id && !((st.moods?.drunk ?? 0) > 0 && id === 'tipsy')) out.push(id);
+    }
+    return out;
+}
 // asked: your message this reply answers, when it comes straight before it (so your skills count it once).
 function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = null) {
     const w = bondData(writer).on ? weaveOf(m) : null, boardKey = readOf(m).boardKey;
     const rec = { k: w ? readOf(m).wkey : boardKey ? `b|${boardKey}` : '', m: {}, r: {}, fed: null, mem: '' }, notes = [];
     if (!rec.k) return null;
     if (!st.enabled) return { rec, notes };
+    // Where the story moves his things (2.0.30): left in the truck, put in a drawer, grabbed. Places you tapped stay yours.
+    const moved = placesFrom(his(m.mes, { name: writer?.name ?? '', pronoun: pronounsFor(writer, bondData(writer)).n }), (st.inventory ?? []).filter(i => !i.where));
+    for (const item of st.inventory ?? []) if (moved[item.id]) item.at = moved[item.id];
     // Time this reply covers, and the facts the story names in it, for facts running their course.
     const board = parseBoard(m.mes), hours = replyHours(prev ? parseBoard(prev.mes) : null, board, REPLY_HOURS);
     const hot = heated(st, w?.moods?.map(x => x.name)), factsNamed = new Set([...factsIn(board?.physical, hot), ...factsIn(board?.state, hot)]);
@@ -700,6 +717,9 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
         const fx = {};
         // The hidden line's own "facts" list (1.78): what it names comes on, and "\u2026 off" takes off one the story put on.
         const told = (w?.facts ?? []).filter(x => !x.off).flatMap(x => [...factsIn(x.name, hot, true)]), ended = (w?.facts ?? []).filter(x => x.off).flatMap(x => [...factsIn(x.name, hot, true)]);
+        // What he takes in the narration itself (2.0.29), when the line and the board didn't name it: a drug, and drinks
+        // counted over his recent replies.
+        const taken = intakeFacts(writer, st, m); for (const id of taken) if (!told.includes(id)) told.push(id);
         for (const id of told) factsNamed.add(id);
         if (st.moodAuto !== false) for (const id of ended) if ((st.moods[id] ?? 0) > 0 && !st.pins?.[id] && (st.fromStory ?? []).includes(id)) { rec.m[id] = [rec.m[id]?.[0] ?? st.moods[id], 0]; st.moods[id] = 0; fx[id] = 'the story took it off'; st.fromStory = st.fromStory.filter(x => x !== id); }
         if (st.moodAuto !== false) { const was = structuredClone(st.fromStory ?? []); mergeMoved(rec, fromStory(st, new Set([...told, ...factsIn(board?.physical, hot), ...(board?.location ? placesIn(board.location, board.time) : (st.fromStory ?? []).filter(id => BY_ID[id]?.category === 'setting'))]), fx, { hold, full: board?.physical || board?.location ? 'loose' : false })); if (JSON.stringify(was) !== JSON.stringify(st.fromStory)) rec.sf = was; }
@@ -849,9 +869,10 @@ function applyReply(meta, writer, st, m, b, hold = null, asked = null, prev = nu
     }
     // Skills grow with use: the character's from this reply (and what its hidden line says was used), yours
     // from the message it answers.
-    rec.sk = growSkills(st, stripWeave(m.mes), (w?.used ?? []).join(', '));
+    rec.sk = growSkills(st, stripWeave(m.mes), usedBy(w?.used, shortName(writer.name)));
     const you = asked ? getUserState() : null;
-    if (you?.enabled) rec.su = growSkills(you, stripWeave(asked.mes));
+    // Yours (2.0.31) also from what the hidden line says you used, by your name: speech it read as a skill counts.
+    if (you?.enabled) rec.su = growSkills(you, stripWeave(asked.mes), usedBy(w?.used, shortName(playerName()), true));
     for (const [who, r] of [[shortName(writer.name), rec.sk], [playerName(), rec.su]]) for (const [id, [a, z]] of Object.entries(r?.levels ?? {})) notes.push(`${who}'s ${SKILL_BY_ID[id].label.toLowerCase()} ${z > a ? 'up' : 'down'} to ${z}`);
     if (Object.keys(rec.m).length || Object.keys(rec.r).length || rec.mem) st.revision = (st.revision || 0) + 1;
     return { rec, notes: [...new Set(notes)] };

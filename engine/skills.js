@@ -100,6 +100,20 @@ export function callStrength(words, scene) {
     return termsFor(words).reduce((sum, t) => sum + (t.re.test(scene) ? t.w : 0), 0);
 }
 const CALLED = 1;
+// 2.0.31: the hidden line names whose skill it was ("Ellie: manipulation, lying; Kenny: driving"). This picks one
+// person's: entries under their name, and (unless strict) unnamed ones, which count for everyone as before.
+// An unnamed entry after a named one belongs to that same person.
+export function usedBy(list = [], name = '', strict = false) {
+    const first = String(name ?? '').trim().split(/\s+/)[0]?.toLowerCase() ?? '', out = [];
+    let owner = '';
+    for (const raw of list ?? []) {
+        const m = /^\s*([^:]{1,40}):\s*(.+)$/.exec(String(raw ?? ''));
+        if (m) owner = m[1].trim().toLowerCase();
+        const skill = (m ? m[2] : String(raw ?? '')).trim(); if (!skill) continue;
+        if (owner ? Boolean(first) && owner.split(/\s+/)[0] === first : !strict) out.push(skill);
+    }
+    return out.join(', ');
+}
 // The hidden line names skills by label, so labels count there as well as the skill's words.
 const named = (s, used) => calledFor(`${s.label}|${s.prompt}`, used) || callStrength(s.words, used) >= CALLED;
 // Everything this person has, strongest first.

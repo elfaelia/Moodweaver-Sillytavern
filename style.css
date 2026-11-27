@@ -1430,3 +1430,9 @@ span.mw-music-ball{background:radial-gradient(circle at 32% 26%,#fff8 0 4%,color
 .mw-cope-help{margin:6px 0 4px}.mw-cope-help summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border-radius:999px;background:#e8c87a14;border:1px solid #e8c87a33;color:#f1e2b8;font-size:13px}.mw-cope-help summary::-webkit-details-marker{display:none}.mw-cope-help summary small{color:#b5aacb;font-size:11.5px}.mw-cope-glow{color:#e8c87a;text-shadow:0 0 8px #e8c87aaa}.mw-cope-help ul{list-style:none;margin:8px 0 4px;padding:0;display:grid;gap:6px}.mw-cope-help li{font-size:13px;color:#d7cfe8}.mw-cope-help li small{color:#b5aacb;margin-left:4px}
 button.mw-opinion{background:none;color:inherit;font:inherit;min-height:40px;cursor:pointer;text-align:left}.mw-opinion[aria-expanded="true"]{background:#ffffff12}
 .mw-opinion-edit{margin-top:8px;display:grid;gap:6px}.mw-opinion-edit>small{color:var(--mw-muted);font-size:12px}
+/* 2.0.30 carried things: kind and place pills, chips under them */
+.mw-inv-tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0 6px}
+button.mw-inv-tag{min-height:36px;padding:6px 12px;border-radius:18px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--mw-text);background:#efd59c14;border:1px solid #efd59c55}
+button.mw-inv-tag.is-auto{background:transparent;border-style:dashed;color:var(--mw-muted)}button.mw-inv-tag small{font-size:10.5px;opacity:.75}
+button.mw-inv-tag[aria-expanded="true"]{background:#efd59c2a}
+.mw-inv-chips{margin:6px 0 2px 6px}

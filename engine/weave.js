@@ -33,7 +33,7 @@ function changes(v, max = 5) {
         // Who it's about: "angry +10 at his wife" or "angry at his wife +10".
         // Who it's about, after the number: "angry +10 at his wife". (Before the number, app/replies.js splits it
         // off only when the whole phrase isn't a feeling's name.)
-        return { name: unquote(m[1]).toLowerCase(), delta: /off|gone/i.test(m[2]) ? -100 : clamp(num(m[2]), -40, 40), about: unquote(m[3] ?? '').slice(0, 40) };
+        return { name: unquote(m[1]).toLowerCase(), raw: unquote(m[1]), delta: /off|gone/i.test(m[2]) ? -100 : clamp(num(m[2]), -40, 40), about: unquote(m[3] ?? '').slice(0, 40) };
     }).filter(x => x && x.name && x.delta).slice(0, max);
 }
 const NEED_WORDS = { critical: 10, low: 30, okay: 55, ok: 55, fine: 85, full: 95, met: 90 };
@@ -208,7 +208,7 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         `<!-- weave: ${example.join(' | ')} -->`,
         ...(moods ? [...(feelings ? [`moods: up to twelve of ${n}'s feelings that rose, fell or ended, of any kind, named the way ${n} would feel them, ${split ? 'at the step sizes given before the reply' : steps}, off when gone, with "at [name]" after the step when one isn't about ${u}.${moodNames?.length ? ` Only these: ${moodNames.join(', ')}.` : ''}${settled}`] : []),
             `needs: hunger, energy, bladder, hygiene, comfort, social, fun or health as critical, low, okay or fine, or a change, only when this reply shows it unmet or met, and each reply it stays unmet.`,
-            `facts: what started or stopped being lastingly true of ${n}, with off when it ends.`,
+            `facts: what started or stopped being true of ${n}: lasting things, and anything ${n} drank, smoked or took this reply, by its plain name; off when it ends.`,
             ...(secrets ? [`secrets: one that moved, as suspected, known, out or used. ${secrets}`] : []),
             ...(stress ? [`stress: +5 to +20 for strain, or for acting against what ${n} believes, wants or feels about someone, the dynamic included; a minus for release or comfort. Add chose when it's restraint ${n} chose for a reason ${n} believes in; add coped and how when ${n} coped ${n}'s own way${stress.copes?.length ? ` (${stress.copes.join(', ')})` : ''}.`] : []),
             bond ? `toward: a lasting stance of ${n}'s toward ${u} that moved, -30 to +30; liking, love and trust have their own fields.`
@@ -225,7 +225,8 @@ export function weavePrompt({ n, u, bond = true, extra = true, moods = true, fee
         ...(you ? [`you: everything currently true of ${u} because of the story (body, clothes, substances, restraints, status), the full list, or none.`,
             `seems: up to three feelings ${u} shows in what the player wrote, or none.`] : []),
         ...(cast.length ? [`cast: for ${cast.join(', ')} while in the scene and changed this reply: name, one feeling with a step or off, and/or one lasting fact, people split by ; as [name]: [feeling] +10, [fact].`] : []),
-        ...(skills ? [`used: skills someone used or was tested on.`] : []),
+        // 2.0.31: by meaning and by person, so a skill shown in speech counts (a guilt trip is manipulation even unnamed).
+        ...(skills ? [`used: skills someone used or was tested on in this reply or in ${u}'s last message, judged by what they did and what they said, each as their name: skill.`] : []),
         ...(remember ? [`remember: a turning point between them, in one line.`] : []),
         // arc: { running: true } while one runs, { names: [...] } to let the story name one it has clearly begun.
         ...(arc?.running ? ['arc: next when this reply reached the arc\'s next stage, away when the story turned from it.']

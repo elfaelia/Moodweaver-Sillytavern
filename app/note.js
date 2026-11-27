@@ -27,7 +27,7 @@ import { droppedIds } from '../engine/overlap.js';
 import { renderPreview, renderStatus } from '../panel/render.js';
 import { findPatterns } from '../engine/patterns.js';
 import { pronounize } from '../engine/pronouns.js';
-import { insightLines, litSkills, skillLines, skillsOf } from '../engine/skills.js';
+import { insightLines, litSkills, skillLines, skillsOf, usedBy } from '../engine/skills.js';
 import { checkLines, sideLit } from '../engine/checks.js';
 import { stepOf } from '../engine/dials.js';
 import { stripWeave, weavePrompt } from '../engine/weave.js';
@@ -103,7 +103,7 @@ async function buildNote(forGeneration = false, chat = null, type = '') {
             cast: settings().castAuto !== false && bm.feed ? getCast(ch).filter(p => p.inScene && p.state?.enabled !== false).map(p => shortName(p.name)).filter(Boolean) : [] }) : [];
         // Every skill goes as a short names-and-levels line; the full description only when the scene calls for it.
         const skillScene0 = skillScene(ch, history), skillCtx = skillContext(ch, history, [state, mine, story, ...getCast(ch).filter(p => p.inScene).map(p => p.state)], bd);
-        const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, skillScene0.used, 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
+        const skillFolk = skillPeople(ch, state, mine).map(p => ({ name: p.name, all: skillsOf(p.st), lit: litSkills(p.st, skillScene0.scene, usedBy(skillScene0.usedList, p.name), 5, skillCtx), mind: mindOf(p.st), moods: p.st.moods ?? {} }));
         // Dice for the skills in play (Settings \u203a What is sent \u203a Dice checks): rolled once per reply, swipes keep them.
         sideLit(skillFolk);
         const dice = settings().diceOn !== false ? checkLines(skillFolk, (history.length * 7919 + (run.diceSalt ?? 0)) | 0, { player: shortName(playerName()), edge: story?.enabled ? stepOf(story, 'danger') : 1 }) : { by: {}, rolls: [] };
@@ -337,11 +337,12 @@ function skillPeople(ch, state, mine) {
 // seems / power when the newest hidden line read the player's feelings or a shift in control.
 // The Skills tab's lit list for one person, with the character and you sorted out by who is doing what (sideLit).
 export function panelLit(ch, state, who = '') {
-    const { scene, used } = skillScene(ch, liveChat()), cx = panelSkillContext(ch), lit = st => litSkills(st, scene, used, 5, cx);
+    const { scene, usedList } = skillScene(ch, liveChat()), cx = panelSkillContext(ch), lit = (st, name = '') => litSkills(st, scene, usedBy(usedList, name), 5, cx);
+    const hisName = shortName(ch?.name ?? ''), myName = shortName(playerName());
     if (!['char', 'user'].includes(who)) return lit(state);
     const his = who === 'char' ? state : getState(ch), mine = who === 'user' ? state : getUserState();
-    if (!his?.enabled || !mine?.enabled) return lit(state);
-    const folk = [{ lit: lit(his), moods: his.moods ?? {} }, { lit: lit(mine), moods: mine.moods ?? {} }];
+    if (!his?.enabled || !mine?.enabled) return lit(state, who === 'char' ? hisName : myName);
+    const folk = [{ lit: lit(his, hisName), moods: his.moods ?? {} }, { lit: lit(mine, myName), moods: mine.moods ?? {} }];
     sideLit(folk);
     return folk[who === 'char' ? 0 : 1].lit;
 }
@@ -371,6 +372,6 @@ export function skillScene(ch, history = liveChat()) {
     const chat = (history ?? []).filter(m => m && !m.is_system), mine = writes(ch);
     const lastUser = [...chat].reverse().find(m => m.is_user), replies = chat.filter(m => mine(m));
     const scene = [lastUser, ...replies.slice(-settings().skillLookback)].filter(Boolean).map(m => stripWeave(m.mes)).join('\n');
-    const newest = replies.at(-1), used = (newest ? weaveOf(newest)?.used ?? [] : []).join(', ');
-    return { scene, used };
+    const newest = replies.at(-1), usedList = newest ? weaveOf(newest)?.used ?? [] : [], used = usedList.join(', ');
+    return { scene, used, usedList };
 }

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.31
+- Skills read speech. The hidden line's `used` now asks for skills used or tested in the reply or in the player's last message, judged by what people did and said, each as "name: skill". engine/skills.js usedBy() splits it by person (an unnamed entry after a named one is that person's; unnamed ones on their own still count for everyone). Your skills grow from what it names under your name, and the Skills tab lights them for the right person only.
+- Wider speech words for 20 people skills: manipulation (guilt, pity, helplessness, flattery, ultimatums, conditions, sulking and pouting, "your fault", "if you loved me" and more), guilt tripping, charisma, charm, seduction, courtship, debate, intimidation, lying, negotiation, playing the victim, reading people, dirty talk, bratting, love bombing, jealousy games, isolating, control, small talk, begging. tests/skill-words.mjs has 5 new speech-only passages (165/165); plain passages still light 2.
+
+## 2.0.30
+- Carrying is contextual (engine/inventory.js). Each item has a kind (Weapon, Substance, Everyday, Tool, Keepsake) and a place (Carried, Car, Home, Elsewhere), shown as two pills under it. Both are guessed (marked auto) from the name and the note; tap a pill for big chips to pick your own, or Auto to go back.
+  - The story moves things: a sentence he leads that puts a named item in the truck, glovebox, drawer or closet sets its place; grabbing or pocketing it puts it back on him. Places you tapped stay yours.
+  - What gets sent: anything named in the recent messages always; weapons only when the scene is dangerous or violent; substances only when the scene brings that kind up (cigarettes and a light, drugs, drink); things kept in the car or at home only when the scene is there; keepsakes and tools one reply in six (tools also in danger); everyday things as before. Kept-elsewhere things go only when named.
+  - Things not on him go with where they are (kept in the car, kept at home), so they don't appear in his hand when he couldn't have them.
+
+## 2.0.29
+- Drugs and drink in the story's own narration now become facts, even when the hidden line and the board don't name them (engine/intake.js). Only sentences where he is the one doing it count (his name or his pronoun first; speech is ignored).
+  - A drug he snorts, smokes, swallows or shoots: named ones map to their fact (coke to Coked up, weed to Stoned, heroin, crack, acid, molly, pills and so on); an unnamed one, like something from a brown vial, reads as High. A snort only counts as a drug when something in the sentence says so (a vial, powder, a line, a key, off his hand), so a snorted laugh never does.
+  - Drinks: each of his replies where he drinks alcohol counts once over his last twelve replies. Three makes him Tipsy, seven makes him Drunk. One beer alone doesn't.
+- The hidden line's facts field now also asks for anything he drank, smoked or took that reply, by its plain name (it used to ask only for lasting things, which is why a snort was skipped).
+- Wants and fears drive choices: when the scene offers a choice that bears on one, he chooses by it, in his own manner, even when the polite or expected move points the other way, and a fear counts from the first sign of it coming (someone getting ready to leave, not only gone).
+
+## 2.0.28
+- Feelings about others only lists people: a name as the story wrote it (with a capital), or a word for a person (his dad, his boss, the neighbour, a cop). Reflexives (themselves, himself), feelings and things (affection, the job, the past, everything) are dropped, so no more Affection or Themselves. The list is rebuilt from the chat, so the wrong ones disappear on their own.
+- The hidden line's wording keeps its capitals for that check, in both ways of writing it (feeling +10 at Name, or feeling at Name +10).
+
 ## 2.0.27 (check-over fixes)
 - Feelings about someone written with of, for or with (protective of Clyde, proud of him, worried for his sister, angry with his boss) are now read as about that person. Before, only at, about, toward and over were understood, so the rest landed on you and pushed his meters toward you.
 - A bare her or him after a feeling in the hidden line counts as you, not as some other person.

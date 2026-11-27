@@ -20,8 +20,19 @@ function who(about, family) {
         if (f.name && (t === f.name.toLowerCase() || t.startsWith(`${f.name.toLowerCase()} `))) return { key: f.name.toLowerCase(), name: f.name, rel: f.rel };
         if (f.kin.includes(t)) return { key: (f.name || f.rel).toLowerCase(), name: f.name || f.rel, rel: f.rel };
     }
+    // Only people (2.0.28): a name as the story wrote it (capital first), or a word for a person. Themselves,
+    // feelings and things (affection, the job, the past) are not someone to have feelings about here.
+    if (NOT_PEOPLE.has(t) || ABSTRACT.test(t)) return null;
+    const head = t.split(/\s+/).at(-1);
+    if (!/^[A-Z\u00c0-\u00de]/.test(raw.replace(STRIP_RAW, '')) && !PEOPLE.has(head) && !KIN.flat().includes(head)) return null;
     return { key: t, name: t.replace(/\b[a-z]/g, c => c.toUpperCase()), rel: '' };
 }
+const STRIP_RAW = /^(?:(?:his|her|their|my|your|the|that|this|a|an|old)\s+)+/i;
+const NOT_PEOPLE = new Set(['themselves', 'himself', 'herself', 'itself', 'myself', 'yourself', 'oneself', 'themself', 'it', 'this', 'that', 'them', 'everything',
+    'everyone', 'everybody', 'nothing', 'anything', 'something', 'life', 'world', 'future', 'past', 'work', 'job', 'money', 'god', 'fate', 'night', 'day', 'house', 'home']);
+const ABSTRACT = /(tion|sion|ness|ment|ism)$/;
+const PEOPLE = new Set(['boss', 'friend', 'friends', 'partner', 'girlfriend', 'boyfriend', 'ex', 'neighbour', 'neighbor', 'cop', 'cops', 'officer', 'doctor', 'nurse', 'teacher',
+    'kid', 'man', 'woman', 'guy', 'girl', 'boy', 'stranger', 'landlord', 'dealer', 'buddy', 'pal', 'roommate', 'coworker', 'colleague', 'lover', 'mistress', 'secretary', 'gang', 'crew', 'priest', 'family']);
 export function familyPeople(st) {
     return familyMembers(st).filter(m => m.role || m.name).map(m => ({ rel: m.role.toLowerCase(), name: m.name.split(/\s+/)[0] ?? '',
         kin: KIN.filter(g => g.some(w => new RegExp(`\\b${w}s?\\b`, 'i').test(m.role))).flat() }));

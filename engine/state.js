@@ -204,7 +204,10 @@ function cleanPrefs(prefs = {}) {
 function cleanInventory(list = []) {
     const t = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
     return (Array.isArray(list) ? list : []).slice(0, 30).map(item => ({ id: t(item?.id, 40) || Math.random().toString(36).slice(2, 10),
-        text: t(item?.text, 60), note: t(item?.note, 80), carried: item?.carried !== false })).filter(item => item.text);
+        text: t(item?.text, 60), note: t(item?.note, 80), carried: item?.carried !== false,
+        // 2.0.30: kind and place tapped by the player ('' = guessed from the name and note); at: where the story last put it.
+        kind: ['weapon', 'substance', 'everyday', 'tool', 'keepsake'].includes(item?.kind) ? item.kind : '',
+        where: ['on', 'car', 'home', 'else'].includes(item?.where) ? item.where : '', at: ['on', 'car', 'home'].includes(item?.at) ? item.at : '' })).filter(item => item.text);
 }
 // Sims-style wants, goals and fears. Written by the player, optionally nudged by the scene reader.
 export const WANT_KINDS = ['want', 'goal', 'fear', 'button'];

@@ -12,6 +12,7 @@ import { activePersonalities, activePersonality, personalityCue } from './person
 import { pronounize } from './pronouns.js';
 import { TWO_ROLE_SHARED, activeSharedTags, compareText, relationshipKey, relationshipSets, relationshipText } from './relationships.js';
 import { TURN_BY_ID, compareProfiles, familyText, favText, petNames, profileText, sayings } from './turns.js';
+import { DANGER_SCENE, invLine, invSent } from './inventory.js';
 
 function directedCue(id, value, state, people) {
     if (!['comparing_people', 'hates_user', 'hates_char', 'hates_other'].includes(id)) return null;
@@ -38,6 +39,8 @@ let SHOWS = 'all';
 // names first, then the rest in turn, stronger ones more often) and the others go as one line of names, so traits
 // stay part of who someone is without crowding out this reply's feelings and dynamic. Off sends every trait in full.
 let TRAITS = { focus: true, scene: '', seed: 0 };
+// The carried-things gate for this note (2.0.30): the scene, whether it is dangerous, and the reminder reply.
+let INV = { scene: '', danger: false, refresh: false };
 // How turn-ons are sent (Settings \u203a What is sent \u203a Turn-ons), the same for everyone (character, player, cast):
 // mode 'fit': in an intimate scene, when the scene's words touch one, when the other person shows one, when it lit last
 // reply, and every `every` replies a random two as a reminder; 'heat': only in an intimate scene; 'all': every reply.
@@ -309,9 +312,11 @@ function extraLines(state, kinds = ['mood', 'trait', 'state'], owner = '', lit =
     if (wants.length) out.push('Wants, goals, fears and hot buttons:', ...wants.map(w => `- ${tierWord(w.value)} ${WANT_WORD[w.kind] ?? w.kind}: ${pt(w.text)}${lit?.wants?.has(w.id) ? ` (${STATUS_WORD[lit.wants.get(w.id)]})` : ''}`));
     const cameTrue = person && lit?.done ? (state.wants ?? []).filter(w => lit.done.has(w.id) && !w.done && w.text) : [];
     if (cameTrue.length) out.push(`Just came true: ${cameTrue.map(w => pt(w.text)).join('; ')}. Let it land in what they feel and do next.`);
-    const items = kinds.includes('state') ? (state.inventory ?? []).filter(i => i.carried && i.text) : [];
-    if (items.length) out.push(owner ? `${owner}'s inventory (the player decides when it gets used):` : 'Inventory (use an item only when the moment calls for it):',
-        ...items.map(i => `- ${pt(i.text)}${i.note ? ` (${pt(i.note)})` : ''}`));
+    // 2.0.30: only what fits the moment: weapons in danger, substances when the scene touches them, things kept in the
+    // car or at home only when the scene is there. Where it's kept is said, so nothing turns up where it couldn't be.
+    const items = kinds.includes('state') ? (state.inventory ?? []).filter(i => invSent(i, INV.scene, INV)) : [];
+    if (items.length) out.push(owner ? `${owner}'s things (the player decides when one gets used; kept elsewhere means not at hand):` : 'Their things (use one only when the moment calls for it; something kept elsewhere is only at hand if they are there or go to get it):',
+        ...items.map(i => `- ${pt(invLine(i))}`));
     return out;
 }
 const extraValues = (state, kinds = ['mood', 'trait', 'state']) => !state?.enabled ? [] : [
@@ -369,6 +374,7 @@ function composePrompt(state, name, extras = {}) {
     SHOWS = ['all', 'mine', 'off'].includes(extras.showsMode) ? extras.showsMode : 'all';
     const scene = String(extras.scene ?? ''), seed = Number(extras.seed) || 0;
     TRAITS = { focus: extras.traitFocus !== false, scene, seed };
+    INV = { scene, danger: DANGER_SCENE.test(scene), refresh: seed % 6 === 0 };
     const aroused = st => live(st).some(m => (AROUSED.has(m.id) && st.moods[m.id] >= 41) || (m.category === 'bedroom' && st.moods[m.id] > 0));
     const gate = { on: extras.factsWhenRelevant !== false, refresh: seed < 3 || seed % 6 === 0,
         // Size facts (1.80.1): in an intimate scene they'd go every reply, and Claude then brought them up every
@@ -487,7 +493,7 @@ function composePrompt(state, name, extras = {}) {
     for (const [who, lines] of Object.entries(skillBy)) if (!skillDone.has(who) && lines.length) out.push('', `${who}: ${lines.map(pt).join(' ')}`);
     if (split ? extras.skillsSet : Object.keys(skillBy).length) guide('', SKILL_RULE);
     if ([state, ...cast.map(p => p.state)].some(st => st?.enabled && liveWants(st).length)) guide('',
-        `Wants are what they're working on: given room, they step toward the strongest and react when it's helped or blocked. Fears show as dodging or overreacting, and a hot button fires whenever the scene does that thing. None are named.`);
+        `Wants are what they're working on: given room, they step toward the strongest and react when it's helped or blocked. When the scene offers a choice that bears on a want or fear, they choose by it, in their own manner, even when the polite or expected move points the other way; a fear counts from the first sign of it coming, not only once it has happened. Fears show as dodging, stalling or overreacting, and a hot button fires whenever the scene does that thing. None are named.`);
     if (relationships.length || pairs.length || standing.length) {
         out.push('', '<relationships>');
         // 2.0 brief: one paragraph per direction, strongest first, as sentences.

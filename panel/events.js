@@ -449,6 +449,9 @@ export async function onPanelClick(e) {
             else { const v = b.pins[key]; b.pins[key] = null; setMeter(b, key, v, list); }
         }); return;
     }
+    if (button.dataset.invOpen !== undefined) { ui.invOpen = ui.invOpen === button.dataset.invOpen ? '' : button.dataset.invOpen; render(); return; }
+    if (button.dataset.invSet !== undefined) { const [id, field, v] = button.dataset.invSet.split(':'); ui.invOpen = '';
+        await changeState(s => { const item = (s.inventory ?? []).find(i => i.id === id); if (!item) return; item[field] = v; if (field === 'where') item.at = ''; }); return; }
     if (button.dataset.opinionOpen !== undefined) { ui.opinionEdit = ui.opinionEdit === button.dataset.opinionOpen ? '' : button.dataset.opinionOpen; render(); return; }
     if (button.dataset.opinionSet !== undefined) {
         const key = button.dataset.opinionSet, v = button.dataset.v ?? '', name = button.dataset.opinionName ?? '';

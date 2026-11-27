@@ -7,6 +7,7 @@ import { escapeHtml as esc } from '../engine/util.js';
 import { isBelief } from '../engine/state.js';
 import { TIERS, level, tierOf } from '../engine/strength.js';
 import { FACTS } from '../engine/moodpace.js';
+import { INV_KINDS, INV_PLACES, kindOf, placeOf } from '../engine/inventory.js';
 import { ON_PAGE } from '../data/catalogue.js';
 
 // "~3 h left, then hungover": how long a fact that runs its course has left (engine/moodpace.js).
@@ -94,6 +95,16 @@ export function turnRow(t, state) {
         <input id="mw-turn-${t.id}" type="range" min="-100" max="100" step="1" value="${v}" data-turn="${t.id}" style="${turnFill(v)}" aria-valuetext="${turnLevel(v)}">
         <div class="mw-turn-ends"><span>\u2715 Turn-off</span><span>Turn-on \u2661</span></div><small>${esc(t.cue)}</small></div>`;
 }
+// 2.0.30: an item's kind and place as two pills; a tap opens big chips to pick from. Faint = guessed (Auto).
+const PLACE_ICON = { on: '\u270b', car: '\u26df', home: '\u2302', else: '\u2026' };
+function invTags(i) {
+    const kind = kindOf(i), where = placeOf(i), open = ui.invOpen ?? '';
+    const kindLabel = INV_KINDS.find(([k]) => k === kind), placeLabel = INV_PLACES.find(([k]) => k === where);
+    const pill = (field, set, text) => `<button type="button" class="mw-inv-tag ${set ? 'is-set' : 'is-auto'}" data-inv-open="${esc(i.id)}:${field}" aria-expanded="${open === `${i.id}:${field}`}">${text}${set || (field === 'where' && i.at) ? '' : ' <small>auto</small>'}</button>`;
+    const chips = (field, list, cur, set) => open !== `${i.id}:${field}` ? '' : `<div class="mw-size-row mw-inv-chips">${list.map(([k, label, icon]) => `<button type="button" class="mw-size-chip" aria-pressed="${set && cur === k}" data-inv-set="${esc(i.id)}:${field}:${k}">${icon ?? PLACE_ICON[k]} ${esc(label)}</button>`).join('')}<button type="button" class="mw-size-chip" aria-pressed="${!set}" data-inv-set="${esc(i.id)}:${field}:">Auto</button></div>`;
+    return `<div class="mw-inv-tags">${pill('kind', !!i.kind, `${kindLabel[2]} ${esc(kindLabel[1])}`)}${pill('where', !!i.where, `${PLACE_ICON[where]} ${esc(placeLabel[1])}${i.at && !i.where ? ' <small>story</small>' : ''}`)}</div>
+        ${chips('kind', INV_KINDS, kind, !!i.kind)}${chips('where', INV_PLACES, where, !!i.where)}`;
+}
 // What they carry, at the bottom of Facts (and your You tab). Ticked items are sent; unticked ones stay saved.
 export function inventoryView(state, ch) {
     const items = state.inventory ?? [], carried = items.filter(i => i.carried).length;
@@ -103,9 +114,10 @@ export function inventoryView(state, ch) {
         ${items.length ? `<div class="mw-inv-list">${items.map(i => `<div class="mw-inv-item ${i.carried ? '' : 'is-stored'}" data-inv-row="${esc(i.id)}">
             <label class="mw-inv-check" title="${i.carried ? 'Carried: sent' : 'Put away: not sent'}"><input type="checkbox" data-inv-carried="${esc(i.id)}" ${i.carried ? 'checked' : ''} aria-label="Carry ${esc(i.text)}"><span></span></label>
             <div class="mw-inv-fields"><input type="text" class="mw-inv-name" data-inv-text="${esc(i.id)}" maxlength="60" value="${esc(i.text)}" aria-label="Item">
-            <input type="text" class="mw-inv-note" data-inv-note="${esc(i.id)}" maxlength="80" value="${esc(i.note)}" placeholder="where / details (optional)" aria-label="Where or details"></div>
+            <input type="text" class="mw-inv-note" data-inv-note="${esc(i.id)}" maxlength="80" value="${esc(i.note)}" placeholder="where / details (optional)" aria-label="Where or details">
+            ${invTags(i)}</div>
             <button type="button" class="mw-list" data-inv-remove="${esc(i.id)}" title="Delete" aria-label="Delete ${esc(i.text)}">\u00d7</button></div>`).join('')}</div>` : ''}
         <div class="mw-cast-add mw-inv-add"><input type="text" data-inv-new maxlength="60" enterkeyhint="done" placeholder="Add something they carry\u2026" aria-label="New item"><button data-action="inv-add">\uff0b Add</button></div>
-        <p class="mw-fine">${intro} Untick to put something away.</p>
+        <p class="mw-fine">${intro} Untick to put something away. Weapons go only when there's danger, substances only when the scene brings them up, and things kept in the car or at home only when the scene is there.</p>
     </section>`;
 }

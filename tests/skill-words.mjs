@@ -16,6 +16,12 @@ const CASES = [
     ['He checks her pulse, writes down her temperature and prescribes something for the fever.', ['medicine']],
     ['He threads the needle and sutures the incision closed, the scalpel still on the tray.', ['surgery']],
     ['She lies to his face without blinking, inventing an alibi on the spot.', ['lying']],
+    // 2.0.31: skills shown in speech alone.
+    ['"If I stop breathing in the night it\'ll be your fault. You\'ll hear me better from here."', ['manipulation/guilt_tripping']],
+    ['"If you really loved me you\'d stay. Just this once. Do it for me."', ['manipulation/guilt_tripping']],
+    ['"Don\'t test me. Walk away now, or I\'ll break your hand."', ['intimidation']],
+    ['"That\'s my offer. Take it or leave it. What\'s in it for me if I say yes?"', ['negotiation']],
+    ['"Why are you yelling at me? I can\'t do anything right. So it\'s my fault now?"', ['playing_victim']],
     ['He reads the tremor in her hands and the way her eyes slide to the door. She is hiding something.', ['reading_people']],
     ['"You never said that. You are imagining things again, darling. You are tired."', ['gaslighting']],
     ['"Deeper now. Listen to my voice. Your eyelids are heavy," he said, the pendulum swinging.', ['hypnosis']],

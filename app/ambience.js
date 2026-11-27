@@ -23,13 +23,13 @@ export const PLACE_BEDS = {
 // Places that are outdoors (rain falls on them, not on the windows).
 export const OUTDOOR_BEDS = new Set(['wind', 'waves', 'fire', 'forest', 'meadow', 'suburb', 'suburbnight', 'campus', 'campusnight', 'campnight', 'cliff', 'junkyard', 'roadside', 'motel', 'carnival', 'darkcity', 'city', 'clubout', 'fairfar', 'yardfar', 'car', 'train']);
 export const NIGHT_BEDS = { suburb: 'suburbnight', meadow: 'suburbnight', campus: 'campusnight', forest: 'campnight', fire: 'campnight', city: 'darkcity', roadside: 'motel' };
-export const BED_LABELS = { breathlow: 'her breathing now and then', rainin: 'rain on the windows', bar: 'a bar', barbusy: 'a busy bar', cafe: 'a caf\u00e9', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
+export const BED_LABELS = { rainin: 'rain on the windows', bar: 'a bar', barbusy: 'a busy bar', cafe: 'a caf\u00e9', cafeteria: 'a cafeteria', nextdoor: 'a party through the wall', clubout: 'outside a club', messhall: 'a big echoing hall', lobby: 'an echoing lobby', ward: 'an echoing ward', backroom: 'the back room', motelroom: 'a motel room', seahouse: 'the sea through the walls', windin: 'wind against the windows', tent: 'night outside the tent', fairfar: 'a fair in the distance', yardfar: 'a distant yard', schoolhall: 'a school hallway', diner: 'a diner', roadside: 'outside by the road', dorm: 'a dorm', house: 'a quiet house', bedroom: 'a bedroom', campus: 'a campus by day', campusnight: 'a campus at night', hospital: 'a hospital room', cliff: 'a windy clifftop', junkyard: 'a junkyard', motel: 'a motel at night', forest: 'the woods', campnight: 'a camp at nightfall', suburb: 'a quiet street', suburbnight: 'a suburb at night', restaurant: 'a restaurant', meadow: 'outdoors by day', carnival: 'a carnival', darkcity: 'the city at night', chantry: 'an old stone hall',
     rain: 'rain', storm: 'a storm', monitor: 'a ward\u2019s hum and monitor', hum: 'fluorescent hum', machine: 'machinery', crowd: 'a murmuring room', wind: 'wind', waves: 'the sea', fire: 'a crackling fire', car: 'the road', drip: 'a cold, dripping room', crickets: 'crickets', crackle: 'radio crackle',
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
-    wet: 'wet, slick sounds', skin: 'skin slapping', breath: 'her breathing', heart: 'a heartbeat', vent: 'a facility\u2019s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
+    wet: 'wet, slick sounds', skin: 'skin slapping', heart: 'a heartbeat', vent: 'a facility\u2019s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
     scuffle: 'a scuffle', steps: 'creaking footsteps', rocking: 'a rocking chair', restless: 'someone shifting in bed', struggle: 'pulling at restraints', kissing: 'kissing', bath: 'a bath running',
     seat: 'a creaking toilet seat', solo: 'him touching himself', soloher: 'her touching herself', pee: 'someone peeing', sink: 'a running tap',
-    fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt', voice: 'her moans and whimpers',
+    fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt',
     bed: 'a creaking bed', chair: 'a squeaking office chair', desk: 'a rattling desk', wall: 'thuds against the wall', springs: 'a rocking car', couch: 'a creaking couch', floor: 'creaking floorboards' };
 // During sex (1.80): what they're on, from the last 3 messages, else the place. Newest message wins. These beds
 // keep a rhythm (setBeds' pace), with small human unevenness and now and then a pause.
@@ -48,7 +48,7 @@ export const LOVE_WORDS = [
 export const LOVE_SPOTS = { bedroom: 'bed', dorm: 'bed', motelroom: 'bed', house: 'couch', backroom: 'desk' };
 export const LOVE_PLACES = { bedroom_place: 'bed', hotel_room: 'bed', cheap_motel: 'bed', dorm_room: 'bed', upscale_apartment: 'bed', sleep_room: 'bed', suburban_home: 'bed', corporate_office: 'chair', at_work: 'chair', in_a_car: 'springs', drive_in: 'springs', parking_lot: 'springs', living_room: 'couch', friends_place: 'couch', kitchen: 'desk', photo_studio: 'couch' };
 const LOVE_BEDS = new Set(LOVE_WORDS.map(([k]) => k));
-// More layers (1.81): rough sex, breath, a heartbeat in fear, a facility, live wires, an alarm.
+// More layers (1.81): rough sex, a heartbeat in fear, a facility, live wires, an alarm.
 // How fast they're moving (1.83): words in the newest messages push the pace up or down on top of the scene's energy.
 export const PACE_WORDS = {
     up: /\b(?:fast(?:er)?|quick(?:er|ens?|ening)?|hard(?:er)?|harsh(?:er)?|frantic(?:ally)?|frenzied|desperate(?:ly)?|relentless(?:ly)?|pound(?:s|ing|ed)?|slam(?:s|ming|med)|rut(?:s|ting|ted)?|rough(?:er|ly)?|brutal(?:ly)?|speed(?:s|ing)? up|picks? up (?:the |his |her )?pace|wild(?:ly)?|erratic|faltering rhythm|chasing it)\b/gi,
@@ -69,8 +69,6 @@ export const MORE_WORDS = {
     skin: /\b(?:slap(?:s|ping|ped)? of (?:skin|flesh|hips|thighs)|skin (?:slapping|slaps) (?:against|on)|pound(?:s|ing|ed)|rough(?:er|ly)?|hard(?:er)? and fast(?:er)?|thrust(?:s|ing|ed)? (?:hard|harder|faster|deep)|skin (?:on|against) skin|hips? (?:snap|snapping|snapped|slap|slapping|slapped|smack\w*) (?:against|into|forward)|(?:his|her) (?:hips|thighs|balls) (?:slap|smack)\w*|the slap of|the smack of|pound(?:s|ed|ing)? into (?:her|him)|slams? (?:into|in) (?:her|him)|slammed (?:into|in) (?:her|him)|fuck(?:s|ed|ing)? (?:her|him) (?:hard|harder|rough|roughly|deep|fast|faster|into)|rail\w* (?:her|him)|plow\w* (?:her|him|into)|ruts? into|rutting|drill\w* into (?:her|him))\b/i,
     heart: /\b(?:heart (?:pounding|hammering|racing|thudding|thundering|slamming)|pulse (?:racing|pounding|hammering)|(?:pounding|hammering|racing) heart|heartbeat (?:loud|in (?:his|her|their) ears)|heart (?:thuds|thumps|slams|races|pounds|hammers|kicks|lurches|stutters|jumps)|thudding heart|racing pulse|pulse (?:thuds|jumps|spikes|kicks|throbs)|blood (?:pounds|roars|rushes) in (?:his|her|their) ears|heartbeat (?:pounds|thunders|roars|drums))\b/i,
     buzz: /\b(?:electric (?:chair|shock|current|fence|hum)|electricity (?:crackles|hums|surges)|live wires?|wires? (?:spark|hiss|crackle)|transformer|electrodes?|shock machine|electroshock|tesla coil|power (?:hum|surge)|sparks? (?:arc|fly from the))\b/i,
-    // 1.88.2: breathing you can hear, for the breath layer outside sex.
-    breath: /\b(?:pant(?:s|ing|ed)?|gasp(?:s|ing|ed)?|breathless|out of breath|heavy breathing|breath(?:ing)? (?:hitches|hitched|catches|caught|quickens|quickened|ragged|shudders|stutters|comes (?:fast|short|ragged))|ragged breath\w*|hot breath|breathing hard|breath(?:s|es)? (?:shallow|heavy|harsh|uneven|shaky|unsteady)|breathing (?:heavy|heavily|harsh|ragged|shallow|fast|faster|hard)|(?:sharp|shaky|shuddering|stuttering|ragged|harsh|heavy) (?:breath|inhale|exhale)|hyperventilat\w*|wheez\w*|catches (?:her|his) breath|caught (?:her|his) breath|can'?t breathe|couldn'?t breathe|sucks? in a breath|sucked in a breath)\b/i,
     // 2.0.33: touching themselves read from the passage, not one fixed phrase: a body word (or spitting in a palm,
     // jerking off) and a stroking motion anywhere in the last two messages. soloWho() picks him or her.
     soloHim: /\b(?:cock|dick|prick|member|erection|hard-?on|boner|his length|his shaft|his girth|his tip|the tip|the head of (?:his|it)|foreskin|pre-?(?:cum|come)|his balls|his sack|(?:touch\w*|strok\w*|pleasur\w*|grip\w*|fist\w*|palm\w*|handl\w*|reliev\w*|finish\w*|work\w*|get(?:s|ting)? off|got off|takes? care of|took care of|tend\w* to|wrap\w* (?:a|his) (?:hand|fist) around) himself|himself off|his own (?:hand|fist|grip)|his fist (?:around|tight|moving|works|speeds)|(?:his|a) slick (?:fist|hand|palm)|spit(?:s|ting)? (?:in|into|on) his (?:palm|hand)|spat (?:in|into|on) his (?:palm|hand)|lotion|lube|tissues?|(?:jerk|jack|beat|whack|wank|toss|tug)(?:s|ed|ing|ging|ged)? (?:off|it|one out)|rub(?:s|bing|bed)? one out|wank\w*|masturbat\w*|self-pleasur\w*|fuck(?:s|ing|ed)? (?:his|into his) (?:fist|hand)|rut(?:s|ting|ted)? into his (?:fist|hand)|comes? (?:into|in|over) his (?:hand|fist|stomach|fingers)|came (?:into|in|over) his (?:hand|fist|stomach|fingers)|spill(?:s|ed|ing)? over his (?:fist|fingers|knuckles|hand)|ropes of)\b/i,
@@ -197,8 +195,8 @@ export const LOOPS = {
     // 2.0.32: her tap recording, as a sink, under the shower, and thinned and quickened into a stream.
     sink: [['water'], 0.45], bath: [['water'], 0.5, 'bath'], showerwater: [['water'], 0.3, 'spray'], stream: [['water'], 0.4, 'stream'], schoolhall: [['amb-cafeteria-2', 'amb-campus-2'], 0.55, 'hall'],
 };
-// What counts as erotic (1.88), for the switch that keeps it quiet: the furniture, bodies, acts and voices of sex.
-export const EROTIC_BEDS = new Set(['kissing', 'seat', 'solo', 'soloher', 'pee', 'bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'breath', 'breathlow', 'fingers', 'rub', 'spank', 'whip', 'voice']);
+// What counts as erotic (1.88), for the switch that keeps it quiet: the furniture, bodies and acts of sex.
+export const EROTIC_BEDS = new Set(['kissing', 'seat', 'solo', 'soloher', 'pee', 'bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'fingers', 'rub', 'spank', 'whip']);
 
 let ac = null, master = null, noise = null;
 const layers = new Map(); // name -> { gain, stop() }
@@ -272,7 +270,7 @@ const SHOTS = {
     belt(out, at) { grain(out, 'whip-2', at, { rate: 1.6, vol: 0.35, len: 0.2, hp: 900 }); ping(out, 3100, at + 0.05, 0.25, 0.03); ping(out, 4200, at + 0.4, 0.2, 0.025); grain(out, 'rub', at + 0.5, { rate: 2.4, vol: 0.5, len: 0.6, hp: 1200 }); },
     flop(out, at) { grain(out, 'bed-bounce', at, { vol: 1.1, len: 0.5 }); grain(out, 'bed-creak', at + 0.12, { rate: 0.9, vol: 0.6, len: 0.5 }); },
     sitdown(out, at) { grain(out, one('couch-1', 'couch-2'), at, { rate: 0.85, vol: 1.0, len: 0.6 }); },
-    chair(out, at) { grain(out, one('seat-1', 'seat-2'), at, { rate: 1.1, vol: 0.9, len: 0.7 }); },
+    chair(out, at) { grain(out, one('seat-1', 'seat-2'), at, { rate: 1.1, vol: 0.45, len: 0.7, lp: 3000 }); },
     zap(out, at) { const o = ac.createOscillator(), g = ac.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(90, at); const lfo = ac.createOscillator(), lg = gainOf(400); lfo.frequency.value = 37; lfo.connect(lg).connect(o.frequency);
         g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(0.18, at + 0.02); g.gain.setValueAtTime(0.18, at + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, at + 0.75);
         o.connect(filter('highpass', 300)).connect(g).connect(out); o.start(at); lfo.start(at); o.stop(at + 0.8); lfo.stop(at + 0.8);
@@ -378,17 +376,12 @@ export const GRAINS = {
     'whip-1': [[0.773,1.008,1.04],[1.696,1.851,1.86],[1.851,2.749,0.89],[3.168,4.345,0.82],[4.345,4.674,0.96],[5.463,5.707,1.52]],
     'whip-2': [[1.237,2.105,2.15],[2.105,2.769,0.87],[3.532,4.051,0.74],[4.535,5.702,1.85],[5.702,5.88,1.0]],
     'rub': [[0.2,2.4,1.13],[1.1,3.3,1.04],[2.0,4.2,0.96],[2.9,5.1,0.9],[3.8,6.0,0.86],[4.7,6.9,0.92],[5.6,7.8,1.1],[6.5,8.36,1.16]],
-    // 1.88.3: her breathy panting clips, cut into single breaths (unvoiced parts only).
-    'breath-1': [[0.109,0.747,0.64],[1.851,2.488,1.13],[3.128,3.579,2.06],[4.544,5.228,0.47],[5.52,5.948,2.08],[6.518,7.155,0.63],[7.4,7.852,1.06],[9.49,9.988,1.37],[10.582,11.265,0.47],[11.348,11.823,0.95],[12.091,12.728,0.41],[12.904,13.285,1.13]],
-    'breath-2': [[1.41,1.838,1.1],[2.501,2.86,1.43],[4.08,4.485,0.4],[5.102,5.483,0.42],[5.891,6.343,0.48],[6.425,6.807,1.0],[8.91,9.268,1.0],[12.044,12.403,1.09]],
-    'moan': [[0,0.34,0.4],[0.254,0.619,2.41],[0.693,1.462,0.4],[1.382,1.946,1.06],[1.886,2.44,0.41],[2.444,3.033,1.52],[3.058,3.692,0.4],[3.672,3.991,2.5],[4.041,4.58,0.41],[4.584,5.049,1.68],[5.068,5.578,0.48],[5.527,5.887,2.14],[5.872,6.421,0.48],[6.4,7.084,1.44],[7.149,7.773,0.4],[7.722,8.137,1.67],[8.226,8.87,0.4],[8.88,9.374,1.11],[9.658,10.267,0.4],[10.217,10.521,2.33],[10.631,11.085,0.4],[11.12,11.439,1.72],[11.309,11.684,2.5],[12.003,12.477,1.0],[12.985,13.395,0.71]],
     // 2.0.32: her third batch: a creaking toilet seat (two takes) and self-pleasure (him, him wet, and either).
     'seat-1': [[0.18,1.04,0.95],[1.04,1.93,0.97],[1.93,2.76,0.95],[2.76,4.01,0.89],[4.01,5.05,0.82],[5.05,5.92,1.13],[5.92,6.81,1.09],[6.81,7.91,1.14],[7.91,9.1,1.06],[9.1,10.23,1.06],[10.23,11.41,1.04],[11.41,11.95,1.16],[11.95,12.75,0.96],[12.75,13.68,1.05],[13.68,14.87,0.93],[14.87,15.68,0.91]],
     'seat-2': [[0.88,2.08,1.44],[2.08,3.34,1.47],[3.34,4.24,1.17],[4.24,5.39,0.96],[5.39,6.45,0.89],[6.45,7.55,0.87],[7.55,8.55,0.85],[8.55,9.62,0.82],[9.62,10.72,0.78],[10.72,12.02,0.8],[12.33,13.63,1.34],[13.68,13.94,1.8],[13.94,15.01,1.33],[15.01,15.31,1.0],[15.31,15.68,1.31]],
     'solo-1': [[0.34,0.7,0.69],[0.7,0.98,1.62],[0.98,1.1,0.87],[1.1,1.48,1.01],[1.48,1.73,1.64],[1.73,2.5,0.88],[2.5,3.01,0.77],[3.01,3.31,1.53],[3.31,4.13,0.99],[4.13,4.6,1.02],[4.6,4.95,1.21],[4.95,5.43,0.83],[5.43,5.77,1.52],[5.77,6.25,0.94],[6.25,6.59,1.19],[6.59,7.08,0.93],[7.08,7.42,1.21],[7.42,7.93,0.91],[7.93,8.25,1.54],[8.25,8.76,0.93],[8.76,9.07,1.42],[9.07,9.57,0.97],[9.57,9.9,1.48],[9.9,10.41,0.97],[10.41,10.74,1.31],[10.74,11.26,0.87],[11.26,11.59,1.59],[11.59,11.72,0.85],[11.72,12.35,0.99],[12.35,13.08,1.2],[13.08,13.77,0.89],[13.77,13.93,1.19],[13.93,14.2,1.34],[14.2,14.48,1.46],[14.48,15.2,0.75],[15.2,15.67,0.85]],
     'solo-2': [[0,0.22,1.47],[0.22,0.63,0.69],[0.63,1.07,0.59],[1.07,1.25,0.55],[1.25,1.51,1.37],[1.51,1.64,0.69],[1.64,1.9,1.21],[1.9,2.09,0.7],[2.09,2.31,1.42],[2.31,2.44,0.83],[2.44,2.7,1.31],[2.7,2.92,0.5],[2.92,3.13,1.5],[3.13,3.3,0.75],[3.3,3.57,1.36],[3.57,3.74,0.64],[3.74,3.95,1.29],[3.95,4.15,0.8],[4.15,4.39,1.6],[4.39,4.78,0.72],[4.78,5.0,0.86],[5.0,5.31,1.51],[5.31,5.53,0.83],[5.53,5.71,1.58],[5.71,5.92,0.5],[5.92,6.11,1.55],[6.11,6.53,0.67],[6.53,6.78,0.59],[6.78,6.9,1.55],[6.9,7.02,1.06],[7.02,7.23,1.14],[7.23,7.39,1.52],[7.39,7.64,0.8],[7.64,7.85,1.55],[7.85,8.28,0.82],[8.28,8.49,0.82],[8.49,8.62,1.46],[8.74,8.97,1.03],[8.97,9.16,1.54],[9.16,9.38,0.85],[9.38,9.55,1.26],[9.55,9.79,0.9],[9.79,9.94,1.54],[9.94,10.13,0.5],[10.13,10.37,1.44],[10.37,10.54,0.88],[10.54,10.76,1.45],[10.76,11.02,0.5],[11.02,11.2,1.57],[11.2,11.47,0.64],[11.47,11.72,1.51],[11.72,11.99,1.3],[11.99,12.23,1.16],[12.23,12.46,1.01],[12.46,12.68,1.0],[12.68,12.84,0.9],[12.84,12.96,0.78],[12.96,13.15,1.43],[13.15,13.57,0.54],[13.57,13.77,0.56],[13.77,14.0,1.33],[14.0,14.2,0.5],[14.2,14.44,1.44],[14.44,15.51,0.68],[15.51,15.68,0.5]],
     'solo-3': [[0,0.24,0.96],[0.24,0.38,1.57],[0.38,0.59,0.98],[0.59,0.79,1.58],[0.79,1.32,0.5],[1.32,1.68,0.5],[1.68,1.86,1.55],[1.86,1.99,0.67],[1.99,2.25,0.67],[2.25,2.43,1.56],[2.43,2.61,0.5],[2.61,2.98,1.29],[2.98,3.17,0.76],[3.17,3.55,1.13],[3.55,3.72,0.5],[3.72,4.06,1.03],[4.06,4.29,0.67],[4.29,4.48,1.37],[4.48,4.61,1.5],[4.61,4.83,0.52],[4.83,5.15,1.33],[5.15,5.39,0.53],[5.39,5.57,1.31],[5.57,5.71,1.6],[5.71,5.95,0.55],[5.95,6.27,1.48],[6.27,6.39,0.5],[6.39,6.51,1.38],[6.51,6.68,1.38],[6.68,6.83,1.48],[6.83,7.07,0.56],[7.07,7.27,1.42],[7.27,7.39,1.55],[7.39,7.64,0.5],[7.64,7.97,1.47],[7.97,8.21,0.53],[8.21,8.53,1.4],[8.53,8.78,0.5],[8.78,8.96,1.47],[8.96,9.1,1.59],[9.1,9.34,0.5],[9.34,9.67,1.48],[9.67,9.89,0.5],[9.89,10.22,1.5],[10.22,10.44,0.5],[10.44,10.77,1.0],[10.77,11.05,0.5],[11.05,11.53,1.59],[11.53,11.84,0.74],[11.84,12.04,0.78],[12.04,12.47,1.32],[12.47,12.91,0.5],[12.91,13.36,0.5],[13.36,13.53,1.07],[13.53,13.9,1.33],[13.9,14.46,0.5],[14.46,14.61,0.59],[14.61,15.01,1.36],[15.01,15.19,0.82],[15.19,15.4,0.96],[15.4,15.57,1.43]],
-    'whimper': [[0.085,0.873,0.65],[0.983,1.427,2.5],[1.826,2.554,1.16],[3.098,3.822,2.01],[4.525,5.298,0.51],[5.482,6.052,1.89],[6.48,7.219,0.61],[7.373,7.942,1.03],[8.381,9.309,0.4],[9.453,10.097,1.39],[10.541,11.374,0.44],[11.329,11.868,0.97],[12.062,12.821,0.42],[12.866,13.355,1.35]],
 };
 
 const buffers = new Map(), loading = new Map(), lastGrain = {};
@@ -447,21 +440,6 @@ function loop(out, name, stops) {
     stops.push(() => { alive = false; for (const n of [src, lfo]) { try { n?.stop(); } catch { /* fine */ } try { n?.disconnect(); } catch { /* fine */ } } });
 }
 
-// A run of 3-7 breaths from the recordings, quicker as the pace rises, swelling in and fading out; then rest min-max s.
-function breathRuns(out, stops, min, max) {
-    ['breath-1', 'breath-2'].forEach(sample); let alive = true, t = 0;
-    const run = () => {
-        if (!alive || !ac) return;
-        const n = 3 + Math.floor(Math.random() * 5); let at = ac.currentTime + 0.1;
-        for (let i = 0; i < n; i++) {
-            const swell = Math.sin(Math.PI * (i + 0.5) / n), name = Math.random() < 0.6 ? 'breath-1' : 'breath-2';
-            grain(out, name, at, { vol: 0.25 + 0.55 * swell, len: 1.1, jitter: 0.04 });
-            at += Math.max(0.45, 1.25 / Math.max(0.7, strokeRate)) * (0.85 + Math.random() * 0.3);
-        }
-        t = setTimeout(run, ((at - ac.currentTime) + min + Math.random() * (max - min)) * 1000);
-    };
-    t = setTimeout(run, 800 + Math.random() * 2500); stops.push(() => { alive = false; clearTimeout(t); });
-}
 
 // ---- The beds ----
 function build(name) {
@@ -513,13 +491,13 @@ function build(name) {
         // Footsteps on old boards: a few creaking steps, then quiet.
         steps() { ['bed-creak', 'bed-frame'].forEach(sample); let t = 0, alive = true;
             const walk = () => { if (!alive || !ac) return; const n = 3 + Math.floor(Math.random() * 5); let at = ac.currentTime + 0.1;
-                for (let i = 0; i < n; i++) { grain(out, i % 2 ? 'bed-creak' : 'bed-frame', at, { rate: 0.5 + Math.random() * 0.15, vol: 0.45, len: 0.35, lp: 1300 }); thud(out, at, 0.12, 90); at += 0.55 + Math.random() * 0.2; }
+                for (let i = 0; i < n; i++) { grain(out, i % 2 ? 'bed-creak' : 'bed-frame', at, { rate: 0.5 + Math.random() * 0.15, vol: 0.3, len: 0.35, lp: 1300 }); thud(out, at, 0.12, 90); at += 0.55 + Math.random() * 0.2; }
                 t = setTimeout(walk, ((at - ac.currentTime) + 5 + Math.random() * 9) * 1000); };
             t = setTimeout(walk, 600); stops.push(() => { alive = false; clearTimeout(t); }); },
         // A rocking chair or porch swing: a slow, even creak back and forth.
-        rocking() { ['seat-1', 'seat-2', 'bed-creak'].forEach(sample); let back = false; stops.push(every(1.9, 2.3, at => { back = !back; grain(out, back ? one('seat-1', 'seat-2') : 'bed-creak', at, { rate: back ? 0.8 : 0.65, vol: 0.45, len: 0.8, lp: 2200 }); })); },
+        rocking() { ['seat-1', 'seat-2', 'bed-creak'].forEach(sample); let back = false; stops.push(every(1.9, 2.3, at => { back = !back; grain(out, back ? one('seat-1', 'seat-2') : 'bed-creak', at, { rate: back ? 0.8 : 0.65, vol: 0.3, len: 0.8, lp: 2200 }); })); },
         // Someone shifting in bed: a soft creak of the springs now and then.
-        restless() { ['bed-creak', 'bed-bounce'].forEach(sample); stops.push(every(6, 16, at => { grain(out, 'bed-creak', at, { rate: 0.85, vol: 0.35, len: 0.6, lp: 2500 }); if (Math.random() < 0.3) grain(out, 'bed-bounce', at + 0.2, { vol: 0.25, len: 0.3, lp: 1500 }); })); },
+        restless() { ['bed-creak', 'bed-bounce'].forEach(sample); stops.push(every(6, 16, at => { grain(out, 'bed-creak', at, { rate: 0.85, vol: 0.25, len: 0.6, lp: 2500 }); if (Math.random() < 0.3) grain(out, 'bed-bounce', at + 0.2, { vol: 0.25, len: 0.3, lp: 1500 }); })); },
         // Pulling at restraints: the headboard knocking and something metal giving a little.
         struggle() { ['bed-headboard', 'bed-frame'].forEach(sample); stops.push(hits(1.2, 3.5, at => { const n = 1 + Math.floor(Math.random() * 3);
             for (let i = 0; i < n; i++) grain(out, i % 2 ? 'bed-frame' : 'bed-headboard', at + i * 0.18, { rate: 1.1, vol: 0.6, len: 0.25 });
@@ -528,34 +506,34 @@ function build(name) {
         kissing() { ['wet-1', 'wet-2'].forEach(sample); stops.push(hits(1.6, 4, at => { const n = 1 + Math.floor(Math.random() * 3);
             for (let i = 0; i < n; i++) grain(out, one('wet-1', 'wet-2'), at + i * (0.3 + Math.random() * 0.25), { rate: 1.35, vol: 0.35, len: 0.22, hp: 400 }); })); },
         // 2.0.32: peeing: the tap recording thinned into a stream that starts and stops, and the seat creaking now and then.
-        pee() { ['seat-1', 'seat-2'].forEach(sample); loop(out, 'stream', stops); stops.push(hits(4, 9, at => grain(out, one('seat-1', 'seat-2'), at, { vol: 0.5, len: 0.8 }))); },
+        pee() { ['seat-1', 'seat-2'].forEach(sample); loop(out, 'stream', stops); stops.push(hits(4, 9, at => grain(out, one('seat-1', 'seat-2'), at, { vol: 0.28, len: 0.8, lp: 3000 }))); },
         // A creaking toilet seat keeping time, with a hollow knock now and then.
         seat() { ['seat-1', 'seat-2', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            grain(out, one('seat-1', 'seat-2'), at, { vol: fast() ? 0.95 : 0.75, len: gap * 1.1 });
+            grain(out, one('seat-1', 'seat-2'), at, { vol: fast() ? 0.5 : 0.38, len: gap * 1.1, lp: 3000 });
             if (fast() && i % 3 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 1.4, vol: 0.25, len: 0.25, hp: 400 }); })); },
         // Him alone: the dry strokes, with the wet ones mixed in as it quickens.
         solo() { ['solo-1', 'solo-2'].forEach(sample); stops.push(strokes(at => {
             const gap = 1 / strokeRate, wet = Math.random() < (fast() ? 0.6 : 0.25);
-            grain(out, wet ? 'solo-2' : 'solo-1', at + 0.01, { vol: wet ? 0.9 : 1.1, len: gap * 1.05 }); })); },
+            grain(out, wet ? 'solo-2' : 'solo-1', at + 0.01, { vol: wet ? 1.7 : 1.8, len: gap * 1.05 }); })); },
         // Her alone: the either-way recording, and the slick finger sounds one stroke in three.
         soloher() { ['solo-3', 'fingers-1', 'fingers-2'].forEach(sample); stops.push(strokes(at => {
             const gap = 1 / strokeRate;
             if (Math.random() < 0.33) grain(out, one('fingers-1', 'fingers-2'), at + 0.01, { vol: 0.9, len: gap });
-            else grain(out, 'solo-3', at + 0.01, { vol: 0.95, len: gap * 1.05 }); })); },
+            else grain(out, 'solo-3', at + 0.01, { vol: 1.4, len: gap * 1.05 }); })); },
         // Sex (1.83, recorded): each stroke picks fresh cuts from the bed recordings, shaped for what they're on. A
         // quicker scene plays them faster and adds the harder hits (the frame, the headboard, the desk).
         bed() { ['bed-thump', 'bed-creak', 'bed-frame', 'bed-bounce', 'bed-headboard'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
             grain(out, 'bed-thump', at, { vol: fast() ? 0.7 : 0.5, len: gap * 1.05 });
             if (Math.random() < 0.7) grain(out, 'bed-bounce', at + 0.01, { vol: 0.5, len: gap });
-            if (Math.random() < 0.75) grain(out, 'bed-creak', at + 0.02 + Math.random() * 0.05, { vol: 0.7, len: gap * 1.2 });
+            if (Math.random() < 0.75) grain(out, 'bed-creak', at + 0.02 + Math.random() * 0.05, { vol: 0.5, len: gap * 1.2 });
             if (fast() ? Math.random() < 0.6 : i % 4 === 0) grain(out, 'bed-headboard', at + 0.04, { vol: fast() ? 0.6 : 0.4, len: gap });
             else if (i % 3 === 0) grain(out, 'bed-frame', at + 0.03, { vol: 0.55, len: gap }); })); },
         chair() { ['bed-creak', 'bed-frame', 'seat-1', 'seat-2'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            if (Math.random() < 0.3) grain(out, one('seat-1', 'seat-2'), at, { rate: 1.2, vol: 0.8, len: gap * 0.9, hp: 400 });
-            else grain(out, 'bed-creak', at, { rate: 1.55, vol: 1.05, len: gap * 0.9, hp: 500, jitter: 0.08 });
+            if (Math.random() < 0.3) grain(out, one('seat-1', 'seat-2'), at, { rate: 1.2, vol: 0.45, len: gap * 0.9, hp: 400 });
+            else grain(out, 'bed-creak', at, { rate: 1.55, vol: 0.75, len: gap * 0.9, hp: 500, jitter: 0.08 });
             if (i % 2 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 1.7, vol: 0.3, len: 0.25, hp: 300 }); })); },
         // 1.85: the desk, sofa, car and wall now play her own recordings of each.
         desk() { ['desk-rock', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
@@ -573,7 +551,7 @@ function build(name) {
             if (i % 2 === 0) grain(out, 'bed-thump', at + 0.02, { rate: 0.75, vol: 0.3, len: gap, lp: 500 }); })); },
         floor() { ['bed-creak', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
-            grain(out, 'bed-creak', at, { rate: 0.72, vol: 0.75, len: gap * 1.2, lp: 1800 });
+            grain(out, 'bed-creak', at, { rate: 0.72, vol: 0.55, len: gap * 1.2, lp: 1800 });
             if (i % 2 === 0) grain(out, 'bed-frame', at + 0.03, { rate: 0.65, vol: 0.5, len: gap, lp: 900 }); })); },
         // Wet: slick strokes, its own layer under the furniture, quicker and shorter as the pace rises.
         wet() { ['wet-1', 'wet-2', 'fingers-1', 'fingers-2', 'solo-2'].forEach(sample); stops.push(strokes(at => {
@@ -587,19 +565,12 @@ function build(name) {
             const hard = Math.max(0, Math.min(1, (strokeRate - 0.9) / 1.5));
             if (fast() || i % 2 === 0 || Math.random() < 0.5) grain(out, Math.random() < 0.2 ? 'solo-2' : one('slap-1', 'slap-2'), at + 0.03, { vol: 0.75 + 0.6 * hard, len: 0.6 / Math.max(1, strokeRate) + 0.15 }); })); },
         // 1.85: Acts with their own layer: fingers keep time, rubbing is a slow continuous slide, spanking and the whip
-        // land now and then (sooner the faster the scene runs), her voice comes and goes.
+        // land now and then (sooner the faster the scene runs).
         fingers() { ['fingers-1', 'fingers-2', 'solo-3'].forEach(sample); stops.push(strokes(at => {
             grain(out, Math.random() < 0.25 ? 'solo-3' : one('fingers-1', 'fingers-2'), at + 0.01, { vol: 1.1, len: 1.05 / strokeRate }); })); },
         rub() { sample('rub'); stops.push(every(1.5, 2.0, at => grain(out, 'rub', at, { vol: 0.6, len: 2.2, jitter: 0.03 }))); },
         spank() { sample('spank'); stops.push(hits(2.2, 5.5, at => { grain(out, 'spank', at, { vol: 0.95, len: 1.0 }); if (Math.random() < 0.25) grain(out, 'spank', at + 0.45 + Math.random() * 0.3, { vol: 0.8, len: 1.0 }); })); },
         whip() { ['whip-1', 'whip-2'].forEach(sample); stops.push(hits(2.5, 6, at => grain(out, one('whip-1', 'whip-2'), at, { vol: 0.9, len: 1.0 }))); },
-        voice() { ['moan', 'whimper'].forEach(sample); stops.push(hits(1.8, 5, at => {
-            if (Math.random() < 0.2) return; // a breath's silence now and then
-            grain(out, fast() || Math.random() < 0.4 ? 'moan' : 'whimper', at, { vol: 0.8 + (fast() ? 0.2 : 0), len: 2.6, jitter: 0.02 }); })); },
-        // Breathing (1.88.3, from her recordings): runs of a few breaths that swell in and fade out, then quiet. 'breath'
-        // when the story mentions it (runs come closer together), 'breathlow' in sex otherwise (now and then).
-        breath() { breathRuns(out, stops, 8, 20); },
-        breathlow() { breathRuns(out, stops, 25, 55); },
         heart() { let t = 0, alive = true;
             const go = () => { if (!alive || !ac) return; const at = ac.currentTime + 0.05; ping(out, 62, at, 0.12, 0.45, 40); ping(out, 55, at + 0.18, 0.1, 0.3, 38); t = setTimeout(go, 1000 / (1 + strokeRate * 0.55)); };
             t = setTimeout(go, 300); stops.push(() => { alive = false; clearTimeout(t); }); },

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.34
+- Human sounds removed at her request: the breathing, moans and whimpers layers (breath, breathlow, voice), their recordings (breath-1, breath-2, moan, whimper) and cuts are gone. Everything else stays.
+- Softer creaks: the toilet seat (furniture, one-offs, peeing, the office chair mix), the bed's creak, the office chair, the floor, footsteps, the rocking chair and shifting in bed are all quieter; the seat is also slightly muffled. seat-2 re-encoded 10 dB down.
+- Louder self-pleasure: solo-1, solo-2 and solo-3 re-encoded with compression (much higher average level), and played louder.
+
 ## 2.0.33
 - Him or her touching themselves is now read from the passage, not one fixed phrase: a body word (or spitting in a palm, lotion, jerking off, a toy, between her legs) plus a stroking motion anywhere in the last two messages (MORE_WORDS.soloHim/soloHer/soloMove). It no longer needs the scene to be marked as heat, and on a toilet the seat creaks along. Fixes silence for "pumps it slow from the base up over the head" on a closed toilet lid.
 - Far more wordings for every sound: wet, skin, fingers, grinding, spanking, whip, breath, heartbeat, kissing, peeing, sink, bath, scuffle, footsteps, shifting in bed, restraints, rocking; the furniture (toilet, couch, chair, counters and car bonnets, walls and fridges, floors, car seats); one-offs (knock, punch, slam, gunshot, glass, slap, zip, belt, landing on a bed or couch, sitting down, flush, splash, clang); and what counts as sex happening (thrusting, riding, inside her or him).

@@ -140,6 +140,16 @@ export function boardView({ live, send, sync, charName, userName, people, editin
             <p class="mw-fine">${send ? 'Moodweaver sends the info board prompt, so take it out of your preset.' : 'Using the board your preset asks for.'} Boards stay in your chat as they are; this only reads the latest one${live.found ? ` (${esc(owner)}\u2019s last reply)` : ''}.</p>
         </details></section>`;
 }
+// Coping that helped lately (2.0.25): one quiet line when it happened in the last eight replies, folded; a tap shows
+// each time, how much it eased, and whether doing the same thing again is starting to give less.
+const AGO = n => n === 0 ? 'last reply' : `${n + 1} replies ago`;
+function helpedLine(list, name) {
+    if (!list.length) return '';
+    const top = list[0], thin = h => h.kind === 'm' && h.streak >= 3;
+    return `<details class="mw-cope-help"><summary><span class="mw-cope-glow" aria-hidden="true">\u2727</span> ${esc(top.label)} is helping <small>${AGO(top.ago)}</small></summary>
+        <ul>${list.map(h => `<li><b>${esc(h.label)}</b> eased it by ${h.eased} <small>${AGO(h.ago)}${thin(h) ? ' \u00b7 giving less each time in a row' : ''}</small></li>`).join('')}</ul>
+        <p class="mw-fine">How much ${esc(name)}'s own ways of coping took off stress lately. Healthier ways ease it steadily, mixed ones give less each time in a row, and the harmful ones always work.</p></details>`;
+}
 // Stress (1.79): where it stands, how they cope, and a break when one is happening. Read-only, with a "Let it go"
 // that starts the count again from the latest message (engine/stress.js).
 export function stressCard(s, name) {
@@ -150,6 +160,7 @@ export function stressCard(s, name) {
     return `<section class="mw-board"><div class="mw-board-block mw-stress" data-anchor="stress"><h4>Stress <small>${esc(name)} \u00b7 ${esc(word)}</small></h4>
         <div class="mw-stress-stars" role="img" aria-label="Stress ${s.value} of 100">${stars}</div>
         <p class="mw-fine">${note}</p>
+        ${helpedLine(s.helped ?? [], name)}
         <p class="mw-fine">Builds when they act against what they believe, want or feel about someone (the dynamic included), or when strain, fear, guilt and empty needs pile up; eases with rest, comfort, release and their own ways of coping.${s.rate !== 1 ? ` Their nature makes it build ${s.rate > 1 ? 'faster' : 'slower'}.` : ''} Past what they can hold, they break once, in character.</p>
         <details class="mw-copes"><summary>How ${esc(name)} copes: <b>${esc(s.copes?.ids.length ? s.copes.ids.map(id => COPES.find(c => c.id === id)?.label).join(', ') : 'not chosen')}</b><small>${s.copes?.auto ? 'from who they are \u00b7 tap to choose' : 'tap to change \u00b7 up to six'}</small></summary>${[['h', 'Healthier: ease it steadily, every time'], ['m', 'Mixed: fade to half when it\u2019s the same again; switch it up to refresh'], ['u', 'Unhealthy: ease it most, and being drunk or high is the cost']].map(([k, title]) =>
             `<p class="mw-fine">${title}</p><div class="mw-card-chips">${COPES.filter(c => c.kind === k).map(c =>

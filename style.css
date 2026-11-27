@@ -1427,3 +1427,4 @@ span.mw-music-ball{background:radial-gradient(circle at 32% 26%,#fff8 0 4%,color
 .mw-tn-writer p{flex:1 1 150px;margin:0;font-size:13px;color:#e3dcf2}
 .mw-tn-writer p span{color:#b9d7f2;margin-right:4px}
 .mw-tn-writer .mw-primary{min-height:44px;padding:0 16px;flex:0 0 auto}
+.mw-cope-help{margin:6px 0 4px}.mw-cope-help summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border-radius:999px;background:#e8c87a14;border:1px solid #e8c87a33;color:#f1e2b8;font-size:13px}.mw-cope-help summary::-webkit-details-marker{display:none}.mw-cope-help summary small{color:#b5aacb;font-size:11.5px}.mw-cope-glow{color:#e8c87a;text-shadow:0 0 8px #e8c87aaa}.mw-cope-help ul{list-style:none;margin:8px 0 4px;padding:0;display:grid;gap:6px}.mw-cope-help li{font-size:13px;color:#d7cfe8}.mw-cope-help li small{color:#b5aacb;margin-left:4px}

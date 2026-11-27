@@ -40,6 +40,8 @@ const STOCK = [
     ['eyes darkening / something flickering in the eyes', /\b(?:eyes|gaze)\s+(?:darken|darkened|darkening|flicker|flickered|glint|glinted)\b|\bsomething\s+flicker\w*\s+(?:in|behind|across)\s+(?:his|her|their)\s+(?:eyes|face|gaze)\b/gi],
 ];
 const count = (map, key, example, reply) => { const e = map.get(key) ?? { n: 0, replies: new Set(), ex: [] }; e.n++; e.replies.add(reply); if (e.ex.length < 4 && !e.ex.some(x => x.toLowerCase() === example.toLowerCase())) e.ex.push(example); map.set(key, e); };
+// A beat: subject, then a plain verb or a negation, and done (\u201cHe doesn't wait.\u201d, \u201cShe doesn't answer.\u201d, \u201cHe stops.\u201d).
+const BEAT_RE = /^(?:he|she|they|it|i|[A-Z][a-z]+)\s+(?:(?:does ?n[o']t|did ?n[o']t|do ?n[o']t|won'?t|can'?t|is ?n[o']t|was ?n[o']t|never|barely|just|only)\s+)?[a-z]+(?:\s+[a-z]+){0,2}[.!]$/;
 const tidy = s => s.replace(/\s+/g, ' ').trim();
 
 // texts: the character's last replies, oldest first (raw message text is fine). names: words to ignore
@@ -70,6 +72,15 @@ export function findPatterns(texts, { names = [], max = 8 } = {}) {
         const h = hits.get('x');
         if (h && h.n >= 3 && h.replies.size >= 2) out.push({ label, examples: h.ex.slice(0, 3), n: h.n });
     }
+    // 3b. Beat sentences (2.0.25): a short narration sentence that sums up what someone does or doesn't do
+    // (\u201cHe doesn't wait.\u201d), with the action that shows it in the next, longer sentence.
+    const beats = new Map();
+    replies.forEach((t, r) => {
+        const ss = sentences(t.replace(/"[^"]*"/g, ' \n '));
+        ss.forEach((x, i) => { const w = words(x); if (w.length >= 2 && w.length <= 5 && BEAT_RE.test(x) && words(ss[i + 1] ?? '').length >= 9) count(beats, 'beat', tidy(x), r); });
+    });
+    const beat = beats.get('beat');
+    if (beat && beat.n >= 3 && beat.replies.size >= 2) out.push({ label: 'a short standalone beat sentence about what someone does or doesn\u2019t do, then a longer sentence that shows it', examples: beat.ex.slice(0, 3), n: beat.n });
     // 4. The same sentence opening, and replies that all start the same way.
     const openers = new Map(); let total = 0;
     replies.forEach((t, r) => { for (const s of sentences(t)) { const w = words(s.replace(/^"/, '')).slice(0, 2); if (w.length < 2 || ignore.has(w[0])) continue; total++; count(openers, w.join(' '), s.split(/\s+/).slice(0, 5).join(' '), r); } });

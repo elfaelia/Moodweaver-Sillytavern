@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.25
+- New cleaner-writing row No beat-then-explain (Story, Cleaner writing): no short sentence summing up what someone does or doesn't do followed by a longer one that shows it; sentence length follows what's happening, with no set short-then-long rhythm and no runs of all-short or all-long sentences. A short sentence stays only when the moment itself is abrupt. No example words in it.
+- The pattern breaker now spots that shape in his own last replies (a narration sentence of five words or fewer, a subject and a verb or a negation, then a sentence of nine words or more), three times across two replies, and quotes his own examples back as something to stop.
+- Coping that helps shows on Mind: a quiet gold pill under Stress, only when coping eased it in the last eight replies (which way, how long ago). Tap it for each time, how much it took off, and when a mixed way is giving less each time in a row.
+
 ## 2.0.24
 - Hand size on the profile (Facts, and your You tab), for anyone: Small, Average, Large, Very large, under Body next to the other sizes. Sent only when hands are in play in the last messages (hands, fingers, palms, wrists, holding, gripping, touching, stroking and the like), never otherwise. The story can set it from its own words too.
 - Stress and coping moved from Body to the top of Mind, for the character.

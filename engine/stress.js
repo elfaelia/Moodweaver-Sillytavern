@@ -137,7 +137,7 @@ function breakOf(st, families) {
 export function computeStress(entries = [], st = {}, from = -1) {
     const rate = stressRate(st), families = {};
     let v = 0, lastBreak = null, cooldown = 0, streak = 0, lastWay = null, seen = new Set();
-    const trail = [];
+    const trail = [], helped = [];
     for (const e of entries) {
         if (e.pos <= from) continue;
         if (lastBreak && lastBreak.at === trail.length - 1) v = Math.min(v, AFTER_BREAK);
@@ -160,6 +160,8 @@ export function computeStress(entries = [], st = {}, from = -1) {
         const pushed = e.coped ? 0 : Math.max(0, line);
         const cope = e.coped ? COPE_EASE[kind][Math.min(streak, 4) - 1] + (newSpark && streak === 1 ? SPARK_BONUS : 0) : 0;
         const up = (Math.min(6, feel) + 2 * crit + low + pushed) * (e.chose ? 0.5 : 1), down = Math.min(4, ease) + Math.max(0, -line) + (e.release ? 8 : 0) + cope + 1;
+        // What coping did this reply, for Mind's quiet "helping" line (2.0.25).
+        if (e.coped && used) helped.push({ id: used.id, label: used.label, kind, eased: Math.round(cope), streak, at: trail.length });
         v = clamp(v + up * rate - down, 0, 100);
         cooldown = Math.max(0, cooldown - 1);
         const edge = crit >= 2 ? 75 : 90;
@@ -168,7 +170,8 @@ export function computeStress(entries = [], st = {}, from = -1) {
     }
     const since = lastBreak ? trail.length - 1 - lastBreak.at : null;
     return { value: Math.round(v), level: stressLevel(v)[1], word: stressLevel(v)[2], rate, coping: copingOf(st, lastWay ?? '', entries.length), copes: copesOf(st), trail: trail.slice(-12),
-        breaking: since === 0 ? lastBreak.how : '', after: since === 1 ? lastBreak.how : '' };
+        breaking: since === 0 ? lastBreak.how : '', after: since === 1 ? lastBreak.how : '',
+        helped: helped.filter(h => trail.length - 1 - h.at < 8).map(h => ({ ...h, ago: trail.length - 1 - h.at })).reverse().slice(0, 4) };
 }
 
 // The lines Claude reads: a break this reply, coming down from one, or the stress level and how they cope.

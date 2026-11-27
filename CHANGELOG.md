@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.32
+- Her third batch of recordings (sounds/seat-1, seat-2, solo-1, solo-2, solo-3, water), cut into grains:
+  - New erotic layers: a creaking toilet seat as furniture (toilet, stall), him touching himself (dry strokes, wet ones as it quickens), her touching herself (the either-way take plus slick fingers), someone peeing (the tap thinned into a stream, a seat creak now and then), kissing before sex (soft wet clusters from the old wet takes).
+  - New everyday layers: a running tap (sink, washing, teeth, dishes), a bath running, and the shower now has real water under it.
+  - Remixed from her older recordings: a scuffle (wall thuds, dull blows, furniture), creaking footsteps on old boards, a rocking chair or porch swing, someone shifting in bed (not during sex), pulling at restraints (headboard knocks, a metal clink), and the car's springs creaking over bumps.
+  - New one-offs from her recordings: a knock at the door, a punch, a shove into a wall, a toilet flush, a splash, a zip, a belt unbuckled, dropping onto a bed or a couch, a chair taking weight. One-offs now wait (up to 2 s) for their recordings to load the first time.
+  - Variety: the office chair, wet, skin and fingers layers now mix in cuts from the new takes.
+- Eye colour on the profile card ("Eyes"), for the character and you, and read from the card. Sent only when eyes are in focus (a gaze held, eye contact, a colour named, staring into someone's eyes) or the occasional reminder reply.
+
 ## 2.0.31
 - Skills read speech. The hidden line's `used` now asks for skills used or tested in the reply or in the player's last message, judged by what people did and said, each as "name: skill". engine/skills.js usedBy() splits it by person (an unnamed entry after a named one is that person's; unnamed ones on their own still count for everyone). Your skills grow from what it names under your name, and the Skills tab lights them for the right person only.
 - Wider speech words for 20 people skills: manipulation (guilt, pity, helplessness, flattery, ultimatums, conditions, sulking and pouting, "your fault", "if you loved me" and more), guilt tripping, charisma, charm, seduction, courtship, debate, intimidation, lying, negotiation, playing the victim, reading people, dirty talk, bratting, love bombing, jealousy games, isolating, control, small talk, begging. tests/skill-words.mjs has 5 new speech-only passages (165/165); plain passages still light 2.

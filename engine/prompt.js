@@ -183,6 +183,9 @@ function listLines(state, list, other, people = {}, lit = null, afterFeelings = 
 const coreOf = st => (st?.core ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
 // Starred beliefs: up to three views or alignments, picked with \u2726, always sent as what this person acts on first.
 const beliefsOf = st => (st?.beliefs ?? []).map(id => BY_ID[id]).filter(m => m && (st.moods?.[m.id] ?? 0) > 0);
+// Eye colour (2.0.32): only when eyes are in focus (a gaze held, eye contact, a colour named), or the occasional reminder.
+const EYE_SCENE = /\b(eye colou?r|eyes? (?:are|were|look|looked|go|went|turn|turned|darken\w*|glint\w*|gleam\w*|shine|shone|flash\w*)|(?:blue|green|brown|hazel|grey|gray|amber|dark|pale|light|black|violet|golden) eyes|(?:into|meets?|met|meeting|holds?|held|holding|locks?|locked|searches|searched|catches|caught) (?:his|her|their|my|your|those) (?:eyes|gaze)|eye contact|irises|iris|pupils?|stares? into|staring into|gazes? into|gazing into|looks? deep into)\b/i;
+const eyeLine = (st, scene, all) => { const e = String(st?.eyes ?? '').trim(); return e && (all || EYE_SCENE.test(scene)) ? [`Eye colour: ${pt(e)}.`] : []; };
 const famLine = (st, scene) => { const t = familyText(st, scene); return t ? [`Family the scene just mentioned: ${pt(t).replace(/\.?$/, '.')}`] : []; };
 const favLine = (st, scene, all) => { const t = favText(st, scene, all); return t ? [`Favourites (for choices and small talk, never listed): ${pt(t)}.`] : []; };
 // Pet names and sayings, sent every reply as part of who someone is. For the character they are what to use instead of
@@ -203,7 +206,7 @@ function profileLines(st, core, other, people, scene = '', all = true, beliefs =
     // Who they are underneath leads; the profile and the small things (favourites, family, pet names) come after.
     return { core: [...(beliefs.length ? [`What they believe most and act on, even against a passing feeling: ${beliefs.map(said).join('; ')}.`] : []),
         ...(core.length ? [`Under any mood: ${core.map(said).join('; ')}.`] : [])],
-    rest: [...(text ? [`Profile: ${pt(text)}.`] : []), ...favLine(st, scene, all), ...famLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other)))] };
+    rest: [...(text ? [`Profile: ${pt(text)}.`] : []), ...eyeLine(st, scene, all), ...favLine(st, scene, all), ...famLine(st, scene, all), ...voiceLines(st, pt(shortName(people?.subject ?? 'they')), pt(shortName(other)))] };
 }
 const KNOWLEDGE_ORDER = ['known', 'suspected', 'scene', 'private'];
 function personaLines(state, list, other, knowledge = {}, subject = 'the player\u2019s character', people = {}) {
@@ -468,7 +471,7 @@ function composePrompt(state, name, extras = {}) {
     if (darkActionPeak) out.push('',
         `Dark settings are things ${castSets.length ? 'people actually do' : `${n} actually does`}, at their strength, calmly and for their own reasons.${darkActionPeak >= 61 ? ` If violence, abduction or worse serves their goal, they choose it and it happens on the page${followOn ? '' : ', with no sudden conscience, cutaway or convenient interruption, and no judging narration'}.` : ''}${darkActionPeak === 100 ? ` At maximum, the darkest one can drive the reply and leave harm that can't be undone.` : ''}`);
     const condition = (player?.condition ?? []).filter(Boolean).slice(0, 6);
-    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}.`] : []), ...favLine(player.state, scene, !gate.on || gate.refresh), ...famLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
+    const theirProfile = player?.state?.enabled ? [...(profileText(player.state) ? [`Profile: ${pt(profileText(player.state))}.`] : []), ...eyeLine(player.state, scene, !gate.on || gate.refresh), ...favLine(player.state, scene, !gate.on || gate.refresh), ...famLine(player.state, scene, !gate.on || gate.refresh), ...voiceLines(player.state, u, n, true)] : [];
     const between = player?.state?.enabled && state?.enabled ? compareProfiles(state, player.state) : '';
     if (theirs.length || theirsExtra.length || hasType(player?.state) || condition.length || theirProfile.length || skillBy[u]) {
         const prefs = sentPrefs(player.state, signs?.user, null, 'player').length, wants = liveWants(player.state).length;

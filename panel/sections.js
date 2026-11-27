@@ -157,6 +157,7 @@ function profileCard(state, ch) {
         <div class="mw-profile-grid">
             <label class="mw-pf"><span>Age</span><input type="number" data-profile="age" min="1" max="999" inputmode="numeric" enterkeyhint="done" placeholder="\u2014" value="${cleanAge(state.age)}"></label>
             <label class="mw-pf"><span>Height</span><input type="text" data-profile="height" maxlength="14" enterkeyhint="done" placeholder="6'1 or 185 cm" value="${esc(state.height ?? '')}"></label>
+            <label class="mw-pf mw-pf-wide"><span>Eyes <small>sent when eyes are in focus</small></span><input type="text" data-profile="eyes" maxlength="30" enterkeyhint="done" placeholder="grey-blue, dark brown" value="${esc(state.eyes ?? '')}"></label>
             <label class="mw-pf mw-pf-wide"><span>Into</span><input type="text" data-profile="interests" maxlength="120" enterkeyhint="done" placeholder="guitar, old films, chess" value="${esc(state.interests ?? '')}"></label>
         </div>
         ${genderRow(ch)}

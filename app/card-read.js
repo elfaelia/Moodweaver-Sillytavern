@@ -5,10 +5,11 @@ import { MOODS, isAuthor, lowerLabel, sectionOf } from '../data/catalogue.js';
 import { cleanAge, cleanHeight, cleanInterests, cleanWords, familyMembers, familyString } from '../engine/turns.js';
 import { ctx, ui } from './state.js';
 
-const FIELDS = ['age', 'height', 'into', 'family', 'pet names', 'sayings', 'traits', 'looks', 'job', 'era'];
-const ask = (who, lore = '') => `[Out of character. Don't continue the story. ${lore ? `This is ${who}'s lorebook entry:\n${lore}\n\nFrom it and` : 'From'} the character card, scenario, persona and lore you have, set down what they say about ${who}, in exactly these ten lines and nothing else. Use only what they state or clearly imply; leave the part after the colon empty when they don't say.
+const FIELDS = ['age', 'height', 'eyes', 'into', 'family', 'pet names', 'sayings', 'traits', 'looks', 'job', 'era'];
+const ask = (who, lore = '') => `[Out of character. Don't continue the story. ${lore ? `This is ${who}'s lorebook entry:\n${lore}\n\nFrom it and` : 'From'} the character card, scenario, persona and lore you have, set down what they say about ${who}, in exactly these lines and nothing else. Use only what they state or clearly imply; leave the part after the colon empty when they don't say.
 age: a number
 height: like 6'1 or 185 cm
+eyes: their eye colour in a few words
 into: up to five interests, comma separated
 family: each relative as Role, Name, a few words about them; relatives separated by |
 pet names: what ${who} calls the other main character, comma separated
@@ -41,6 +42,7 @@ export function parseCard(text) {
     const add = (kind, label, value, extra = {}) => items.push({ kind, label, value, on: true, ...extra });
     if (cleanAge(got.age)) add('age', `Age ${cleanAge(got.age)}`, cleanAge(got.age));
     if (cleanHeight(got.height)) add('height', `Height ${cleanHeight(got.height)}`, cleanHeight(got.height));
+    { const e = String(got.eyes ?? '').replace(/[<>]/g, '').trim().slice(0, 30); if (e && !/^(none|unknown|n\/a)$/i.test(e)) add('eyes', `Eyes ${e}`, e); }
     if (cleanInterests(got.into)) add('into', `Into ${cleanInterests(got.into)}`, cleanInterests(got.into));
     for (const part of got.family.split('|').map(x => x.trim()).filter(Boolean).slice(0, 8)) {
         const [role = '', name = '', ...info] = part.split(',').map(x => x.trim());
@@ -77,7 +79,7 @@ export async function readCard(who, name, lore = '') {
 export function applyCard(state, story) {
     const kept = (ui.cardRead?.items ?? []).filter(i => i.on);
     for (const i of kept) {
-        if (i.kind === 'age') state.age = i.value; if (i.kind === 'height') state.height = i.value; if (i.kind === 'into') state.interests = i.value;
+        if (i.kind === 'age') state.age = i.value; if (i.kind === 'height') state.height = i.value; if (i.kind === 'eyes') state.eyes = i.value; if (i.kind === 'into') state.interests = i.value;
         if (i.kind === 'pets') state.petNames = cleanWords([state.petNames, i.value].filter(Boolean).join(', '));
         if (i.kind === 'saying') state.sayings = cleanWords([state.sayings, i.value].filter(Boolean).join('\n'));
         if ((i.kind === 'trait' || i.kind === 'fact') && !(state.moods[i.id] > 0)) { state.moods[i.id] = i.value; if (!state.loadout.includes(i.id)) state.loadout.push(i.id); }

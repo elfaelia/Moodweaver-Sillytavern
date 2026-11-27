@@ -151,7 +151,7 @@ export async function onPanelChange(e) {
     if (input.dataset.famField) { const [i, part] = input.dataset.famField.split(':'), v = input.value;
         await changeState(s => { const list = familyMembers(s); if (!list[i]) return; list[i][part] = v; s.family = familyString(list); }); return; }
     if (input.dataset.words) { const k = input.dataset.words, v = input.value; await changeState(s => { s[k] = cleanWords(v); }); return; }
-    if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : cleanInterests(v); }); return; }
+    if (input.dataset.profile) { const k = input.dataset.profile, v = input.value; await changeState(s => { s[k] = k === 'age' ? cleanAge(v) : k === 'height' ? cleanHeight(v) : k === 'eyes' ? String(v ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 30) : cleanInterests(v); }); return; }
     if (input.hasAttribute('data-skill-pace')) { await changeState(s => { s.skillPace = cleanSkillPace(input.value); }); return; }
     if (input.hasAttribute('data-skill-lookback')) { const c = ctx(); settings(); c.extensionSettings[KEY].skillLookback = Number(input.value) || 1; c.saveSettingsDebounced(); await syncPrompt(); render(); return; }
     if (input.dataset.launch === 'show') { setLaunch({ show: input.checked }); return; }

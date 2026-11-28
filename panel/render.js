@@ -19,6 +19,7 @@ import { tonightView } from './tonight.js';
 import { TONES, moodTone } from '../engine/tone.js';
 import { factsContent, sectionContent, tabKind } from './sections.js';
 import { settingsView } from './settings-sheet.js';
+import { morphChildren } from './morph.js';
 import { filterSkills, skillsView } from './skills-tab.js';
 import { wantsView, youView } from './wants-tab.js';
 import { periodView } from './period-tab.js';
@@ -152,13 +153,23 @@ function drawPanel() {
         // Stress and coping live on Mind (2.0.24), at the top.
         : `${kind === 'psyche' && ui.who === 'char' ? stressCard(stressNow(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name)) : ''}${sectionContent(state, kind, ch, active)}`}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' \u00b7 ') : '';
-    ui.panel.innerHTML = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
+    const html = `<div class="mw-top" data-sky="${live?.sky.time ?? ''}" data-weather="${live?.sky.weather ?? ''}"><div class="mw-brand">${PLUMBOB(plumbob)}<div class="mw-brand-text"><h2>Moodweaver</h2>${where ? `<small class="mw-where-now">${esc(where)}</small>` : ''}</div></div>
         <div class="mw-top-actions"><button type="button" class="mw-token-pill" data-action="tokens" data-token-pill hidden><i aria-hidden="true">\u25f7</i><b></b></button><button type="button" class="mw-icon-btn" data-action="find" aria-pressed="${Boolean(ui.findOpen)}" aria-label="Search every tab" title="Search every tab">\u2315</button><button type="button" class="mw-icon-btn" data-action="${ui.settingsOpen ? 'settings-close' : 'settings'}" aria-pressed="${ui.settingsOpen}" aria-label="Settings and what\u2019s sent" title="Settings and what\u2019s sent">\u2699</button><button type="button" class="mw-close" data-action="close" aria-label="Close Moodweaver">\u00d7</button></div></div>
     ${!charState ? '<div class="mw-empty">Open a character chat to start weaving a mood.</div>' : `
     ${members().length > 1 ? `<div class="mw-context"><label>Group chat \u00b7 main character<select data-field="character" aria-label="Main character">${members().map(m => `<option value="${esc(m.avatar)}" ${m.avatar === ch.avatar ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label></div>` : ''}
     ${state ? body : ''}
     ${state && !ui.settingsOpen ? dockBar(ch) : ''}`}
     <div data-status role="status" class="mw-status">${esc(run.status)}</div><div class="mw-footer"><span data-token-mini></span>Small shifts. Complicated feelings. \u00b7 v${VERSION}</div><button class="mw-to-top" data-action="top" aria-label="Back to top" title="Back to top" hidden>\u2191</button>`;
+    // 2.0.40: built aside, then laid over what's on screen so only what changed is touched (panel/morph.js).
+    const tpl = document.createElement('template'); tpl.innerHTML = html; const fresh = tpl.content;
+    moonify(fresh); pillify(fresh); foldNotes(fresh);
+    // A folded group you've opened keeps its rows: they're drawn into the new page before it's laid over.
+    for (const body of fresh.querySelectorAll('details > [data-lazy]')) {
+        const d = body.parentElement, attr = [...d.attributes].find(a => a.name.startsWith('data-'));
+        const was = attr && ui.panel.querySelector(`details[${attr.name}="${CSS.escape(attr.value)}"]`);
+        if (was?.open) fillLazy(body);
+    }
+    morphChildren(ui.panel, fresh);
     restorePanelFields(ui.panel, snapshot); moonify(ui.panel); pillify(ui.panel); foldNotes(ui.panel); reglow(ui.panel);
     filterRows(); filterRelationships(ui.panel.querySelector('[data-relation-search]')?.value ?? ''); filterLocalLists(); filterPersonality(ui.panel);
     renderPreview(); filterSkills(); restorePanelPosition(ui.panel, snapshot, sameView); if (keepPlace && !ui.panel.querySelector(snapshot?.anchor || '[data-none]')) ui.panel.scrollTop = prevScroll; toggleTop();
@@ -287,7 +298,10 @@ export function tapRangeMoon(button) {
     const min = Number(input.min) || 0, rest = min < 0 ? 0 : min;
     setRange(input, button.classList.contains('is-now') ? rest : Number(button.dataset.rangeMoon));
 }
-export function onGroupToggle(e) { if (e.target.matches?.('details') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
+export function onGroupToggle(e) {
+    // The story dials' fold (2.0.40) is remembered across reloads.
+    if (e.target.matches?.('[data-dial-fold]') && Boolean(settings().dialsOpen) !== e.target.open) { settings().dialsOpen = e.target.open; ctx().saveSettingsDebounced(); }
+    if (e.target.matches?.('details') && e.target.open) { const b = e.target.querySelector(':scope > [data-lazy]'); if (b) { fillLazy(b); filterRows(); } } }
 export function toggleTop() { const b = ui.panel?.querySelector('.mw-to-top'); if (b) b.hidden = ui.panel.scrollTop < 500; }
 function showGroupMatches(group, count, term) {
     const badge = group.querySelector('summary small');

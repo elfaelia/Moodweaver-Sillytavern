@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.40
+
+- The panel now updates only what changed. Every redraw is built aside and laid over what's on screen (panel/morph.js): a tapped moon, a count, a chip change; everything else stays exactly as it was, so the phone isn't rebuilding a whole tab on each tap, and glows and slides don't restart. Checked on all fifteen pages: the result is the same as a full redraw.
+- No blur behind the sticky tab bar and the dock (the dock was solid anyway); blur over a scrolling page is one of the heaviest things for an iPhone to redraw.
+- The panel is fenced off from the rest of SillyTavern (CSS containment), so a change inside it never makes the phone re-check the chat behind it.
+- Story: How the story runs folds into one line that shows what each dial is on. Tap to open; it stays open or shut as you left it.
+
+## 2.0.39
+
+- Settings › Writers › Writes a missing hidden line: pick which connection profile writes the hidden line when you tap to add one. Moodweaver switches to it for that one line, with the same chat and notes, and switches straight back to the one you were on. Whoever is writing stays the default.
+- A tapped tab or dock button lights up at once; the page it opens is drawn on the next frame.
+- Lit chips on Turn-ons (and the other tabs) pulse once when a reply lights them, not again on every tap, so the tab no longer looks like it reloads.
+- The chapter tabs sit in even rows, with a shorter last row centred.
+- Buttons and moons can't start a text selection or a long-press menu, which Safari otherwise works out on every tap.
+
 ## 2.0.38
 
 - Taps are quicker. Bond meters, extra meters and Needs no longer wait for the chat to save and the note to rebuild before the panel redraws: it redraws first, saves, and rebuilds the note a moment later (always fresh before a reply).

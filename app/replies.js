@@ -227,6 +227,7 @@ export async function editBoard(mutate) {
 async function boardChanged() {
     const out = reconcile();
     if (out.changed) { if (out.notes.length) run.status = out.notes.join(' '); await persist(); }
+    ui.litSeen = null; // what this reply lit pulses once more
     if (ui.panel?.open) render(true);
     await syncPromptNow();
     // Music listens for the story moving on (app/music.js, wired in index.js).

@@ -272,8 +272,12 @@ export function sectionContent(state, kind, ch, active) {
     const xOn = settings().chipRemove !== false;
     const xWrap = (id, label, chip) => xOn ? `<span class="mw-chip-wrap">${chip}<button type="button" class="mw-chip-x" data-chip-off="${esc(id)}" aria-label="Take ${esc(label)} off" title="Take ${esc(label)} off">\u2715</button></span>` : chip;
     const undo = ui.chipUndo && ui.chipUndo.who === ui.who && ui.chipUndo.kind === kind ? `<button type="button" class="mw-chip-btn mw-chip-undo" data-action="chip-undo">\u21b6 Put ${esc(ui.chipUndo.label)} back</button>` : '';
-    const chipOf = m => xWrap(m.id, m.label, `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? 'is-lit' : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '\u2727 ' : ''}${state.pins[m.id] ? '\u25c6 ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`);
-    const chips = turnsSet.map(([id, v]) => xWrap(`turn:${id}`, TURN_BY_ID[id].label, `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? 'is-lit' : ''} ${shows.has(id) && !lit.has(id) ? 'is-shown' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : shows.has(id) ? `${esc(shows.get(id))}. ` : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '\u2727' : v > 0 ? '\u2661' : '\u2715'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`)).join('')
+    // A lit chip pulses once when it first shows; a redraw after a tap leaves it still (2.0.39: it used to pulse again
+    // on every tap, which looked like the whole tab reloading).
+    ui.litSeen ??= new Set();
+    const calm = key => { const k = `${ui.who}:${key}`; if (ui.litSeen.has(k)) return ' is-calm'; ui.litSeen.add(k); return ''; };
+    const chipOf = m => xWrap(m.id, m.label, `<button data-jump="${m.id}" class="mw-chip ${litTraits.has(m.id) ? `is-lit${calm(m.id)}` : ''}" style="--mw-accent:${m.color}" title="${litTraits.has(m.id) ? 'Set off in the last reply. ' : ''}Adjust ${esc(m.label)}"><span>${litTraits.has(m.id) ? '\u2727 ' : ''}${state.pins[m.id] ? '\u25c6 ' : ''}${esc(tagLabel(m))}</span><b>${state.moods[m.id]}</b><i style="width:${state.moods[m.id]}%"></i></button>`);
+    const chips = turnsSet.map(([id, v]) => xWrap(`turn:${id}`, TURN_BY_ID[id].label, `<button data-jump="turn:${id}" class="mw-chip mw-chip-turn ${v < 0 ? 'is-off' : ''} ${lit.has(id) ? `is-lit${calm(`turn:${id}`)}` : ''} ${shows.has(id) && !lit.has(id) ? 'is-shown' : ''}" style="--mw-accent:${TURN_BY_ID[id].color}" title="${lit.has(id) ? 'Set off in the last reply. ' : shows.has(id) ? `${esc(shows.get(id))}. ` : ''}Adjust ${esc(TURN_BY_ID[id].label)}"><span>${lit.has(id) ? '\u2727' : v > 0 ? '\u2661' : '\u2715'} ${esc(TURN_BY_ID[id].label)}</span><b>${Math.abs(v)}</b><i style="width:${Math.abs(v)}%"></i></button>`)).join('')
         + shown.map(m => chipOf(m)).join('');
     const explainer = ui.who === 'user' && kind === 'turn' ? `${esc(ch.name)} only learns these from how you react.`
         : kind === 'turn' ? 'Lit \u2727 means the last reply touched it.'
@@ -300,8 +304,12 @@ export function sectionContent(state, kind, ch, active) {
 // ends up, instead of hunting rows to switch on. The last three own their rows (engine/dials.js).
 const dialRow = (title, steps, at, attr) => `<div class="mw-dial-one"><div class="mw-dial-head"><b>${title}</b><small>${steps[at][2]}</small></div>
     <div class="mw-dial-row" role="radiogroup" aria-label="${title}" style="--mw-steps:${steps.length}">${steps.map(([icon, label], i) => `<button type="button" role="radio" ${attr}="${i}" aria-checked="${i === at}" class="${i === at ? 'is-on' : ''}"><span aria-hidden="true">${icon}</span>${label}</button>`).join('')}</div></div>`;
+// 2.0.40: folded into one line (what each dial is on now) so the Story tab scrolls quicker; a tap opens it, and it
+// stays open or shut as you left it.
 function dialBlock(state) {
-    return `<div class="mw-dial">${DIALS.map(d => dialRow(d.title, d.steps, stepOf(state, d.key), d.key === 'turns' ? 'data-story-dial' : `data-story-dials="${d.key}" data-step`)).join('')}</div>`;
+    const now = DIALS.map(d => d.steps[stepOf(state, d.key)]?.[1]).filter(Boolean).join(' \u00b7 ');
+    return `<details class="mw-dial-fold" data-dial-fold${settings().dialsOpen ? ' open' : ''}><summary><b>How the story runs</b><small>${esc(now)}</small></summary>
+    <div class="mw-dial">${DIALS.map(d => dialRow(d.title, d.steps, stepOf(state, d.key), d.key === 'turns' ? 'data-story-dial' : `data-story-dials="${d.key}" data-step`)).join('')}</div></details>`;
 }
 // Setting lines live on each person's Setting tab; the Story tab just points there.
 function eraBlock(state) {

@@ -2,12 +2,14 @@
 // so nothing it did reaches Moodweaver. When the newest reply has none, a button sits under it in the chat:
 // one tap asks the roleplay model (your main connection, your preset and the whole chat, like a normal
 // reply) for only that line, and adds it to the end of the reply, where it's read like any other.
-// Settings \u203a What is sent \u203a "Offer to add a missing hidden line" hides the button.
+// Settings \u203a What is sent \u203a "Offer to add a missing hidden line" hides the button, and Settings \u203a Writers \u203a
+// "Writes a missing hidden line" can hand that one line to another connection profile (2.0.38).
 import { members, target } from './chat.js';
 import { writingNow } from './note.js';
 import { bondData } from './replies.js';
 import { settings } from './settings.js';
 import { ctx, run } from './state.js';
+import { currentWriter, switchWriter, writerName } from './writer.js';
 import { hasWeave } from '../engine/weave.js';
 
 const CHIP = 'mw-fillin';
@@ -91,19 +93,31 @@ export async function fillIn(index, box = null) {
     say('Asking for the line only. The story itself isn\u2019t touched.');
     run.fillIn = true;
     let text = '';
+    // 2.0.38: Settings \u203a Writers \u203a "Writes a missing hidden line" picks the model for this one line. Moodweaver
+    // switches SillyTavern's connection profile to it, asks, and switches back to the one you were on.
+    const want = settings().fillInWriter ?? '', was = currentWriter(), swap = Boolean(want && writerName(want) && want !== was);
+    let problem = '';
     try {
+        if (swap && !was) throw new Error('Pick a connection profile in SillyTavern for your main chat first, so Moodweaver can switch back to it.');
+        if (swap) { say(`Asking ${writerName(want)} for the line only. The story itself isn\u2019t touched.`); await switchWriter(want); }
         text = await c.generateQuietPrompt({ quietPrompt: ASK, responseLength: 600 });
     } catch (err) {
         console.warn('[Moodweaver] fill-in failed', err);
+        problem = String(err?.message ?? '');
         text = '';
-    } finally { run.fillIn = false; }
+    } finally {
+        if (swap && was && currentWriter() !== was) {
+            try { await switchWriter(was); } catch (err) { globalThis.toastr?.error(`Couldn\u2019t switch back to ${writerName(was)}: ${err?.message ?? err}. Pick it in SillyTavern\u2019s Connection Profiles menu.`, 'Moodweaver', { timeOut: 8000 }); }
+        }
+        run.fillIn = false;
+    }
     // The chat moved on (a swipe, an edit, a new message) while it was being written: leave it alone.
     if (ctx().chat?.[index] !== m || m.mes !== before) { queueFillIn(); return; }
     const line = lineFrom(text);
     if (!line) {
         lastFail.mes = m.mes;
         if (button) { button.disabled = false; button.textContent = '\u25c6 Try again'; }
-        say('The model answered without a hidden line. Tap to try again.');
+        say(problem && swap ? problem : 'The model answered without a hidden line. Tap to try again.');
         return;
     }
     await attach(index, m, line, 'Hidden line added to the last reply.');

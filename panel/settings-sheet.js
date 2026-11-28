@@ -41,6 +41,7 @@ export function settingsView(state) {
         ${card('writers', '\u270e', '#b9d7f2', 'Writers', settings().writerMain && settings().writerAlt ? `${esc(writerName(settings().writerMain) || 'Main')} and ${esc(writerName(settings().writerAlt) || 'stand-in')}` : 'Not set', `
             ${writerChoices().length ? `${choice('writerMain', 'Main writer', [['', 'Not set'], ...writerChoices()], 'The model that writes most replies.')}
             ${choice('writerAlt', 'Stand-in writer', [['', 'Not set'], ...writerChoices()], 'The one you switch to with one tap on the Scene page.')}
+            ${choice('fillInWriter', 'Writes a missing hidden line', [['', 'Whoever is writing'], ...writerChoices()], 'When you tap to add a hidden line a reply forgot, this model writes it, with the same chat and notes. Moodweaver switches to it for that one line and back again straight after.')}
             <p class="mw-fine">These are SillyTavern Connection Profiles. Make one for each model in SillyTavern first (the plug icon \u203a Connection Profiles), then pick them here.</p>`
             : '<p class="mw-fine">Make a Connection Profile for each model in SillyTavern first (the plug icon \u203a Connection Profiles), then pick them here.</p>'}`)}
         ${card('feelings', '\u263e', '#c9b8f0', 'Feelings and people', `${feelingsOn} of 6 extras on`, `

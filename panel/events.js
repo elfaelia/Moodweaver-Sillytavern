@@ -25,7 +25,7 @@ import { droppedIds } from '../engine/overlap.js';
 import { clearPanelSearch, rememberGroupChoice } from './scroll-memory.js';
 import { musicChange, musicClick, musicInput } from './music-tab.js';
 import { findList } from './find.js';
-import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderStatus, stepRangeMoon, tapPill, tapRangeMoon, toggleNote } from './render.js';
+import { changeState, fillLazy, filterLocalLists, filterRelationships, filterRows, render, renderPreview, renderSoon, renderStatus, stepRangeMoon, tapPill, tapRangeMoon, toggleNote } from './render.js';
 import { turnFill, turnLevel } from './rows.js';
 import { clearSection, lastMoodRec, tabKind } from './sections.js';
 import { dockHere, dockOf, tabStep, tabsFor } from './header.js';
@@ -323,9 +323,10 @@ export async function onPanelChange(e) {
         if (field === 'follow') s[field] = clamp(s[field], 10, 100);
     });
 }
+const pressNow = (button, sel) => { for (const b of ui.panel.querySelectorAll(sel)) b.setAttribute('aria-pressed', String(b === button)); };
 function openTab(tab) {
     if (!tab) return;
-    ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.skillSheet = ''; ui.removingRelation = ''; render();
+    ui.tab = tab; ui.lastTab = { ...(ui.lastTab ?? {}), [dockOf(tab)]: tab }; ui.search = ''; ui.browsing = false; ui.skillSheet = ''; ui.removingRelation = ''; renderSoon();
 }
 // Swiping sideways on the panel walks through the tabs (not on sliders, text or lists that scroll sideways).
 // Only a clear, quick, flat swipe counts: across at least a third of the panel (and 90px), within 0.7 s, never
@@ -531,14 +532,15 @@ export async function onPanelClick(e) {
     if (button.dataset.wantNotyet) { const id = button.dataset.wantNotyet, at = Number(button.dataset.at); await changeState(s => { const w = s.wants.find(x => x.id === id); if (w) w.after = at; }); return; }
     // Tapping the tab or dock section you're already on scrolls back to the top.
     const toTop = () => { ui.panel?.scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); };
-    if (button.dataset.tab) { if (button.dataset.tab === ui.tab && ui.who !== 'story') { toTop(); return; } openTab(button.dataset.tab); return; }
+    // 2.0.39: the tapped tab or dock button lights at once; the page it opens is drawn on the next frame.
+    if (button.dataset.tab) { if (button.dataset.tab === ui.tab && ui.who !== 'story') { toTop(); return; } pressNow(button, '[data-tab]'); openTab(button.dataset.tab); return; }
     // The dock (2.0): Tonight, each person's page, Us, Story and Music. A person's page opens on the chapter last used.
     if (button.dataset.dock) {
         const key = button.dataset.dock; if (dockHere() === key) { toTop(); return; }
-        ui.settingsOpen = false; ui.browsing = false; ui.skillSheet = '';
-        if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; render(); return; }
+        ui.settingsOpen = false; ui.browsing = false; ui.skillSheet = ''; pressNow(button, '[data-dock]');
+        if (key === 'story') { if (ui.who !== 'story') ui.lastWho = ui.who; ui.who = 'story'; renderSoon(); return; }
         if (ui.who === 'story') ui.who = ui.lastWho && ui.lastWho !== 'story' ? ui.lastWho : 'char';
-        if (key === 'tonight' || key === 'music') { ui.tab = key; render(); return; }
+        if (key === 'tonight' || key === 'music') { ui.tab = key; renderSoon(); return; }
         if (key === 'us') { if (!['char', 'user', 'cast'].includes(ui.who)) ui.who = 'char'; const t = ui.lastTab?.us; openTab(['rel', 'turn', 'intimacy'].includes(t) ? t : 'rel'); return; }
         ui.who = key; ui.selectedPeer = ''; ui.removingRelation = ''; ui.castAction = '';
         const tabs = tabsFor(ui.who).map(([k]) => k).filter(k => dockOf(k) === 'person');

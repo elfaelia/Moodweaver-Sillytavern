@@ -28,14 +28,14 @@ export const BED_LABELS = { rainin: 'rain on the windows', bar: 'a bar', barbusy
     camera: 'a camera clicking', clock: 'a ticking clock', city: 'street traffic', birds: 'birdsong', train: 'a train', shower: 'running water',
     wet: 'wet, slick sounds', skin: 'skin slapping', heart: 'a heartbeat', vent: 'a facility\u2019s vents and distant doors', buzz: 'electrical buzz', alarm: 'a distant alarm',
     scuffle: 'a scuffle', steps: 'creaking footsteps', rocking: 'a rocking chair', restless: 'someone shifting in bed', struggle: 'pulling at restraints', kissing: 'kissing', bath: 'a bath running',
-    seat: 'a creaking toilet seat', solo: 'him touching himself', soloher: 'her touching herself', pee: 'someone peeing', sink: 'a running tap',
+    seat: 'a creaking toilet seat', solo: 'him touching himself', solobath: 'touching themselves in the bath or shower', oral: 'oral', soloher: 'her touching herself', pee: 'someone peeing', sink: 'a running tap',
     fingers: 'slick fingers', rub: 'skin rubbing', spank: 'spanking', whip: 'a whip or belt',
     bed: 'a creaking bed', chair: 'a squeaking office chair', desk: 'a rattling desk', wall: 'thuds against the wall', springs: 'a rocking car', couch: 'a creaking couch', floor: 'creaking floorboards' };
 // During sex (1.80): what they're on, from the last 3 messages, else the place. Newest message wins. These beds
 // keep a rhythm (setBeds' pace), with small human unevenness and now and then a pause.
 export const LOVE_WORDS = [
     ['bed', /\b(?:headboard|bed ?springs|mattress|bed ?frame|bedposts?)\b/i],
-    ['seat', /\b(?:toilet(?: seat| lid)?|bathroom stall|the stall|on the loo|on the john|(?:on|over|onto) the (?:toilet|loo|john)|toilet tank|cistern|in the (?:bathroom|restroom|loo) stall|the (?:closed|toilet) lid)\b/i],
+    ['seat', /\b(?:(?:sits?|sat|sitting|seated|perched|perches|perching|settles?|settled|settling|slumps?|slumped|lowers? (?:him|her|them)sel(?:f|ves)|lowered (?:him|her|them)sel(?:f|ves))(?: back| down| heavily)? (?:on|onto|upon) (?:the|a) (?:closed )?(?:toilet|loo|john|lid|toilet seat|toilet lid|seat of the toilet)|(?:sitting|sat|seated|perched) on the (?:toilet|loo|john|closed lid))\b/i],
     ['chair', /\b(?:office chair|desk chair|swivel chair|swivel(?:s|ing)?|(?:his|her|the|a) chair|in (?:his|her|the) lap at (?:the|his|her) desk|(?:on|in) (?:the|a|his|her) (?:chair|armchair|recliner|stool|barstool)|(?:straddl\w*|in) (?:his|her) lap (?:on|in) the chair)\b/i],
     ['desk', /\b(?:(?:on|over|across|against) (?:the|his|her|a) (?:desk|table|counter|workbench|vanity|dresser|piano)|desk|kitchen table|countertop|(?:on|over|across|against) (?:the|his|her|a) (?:bathroom counter|sink|washing machine|dryer|hood of the car|car hood|bar|pool table|workbench|island|bench))\b/i],
     ['springs', /\b(?:back ?seat|front seat|passenger seat|driver'?s seat|in the (?:car|truck|cab|pickup)|steamed[- ]up windows?|the car rocks?|(?:in|on) the (?:back|front|driver'?s|passenger) seat|in (?:his|her|the) (?:truck|car|cab|pickup|van|backseat)|on the hood|seat reclines|reclines the seat|fogged[- ]up (?:windows?|glass)|car (?:rocks|shakes|bounces))\b/i],
@@ -74,6 +74,8 @@ export const MORE_WORDS = {
     soloHim: /\b(?:cock|dick|prick|member|erection|hard-?on|boner|his length|his shaft|his girth|his tip|the tip|the head of (?:his|it)|foreskin|pre-?(?:cum|come)|his balls|his sack|(?:touch\w*|strok\w*|pleasur\w*|grip\w*|fist\w*|palm\w*|handl\w*|reliev\w*|finish\w*|work\w*|get(?:s|ting)? off|got off|takes? care of|took care of|tend\w* to|wrap\w* (?:a|his) (?:hand|fist) around) himself|himself off|his own (?:hand|fist|grip)|his fist (?:around|tight|moving|works|speeds)|(?:his|a) slick (?:fist|hand|palm)|spit(?:s|ting)? (?:in|into|on) his (?:palm|hand)|spat (?:in|into|on) his (?:palm|hand)|lotion|lube|tissues?|(?:jerk|jack|beat|whack|wank|toss|tug)(?:s|ed|ing|ging|ged)? (?:off|it|one out)|rub(?:s|bing|bed)? one out|wank\w*|masturbat\w*|self-pleasur\w*|fuck(?:s|ing|ed)? (?:his|into his) (?:fist|hand)|rut(?:s|ting|ted)? into his (?:fist|hand)|comes? (?:into|in|over) his (?:hand|fist|stomach|fingers)|came (?:into|in|over) his (?:hand|fist|stomach|fingers)|spill(?:s|ed|ing)? over his (?:fist|fingers|knuckles|hand)|ropes of)\b/i,
     soloHer: /\b(?:clit|clitoris|pussy|cunt|her folds|her slit|her mound|between her (?:legs|thighs)|(?:touch\w*|pleasur\w*|finger\w*|rub\w*|work\w*|get(?:s|ting)? off|got off|takes? care of|took care of|tend\w* to|play\w* with) herself|herself off|her own (?:fingers|hand)|vibrator|(?:her|the|a) toy|dildo|the wand|showerhead (?:between|against)|(?:humps?|humped|humping|grinds? (?:on|against)|ground against) (?:the|a|her) (?:pillow|cushion|blanket)|masturbat\w*|self-pleasur\w*)\b/i,
     soloMove: /\b(?:strok(?:e|es|ed|ing)|pump(?:s|ed|ing)?|fist(?:s|ed|ing)?|twist(?:s|ed|ing)? (?:his|her) wrist|from the base|over the head|root to tip|base to tip|up and down|tug(?:s|ged|ging)?|jerk(?:s|ed|ing)?|(?:his|her) (?:hand|fist|fingers|wrist|grip) (?:moves|moving|works|working|speeds|sliding|slides|picks up|keeps going|quickens|tightens|flies|blurs)|work(?:s|ed|ing)? (?:it|himself|herself|faster|harder)|squeez(?:e|es|ed|ing)|grip(?:s|ped|ping)?|slid(?:e|es|ing)|slick|wet sound|faster|rhythm|pace|edg(?:e|es|ed|ing)|milk(?:s|ed|ing)|circl(?:es|ed|ing)|rub(?:s|bed|bing)|finger(?:s|ed|ing)|buck(?:s|ed|ing) into|rock(?:s|ed|ing) against|thrust(?:s|ing)? into (?:his|her) (?:fist|hand))\b/i,
+    // 2.0.36: oral, either way round.
+    oral: /\b(?:blow ?job|bj|head\b(?= (?:in|from|on))|sucks? (?:him|his|her|on (?:him|his|her))|sucked (?:him|his|her|on)|sucking (?:him|his|her|on)|(?:takes?|took|taking) (?:him|his (?:cock|dick|length)) (?:into|in) (?:her|his) (?:mouth|throat)|(?:her|his) (?:mouth|lips) (?:around|on|wrapped around|stretched around) (?:his|her|him) ?(?:cock|dick|length|shaft|clit)?|goes? down on|went down on|going down on|eats? (?:her|him) out|ate (?:her|him) out|eating (?:her|him) out|cunnilingus|fellatio|deepthroat\w*|deep-throat\w*|throat(?:s|ed|ing|fuck\w*)? (?:him|his|her)|face-?fuck\w*|fucks? (?:her|his) (?:mouth|throat|face)|gag(?:s|ged|ging)? (?:on|around) (?:him|his|it)|(?:her|his) head bobs|bobs? (?:her|his) head|tongue (?:on|against|in|inside|circles?|laps?|flicks?) (?:her|his) (?:clit|folds|pussy|cunt|cock|tip|slit|entrance)|lick(?:s|ed|ing)? (?:her|his) (?:clit|folds|pussy|cunt|cock|length|shaft|tip|slit)|between (?:her|his) (?:thighs|legs) with (?:his|her) (?:mouth|tongue)|69|sixty-nine)\b/i,
     // 2.0.32: touching themselves (him / her), peeing (on the erotic switch), a tap running (everyday).
     solo: /\b(?:jerk(?:s|ed|ing)? (?:off|himself|it)|jack(?:s|ed|ing)? (?:off|himself)|strok(?:es|ed|ing) (?:himself|his (?:cock|dick|length|shaft|erection))|pump(?:s|ed|ing)? (?:himself|his (?:cock|dick|length|shaft|fist))|(?:wraps?|wrapped|curls?|curled) (?:a |his )?(?:hand|fist|fingers) around (?:himself|his (?:cock|dick|length|shaft))|touch(?:es|ed|ing) himself|fist(?:s|ed|ing)? himself|masturbat\w*|gets? himself off|got himself off|work(?:s|ed|ing) himself|wrap\w* (?:a|his) (?:hand|fist) around himself|takes? himself in (?:hand|his hand|his fist)|took himself in (?:hand|his hand|his fist)|palms? himself|palmed himself|(?:grips?|gripped|fists?|fisted) his (?:cock|dick|length|shaft|erection)|frees? his (?:cock|dick|erection)|freed his (?:cock|dick|erection)|edg(?:es|ed|ing) himself|gets? himself (?:off|there)|brings? himself (?:off|there)|brought himself (?:off|there)|finish(?:es|ed)? himself off|wank(?:s|ed|ing)?|tugs? one out|beat(?:s|ing)? (?:his meat|it))\b/i,
     soloher: /\b(?:touch(?:es|ed|ing) herself|finger(?:s|ed|ing) herself|rub(?:s|bed|bing) (?:herself|her clit)|circl(?:es|ed|ing) her clit|gets? herself off|got herself off|play(?:s|ed|ing)? with herself|work(?:s|ed|ing) herself|slips? (?:a hand|her hand|her fingers|two fingers) (?:into|under|down) (?:her|the front of her) (?:panties|underwear|knickers|shorts|jeans|pants|waistband)|slid (?:a hand|her hand|her fingers|two fingers) (?:into|under|down) (?:her|the front of her) (?:panties|underwear|knickers|shorts|jeans|pants|waistband)|(?:sinks?|sank|pushes|pushed|slides?|slid|curls?|curled|crooks?|crooked) (?:a finger|two fingers|her fingers|her middle finger) (?:into|inside) herself|rub(?:s|bed|bing)? (?:slow|tight|small|quick|fast) circles|edg(?:es|ed|ing) herself|brings? herself (?:off|there)|brought herself (?:off|there)|gets? herself there|her vibrator|(?:the|her) toy (?:buzzes|hums|whirs)|showerhead)\b/i,
@@ -196,7 +198,7 @@ export const LOOPS = {
     sink: [['water'], 0.45], bath: [['water'], 0.5, 'bath'], showerwater: [['water'], 0.3, 'spray'], stream: [['water'], 0.4, 'stream'], schoolhall: [['amb-cafeteria-2', 'amb-campus-2'], 0.55, 'hall'],
 };
 // What counts as erotic (1.88), for the switch that keeps it quiet: the furniture, bodies and acts of sex.
-export const EROTIC_BEDS = new Set(['kissing', 'seat', 'solo', 'soloher', 'pee', 'bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'fingers', 'rub', 'spank', 'whip']);
+export const EROTIC_BEDS = new Set(['oral', 'solobath', 'kissing', 'seat', 'solo', 'soloher', 'pee', 'bed', 'chair', 'desk', 'wall', 'springs', 'couch', 'floor', 'wet', 'skin', 'fingers', 'rub', 'spank', 'whip']);
 
 let ac = null, master = null, noise = null;
 const layers = new Map(); // name -> { gain, stop() }
@@ -441,6 +443,26 @@ function loop(out, name, stops) {
 }
 
 
+// Speed that wanders like a person (2.0.35): the scene's pace sets the middle, and every few seconds it drifts slower,
+// steady, quicker or into a short fast burst, gliding between them. Returns a function giving the playback rate now.
+function speedDrift(stops) {
+    let target = 1, now = 1;
+    stops.push(every(2.5, 7, () => { const r = Math.random(), hot = fast() ? 0.15 : 0;
+        target = r < 0.2 - hot ? 0.95 + Math.random() * 0.03 : r < 0.6 ? 0.98 + Math.random() * 0.05 : r < 0.88 ? 1.04 + Math.random() * 0.05 : 1.09 + Math.random() * 0.04; }));
+    return () => { now += (target - now) * 0.25; const pace = Math.min(1.04, Math.max(0.98, 0.94 + strokeRate * 0.04)); return Math.min(1.14, Math.max(0.94, now * pace)); };
+}
+const pickWeighted = list => { let r = Math.random() * list.reduce((n, x) => n + x.w, 0); for (const x of list) { r -= x.w; if (r <= 0) return x; } return list.at(-1); };
+// A whole recording looped seamlessly under a bed (2.0.35), faded in once loaded. Returns rate(r) and level(v) to steer it.
+function bedLoop(out, file, gain, stops) {
+    let src = null, g = null, alive = true, want = { r: 1, v: gain };
+    const go = buf => { if (!alive || !buf || !ac) return; g = gainOf(0); src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.playbackRate.value = want.r;
+        src.connect(g).connect(out); src.start(0, Math.random() * buf.duration); g.gain.setTargetAtTime(want.v, ac.currentTime, 0.8); };
+    const ready = sample(file); if (ready) go(ready); else void loading.get(file)?.then(go);
+    stops.push(() => { alive = false; try { src?.stop(); } catch { /* fine */ } try { src?.disconnect(); } catch { /* fine */ } });
+    return { rate(r) { want.r = r; if (src && ac) src.playbackRate.setTargetAtTime(r, ac.currentTime, 0.4); },
+        level(v) { want.v = v; if (g && ac) g.gain.setTargetAtTime(v, ac.currentTime, 0.6); } };
+}
+
 // ---- The beds ----
 function build(name) {
     const out = gainOf(0); out.connect(master);
@@ -505,22 +527,37 @@ function build(name) {
         // Kissing: soft wet sounds in little clusters, then a breath of quiet.
         kissing() { ['wet-1', 'wet-2'].forEach(sample); stops.push(hits(1.6, 4, at => { const n = 1 + Math.floor(Math.random() * 3);
             for (let i = 0; i < n; i++) grain(out, one('wet-1', 'wet-2'), at + i * (0.3 + Math.random() * 0.25), { rate: 1.35, vol: 0.35, len: 0.22, hp: 400 }); })); },
-        // 2.0.32: peeing: the tap recording thinned into a stream that starts and stops, and the seat creaking now and then.
-        pee() { ['seat-1', 'seat-2'].forEach(sample); loop(out, 'stream', stops); stops.push(hits(4, 9, at => grain(out, one('seat-1', 'seat-2'), at, { vol: 0.28, len: 0.8, lp: 3000 }))); },
+        // In the bath or shower (2.0.36): her bathtub take leads, with a wet take under it, at the same drifting speed.
+        solobath() { const bath = bedLoop(out, 'solo-loop-bath', 0.8, stops), under = bedLoop(out, 'solo-loop-sticky', 0.2, stops);
+            const speed = speedDrift(stops); stops.push(every(0.5, 0.5, () => { const r = speed(); bath.rate(r); under.rate(r); })); },
+        // Oral (2.0.36): her recording as a seamless loop with the same drifting speed, and a wet cut now and then.
+        oral() { const o = bedLoop(out, 'oral-loop', 0.9, stops);
+            const speed = speedDrift(stops); stops.push(every(0.5, 0.5, () => o.rate(speed()))); },
+        // 2.0.32: peeing: the tap recording thinned into a stream that starts and stops (2.0.37: no seat creaks, people often stand).
+        pee() { loop(out, 'stream', stops); },
         // A creaking toilet seat keeping time, with a hollow knock now and then.
         seat() { ['seat-1', 'seat-2', 'bed-frame'].forEach(sample); stops.push(strokes((at, i) => {
             const gap = 1 / strokeRate;
             grain(out, one('seat-1', 'seat-2'), at, { vol: fast() ? 0.5 : 0.38, len: gap * 1.1, lp: 3000 });
             if (fast() && i % 3 === 0) grain(out, 'bed-frame', at + 0.02, { rate: 1.4, vol: 0.25, len: 0.25, hp: 400 }); })); },
-        // Him alone: the dry strokes, with the wet ones mixed in as it quickens.
-        solo() { ['solo-1', 'solo-2'].forEach(sample); stops.push(strokes(at => {
-            const gap = 1 / strokeRate, wet = Math.random() < (fast() ? 0.6 : 0.25);
-            grain(out, wet ? 'solo-2' : 'solo-1', at + 0.01, { vol: wet ? 1.7 : 1.8, len: gap * 1.05 }); })); },
-        // Her alone: the either-way recording, and the slick finger sounds one stroke in three.
-        soloher() { ['solo-3', 'fingers-1', 'fingers-2'].forEach(sample); stops.push(strokes(at => {
-            const gap = 1 / strokeRate;
-            if (Math.random() < 0.33) grain(out, one('fingers-1', 'fingers-2'), at + 0.01, { vol: 0.9, len: gap });
-            else grain(out, 'solo-3', at + 0.01, { vol: 1.4, len: gap * 1.05 }); })); },
+        // Him alone (2.0.35): her original recordings played whole as seamless loops (only turned up, no squashing),
+        // spliced together: every few seconds the mix drifts to a new blend of the takes, leaning wet (the dry take on
+        // its own sounded like a cartoon), with loose wet cuts from her older recordings on top for mess. All speed up a
+        // touch with the pace.
+        // 2.0.36: her fourth batch joins the mix (sticky, plapping, speeding up); the speeding-up take leads more when it's fast.
+        solo() { const takes = [['solo-loop-sticky', 4], ['solo-loop-plap', 3.5], ['solo-loop-faster', 2, 4], ['solo-loop-wet', 1]]
+                .map(([f, w, hot]) => ({ w, base: w, hot: hot ?? w, l: bedLoop(out, f, 0, stops) }));
+            const blend = () => { for (const t of takes) t.w = fast() ? t.hot : t.base;
+                const lead = pickWeighted(takes), second = pickWeighted(takes.filter(t => t !== lead));
+                for (const t of takes) t.l.level(t === lead ? 0.9 : t === second ? 0.22 : 0); };
+            blend(); stops.push(every(3, 7, () => blend()));
+            const speed = speedDrift(stops); stops.push(every(0.5, 0.5, () => { const r = speed(); for (const t of takes) t.l.rate(r); }));
+            },
+        // Her alone: her either-way recording as a seamless loop, with slick finger cuts now and then.
+        soloher() { const takes = [['solo-loop-slick', 3], ['solo-loop-her', 2]].map(([f, w]) => ({ w, l: bedLoop(out, f, 0, stops) })); ['fingers-1', 'fingers-2'].forEach(sample);
+            const blend = () => { const lead = pickWeighted(takes); for (const t of takes) t.l.level(t === lead ? 0.75 : 0.3); }; blend(); stops.push(every(3, 7, () => blend()));
+            const speed = speedDrift(stops); stops.push(every(0.5, 0.5, () => { const r = speed(); for (const t of takes) t.l.rate(r); }));
+            stops.push(hits(2.5, 6, at => grain(out, one('fingers-1', 'fingers-2'), at, { vol: 0.6, len: 0.5 }))); },
         // Sex (1.83, recorded): each stroke picks fresh cuts from the bed recordings, shaped for what they're on. A
         // quicker scene plays them faster and adds the harder hits (the frame, the headboard, the desk).
         bed() { ['bed-thump', 'bed-creak', 'bed-frame', 'bed-bounce', 'bed-headboard'].forEach(sample); stops.push(strokes((at, i) => {
@@ -566,7 +603,8 @@ function build(name) {
             if (fast() || i % 2 === 0 || Math.random() < 0.5) grain(out, Math.random() < 0.2 ? 'solo-2' : one('slap-1', 'slap-2'), at + 0.03, { vol: 0.75 + 0.6 * hard, len: 0.6 / Math.max(1, strokeRate) + 0.15 }); })); },
         // 1.85: Acts with their own layer: fingers keep time, rubbing is a slow continuous slide, spanking and the whip
         // land now and then (sooner the faster the scene runs).
-        fingers() { ['fingers-1', 'fingers-2', 'solo-3'].forEach(sample); stops.push(strokes(at => {
+        fingers() { ['fingers-1', 'fingers-2', 'solo-3'].forEach(sample); const slick = bedLoop(out, 'solo-loop-slick', 0.35, stops), speed = speedDrift(stops);
+            stops.push(every(0.5, 0.5, () => slick.rate(speed()))); stops.push(strokes(at => {
             grain(out, Math.random() < 0.25 ? 'solo-3' : one('fingers-1', 'fingers-2'), at + 0.01, { vol: 1.1, len: 1.05 / strokeRate }); })); },
         rub() { sample('rub'); stops.push(every(1.5, 2.0, at => grain(out, 'rub', at, { vol: 0.6, len: 2.2, jitter: 0.03 }))); },
         spank() { sample('spank'); stops.push(hits(2.2, 5.5, at => { grain(out, 'spank', at, { vol: 0.95, len: 1.0 }); if (Math.random() < 0.25) grain(out, 'spank', at + 0.45 + Math.random() * 0.3, { vol: 0.8, len: 1.0 }); })); },

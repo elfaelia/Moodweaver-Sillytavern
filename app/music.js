@@ -382,9 +382,15 @@ export function ambienceBeds(snap = mus.latest, m = music()) {
     const soloHer = said(amb.MORE_WORDS.soloher) || (soloMoving && amb.MORE_WORDS.soloHer.test(soloText) && !soloHim);
     if ((heatNow || !inPublic) && soloHer) beds.unshift('soloher');
     if ((heatNow || !inPublic) && soloHim) beds.unshift('solo');
+    // 2.0.36: in the bath or shower, the bathtub take instead; oral with its own layer when the last 2 messages name it.
+    const wetRoom = spot === 'shower' || realSentences(texts.slice(0, 3)).some(t => amb.MORE_WORDS.bath.test(t) || /\b(?:shower|bath ?tub|in the tub|in the bath)\b/i.test(t));
+    if ((soloHim || soloHer) && wetRoom) beds.splice(0, beds.length, ...beds.map(b => b === 'solo' || b === 'soloher' ? 'solobath' : b));
+    if (heatNow && said(amb.MORE_WORDS.oral)) beds.unshift('oral');
     // On the toilet while at it: the seat creaks along.
     if ((soloHim || soloHer) && !beds.some(b => amb.LOVE_WORDS.some(([k]) => k === b)) && realSentences(texts.slice(0, 3)).some(t => amb.LOVE_WORDS.find(([k]) => k === 'seat')[1].test(t))) beds.push('seat');
     if (heatNow) for (const act of ['fingers', 'rub', 'spank', 'whip']) if (said(amb.MORE_WORDS[act])) beds.push(act);
+    // 2.0.37: alone, her whole recordings carry it; the short chopped wet, slap and finger cuts on top sounded papery.
+    if (beds.some(b => b === 'solo' || b === 'soloher' || b === 'solobath')) beds.splice(0, beds.length, ...beds.filter(b => !['wet', 'skin', 'fingers'].includes(b)));
     // 2.0.32 remixes: a scuffle, pulling at restraints, creaking footsteps, a rocking chair, someone shifting in bed (not
     // during sex), kissing (warm, before sex), a bath running.
     if (said(amb.MORE_WORDS.scuffle)) beds.push('scuffle');

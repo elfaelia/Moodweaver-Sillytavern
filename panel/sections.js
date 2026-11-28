@@ -53,10 +53,10 @@ function catalogueBlock(state, kind, ch, whose) { // kind is the tab's section: 
     const hideBody = kind === 'state' && boardCoversBody();
     // Story groups hidden in Settings \u203a Panel (old or modern authors, smut style\u2026) don't show here at all.
     const hiddenGroups = new Set(kind === 'story' ? settings().hiddenGroups ?? [] : []);
-    // Browsing everything: a folded group's rows are only drawn when it's opened (see fillLazy), which keeps
-    // a slider move in the full list quick now that the lists are long.
+    // A folded group's rows are only drawn when it's opened (see fillLazy), which keeps a tap quick now that the
+    // lists are long (2.0.38: always, not only while browsing everything).
     const body = (key, count, rows) => {
-        if (ui.browsing && !ui.search && !ui.openGroups?.[`details[data-category="${key}"]`]) { ui.lazyBodies.set(key, rows); return `<div class="mw-category-body" data-lazy="${key}" data-count="${count}"></div>`; }
+        if (!ui.search && !ui.openGroups?.[`details[data-category="${key}"]`]) { ui.lazyBodies.set(key, rows); return `<div class="mw-category-body" data-lazy="${key}" data-count="${count}"></div>`; }
         return `<div class="mw-category-body">${rows()}</div>`;
     };
     // Facts come in two halves: what's going on with their body right now, and who they are.

@@ -120,7 +120,7 @@ const named = (s, used) => calledFor(`${s.label}|${s.prompt}`, used) || callStre
 export function skillsOf(state) {
     if (!state) return [];
     const set = cleanSkills(state.skills), pins = cleanPins(state.skillPins);
-    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, cue: s.cue, words: s.words, when: s.when ?? '', bad: s.bad ?? '', level: v, pinned: Boolean(pins[id]) }; })
+    return Object.entries(set).map(([id, v]) => { const s = SKILL_BY_ID[id]; return { id, label: s.label, prompt: s.prompt, cue: s.cue, words: s.words, needs: s.needs ?? '', when: s.when ?? '', bad: s.bad ?? '', level: v, pinned: Boolean(pins[id]) }; })
         .sort((a, b) => b.level - a.level);
 }
 // Which of them the scene calls for. scene: the player's latest message and the last reply(s).
@@ -130,7 +130,7 @@ export function skillsOf(state) {
 const RANK = { used: 0, scene: 1, context: 2 };
 export function litSkills(state, scene = '', used = '', cap = 5, context = null) {
     const s = norm(scene), u = norm(used), fits = x => Boolean(context?.size) && x.when.split(/\s+/).some(t => t && context.has(t));
-    return skillsOf(state).map(x => { const pull = callStrength(x.words, s); return { ...x, pull, why: u && named(x, u) ? 'used' : pull >= CALLED ? 'scene' : fits(x) ? 'context' : '' }; })
+    return skillsOf(state).map(x => { const pull = callStrength(x.words, s); return { ...x, pull, why: x.needs && !calledFor(x.needs, s) ? '' : u && named(x, u) ? 'used' : pull >= CALLED ? 'scene' : fits(x) ? 'context' : '' }; })
         // Within the scene's calls, the strongest call first; then how far from untrained (a hopeless \u22128 is as
         // worth sending as an expert 8), so a skill they are bad at isn't always the one left out.
         .filter(x => x.why).sort((a, b) => RANK[a.why] - RANK[b.why] || (a.why === 'scene' ? b.pull - a.pull : 0) || Math.abs(b.level) - Math.abs(a.level))
@@ -147,7 +147,8 @@ export function growSkills(state, text = '', used = '') {
     for (const [id, lv] of Object.entries(set)) {
         if (pins[id]) continue;
         const sk = SKILL_BY_ID[id], [uses, idle] = xp[id] ?? [0, 0];
-        if (callStrength(sk.words, s) >= CALLED || (u && named(sk, u))) {
+        // A skill that needs something in the scene (2.0.38: listeners for public speaking) isn't practised without it.
+        if ((!sk.needs || calledFor(sk.needs, s)) && (callStrength(sk.words, s) >= CALLED || (u && named(sk, u)))) {
             // Practice: a bad skill climbs out of the hole three times slower, and from -1 straight to novice.
             const next = uses + 1, up = lv < 10 && next >= pace.per * (lv < 0 ? Math.ceil(1.5 * -lv) : lv);
             xp[id] = [up ? 0 : next, 0];

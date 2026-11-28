@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.0.38
+
+- Taps are quicker. Bond meters, extra meters and Needs no longer wait for the chat to save and the note to rebuild before the panel redraws: it redraws first, saves, and rebuilds the note a moment later (always fresh before a reply).
+- A moon or step tap shows on screen straight away; the full redraw follows on the next frame, and quick taps share one redraw.
+- Folded groups are only drawn when opened, on every tab (before, only while browsing everything). On Bonds between two people this cut the panel from about 8,000 parts to about 150.
+- The tap glow no longer makes the phone lay out the whole panel on every tap.
+- Public speaking only counts when there are listeners in the scene (a speech, a class, a crowd, a jury, a meeting and so on). Talking to one person, in bed or anywhere, no longer calls for it or trains it. Its everyday words (speaks to, meeting, court, addresses) were trimmed.
+
+## 2.0.37
+
+- The toilet seat only creaks when someone is actually sitting on it (sits on the lid, sat on the toilet, perched on the closed lid). Standing over or above the toilet, leaning on the tank and peeing no longer creak.
+- His sounds lean on the newest recordings: the sticky take leads, then plapping, then speeding up (leads when it's fast). The older wet take is only a small part, and the dry take is out of his mix.
+- Only two takes play at once now (a lead and a quiet second), so they no longer smear into each other.
+- The loops were rebuilt from the original recordings: rumble below 110 Hz removed (the boomy, bass-boosted feel), no more clipping on the loud moments (it was crackling, the papery sound), a gentle peak limit instead, and better sound quality (128k).
+- The short chopped wet, slap and finger cuts no longer play on top while someone is alone; the whole recordings carry it. Oral lost its chopped cuts too.
+- Speed changes are gentler (about 0.94 to 1.14), so slowing down no longer deepens the sound.
+
+## 2.0.36
+- Her fourth batch as seamless loops from the originals (same method as 2.0.35, no compression): solo-loop-sticky, solo-loop-faster, solo-loop-plap, solo-loop-bath, solo-loop-slick, oral-loop.
+- Him: six takes in the drifting blend now (wet 3, plapping 3, sticky 2.5, either-way 1.5, speeding-up 1 or 3 when it's fast, dry 0.8).
+- Her: the slick fingering take and the either-way take blended, same drift.
+- New solobath layer: in the bath or shower (or the last 3 messages put them there), touching themselves uses her bathtub take with a wet take under it.
+- New oral layer (erotic): her oral recording as a loop with drifting speed and the odd wet cut, when the last 2 messages name it (either way round: sucking him, going down on her, her head bobbing, licking, deepthroating and so on).
+- The fingers layer gets the slick fingering loop underneath its cuts.
+
+## 2.0.35
+- Self-pleasure sounds rebuilt from her original recordings: no compression (it warped them and sounded reversed). Each take is played whole as a seamless loop (1.2 s crossfade at the seam), only turned up with a soft knee on the rare peaks: sounds/solo-loop-dry, solo-loop-wet, solo-loop-her. solo-1..3 and seat-2 back to their 2.0.32 versions for the cut-up uses.
+- Him: the three takes spliced together. Every 3-7 s the mix drifts to a new blend (weighted wet 3, either-way 2.2, dry 1, so the cartoonish dry take mostly sits underneath), with loose wet cuts from her older wet recordings on top for mess.
+- Speed variation (speedDrift): around the scene's pace, every 2.5-7 s it glides slower, steady, quicker or into a short fast burst (rate 0.78-1.35), for him and her.
+- Her: the either-way take as a seamless loop with the same speed drift and slick finger cuts now and then.
+
 ## 2.0.34
 - Human sounds removed at her request: the breathing, moans and whimpers layers (breath, breathlow, voice), their recordings (breath-1, breath-2, moan, whimper) and cuts are gone. Everything else stays.
 - Softer creaks: the toilet seat (furniture, one-offs, peeing, the office chair mix), the bed's creak, the office chair, the floor, footsteps, the rocking chair and shifting in bed are all quieter; the seat is also slightly muffled. seat-2 re-encoded 10 dB down.

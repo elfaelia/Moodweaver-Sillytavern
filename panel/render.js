@@ -71,8 +71,16 @@ export function renderStatus() {
 // A finger down in the panel (dragging a slider, mid-tap) holds it too, so the button under it isn't rebuilt.
 
 export const typingInPanel = () => { const a = document.activeElement; return ui.pointerInPanel || Boolean(ui.panel && a && ui.panel.contains(a) && a.matches('textarea, input[type=text], input[type=search], input:not([type])')); };
+// 2.0.38: a tap that has already drawn its own change (a moon, a step) lets the phone show it first; the full
+// redraw follows right after the next frame, and taps in quick succession share one redraw.
+let soon = 0;
+export function renderSoon() {
+    if (soon) return;
+    soon = requestAnimationFrame(() => setTimeout(() => { soon = 0; render(); }, 0));
+}
 // A closed panel isn't drawn at all: opening it draws it fresh.
 export function render(background = false, force = false) {
+    if (soon) { cancelAnimationFrame(soon); soon = 0; }
     if (!ui.panel || (!ui.panel.open && !force)) return;
     if (background && ui.panel.open && typingInPanel()) { ui.renderLater = true; return; }
     ui.renderLater = false;
@@ -140,7 +148,7 @@ function drawPanel() {
         : ['char', 'user'].includes(ui.who) && ui.tab === 'period' ? periodView(state, ch)
         : ui.who !== 'story' && ui.tab === 'skills' ? skillsView(state, ch)
         : ui.who !== 'story' && ui.tab === 'rel' ? (ui.who === 'char' && peer?.key === '{{user}}' ? bondView({ bond: bondData(ch), charName: shortName(ch.name), userName: shortName(playerName()), chatLength: Infinity, axes: bondAxes(ch), list: bondList(ch), tally: reactionTally(ch), canRead: Boolean(readerProfile()), pending: Boolean(run.pending), savedPool: settings().dynamicPools?.[`char:${ch.avatar}`] ?? null, overlaps: overlapNames(bondOverlaps(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name), shortName(playerName())), drivers: bondDrivers(ch) }) : '') + relationshipView({
-            peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}\u2019s side` : '', removing: ui.removingRelation, meterRows: ui.who === 'char' && peer?.key === '{{user}}' && bondData(ch).on })
+            lazyBodies: ui.lazyBodies, peerExtra: ui.who === 'char' && bondData(ch).on ? { '{{user}}': bondMini(bondData(ch), Infinity, bondAxes(ch), bondList(ch)) } : {}, subject: subjectName(), peers: peers(), selectedKey: peer?.key, relation: peer?.relation, pair: peer?.pair, view: ui.pairView, selfKey: personKeyOfSubject(), otherKey: peer ? keyForTarget(peer.key) : '', knowledge: getKnowledge(ch), isPlayer: ui.who === 'user', focus: ch.name, openGroups: openRelationGroups, swapLabel: peer && swapTarget(peer) ? `${peer.name}\u2019s side` : '', removing: ui.removingRelation, meterRows: ui.who === 'char' && peer?.key === '{{user}}' && bondData(ch).on })
         // Stress and coping live on Mind (2.0.24), at the top.
         : `${kind === 'psyche' && ui.who === 'char' ? stressCard(stressNow(ch, effectiveChat(ctx().chat ?? [])), shortName(ch.name)) : ''}${sectionContent(state, kind, ch, active)}`}</div>`;
     const where = live?.found ? [live.time, live.location.split(',')[0]].filter(Boolean).join(' \u00b7 ') : '';
@@ -234,9 +242,10 @@ function moonStops(input) {
 const inputOf = el => el.closest('.mw-stepped')?.previousElementSibling;
 function setRange(input, to) {
     input.value = String(to);
-    input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
     const box = input.nextElementSibling?.querySelector('.mw-range-moons');
-    if (input.isConnected && box) drawMoons(input, box);
+    if (box) drawMoons(input, box);
+    ui.tapDrawnAt = Date.now();
+    input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 export function stepRangeMoon(button) {
     const input = inputOf(button);
@@ -288,6 +297,7 @@ function showGroupMatches(group, count, term) {
 }
 export function filterRelationships(value) {
     const term = value.trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (term) ui.panel.querySelectorAll('[data-relation-group] > [data-lazy]').forEach(b => fillLazy(b));
     let shown = 0;
     ui.panel.querySelectorAll('[data-relation-group]').forEach(group => {
         let visible = 0;
@@ -332,7 +342,8 @@ export function filterRows() {
 // used to wait for the save) shows at once. Saving a long chat can take a moment on a phone.
 export async function changeState(mutator) {
     const s = viewState(); if (!s) return;
-    mutator(s); render(); await persist(s); await syncPrompt();
+    // A moon or step tap has already drawn itself, so the full redraw can wait a frame (2.0.38).
+    mutator(s); if (Date.now() - (ui.tapDrawnAt ?? 0) < 400) renderSoon(); else render(); await persist(s); await syncPrompt();
 }
 // Every press writes what happened under the Open mood panel button in Extensions, so a phone
 // with no console can still show why the panel isn't visible.
@@ -420,10 +431,12 @@ export function tapGlow(e) {
     const key = glowKey(target), nth = key ? [...ui.panel.querySelectorAll(key)].indexOf(target) : -1;
     ui.glow = { key, nth, at: Date.now() }; light(target, 0);
 }
+// 2.0.38: no forced layout to restart the glow (reading offsetWidth made the phone lay out the whole panel on
+// every tap): a fresh element just gets the class, and one already glowing restarts on the next frame.
 function light(el, skip) {
-    el.classList.remove('mw-tapglow'); void el.offsetWidth;
-    el.style.setProperty('--mw-glow-skip', `${-skip}ms`); el.classList.add('mw-tapglow');
-    setTimeout(() => el.classList.remove('mw-tapglow'), GLOW_MS - skip + 50);
+    const go = () => { el.style.setProperty('--mw-glow-skip', `${-skip}ms`); el.classList.add('mw-tapglow');
+        clearTimeout(el.mwGlow); el.mwGlow = setTimeout(() => el.classList.remove('mw-tapglow'), GLOW_MS - skip + 50); };
+    if (el.classList.contains('mw-tapglow')) { el.classList.remove('mw-tapglow'); requestAnimationFrame(go); } else go();
 }
 export function reglow(root) {
     const g = ui.glow; if (!g?.key) return; const ago = Date.now() - g.at; if (ago >= GLOW_MS - 80) return;

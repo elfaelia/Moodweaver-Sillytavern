@@ -1,7 +1,7 @@
 // Reading the chat's replies: the needs board, hidden weave lines, bond meters, and keeping
 // everything in line when replies are swiped, edited or deleted.
 import { getCast, getKnowledge, getPair, getState, getStoryState, getUserState, members, pairId, persist, playerName, resolveRelationName, target } from './chat.js';
-import { lastDynamic, movePace, syncPromptNow, writingNow } from './note.js';
+import { lastDynamic, movePace, syncPrompt, syncPromptNow, writingNow } from './note.js';
 import { settings } from './settings.js';
 import { KEY, ctx, newId, run, ui } from './state.js';
 import { knowledgeEntry, listAuto, pruneAuto, trimFeelings } from '../engine/state.js';
@@ -21,7 +21,7 @@ import { DRINKS_WINDOW, drinkFact, drinksIn, drugTaken, his } from '../engine/in
 import { placesFrom } from '../engine/inventory.js';
 import { FACTS, REPLY_HOURS, factFeelings, factStep, fadeStep, heldBy, paceDelta, snapped } from '../engine/moodpace.js';
 import { findOverlaps } from '../engine/overlap.js';
-import { render } from '../panel/render.js';
+import { render, renderSoon } from '../panel/render.js';
 import { guessPronoun, setPronoun } from '../engine/pronouns.js';
 import { cleanCombos, cravingsFrom, findCombos } from '../engine/reactive.js';
 import { RELATIONSHIP_BY_ID, SHARED_BY_ID, TO_METER, cloneRelationships, meterTies } from '../engine/relationships.js';
@@ -219,7 +219,8 @@ function needSteps(chat = liveChat()) {
 export async function editBoard(mutate) {
     const meta = ctx().chatMetadata?.[KEY]; if (!meta) return;
     const b = cleanBoardMeta(meta.board); mutate(b); meta.board = b;
-    await persist(); await syncPromptNow(); render();
+    // 2.0.38: drawn first, then saved; the note rebuilds a moment later (and always fresh before a reply).
+    renderSoon(); await persist(); await syncPrompt();
 }
 // A reply arrived, or one was swiped, edited, continued or deleted. Bring everything into line with
 // the chat, save, and redraw.
@@ -1017,7 +1018,7 @@ function migrateChat(meta, chat) {
 export async function editBond(mutate) {
     const ch = target(), bond = bondData(ch); if (!ch) return;
     mutate(bond, bondList(ch)); ctx().chatMetadata[KEY].bond[`char:${ch.avatar}`] = cleanBond(bond, settings().bondTrack);
-    await persist(); await syncPromptNow(); render();
+    renderSoon(); await persist(); await syncPrompt();
 }
 // Memories the board or hidden line saved (and nobody has edited since) between this character and you.
 export const boardMemoryCount = ch => (getPair(`char:${ch?.avatar}`, 'user')?.memories ?? []).filter(untouchedMemory).length;

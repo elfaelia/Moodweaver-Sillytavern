@@ -8,13 +8,21 @@ const KNOW_LABELS = ['Scene only', 'Private', 'Suspected', 'Known'];
 const sliderRow = (attr, id, label, cue, value, extra = '') => `<div class="mw-mood" data-relation-row="${id}"><div class="mw-row-head"><label for="mw-${attr}-${id}">${esc(label)}</label><span data-lvl>${level(value)}</span><output for="mw-${attr}-${id}">${value}%</output></div>
     <input id="mw-${attr}-${id}" type="range" min="0" max="100" step="1" value="${value}" data-${attr}="${id}" style="--mw-fill:${value}%" aria-valuetext="${value} percent, ${level(value)}">
     <small>${esc(cue)}</small>${extra}</div>`;
+// 2.0.38: a folded group's sliders are only drawn when it's opened (lazy holds them; see fillLazy), so a tap on
+// Bonds doesn't rebuild hundreds of hidden meters.
+let lazy = null;
+const groupBody = (key, rows, open, row) => {
+    if (!open && lazy) { lazy.set(key, () => rows.map(row).join('')); return `<div class="mw-category-body" data-lazy="${esc(key)}"></div>`; }
+    return `<div class="mw-category-body">${rows.map(row).join('')}</div>`;
+};
 const groupsHtml = (cats, values, openGroups, row) => cats.map(([category, icon, color, rows]) => {
     const on = rows.filter(([id]) => values[id] > 0).length;
-    return `<details data-relation-group="${esc(category)}" style="--mw-accent:${color}" ${openGroups.has(category) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${category}</span><small>${on ? `${on} active` : rows.length}</small></summary><div class="mw-category-body">${rows.map(row).join('')}</div></details>`;
+    return `<details data-relation-group="${esc(category)}" style="--mw-accent:${color}" ${openGroups.has(category) ? 'open' : ''}><summary><span class="mw-category-icon">${icon}</span><span>${category}</span><small>${on ? `${on} active` : rows.length}</small></summary>${groupBody(`rel:${category}`, rows, openGroups.has(category), row)}</details>`;
 }).join('');
 
 // Sims-style list of everyone else, then the selected pairing underneath: their side, or both of them.
-export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing, peerExtra = {}, meterRows = false }) {
+export function relationshipView({ subject, peers, selectedKey, relation, pair, view, selfKey, otherKey, knowledge, isPlayer, focus, openGroups, swapLabel, removing, peerExtra = {}, meterRows = false, lazyBodies = null }) {
+    lazy = lazyBodies;
     // 1.86: toward you, with the bond meters on, feelings that are really a meter live on Bonds above instead.
     const cats = meterRows ? RELATIONSHIP_CATEGORIES.map(([c, i, col, rows]) => [c, i, col, rows.filter(([id]) => !TO_METER[id])]).filter(([, , , rows]) => rows.length) : RELATIONSHIP_CATEGORIES;
     const selected = peers.find(p => p.key === selectedKey) ?? peers[0];
